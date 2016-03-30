@@ -12,4 +12,10 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+CRTBEGIN_O := $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtbegin.o)
+CRTEND_O := $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtend.o)
+
+START_OBJ := $(BUILD)/arch/i686/crti.o $(CRTBEGIN_O)
+END_OBJ := $(CRTEND_O) $(BUILD)/arch/i686/crtn.o
+
 OBJ += arch/i686/start.o

@@ -10,47 +10,19 @@
  * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
  */
 
-/* kernel/src/arch/i686/start.S
- * Contains the multiboot header and the entry point.
+/* kernel/src/arch/i686/crtn.S
+ * Provides _init and _fini symbols to call global ctors/dtors.
  */
 
-#define MULTIBOOT_MAGIC 0x1BADB002
-#define MULTIBOOT_FLAGS 0x3
-#define MULTIBOOT_CHECKSUM -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
+.section .init
+    # GCC will call global constructors here
+    pop %ebp
+    ret
 
-.section multiboot
-.align 4
-.long MULTIBOOT_MAGIC
-.long MULTIBOOT_FLAGS
-.long MULTIBOOT_CHECKSUM
-
-.section .text
-.global _start
-.type _start, @function
-_start:
-    mov $kernel_stack, %esp
-
-    push $0
-    push $0
-    mov %esp, %ebp
-
-    push %ebx # multiboot
-    push %eax # magic
-
-    call _init
-
-    call kmain
-
-_halt:
-    cli
-    hlt
-    jmp _halt
-.size _start, . - _start
-
-.section .bss
-.align 4096
-.skip 4096
-kernel_stack:
+.section .fini
+    # GCC will call global destructors here
+    pop %ebp
+    ret

@@ -30,7 +30,7 @@ OBJ := kernel.o
 
 include $(ARCH).mk
 
-OBJ := $(addprefix $(BUILD)/, $(OBJ))
+OBJ := $(START_OBJ) $(addprefix $(BUILD)/, $(OBJ)) $(END_OBJ)
 
 all: $(BUILD)/kernel
 
