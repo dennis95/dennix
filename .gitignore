@@ -6,3 +6,4 @@
 RemoteSystemsTempFiles/
 
 build/
+*.iso

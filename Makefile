@@ -14,15 +14,34 @@
 
 REPO_ROOT = .
 
+export ARCH ?= i686
+
 include $(REPO_ROOT)/build-aux/paths.mk
 include $(REPO_ROOT)/build-aux/toolchain.mk
 
-all: kernel
+KERNEL = $(BUILD_DIR)/kernel/kernel
+ISO = dennix.iso
 
-kernel:
+all: kernel iso
+
+kernel: $(KERNEL)
+
+iso: $(ISO)
+
+$(ISO): $(KERNEL)
+	rm -rf $(BUILD_DIR)/isosrc
+	cp -rf isosrc $(BUILD_DIR)
+	cp -f $(KERNEL) $(BUILD_DIR)/isosrc
+	$(MKRESCUE) -o $@ $(BUILD_DIR)/isosrc
+
+$(KERNEL):
 	$(MAKE) -C kernel
+
+qemu: $(ISO)
+	qemu-system-i386 -cdrom $^
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm -f $(ISO)
 
-.PHONY: all kernel clean
+.PHONY: all kernel iso qemu clean

@@ -16,3 +16,5 @@
 ifneq ($(filter default undefined, $(origin CXX)),)
   CXX := $(ARCH)-elf-g++
 endif
+
+MKRESCUE ?= grub-mkrescue
