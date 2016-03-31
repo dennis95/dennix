@@ -13,15 +13,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
  */
 
-/* kernel/src/kernel.cpp
- * The kernel's main function.
+/* kernel/include/dennix/kernel/log.h
+ * Declares functions to print to the screen.
  */
 
-#include <stddef.h>
-#include <stdint.h>
-#include <dennix/kernel/log.h>
+#ifndef KERNEL_LOG_H
+#define KERNEL_LOG_H
 
-extern "C" void kmain(uint32_t /*magic*/, uintptr_t /*multiboot*/) {
-    Log::printf("Hello World!\n");
-    Log::printf("We can now print numbers: %u, 0x%x\n", 42, 42);
+namespace Log {
+
+    void printf(const char* format, ...);
 }
+
+#endif

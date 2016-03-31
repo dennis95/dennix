@@ -24,7 +24,8 @@ ISO = dennix.iso
 
 all: kernel iso
 
-kernel: $(KERNEL)
+kernel:
+	$(MAKE) -C kernel
 
 iso: $(ISO)
 

@@ -23,10 +23,13 @@ BUILD = $(BUILD_DIR)/kernel
 
 CXXFLAGS ?= -O2 -g
 CXXFLAGS += -std=gnu++14 -ffreestanding -fno-exceptions -fno-rtti -Wall -Wextra
+CPPFLAGS += -I include
 LDFLAGS += -T linker.ld -ffreestanding -nostdlib
 LIBS += -lgcc
 
-OBJ := kernel.o
+OBJ := \
+	kernel.o \
+	log.o
 
 include $(ARCH).mk
 
