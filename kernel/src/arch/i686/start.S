@@ -31,7 +31,18 @@
 .global _start
 .type _start, @function
 _start:
-    mov $kernel_stack, %esp
+    # Load the GDT.
+    mov $gdt_descriptor, %ecx
+    lgdt (%ecx)
+    mov $0x10, %cx
+    mov %cx, %ds
+    mov %cx, %es
+    mov %cx, %fs
+    mov %cx, %gs
+    mov %cx, %ss
+    ljmp $0x8, $1f
+
+1:  mov $kernel_stack, %esp
 
     push $0
     push $0

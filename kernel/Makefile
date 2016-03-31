@@ -28,6 +28,7 @@ LDFLAGS += -T linker.ld -ffreestanding -nostdlib
 LIBS += -lgcc
 
 OBJ := \
+	gdt.o \
 	kernel.o \
 	log.o
 
