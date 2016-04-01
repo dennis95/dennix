@@ -13,20 +13,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
  */
 
-/* kernel/src/kernel.cpp
- * The kernel's main function.
+/* kernel/include/dennix/kernel/interrupts.h
+ * Interrupt handling.
  */
 
-#include <stddef.h>
+#ifndef KERNEL_INTERRUPTS_H
+#define KERNEL_INTERRUPTS_H
+
 #include <stdint.h>
-#include <dennix/kernel/interrupts.h>
-#include <dennix/kernel/log.h>
 
-extern "C" void kmain(uint32_t /*magic*/, uintptr_t /*multiboot*/) {
-    Log::printf("Hello World!\n");
-    Interrupts::initPic();
-    Interrupts::enable();
-    Log::printf("Interrupts enabled!\n");
+struct InterruptContext {
+    uint32_t eax;
+    uint32_t ebx;
+    uint32_t ecx;
+    uint32_t edx;
+    uint32_t esi;
+    uint32_t edi;
+    uint32_t ebp;
 
-    while (true);
+    uint32_t interrupt;
+    uint32_t error;
+
+    // These are pushed by the cpu when an interrupt happens.
+    uint32_t eip;
+    uint32_t cs;
+    uint32_t eflags;
+};
+
+namespace Interrupts {
+void enable();
+void initPic();
 }
+
+
+#endif

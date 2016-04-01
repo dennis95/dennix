@@ -18,4 +18,6 @@ CRTEND_O := $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtend.o)
 START_OBJ := $(BUILD)/arch/i686/crti.o $(CRTBEGIN_O)
 END_OBJ := $(CRTEND_O) $(BUILD)/arch/i686/crtn.o
 
-OBJ += arch/i686/start.o
+OBJ += \
+	arch/i686/interrupts.o \
+	arch/i686/start.o

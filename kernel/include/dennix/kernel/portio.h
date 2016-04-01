@@ -13,20 +13,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
  */
 
-/* kernel/src/kernel.cpp
- * The kernel's main function.
+/* kernel/include/dennix/kernel/portio.h
+ * Port IO.
  */
 
-#include <stddef.h>
+#ifndef KERNEL_PORTIO_H
+#define KERNEL_PORTIO_H
+
 #include <stdint.h>
-#include <dennix/kernel/interrupts.h>
-#include <dennix/kernel/log.h>
 
-extern "C" void kmain(uint32_t /*magic*/, uintptr_t /*multiboot*/) {
-    Log::printf("Hello World!\n");
-    Interrupts::initPic();
-    Interrupts::enable();
-    Log::printf("Interrupts enabled!\n");
-
-    while (true);
+static inline void outb(uint16_t port, uint8_t value) {
+    asm volatile ("outb %0, %1" :: "a"(value), "Nd"(port));
 }
+
+#endif

@@ -42,7 +42,11 @@ _start:
     mov %cx, %ss
     ljmp $0x8, $1f
 
-1:  mov $kernel_stack, %esp
+    # Load the IDT
+1:  mov $idt_descriptor, %ecx
+    lidt (%ecx)
+
+    mov $kernel_stack, %esp
 
     push $0
     push $0

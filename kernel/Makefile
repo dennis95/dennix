@@ -29,6 +29,8 @@ LIBS += -lgcc
 
 OBJ := \
 	gdt.o \
+	idt.o \
+	interrupts.o \
 	kernel.o \
 	log.o
 
