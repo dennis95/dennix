@@ -49,6 +49,12 @@ void Interrupts::enable() {
 extern "C" InterruptContext* handleInterrupt(InterruptContext* context) {
     if (context->interrupt <= 31) { // CPU Exception
         Log::printf("Exception %u occurred!\n", context->interrupt);
+        Log::printf("eax: 0x%x, ebx: 0x%x, ecx: 0x%x, edx: 0x%x\n",
+                context->eax, context->ebx, context->ecx, context->edx);
+        Log::printf("edi: 0x%x, esi: 0x%x, ebp: 0x%x, error: 0x%x\n",
+                context->edi, context->esi, context->ebp, context->error);
+        Log::printf("eip: 0x%x, cs: 0x%x, eflags: 0x%x\n",
+                context->eip, context->cs, context->eflags);
         // Halt the cpu
         while (true) asm volatile ("cli; hlt");
     } else if (context->interrupt <= 47) { // IRQ
