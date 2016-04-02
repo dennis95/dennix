@@ -21,6 +21,7 @@ include $(REPO_ROOT)/build-aux/toolchain.mk
 
 BUILD = $(BUILD_DIR)/kernel
 
+ASFLAGS += -Wa,--divide
 CXXFLAGS ?= -O2 -g
 CXXFLAGS += -std=gnu++14 -ffreestanding -fno-exceptions -fno-rtti -Wall -Wextra
 CPPFLAGS += -I include
