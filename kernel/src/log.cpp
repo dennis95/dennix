@@ -21,7 +21,8 @@
 #include <stddef.h>
 #include <dennix/kernel/log.h>
 
-static char* video = (char*) 0xB8000;
+// In _start the video memory is mapped at this address.
+static char* video = (char*) 0xC0000000;
 static int cursorPosX = 0;
 static int cursorPosY = 0;
 

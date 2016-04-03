@@ -13,16 +13,30 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
  */
 
-/* kernel/include/dennix/kernel/kernel.h
- * Contains some common definitions for the kernel.
+/* kernel/include/dennix/kernel/addressspace.h
+ * Address space class.
  */
 
-#ifndef KERNEL_KERNEL_H
-#define KERNEL_KERNEL_H
+#ifndef KERNEL_ADDRESSSPACE_H
+#define KERNEL_ADDRESSSPACE_H
 
-#define PACKED __attribute__((__packed__))
+#include <stdint.h>
 
-// Define an incomplete type for symbols so we can only take their addresses
-typedef struct _incomplete_type symbol_t;
+typedef uintptr_t paddr_t;
+typedef uintptr_t vaddr_t;
+
+class AddressSpace {
+public:
+    vaddr_t mapAt(vaddr_t virtualAddress, paddr_t physicalAddress, int flags);
+    void unmap(vaddr_t virtualAddress);
+private:
+    AddressSpace();
+    static AddressSpace _kernelSpace;
+public:
+    static void initialize();
+};
+
+// Global variable for the kernel's address space
+extern AddressSpace* kernelSpace;
 
 #endif

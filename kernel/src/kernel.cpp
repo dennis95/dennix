@@ -19,11 +19,14 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/log.h>
 
 extern "C" void kmain(uint32_t /*magic*/, uintptr_t /*multiboot*/) {
     Log::printf("Hello World!\n");
+    AddressSpace::initialize();
+    Log::printf("Address space initialized!\n");
     Interrupts::initPic();
     Interrupts::enable();
     Log::printf("Interrupts enabled!\n");

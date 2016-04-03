@@ -35,6 +35,9 @@ _start:
     movl $(pageTableBootstrap + 0x3), pageDirectory
     movl $(pageTableKernel + 0x3), pageDirectory + 0xC00
 
+    # Recursively map the page directory at 0xFFC00000
+    movl $(pageDirectory + 0x3), pageDirectory + 0xFFC
+
     # Identity-map the bootstrap section
     mov $numBootstrapPages, %ecx
     mov $(pageTableBootstrap + 256 * 4), %edi
@@ -55,8 +58,8 @@ _start:
     add $0x1000, %edx
     loop 1b
 
-    # Map video memory
-    movl $0xB8003, pageTableBootstrap + 0x2E0
+    # Map video memory at 0xC0000000.
+    movl $0xB8003, pageTableKernel
 
     # Enable paging
     mov $pageDirectory, %ecx

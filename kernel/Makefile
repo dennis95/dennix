@@ -29,6 +29,7 @@ LDFLAGS += -T linker.ld -ffreestanding -nostdlib
 LIBS += -lgcc
 
 OBJ := \
+	addressspace.o \
 	gdt.o \
 	idt.o \
 	interrupts.o \
