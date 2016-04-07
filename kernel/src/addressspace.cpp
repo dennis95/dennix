@@ -57,6 +57,29 @@ void AddressSpace::initialize() {
     }
 }
 
+paddr_t AddressSpace::getPhysicalAddress(vaddr_t virtualAddress) {
+    size_t pdIndex;
+    size_t ptIndex;
+    addressToIndex(virtualAddress, pdIndex, ptIndex);
+
+    if (this == kernelSpace) {
+        uintptr_t* pageTable = (uintptr_t*)
+                (RECURSIVE_MAPPING + 0x3FF000 + 4 * pdIndex);
+        if (*pageTable) {
+            uintptr_t* pageEntry = (uintptr_t*)
+                    (RECURSIVE_MAPPING + 0x1000 * pdIndex + 4 * ptIndex);
+            return *pageEntry & ~0xFFF;
+        } else {
+            Log::printf("Error: Page Table does not exist.\n");
+            return 0;
+        }
+    } else {
+        //TODO: Implement this for other address spaces.
+        return 0;
+    }
+
+}
+
 vaddr_t AddressSpace::map(paddr_t physicalAddress, int flags) {
     // Find a free page in the higher half and map it
     for (size_t pdIndex = 0x300; pdIndex < 0x400; pdIndex++) {

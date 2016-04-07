@@ -34,7 +34,8 @@ OBJ := \
 	idt.o \
 	interrupts.o \
 	kernel.o \
-	log.o
+	log.o \
+	physicalmemory.o
 
 include $(ARCH).mk
 

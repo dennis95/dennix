@@ -21,13 +21,14 @@
 #define KERNEL_ADDRESSSPACE_H
 
 #include <stddef.h>
-#include <stdint.h>
+#include <dennix/kernel/kernel.h>
 
-typedef uintptr_t paddr_t;
-typedef uintptr_t vaddr_t;
+#define PAGE_PRESENT 0x1
+#define PAGE_WRITABLE 0x2
 
 class AddressSpace {
 public:
+    paddr_t getPhysicalAddress(vaddr_t virtualAddress);
     vaddr_t map(paddr_t physicalAddress, int flags);
     vaddr_t mapAt(vaddr_t virtualAddress, paddr_t physicalAddress, int flags);
     vaddr_t mapAt(size_t pdIndex, size_t ptIndex, paddr_t physicalAddress,

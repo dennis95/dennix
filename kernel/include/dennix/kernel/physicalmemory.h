@@ -13,30 +13,19 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
  */
 
-/* kernel/src/kernel.cpp
- * The kernel's main function.
+/* kernel/include/dennix/kernel/physicalmemory.h
+ * Physical memory management.
  */
 
-#include <dennix/kernel/addressspace.h>
-#include <dennix/kernel/interrupts.h>
-#include <dennix/kernel/log.h>
-#include <dennix/kernel/physicalmemory.h>
+#ifndef KERNEL_PHYSICALMEMORY_H
+#define KERNEL_PHYSICALMEMORY_H
 
-extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
-    Log::printf("Hello World!\n");
-    AddressSpace::initialize();
-    Log::printf("Address space initialized!\n");
+#include <dennix/kernel/multiboot.h>
 
-    multiboot_info* multiboot = (multiboot_info*) kernelSpace->map(
-            multibootAddress, PAGE_PRESENT | PAGE_WRITABLE);
-
-    PhysicalMemory::initialize(multiboot);
-
-    kernelSpace->unmap((vaddr_t) multiboot);
-
-    Interrupts::initPic();
-    Interrupts::enable();
-    Log::printf("Interrupts enabled!\n");
-
-    while (true);
+namespace PhysicalMemory {
+void initialize(multiboot_info* multiboot);
+void pushPageFrame(paddr_t physicalAddress);
+paddr_t popPageFrame();
 }
+
+#endif
