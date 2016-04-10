@@ -12,7 +12,15 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
 
-# Don't use the default value for CXX.
+# Don't use the default values from make.
+ifneq ($(filter default undefined, $(origin AR)),)
+  AR := $(ARCH)-elf-ar
+endif
+
+ifneq ($(filter default undefined, $(origin CC)),)
+  CC := $(ARCH)-elf-gcc
+endif
+
 ifneq ($(filter default undefined, $(origin CXX)),)
   CXX := $(ARCH)-elf-g++
 endif

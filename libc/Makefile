@@ -19,43 +19,43 @@ REPO_ROOT = ..
 include $(REPO_ROOT)/build-aux/paths.mk
 include $(REPO_ROOT)/build-aux/toolchain.mk
 
-BUILD = $(BUILD_DIR)/kernel
+BUILD = $(BUILD_DIR)/libc
 
-ASFLAGS += -Wa,--divide
-CXXFLAGS ?= -O2 -g
-CXXFLAGS += --sysroot=$(SYSROOT) -std=gnu++14 -ffreestanding -fno-exceptions
-CXXFLAGS += -fno-rtti -Wall -Wextra
-CPPFLAGS += -I include -I $(SYSROOT)/usr/include
-LDFLAGS += --sysroot=$(SYSROOT) -T linker.ld -ffreestanding -nostdlib
-LIBS += -lk -lgcc
+ARFLAGS := -crs
+CFLAGS ?= -O2 -g
+CFLAGS += -std=gnu11 -ffreestanding -Wall -Wextra
+CPPFLAGS += -I include
 
-OBJ := \
-	addressspace.o \
-	gdt.o \
-	idt.o \
-	interrupts.o \
-	kernel.o \
-	log.o \
-	physicalmemory.o
+LIBK_OBJ := \
+	stdlib/free \
+	stdlib/malloc \
+	stdlib/malloc-util
 
-include $(ARCH).mk
+LIBK_OBJ := $(addprefix $(BUILD)/, $(addsuffix .libk.o, $(LIBK_OBJ)))
 
-OBJ := $(START_OBJ) $(addprefix $(BUILD)/, $(OBJ)) $(END_OBJ)
+all: $(BUILD)/libk.a
 
-all: $(BUILD)/kernel
+install: install-headers install-libk
 
-$(BUILD)/kernel: $(OBJ)
-	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
+install-headers: $(SYSROOT)/usr/include
 
-$(BUILD)/%.o: src/%.cpp
+install-libk: $(BUILD)/libk.a
+	@mkdir -p $(SYSROOT)/usr/lib
+	cp -f $^ $(SYSROOT)/usr/lib
+
+$(SYSROOT)/usr/include: include
+	@mkdir -p $@
+	@touch $@
+	cp -rf include $(SYSROOT)/usr
+
+$(BUILD)/libk.a: $(LIBK_OBJ)
+	$(AR) $(ARFLAGS) $@ $^
+
+$(BUILD)/%.libk.o: src/%.c
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c -o $@ $^
-
-$(BUILD)/%.o: src/%.S
-	@mkdir -p $(dir $@)
-	$(CXX) $(ASFLAGS) $(CPPFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $^
 
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all clean
+.PHONY: all install install-headers install-libk clean

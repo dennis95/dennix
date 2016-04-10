@@ -22,10 +22,19 @@ include $(REPO_ROOT)/build-aux/toolchain.mk
 KERNEL = $(BUILD_DIR)/kernel/kernel
 ISO = dennix.iso
 
-all: kernel iso
+all: install-headers libc install-libc kernel iso
 
 kernel:
 	$(MAKE) -C kernel
+
+libc:
+	$(MAKE) -C libc
+
+install-libc:
+	$(MAKE) -C libc install
+
+install-headers:
+	$(MAKE) -C libc install-headers
 
 iso: $(ISO)
 
@@ -45,4 +54,8 @@ clean:
 	rm -rf $(BUILD_DIR)
 	rm -f $(ISO)
 
-.PHONY: all kernel iso qemu clean
+distclean:
+	rm -rf build sysroot
+	rm -f *.iso
+
+.PHONY: all kernel libc install-headers install-libc iso qemu clean distclean

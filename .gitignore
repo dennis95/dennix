@@ -6,4 +6,5 @@
 RemoteSystemsTempFiles/
 
 build/
+sysroot/
 *.iso
