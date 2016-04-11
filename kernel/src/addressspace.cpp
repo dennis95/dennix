@@ -17,6 +17,7 @@
  * Address space class.
  */
 
+#include <string.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/kernel.h>
 #include <dennix/kernel/log.h>
@@ -142,9 +143,7 @@ vaddr_t AddressSpace::mapAt(
             uintptr_t* pageTableVirt = (uintptr_t*) mapAt(0x3FF, pdIndex,
                     pageTablePhys, PAGE_PRESENT | PAGE_WRITABLE);
 
-            for(size_t i = 0; i < 1024; i++) {
-                pageTableVirt[i] = 0;
-            }
+            memset(pageTableVirt, 0, 0x1000);
         }
 
         *pageEntry = physicalAddress | flags;
