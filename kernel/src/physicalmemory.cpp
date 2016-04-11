@@ -17,6 +17,7 @@
  * Physical memory management.
  */
 
+#include <assert.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/physicalmemory.h>
@@ -74,6 +75,8 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
 }
 
 void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
+    assert(!(physicalAddress & 0xFFF));
+
     if (unlikely(stackUnused == 0)) {
         // Use the page frame to extend the stack
         //TODO: What if the address is already in use?

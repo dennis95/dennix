@@ -17,6 +17,7 @@
  * Memory deallocation.
  */
 
+#include <assert.h>
 #include "malloc.h"
 
 void free(void* addr) {
@@ -24,6 +25,8 @@ void free(void* addr) {
     __lockHeap();
 
     Chunk* chunk = (Chunk*) addr - 1;
+
+    assert(chunk->magic == MAGIC_USED_CHUNK);
 
     chunk->magic = MAGIC_FREE_CHUNK;
 
@@ -39,6 +42,8 @@ void free(void* addr) {
     if (chunk->prev == NULL && chunk->next->magic == MAGIC_END_CHUNK) {
         // The whole big chunk is free, so we can unmap it
         Chunk* bigChunk = chunk - 1;
+        assert(bigChunk->magic == MAGIC_BIG_CHUNK);
+
         if (bigChunk->prev) {
             bigChunk->prev->next = bigChunk->next;
         }

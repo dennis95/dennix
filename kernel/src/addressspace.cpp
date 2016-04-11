@@ -17,6 +17,7 @@
  * Address space class.
  */
 
+#include <assert.h>
 #include <string.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/kernel.h>
@@ -34,11 +35,14 @@ AddressSpace AddressSpace::_kernelSpace;
 AddressSpace* kernelSpace;
 
 static inline vaddr_t indexToAddress(size_t pdIndex, size_t ptIndex) {
+    assert(pdIndex <= 0x3FF);
+    assert(ptIndex <= 0x3FF);
     return (pdIndex << 22) | (ptIndex << 12);
 }
 
 static inline void addressToIndex(
         vaddr_t virtualAddress, size_t& pdIndex, size_t& ptIndex) {
+    assert(!(virtualAddress & 0xFFF));
     pdIndex = virtualAddress >> 22;
     ptIndex = (virtualAddress >> 12) & 0x3FF;
 }
@@ -131,6 +135,8 @@ vaddr_t AddressSpace::mapAt(
 
 vaddr_t AddressSpace::mapAt(
         size_t pdIndex, size_t ptIndex, paddr_t physicalAddress, int flags) {
+    assert(!(flags & ~0xFFF));
+
     if (this == kernelSpace) {
         uintptr_t* pageTable = (uintptr_t*)
                 (RECURSIVE_MAPPING + 0x3FF000 + 4 * pdIndex);

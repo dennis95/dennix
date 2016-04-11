@@ -31,6 +31,7 @@ LIBS += -lk -lgcc
 
 OBJ := \
 	addressspace.o \
+	assert.o \
 	gdt.o \
 	idt.o \
 	interrupts.o \
