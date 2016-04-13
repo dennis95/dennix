@@ -20,6 +20,7 @@
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/portio.h>
+#include <dennix/kernel/process.h>
 
 #define PIC1_COMMAND 0x20
 #define PIC1_DATA 0x21
@@ -47,6 +48,8 @@ void Interrupts::enable() {
 }
 
 extern "C" InterruptContext* handleInterrupt(InterruptContext* context) {
+    InterruptContext* newContext = context;
+
     if (context->interrupt <= 31) { // CPU Exception
         Log::printf("Exception %u occurred!\n", context->interrupt);
         Log::printf("eax: 0x%x, ebx: 0x%x, ecx: 0x%x, edx: 0x%x\n",
@@ -58,7 +61,9 @@ extern "C" InterruptContext* handleInterrupt(InterruptContext* context) {
         // Halt the cpu
         while (true) asm volatile ("cli; hlt");
     } else if (context->interrupt <= 47) { // IRQ
-        Log::printf("IRQ %u occurred!\n", context->interrupt - 32);
+        if (context->interrupt == 32) {
+            newContext = Process::schedule(context);
+        }
 
         // Send End of Interrupt
         if (context->interrupt >= 40) {
@@ -68,5 +73,5 @@ extern "C" InterruptContext* handleInterrupt(InterruptContext* context) {
     } else {
         Log::printf("Unknown interrupt %u!\n", context->interrupt);
     }
-    return context;
+    return newContext;
 }

@@ -18,9 +18,17 @@
  */
 
 #include <dennix/kernel/addressspace.h>
-#include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/physicalmemory.h>
+#include <dennix/kernel/process.h>
+
+static void processA() {
+    while (true) Log::printf("A");
+}
+
+static void processB() {
+    while (true) Log::printf("B");
+}
 
 extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     Log::printf("Hello World!\n");
@@ -31,12 +39,20 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
             multibootAddress, PAGE_PRESENT | PAGE_WRITABLE);
 
     PhysicalMemory::initialize(multiboot);
+    Log::printf("Physical Memory initialized\n");
 
     kernelSpace->unmap((vaddr_t) multiboot);
+
+    Process::initialize();
+    Process::startProcess((void*) processA);
+    Process::startProcess((void*) processB);
+    Log::printf("Processes initialized\n");
 
     Interrupts::initPic();
     Interrupts::enable();
     Log::printf("Interrupts enabled!\n");
 
-    while (true);
+    while (true) {
+        asm volatile ("hlt");
+    }
 }

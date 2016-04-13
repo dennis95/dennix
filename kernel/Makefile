@@ -37,7 +37,8 @@ OBJ := \
 	interrupts.o \
 	kernel.o \
 	log.o \
-	physicalmemory.o
+	physicalmemory.o \
+	process.o
 
 include $(ARCH).mk
 
