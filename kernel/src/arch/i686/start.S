@@ -32,12 +32,12 @@
 .type _start, @function
 _start:
     # Add the page tables to the page directory
-    movl $(pageTableBootstrap + 0x3), pageDirectory
-    movl $(pageTableKernel + 0x3), pageDirectory + 0xC00
-    movl $(pageTablePhysicalMemory + 0x3), pageDirectory + 0xFF8
+    movl $(pageTableBootstrap + 0x3), kernelPageDirectory
+    movl $(pageTableKernel + 0x3), kernelPageDirectory + 0xC00
+    movl $(pageTablePhysicalMemory + 0x3), kernelPageDirectory + 0xFF8
 
     # Recursively map the page directory at 0xFFC00000
-    movl $(pageDirectory + 0x3), pageDirectory + 0xFFC
+    movl $(kernelPageDirectory + 0x3), kernelPageDirectory + 0xFFC
 
     # Identity-map the bootstrap section
     mov $numBootstrapPages, %ecx
@@ -63,7 +63,7 @@ _start:
     movl $0xB8003, pageTableKernel
 
     # Enable paging
-    mov $pageDirectory, %ecx
+    mov $kernelPageDirectory, %ecx
     mov %ecx, %cr3
 
     mov %cr0, %ecx
@@ -76,7 +76,8 @@ _start:
 
 .section bootstrap_bss, "aw", @nobits
 .align 4096
-pageDirectory:
+.global kernelPageDirectory
+kernelPageDirectory:
     .skip 4096
 pageTableBootstrap:
     .skip 4096

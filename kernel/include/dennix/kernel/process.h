@@ -20,12 +20,14 @@
 #ifndef KERNEL_PROCESS_H
 #define KERNEL_PROCESS_H
 
+#include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/interrupts.h>
 
 class Process {
 public:
     Process();
 private:
+    AddressSpace* addressSpace;
     InterruptContext* interruptContext;
     Process* next;
     void* stack;
