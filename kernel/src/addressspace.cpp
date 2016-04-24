@@ -84,7 +84,10 @@ vaddr_t AddressSpace::allocate(size_t nPages) {
     }
     physicalAddresses[nPages] = 0;
 
-    return mapRange(physicalAddresses, PAGE_PRESENT | PAGE_WRITABLE);
+    int flags = PAGE_PRESENT | PAGE_WRITABLE;
+    if (this != kernelSpace) flags |= PAGE_USER;
+
+    return mapRange(physicalAddresses, flags);
 }
 
 AddressSpace* AddressSpace::fork() {
@@ -237,7 +240,10 @@ vaddr_t AddressSpace::mapAt(
     if (!pageDirectory[pdIndex]) {
         // Allocate a new page table and map it in the page directory
         paddr_t pageTablePhys = PhysicalMemory::popPageFrame();
-        pageDirectory[pdIndex] = pageTablePhys | PAGE_PRESENT | PAGE_WRITABLE;
+        int pdFlags = PAGE_PRESENT | PAGE_WRITABLE;
+        if (this != kernelSpace) pdFlags |= PAGE_USER;
+
+        pageDirectory[pdIndex] = pageTablePhys | pdFlags;
 
         if (this != kernelSpace) {
             pageTable = (uintptr_t*) kernelSpace->map(pageTablePhys,
@@ -255,7 +261,7 @@ vaddr_t AddressSpace::mapAt(
                 pageDir[pdIndex] = pageTablePhys |
                         PAGE_PRESENT | PAGE_WRITABLE;
                 unmap((vaddr_t) pageDir);
-                addressSpace++;
+                addressSpace = addressSpace->next;
             }
         }
 

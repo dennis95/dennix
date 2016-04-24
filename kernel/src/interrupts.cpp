@@ -58,6 +58,9 @@ extern "C" InterruptContext* handleInterrupt(InterruptContext* context) {
                 context->edi, context->esi, context->ebp, context->error);
         Log::printf("eip: 0x%x, cs: 0x%x, eflags: 0x%x\n",
                 context->eip, context->cs, context->eflags);
+        if (context->cs != 0x8) {
+            Log::printf("ss: 0x%x, esp: 0x%x\n", context->ss, context->esp);
+        }
         // Halt the cpu
         while (true) asm volatile ("cli; hlt");
     } else if (context->interrupt <= 47) { // IRQ

@@ -45,6 +45,10 @@ commonHandler:
     push %ebx
     push %eax
 
+    # Switch to kernel data segment
+    mov $0x10, %ax
+    mov %ax, %ds
+
     mov %esp, %eax
     and $(~0xFF), %esp # Align the stack
     sub $12, %esp
@@ -52,6 +56,10 @@ commonHandler:
 
     call handleInterrupt
     mov %eax, %esp
+
+    # Switch back to user data segment
+    mov $0x23, %ax
+    mov %ax, %ds
 
     pop %eax
     pop %ebx

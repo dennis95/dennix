@@ -17,17 +17,26 @@
  * The kernel's main function.
  */
 
+#include <string.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/physicalmemory.h>
 #include <dennix/kernel/process.h>
 
 static void processA() {
-    while (true) Log::printf("A");
+    // We cannot call any functions from here because they only work in Ring 0
+    // So we just loop and assume it works if it does not fault
+    while (true);
 }
 
-static void processB() {
-    while (true) Log::printf("B");
+static Process* startProcesses(void* function) {
+    AddressSpace* addressSpace = kernelSpace->fork();
+    paddr_t phys = PhysicalMemory::popPageFrame();
+    void* processCode = (void*) addressSpace->map(phys, PAGE_PRESENT | PAGE_USER);
+    vaddr_t processMapped = kernelSpace->map(phys, PAGE_PRESENT | PAGE_WRITABLE);
+    memcpy((void*) processMapped, function, 0x1000);
+    kernelSpace->unmap(processMapped);
+    return Process::startProcess(processCode, addressSpace);
 }
 
 extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
@@ -44,8 +53,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     kernelSpace->unmap((vaddr_t) multiboot);
 
     Process::initialize();
-    Process::startProcess((void*) processA);
-    Process::startProcess((void*) processB);
+    startProcesses((void*) processA);
     Log::printf("Processes initialized\n");
 
     Interrupts::initPic();

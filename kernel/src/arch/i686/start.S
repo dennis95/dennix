@@ -89,9 +89,20 @@ pageTablePhysicalMemory:
 .section .text
 .type _start2, @function
 _start2:
+    mov $kernel_stack, %esp
+
+    # Put the TSS address into the GDT.
+    mov $tss, %ecx
+    mov %cx, gdt + 40 + 2
+    shr $16, %ecx
+    mov %cl, gdt + 40 + 4
+    mov %ch, gdt + 40 + 7
+
     # Load the GDT.
-    mov $gdt_descriptor, %ecx
-    lgdt (%ecx)
+    push $gdt
+    pushw gdt_size
+
+    lgdt (%esp)
     mov $0x10, %cx
     mov %cx, %ds
     mov %cx, %es
@@ -100,9 +111,14 @@ _start2:
     mov %cx, %ss
     ljmp $0x8, $1f
 
+1:  mov $0x2B, %cx
+    ltr %cx
+
     # Load the IDT
-1:  mov $idt_descriptor, %ecx
-    lidt (%ecx)
+    push $idt
+    pushw idt_size
+
+    lidt (%esp)
 
     mov $kernel_stack, %esp
 

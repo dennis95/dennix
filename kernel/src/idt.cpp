@@ -83,6 +83,8 @@ struct idt_entry {
 #define IDT_RING0 0
 #define IDT_PRESENT (1 << 7)
 
+extern "C" {
+
 idt_entry idt[] = {
     /*[0] =*/ IDT_ENTRY(isr_0, 0x8, IDT_INTERRUPT_GATE | IDT_RING0 | IDT_PRESENT),
     /*[1] =*/ IDT_ENTRY(isr_1, 0x8, IDT_INTERRUPT_GATE | IDT_RING0 | IDT_PRESENT),
@@ -136,12 +138,6 @@ idt_entry idt[] = {
     /*[47] =*/ IDT_ENTRY(isr_47, 0x8, IDT_INTERRUPT_GATE | IDT_RING0 | IDT_PRESENT),
 };
 
-extern "C" {
-struct {
-    uint16_t size;
-    void* idtp;
-} PACKED idt_descriptor = {
-    sizeof(idt) - 1,
-    idt
-};
+uint16_t idt_size = sizeof(idt) - 1;
+
 }

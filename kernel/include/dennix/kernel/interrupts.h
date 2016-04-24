@@ -38,6 +38,10 @@ struct InterruptContext {
     uint32_t eip;
     uint32_t cs;
     uint32_t eflags;
+
+    // These are only valid if the interrupt came from Ring 3
+    uint32_t esp;
+    uint32_t ss;
 };
 
 namespace Interrupts {
