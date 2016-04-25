@@ -13,25 +13,38 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
  */
 
-/* kernel/include/dennix/kernel/kernel.h
- * Contains some common definitions for the kernel.
+/* kernel/src/arch/i686/syscall.S
+ * Syscall handler.
  */
 
-#ifndef KERNEL_KERNEL_H
-#define KERNEL_KERNEL_H
+.section .text
+.global syscallHandler
+.type syscallHandler, @function
+syscallHandler:
+    mov %esp, %ebp
+    and $(~0xFF), %esp
+    sub $12, %esp
+    push %edi
 
-#include <stdint.h>
+    push %esi
+    push %edx
+    push %ecx
+    push %ebx
 
-#define NORETURN __attribute__((__noreturn__))
-#define PACKED __attribute__((__packed__))
+    sub $12, %esp
+    push %eax
 
-#define likely(x) __builtin_expect(!!(x), 1)
-#define unlikely(x) __builtin_expect((x), 0)
+    mov $0x10, %cx
+    mov %cx, %ds
 
-// Define an incomplete type for symbols so we can only take their addresses
-typedef struct _incomplete_type symbol_t;
+    call getSyscallHandler
+    add $16, %esp
 
-typedef uintptr_t paddr_t;
-typedef uintptr_t vaddr_t;
+    call *%eax
 
-#endif
+    mov $0x23, %cx
+    mov %cx, %ds
+
+    mov %ebp, %esp
+    iret
+.size syscallHandler, . - syscallHandler

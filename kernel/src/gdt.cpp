@@ -18,7 +18,6 @@
  */
 
 #include <stdint.h>
-#include <dennix/kernel/kernel.h>
 #include <dennix/kernel/process.h>
 
 struct gdt_entry {
@@ -146,6 +145,6 @@ gdt_entry gdt[] = {
 uint16_t gdt_size = sizeof(gdt) - 1;
 }
 
-void setKernelStack(void* stack) {
-    tss.esp0 = (uint32_t) stack;
+void setKernelStack(uintptr_t stack) {
+    tss.esp0 = stack;
 }

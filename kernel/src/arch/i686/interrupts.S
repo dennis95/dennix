@@ -114,3 +114,6 @@ isr 44
 isr 45
 isr 46
 isr 47
+
+#isr 48 # Syscall
+isr 49 # Schedule

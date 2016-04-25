@@ -38,7 +38,8 @@ OBJ := \
 	kernel.o \
 	log.o \
 	physicalmemory.o \
-	process.o
+	process.o \
+	syscall.o
 
 include $(ARCH).mk
 

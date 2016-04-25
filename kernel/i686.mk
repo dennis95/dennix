@@ -20,4 +20,5 @@ END_OBJ := $(CRTEND_O) $(BUILD)/arch/i686/crtn.o
 
 OBJ += \
 	arch/i686/interrupts.o \
-	arch/i686/start.o
+	arch/i686/start.o \
+	arch/i686/syscall.o

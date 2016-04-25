@@ -13,25 +13,21 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
  */
 
-/* kernel/include/dennix/kernel/kernel.h
- * Contains some common definitions for the kernel.
+/* kernel/include/dennix/kernel/syscall.h
+ * Syscall function declarations.
  */
 
-#ifndef KERNEL_KERNEL_H
-#define KERNEL_KERNEL_H
+#ifndef KERNEL_SYSCALL_H
+#define KERNEL_SYSCALL_H
 
-#include <stdint.h>
+#include <dennix/syscall.h>
+#include <dennix/kernel/kernel.h>
 
-#define NORETURN __attribute__((__noreturn__))
-#define PACKED __attribute__((__packed__))
+namespace Syscall {
 
-#define likely(x) __builtin_expect(!!(x), 1)
-#define unlikely(x) __builtin_expect((x), 0)
+void NORETURN exit(int status);
+void badSyscall();
 
-// Define an incomplete type for symbols so we can only take their addresses
-typedef struct _incomplete_type symbol_t;
-
-typedef uintptr_t paddr_t;
-typedef uintptr_t vaddr_t;
+}
 
 #endif

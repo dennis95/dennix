@@ -13,25 +13,32 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
  */
 
-/* kernel/include/dennix/kernel/kernel.h
- * Contains some common definitions for the kernel.
+/* kernel/src/syscall.cpp
+ * Syscall implementations.
  */
 
-#ifndef KERNEL_KERNEL_H
-#define KERNEL_KERNEL_H
+#include <dennix/kernel/log.h>
+#include <dennix/kernel/process.h>
+#include <dennix/kernel/syscall.h>
 
-#include <stdint.h>
+static const void* syscallList[NUM_SYSCALLS] = {
+    /*[SYSCALL_EXIT] =*/ (void*) Syscall::exit,
+};
 
-#define NORETURN __attribute__((__noreturn__))
-#define PACKED __attribute__((__packed__))
+extern "C" const void* getSyscallHandler(unsigned interruptNumber) {
+    if (interruptNumber >= NUM_SYSCALLS) {
+        return (void*) Syscall::badSyscall;
+    } else {
+        return syscallList[interruptNumber];
+    }
+}
 
-#define likely(x) __builtin_expect(!!(x), 1)
-#define unlikely(x) __builtin_expect((x), 0)
+void NORETURN Syscall::exit(int status) {
+    Process::current->exit(status);
+    asm volatile ("int $0x31");
+    __builtin_unreachable();
+}
 
-// Define an incomplete type for symbols so we can only take their addresses
-typedef struct _incomplete_type symbol_t;
-
-typedef uintptr_t paddr_t;
-typedef uintptr_t vaddr_t;
-
-#endif
+void Syscall::badSyscall() {
+    Log::printf("Syscall::badSyscall was called!\n");
+}

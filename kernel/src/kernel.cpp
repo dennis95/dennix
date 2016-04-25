@@ -24,9 +24,13 @@
 #include <dennix/kernel/process.h>
 
 static void processA() {
-    // We cannot call any functions from here because they only work in Ring 0
-    // So we just loop and assume it works if it does not fault
-    while (true);
+    asm volatile ("int $0x30" :: "a"(0), "b"(0));
+    __builtin_unreachable();
+}
+
+static void processB() {
+    asm volatile ("int $0x30" :: "a"(0), "b"(42));
+    __builtin_unreachable();
 }
 
 static Process* startProcesses(void* function) {
@@ -54,6 +58,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
 
     Process::initialize();
     startProcesses((void*) processA);
+    startProcesses((void*) processB);
     Log::printf("Processes initialized\n");
 
     Interrupts::initPic();
