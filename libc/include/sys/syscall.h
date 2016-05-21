@@ -13,30 +13,31 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/stdlib.h
- * Standard library definitions.
+/* libc/include/sys/syscall.h
+ * Syscall definition macros.
  */
 
-#ifndef _STDLIB_H
-#define _STDLIB_H
+#ifndef _SYS_SYSCALL_H
+#define _SYS_SYSCALL_H
 
-#include <sys/cdefs.h>
-#define __need_NULL
-#define __need_size_t
-#include <stddef.h>
+#include <dennix/syscall.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#define _SYSCALL_TOSTRING(x) #x
 
-__noreturn void _Exit(int);
-__noreturn void exit(int);
+#define _SYSCALL_BODY(number, name) \
+    asm("\n" \
+    ".pushsection .text\n" \
+    #name ":\n\t" \
+        "mov $" _SYSCALL_TOSTRING(number) ", %eax\n\t" \
+        "jmp __syscall\n" \
+    ".popsection\n")
 
-void free(void*);
-void* malloc(size_t);
+#define DEFINE_SYSCALL(number, type, name, params) \
+    _SYSCALL_BODY(number, name); \
+    extern type name params
 
-#ifdef __cplusplus
-}
-#endif
+#define DEFINE_SYSCALL_GLOBAL(number, type, name, params) \
+    asm(".global " #name); \
+    DEFINE_SYSCALL(number, type, name, params)
 
 #endif

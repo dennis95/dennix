@@ -13,30 +13,35 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/stdlib.h
- * Standard library definitions.
+/* libc/src/arch/i686/crt0.S
+ * Program initialization.
  */
 
-#ifndef _STDLIB_H
-#define _STDLIB_H
+.section .text
+.global _start
+.type _start, @function
+_start:
+    # The kernel has put argc into eax, argv into ebx and envp into ecx.
+    # (At least it will as soon as we have these things.)
 
-#include <sys/cdefs.h>
-#define __need_NULL
-#define __need_size_t
-#include <stddef.h>
+    # Create a stack frame
+    push $0
+    push $0
+    mov %esp, %ebp
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+    sub $12, %esp
+    push %ecx # envp
+    push %ebx # argv
+    push %eax # argc
 
-__noreturn void _Exit(int);
-__noreturn void exit(int);
+    # Call global constructors
+    call _init
 
-void free(void*);
-void* malloc(size_t);
+    call main
 
-#ifdef __cplusplus
-}
-#endif
+    add $4, %esp
+    push %eax
+    call exit
 
-#endif
+
+.size _start, . - _start

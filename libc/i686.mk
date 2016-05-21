@@ -12,15 +12,10 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-CRTI_O := $(shell $(CXX) $(CXXFLAGS) -print-file-name=crti.o)
-CRTBEGIN_O := $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtbegin.o)
-CRTEND_O := $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtend.o)
-CRTN_O := $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtn.o)
+CRT_OBJ := \
+	$(BUILD)/arch/i686/crt0.o \
+	$(BUILD)/arch/i686/crti.o \
+	$(BUILD)/arch/i686/crtn.o
 
-START_OBJ := $(CRTI_O) $(CRTBEGIN_O)
-END_OBJ := $(CRTEND_O) $(CRTN_O)
-
-OBJ += \
-	arch/i686/interrupts.o \
-	arch/i686/start.o \
-	arch/i686/syscall.o
+LIBC_OBJ += \
+	arch/i686/syscall

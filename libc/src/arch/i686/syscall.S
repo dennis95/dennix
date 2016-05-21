@@ -13,16 +13,36 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/src/arch/i686/crtn.S
- * Provides _init and _fini symbols to call global ctors/dtors.
+/* libc/src/arch/i686/syscall.S
+ * Syscall caller.
  */
 
-.section .init
-    # GCC will call global constructors here
-    pop %ebp
-    ret
+.section .text
+.global __syscall
+.type __syscall, @function
+__syscall:
+    push %ebp
+    mov %esp, %ebp
 
-.section .fini
-    # GCC will call global destructors here
+    # Preserve caller saved registers
+    push %edi
+    push %esi
+    push %ebx
+    sub $12, %esp
+
+    # Put the arguments into registers
+    mov 8(%ebp), %ebx
+    mov 12(%ebp), %ecx
+    mov 16(%ebp), %edx
+    mov 20(%ebp), %esi
+    mov 24(%ebp), %edi
+
+    int $0x30
+
+    add $12, %esp
+    pop %ebx
+    pop %esi
+    pop %edi
     pop %ebp
     ret
+.size __syscall, . - __syscall

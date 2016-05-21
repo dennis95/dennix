@@ -13,27 +13,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/stdlib.h
- * Standard library definitions.
+/* libc/include/unistd.h
+ * POSIX definitions.
  */
 
-#ifndef _STDLIB_H
-#define _STDLIB_H
+#ifndef _UNISTD_H
+#define _UNISTD_H
 
 #include <sys/cdefs.h>
-#define __need_NULL
-#define __need_size_t
-#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-__noreturn void _Exit(int);
-__noreturn void exit(int);
-
-void free(void*);
-void* malloc(size_t);
+__noreturn void _exit(int);
 
 #ifdef __cplusplus
 }

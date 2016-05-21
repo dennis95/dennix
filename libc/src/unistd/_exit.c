@@ -13,30 +13,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/stdlib.h
- * Standard library definitions.
+/* libc/src/unistd/_exit.c
+ * Exits the application without cleanup.
  */
 
-#ifndef _STDLIB_H
-#define _STDLIB_H
+#include <sys/syscall.h>
+#include <unistd.h>
 
-#include <sys/cdefs.h>
-#define __need_NULL
-#define __need_size_t
-#include <stddef.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-__noreturn void _Exit(int);
-__noreturn void exit(int);
-
-void free(void*);
-void* malloc(size_t);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+DEFINE_SYSCALL_GLOBAL(SYSCALL_EXIT, __noreturn void, _exit, (int));

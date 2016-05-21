@@ -13,30 +13,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/stdlib.h
- * Standard library definitions.
+/* libc/src/stdlib/exit.c
+ * Exits the application.
  */
 
-#ifndef _STDLIB_H
-#define _STDLIB_H
+#include <stdlib.h>
 
-#include <sys/cdefs.h>
-#define __need_NULL
-#define __need_size_t
-#include <stddef.h>
+extern void _fini(void);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-__noreturn void _Exit(int);
-__noreturn void exit(int);
-
-void free(void*);
-void* malloc(size_t);
-
-#ifdef __cplusplus
+__noreturn void exit(int status) {
+    _fini();
+    _Exit(status);
 }
-#endif
-
-#endif

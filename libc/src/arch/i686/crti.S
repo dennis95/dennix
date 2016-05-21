@@ -13,30 +13,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/stdlib.h
- * Standard library definitions.
+/* libc/src/arch/i686/crti.S
+ * Provides _init and _fini symbols to call global ctors/dtors.
  */
 
-#ifndef _STDLIB_H
-#define _STDLIB_H
+.section .init
+.global _init
+_init:
+    push %ebp
+    mov %esp, %ebp
+    # GCC will call global constructors here
 
-#include <sys/cdefs.h>
-#define __need_NULL
-#define __need_size_t
-#include <stddef.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-__noreturn void _Exit(int);
-__noreturn void exit(int);
-
-void free(void*);
-void* malloc(size_t);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+.section .fini
+.global _fini
+_fini:
+    push %ebp
+    mov %esp, %ebp
+    # GCC will call global destructors here

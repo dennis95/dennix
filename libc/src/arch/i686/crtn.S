@@ -13,20 +13,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/src/arch/i686/crti.S
+/* libc/src/arch/i686/crtn.S
  * Provides _init and _fini symbols to call global ctors/dtors.
  */
 
 .section .init
-.global _init
-_init:
-    push %ebp
-    mov %esp, %ebp
     # GCC will call global constructors here
+    pop %ebp
+    ret
 
 .section .fini
-.global _fini
-_fini:
-    push %ebp
-    mov %esp, %ebp
     # GCC will call global destructors here
+    pop %ebp
+    ret
