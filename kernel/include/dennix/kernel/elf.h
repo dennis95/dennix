@@ -13,27 +13,43 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/kernel.h
- * Contains some common definitions for the kernel.
+/* kernel/include/dennix/kernel/elf.h
+ * ELF format.
  */
 
-#ifndef KERNEL_KERNEL_H
-#define KERNEL_KERNEL_H
+#ifndef KERNEL_ELF_H
+#define KERNEL_ELF_H
 
 #include <stdint.h>
 
-#define NORETURN __attribute__((__noreturn__))
-#define PACKED __attribute__((__packed__))
+struct ElfHeader {
+    unsigned char e_ident[16];
+    uint16_t e_type;
+    uint16_t e_machine;
+    uint32_t e_version;
+    uint32_t e_entry;
+    uint32_t e_phoff;
+    uint32_t e_shoff;
+    uint32_t e_flags;
+    uint16_t e_ehsize;
+    uint16_t e_phentsize;
+    uint16_t e_phnum;
+    uint16_t e_shentsize;
+    uint16_t e_shnum;
+    uint16_t e_shstrndx;
+};
 
-#define likely(x) __builtin_expect(!!(x), 1)
-#define unlikely(x) __builtin_expect((x), 0)
+struct ProgramHeader {
+    uint32_t p_type;
+    uint32_t p_offset;
+    uint32_t p_vaddr;
+    uint32_t p_paddr;
+    uint32_t p_filesz;
+    uint32_t p_memsz;
+    uint32_t p_flags;
+    uint32_t p_align;
+};
 
-#define ALIGNUP(val, alignment) ((((val) - 1) & ~((alignment) - 1)) + (alignment))
-
-// Define an incomplete type for symbols so we can only take their addresses
-typedef struct _incomplete_type symbol_t;
-
-typedef uintptr_t paddr_t;
-typedef uintptr_t vaddr_t;
+#define PT_LOAD 1
 
 #endif

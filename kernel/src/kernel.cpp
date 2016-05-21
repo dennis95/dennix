@@ -23,25 +23,7 @@
 #include <dennix/kernel/physicalmemory.h>
 #include <dennix/kernel/process.h>
 
-static void processA() {
-    asm volatile ("int $0x30" :: "a"(0), "b"(0));
-    __builtin_unreachable();
-}
-
-static void processB() {
-    asm volatile ("int $0x30" :: "a"(0), "b"(42));
-    __builtin_unreachable();
-}
-
-static Process* startProcesses(void* function) {
-    AddressSpace* addressSpace = kernelSpace->fork();
-    paddr_t phys = PhysicalMemory::popPageFrame();
-    void* processCode = (void*) addressSpace->map(phys, PAGE_PRESENT | PAGE_USER);
-    vaddr_t processMapped = kernelSpace->map(phys, PAGE_PRESENT | PAGE_WRITABLE);
-    memcpy((void*) processMapped, function, 0x1000);
-    kernelSpace->unmap(processMapped);
-    return Process::startProcess(processCode, addressSpace);
-}
+static void startProcesses(multiboot_info* multiboot);
 
 extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     Log::printf("Hello World!\n");
@@ -54,12 +36,10 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     PhysicalMemory::initialize(multiboot);
     Log::printf("Physical Memory initialized\n");
 
-    kernelSpace->unmap((vaddr_t) multiboot);
-
     Process::initialize();
-    startProcesses((void*) processA);
-    startProcesses((void*) processB);
+    startProcesses(multiboot);
     Log::printf("Processes initialized\n");
+    kernelSpace->unmap((vaddr_t) multiboot);
 
     Interrupts::initPic();
     Interrupts::enable();
@@ -68,4 +48,25 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     while (true) {
         asm volatile ("hlt");
     }
+}
+
+static void startProcesses(multiboot_info* multiboot) {
+    paddr_t modulesAligned = multiboot->mods_addr & ~0xFFF;
+    ptrdiff_t offset = multiboot->mods_addr - modulesAligned;
+
+    //FIXME: This assumes that the module list is in a single page.
+    vaddr_t modulesPage = kernelSpace->map(modulesAligned,
+            PAGE_PRESENT | PAGE_WRITABLE);
+
+    const multiboot_mod_list* modules = (multiboot_mod_list*)
+            (modulesPage + offset);
+    for (size_t i = 0; i < multiboot->mods_count; i++) {
+        size_t nPages = ALIGNUP(modules[i].mod_end - modules[i].mod_start,
+                0x1000) / 0x1000;
+        vaddr_t elf = kernelSpace->mapRange(modules[i].mod_start,
+                nPages, PAGE_PRESENT);
+        Process::loadELF(elf);
+        kernelSpace->unmapRange(elf, nPages);
+    }
+    kernelSpace->unmap((vaddr_t) modulesPage);
 }

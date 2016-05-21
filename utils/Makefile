@@ -12,55 +12,30 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-REPO_ROOT = .
+ARCH ?= i686
 
-export ARCH ?= i686
+REPO_ROOT = ..
 
 include $(REPO_ROOT)/build-aux/paths.mk
 include $(REPO_ROOT)/build-aux/toolchain.mk
 
-KERNEL = $(BUILD_DIR)/kernel/kernel
-ISO = dennix.iso
+BUILD = $(BUILD_DIR)/utils
 
-all: install-headers libc install-libc kernel utils iso
+LDFLAGS += --sysroot=$(SYSROOT) -nostdlib
 
-kernel:
-	$(MAKE) -C kernel
+PROGRAMS = \
+	test
 
-libc:
-	$(MAKE) -C libc
+all: $(addprefix $(BUILD)/, $(PROGRAMS))
 
-install-libc:
-	$(MAKE) -C libc install
+$(BUILD)/%: $(BUILD)/%.o
+	$(CC) $(LDFLAGS) -o $@ $^
 
-install-headers:
-	$(MAKE) -C libc install-headers
-
-iso: $(ISO)
-
-$(ISO): $(KERNEL)
-	rm -rf $(BUILD_DIR)/isosrc
-	cp -rf isosrc $(BUILD_DIR)
-	cp -f $(KERNEL) $(BUILD_DIR)/isosrc
-	cp -f $(BUILD_DIR)/utils/test $(BUILD_DIR)/isosrc
-	$(MKRESCUE) -o $@ $(BUILD_DIR)/isosrc
-
-$(KERNEL):
-	$(MAKE) -C kernel
-
-qemu: $(ISO)
-	qemu-system-i386 -cdrom $^
-
-utils:
-	$(MAKE) -C utils
+$(BUILD)/%.o: %.S
+	@mkdir -p $(dir $@)
+	$(CC) $(ASFLAGS) -c -o $@ $^
 
 clean:
-	rm -rf $(BUILD_DIR)
-	rm -f $(ISO)
+	rm -rf $(BUILD)
 
-distclean:
-	rm -rf build sysroot
-	rm -f *.iso
-
-.PHONY: all kernel libc install-headers install-libc iso qemu utils
-.PHONY: clean distclean
+.PHONY: all clean

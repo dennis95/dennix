@@ -41,9 +41,11 @@ public:
     vaddr_t mapAt(size_t pdIndex, size_t ptIndex, paddr_t physicalAddress,
             int flags);
     vaddr_t mapRange(paddr_t* physicalAddresses, int flags);
+    vaddr_t mapRange(paddr_t firstPhysicalAddress, size_t nPages, int flags);
     vaddr_t mapRangeAt(vaddr_t virtualAddress, paddr_t* physicalAddresses,
             int flags);
     void unmap(vaddr_t virtualAddress);
+    void unmapRange(vaddr_t firstVirtualAddress, size_t nPages);
 private:
     paddr_t pageDir;
     AddressSpace* next;

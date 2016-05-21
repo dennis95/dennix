@@ -60,6 +60,13 @@ struct multiboot_mmap_entry {
     uint32_t type;
 } PACKED;
 
+struct multiboot_mod_list {
+    uint32_t mod_start;
+    uint32_t mod_end;
+    uint32_t cmdline;
+    uint32_t pad;
+};
+
 #define MULTIBOOT_MEMORY_AVAILABLE 1
 
 #endif

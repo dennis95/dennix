@@ -176,8 +176,8 @@ bool AddressSpace::isFree(size_t pdIndex, size_t ptIndex) {
         result = true;
     } else {
         if (this != kernelSpace) {
-            pageTable = (uintptr_t*)
-                    kernelSpace->map(pageDirectory[pdIndex], PAGE_PRESENT);
+            pageTable = (uintptr_t*) kernelSpace->map(
+                    pageDirectory[pdIndex] & ~0xFFF, PAGE_PRESENT);
         }
         result = !pageTable[ptIndex];
     }
@@ -225,6 +225,7 @@ vaddr_t AddressSpace::mapAt(
 vaddr_t AddressSpace::mapAt(
         size_t pdIndex, size_t ptIndex, paddr_t physicalAddress, int flags) {
     assert(!(flags & ~0xFFF));
+    assert(!(physicalAddress & 0xFFF));
 
     uintptr_t* pageDirectory;
     uintptr_t* pageTable = nullptr;
@@ -266,8 +267,8 @@ vaddr_t AddressSpace::mapAt(
         }
 
     } else if (this != kernelSpace) {
-        pageTable = (uintptr_t*) kernelSpace->map(pageDirectory[pdIndex],
-                PAGE_PRESENT | PAGE_WRITABLE);
+        pageTable = (uintptr_t*) kernelSpace->map(
+                pageDirectory[pdIndex] & ~0xFFF, PAGE_PRESENT | PAGE_WRITABLE);
     }
 
     pageTable[ptIndex] = physicalAddress | flags;
@@ -334,6 +335,19 @@ vaddr_t AddressSpace::mapRange(paddr_t* physicalAddresses, int flags) {
     return 0;
 }
 
+vaddr_t AddressSpace::mapRange(paddr_t firstPhysicalAddress,
+        size_t nPages, int flags) {
+    paddr_t physicalAddresses[nPages + 1];
+
+    for (size_t i = 0; i < nPages; i++) {
+        physicalAddresses[i] = firstPhysicalAddress;
+        firstPhysicalAddress += 0x1000;
+    }
+    physicalAddresses[nPages] = 0;
+
+    return mapRange(physicalAddresses, flags);
+}
+
 vaddr_t AddressSpace::mapRangeAt(vaddr_t virtualAddress,
         paddr_t* physicalAddresses, int flags) {
     vaddr_t addr = virtualAddress;
@@ -351,6 +365,13 @@ vaddr_t AddressSpace::mapRangeAt(vaddr_t virtualAddress,
 
 void AddressSpace::unmap(vaddr_t virtualAddress) {
     mapAt(virtualAddress, 0, 0);
+}
+
+void AddressSpace::unmapRange(vaddr_t firstVirtualAddress, size_t nPages) {
+    while (nPages--) {
+        unmap(firstVirtualAddress);
+        firstVirtualAddress += 0x1000;
+    }
 }
 
 // These two functions are called from libk.
