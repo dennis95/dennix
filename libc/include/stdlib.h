@@ -23,7 +23,7 @@
 #include <sys/cdefs.h>
 #define __need_NULL
 #define __need_size_t
-#include <stddef.h>
+#include <sys/libc-types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,8 +32,18 @@ extern "C" {
 __noreturn void _Exit(int);
 __noreturn void exit(int);
 
+/* These are not yet ported to user space. */
 void free(void*);
 void* malloc(size_t);
+
+/* These are just declared to make libgcc compile and are not implemented. */
+__noreturn void abort(void);
+
+/* These are just declared to make libgcov compile, which is compiled with
+   libgcc, and are not implemented. */
+int atexit(void (*)(void));
+int atoi(const char*);
+char* getenv(const char*);
 
 #ifdef __cplusplus
 }

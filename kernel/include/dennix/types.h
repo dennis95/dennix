@@ -13,36 +13,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/string.h
- * String and memory functions.
+/* kernel/include/dennix/types.h
+ * Data types.
  */
 
-#ifndef _STRING_H
-#define _STRING_H
+#ifndef _DENNIX_TYPES_H
+#define _DENNIX_TYPES_H
 
-#include <sys/cdefs.h>
-#define __need_NULL
-#define __need_size_t
-#include <sys/libc-types.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int memcmp(const void*, const void*, size_t);
-void* memcpy(void* __restrict, const void* __restrict, size_t);
-void* memmove(void* __restrict, const void* __restrict, size_t);
-void* memset(void*, int, size_t);
-
-/* These are just declared to make libgcc compile and are not implemented. */
-size_t strlen(const char*);
-
-/* These are just declared to make libgcov compile, which is compiled with
-   libgcc, and are not implemented. */
-char* strcpy(char* __restrict, const char* __restrict);
-
-#ifdef __cplusplus
-}
-#endif
+typedef int __pid_t;
 
 #endif

@@ -13,15 +13,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/string.h
- * String and memory functions.
+/* libc/include/stdio.h
+ * Standard input/output.
  */
 
-#ifndef _STRING_H
-#define _STRING_H
+#ifndef _STDIO_H
+#define _STDIO_H
 
 #include <sys/cdefs.h>
-#define __need_NULL
+#define __need___va_list
+#include <stdarg.h>
+#define __need_FILE
 #define __need_size_t
 #include <sys/libc-types.h>
 
@@ -29,17 +31,24 @@
 extern "C" {
 #endif
 
-int memcmp(const void*, const void*, size_t);
-void* memcpy(void* __restrict, const void* __restrict, size_t);
-void* memmove(void* __restrict, const void* __restrict, size_t);
-void* memset(void*, int, size_t);
+extern FILE* stderr;
+#define stderr stderr
 
 /* These are just declared to make libgcc compile and are not implemented. */
-size_t strlen(const char*);
+int fflush(FILE*);
+int fprintf(FILE* __restrict, const char* __restrict, ...);
 
 /* These are just declared to make libgcov compile, which is compiled with
    libgcc, and are not implemented. */
-char* strcpy(char* __restrict, const char* __restrict);
+#define SEEK_SET 1
+int fclose(FILE*);
+FILE* fopen(const char* __restrict, const char* __restrict);
+size_t fread(void* __restrict, size_t, size_t, FILE* __restrict);
+int fseek(FILE*, long, int);
+long ftell(FILE*);
+size_t fwrite(const void* __restrict, size_t, size_t, FILE* __restrict);
+void setbuf(FILE* __restrict, char* __restrict);
+int vfprintf(FILE* __restrict, const char* __restrict, __gnuc_va_list);
 
 #ifdef __cplusplus
 }
