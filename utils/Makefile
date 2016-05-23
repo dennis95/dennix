@@ -21,19 +21,17 @@ include $(REPO_ROOT)/build-aux/toolchain.mk
 
 BUILD = $(BUILD_DIR)/utils
 
-LDFLAGS += --sysroot=$(SYSROOT) -nostdlib
+CFLAGS ?= -O2 -g
+CFLAGS += -Wall -Wextra
 
 PROGRAMS = \
 	test
 
 all: $(addprefix $(BUILD)/, $(PROGRAMS))
 
-$(BUILD)/%: $(BUILD)/%.o
-	$(CC) $(LDFLAGS) -o $@ $^
-
-$(BUILD)/%.o: %.S
+$(BUILD)/%: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(ASFLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $^
 
 clean:
 	rm -rf $(BUILD)

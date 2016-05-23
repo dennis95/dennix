@@ -99,4 +99,4 @@ $(BUILD)/%.libk.o: src/%.cpp
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all install install-headers install-libk clean
+.PHONY: all install install-headers install-libs clean

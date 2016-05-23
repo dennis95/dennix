@@ -13,12 +13,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.S
+/* utils/test.c
  * Some program to test program loading.
  */
 
-.global _start
-_start:
-    mov $0, %eax
-    mov $42, %ebx
-    int $0x30
+int main(int argc, char* argv[]) {
+    (void) argc; (void) argv;
+    return 42;
+}
