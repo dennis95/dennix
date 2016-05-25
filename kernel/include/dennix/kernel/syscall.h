@@ -25,7 +25,9 @@
 
 namespace Syscall {
 
-void NORETURN exit(int status);
+NORETURN void exit(int status);
+ssize_t write(int fd, const void* buffer, size_t size);
+
 void badSyscall();
 
 }

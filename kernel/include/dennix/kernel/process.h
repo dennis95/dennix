@@ -21,6 +21,7 @@
 #define KERNEL_PROCESS_H
 
 #include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/filedescription.h>
 #include <dennix/kernel/interrupts.h>
 
 class Process {
@@ -34,6 +35,8 @@ private:
     Process* next;
     void* stack;
     void* kernelStack;
+public:
+    FileDescription* fd[20];
 public:
     static void initialize();
     static Process* loadELF(vaddr_t elf);

@@ -37,13 +37,15 @@ COMMON_OBJ := \
 	string/memcmp \
 	string/memcpy \
 	string/memmove \
-	string/memset
+	string/memset \
+	string/strlen
 
 LIBC_OBJ := \
 	$(COMMON_OBJ) \
 	stdlib/_Exit \
 	stdlib/exit \
-	unistd/_exit
+	unistd/_exit \
+	unistd/write
 
 LIBK_OBJ := \
 	$(COMMON_OBJ) \

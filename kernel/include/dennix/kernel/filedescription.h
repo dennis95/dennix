@@ -13,39 +13,21 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/unistd.h
- * POSIX definitions.
+/* kernel/include/dennix/kernel/filedescription.h
+ * FileDescription class.
  */
 
-#ifndef _UNISTD_H
-#define _UNISTD_H
+#ifndef KERNEL_FILEDESCRIPTION_H
+#define KERNEL_FILEDESCRIPTION_H
 
-#include <sys/cdefs.h>
-#define __need_gid_t
-#define __need_NULL
-#define __need_off_t
-#define __need_pid_t
-#define __need_size_t
-#define __need_ssize_t
-#define __need_uid_t
-#include <sys/libc-types.h>
+#include <dennix/kernel/vnode.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-__noreturn void _exit(int);
-ssize_t write(int, const void*, size_t);
-
-/* These are just declared to make libgcov compile, which is compiled with
-   libgcc, and are not implemented. */
-pid_t fork(void);
-int execv(const char*, char* const[]);
-int execve(const char*, char* const[], char* const[]);
-int execvp(const char*, char* const[]);
-
-#ifdef __cplusplus
-}
-#endif
+class FileDescription {
+public:
+    FileDescription(Vnode* vnode);
+    ssize_t write(const void* buffer, size_t size);
+private:
+    Vnode* vnode;
+};
 
 #endif

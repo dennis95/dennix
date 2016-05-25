@@ -22,6 +22,7 @@
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/physicalmemory.h>
 #include <dennix/kernel/process.h>
+#include <dennix/kernel/terminal.h>
 
 Process* Process::current;
 static Process* firstProcess;
@@ -34,6 +35,7 @@ Process::Process() {
     next = nullptr;
     stack = nullptr;
     kernelStack = nullptr;
+    memset(fd, 0, sizeof(fd));
 }
 
 void Process::initialize() {
@@ -120,6 +122,9 @@ Process* Process::startProcess(void* entry, AddressSpace* addressSpace) {
     process->interruptContext->ss = 0x23;
 
     process->addressSpace = addressSpace;
+
+    // Initialize file descriptors
+    process->fd[1] = new FileDescription(&terminal); // stdout
 
     process->next = firstProcess;
     if (process->next) {

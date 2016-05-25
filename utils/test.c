@@ -17,7 +17,12 @@
  * Some program to test program loading.
  */
 
+#include <string.h>
+#include <unistd.h>
+
 int main(int argc, char* argv[]) {
     (void) argc; (void) argv;
+    const char* hello = "Hello World from userspace!\n";
+    write(1, hello, strlen(hello));
     return 42;
 }

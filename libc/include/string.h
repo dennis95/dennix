@@ -33,8 +33,6 @@ int memcmp(const void*, const void*, size_t);
 void* memcpy(void* __restrict, const void* __restrict, size_t);
 void* memmove(void* __restrict, const void* __restrict, size_t);
 void* memset(void*, int, size_t);
-
-/* These are just declared to make libgcc compile and are not implemented. */
 size_t strlen(const char*);
 
 /* These are just declared to make libgcov compile, which is compiled with
