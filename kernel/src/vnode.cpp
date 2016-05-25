@@ -13,25 +13,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/errno.h
- * Error numbers.
+/* kernel/src/vnode.cpp
+ * Vnode class.
  */
 
-#ifndef _ERRNO_H
-#define _ERRNO_H
+#include <errno.h>
+#include <dennix/kernel/vnode.h>
 
-#include <sys/cdefs.h>
-#include <dennix/errno.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern int errno;
-#define errno errno
-
-#ifdef __cplusplus
+// Default implementation. Inheriting classes will override these functions.
+ssize_t Vnode::write(const void* /*buffer*/, size_t /*size*/) {
+    errno = ENOSYS;
+    return -1;
 }
-#endif
-
-#endif

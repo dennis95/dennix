@@ -33,5 +33,11 @@ typedef __pid_t pid_t;
 #  include <stddef.h>
 #endif
 
+#if defined(__need_ssize_t) && !defined(__ssize_t_defined)
+typedef __SSIZE_TYPE__ ssize_t;
+#  define __ssize_t_defined
+#endif
+
 #undef __need_FILE
 #undef __need_pid_t
+#undef __need_ssize_t

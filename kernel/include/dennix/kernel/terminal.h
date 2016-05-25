@@ -13,25 +13,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/errno.h
- * Error numbers.
+/* kernel/include/dennix/kernel/terminal.h
+ * Terminal class.
  */
 
-#ifndef _ERRNO_H
-#define _ERRNO_H
+#ifndef KERNEL_TERMINAL_H
+#define KERNEL_TERMINAL_H
 
-#include <sys/cdefs.h>
-#include <dennix/errno.h>
+#include <dennix/kernel/vnode.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+class Terminal : public Vnode {
+public:
+    virtual ssize_t write(const void* buffer, size_t size);
+};
 
-extern int errno;
-#define errno errno
-
-#ifdef __cplusplus
-}
-#endif
+extern Terminal terminal;
 
 #endif

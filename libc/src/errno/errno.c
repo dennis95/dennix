@@ -13,25 +13,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/errno.h
- * Error numbers.
+/* libc/src/errno/errno.
+ * Error number.
  */
 
-#ifndef _ERRNO_H
-#define _ERRNO_H
+#include <errno.h>
 
-#include <sys/cdefs.h>
-#include <dennix/errno.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern int errno;
-#define errno errno
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+int errno = 0;

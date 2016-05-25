@@ -39,7 +39,9 @@ OBJ := \
 	log.o \
 	physicalmemory.o \
 	process.o \
-	syscall.o
+	syscall.o \
+	terminal.o \
+	vnode.o
 
 include $(ARCH).mk
 

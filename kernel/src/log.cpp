@@ -20,11 +20,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <dennix/kernel/log.h>
-
-// In _start the video memory is mapped at this address.
-static char* video = (char*) 0xC0000000;
-static int cursorPosX = 0;
-static int cursorPosY = 0;
+#include <dennix/kernel/terminal.h>
 
 static void printCharacter(char c);
 static void printString(const char* s);
@@ -80,32 +76,7 @@ void Log::printf(const char* format, ...) {
 }
 
 static void printCharacter(char c) {
-    if (c == '\n' || cursorPosX > 79) {
-        cursorPosX = 0;
-        cursorPosY++;
-
-        if (cursorPosY > 24) {
-
-            // Move every line up by one
-            for (size_t i = 0; i < 2 * 24 * 80; i++) {
-                video[i] = video[i + 2 * 80];
-            }
-
-            // Clean the last line
-            for (size_t i = 2 * 24 * 80; i < 2 * 25 * 80; i++) {
-                video[i] = 0;
-            }
-
-            cursorPosY = 24;
-        }
-
-        if (c == '\n') return;
-    }
-
-    video[cursorPosY * 2 * 80 + 2 * cursorPosX] = c;
-    video[cursorPosY * 2 * 80 + 2 * cursorPosX + 1] = 0x07; // gray on black
-
-    cursorPosX++;
+    terminal.write(&c, 1);
 }
 
 static void printString(const char* s) {

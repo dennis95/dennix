@@ -13,25 +13,19 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/errno.h
- * Error numbers.
+/* kernel/include/dennix/kernel/vnode.h
+ * Vnode class.
  */
 
-#ifndef _ERRNO_H
-#define _ERRNO_H
+#ifndef KERNEL_VNODE_H
+#define KERNEL_VNODE_H
 
-#include <sys/cdefs.h>
-#include <dennix/errno.h>
+#include <sys/types.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern int errno;
-#define errno errno
-
-#ifdef __cplusplus
-}
-#endif
+class Vnode {
+public:
+    virtual ssize_t write(const void* buffer, size_t size);
+    virtual ~Vnode() {}
+};
 
 #endif
