@@ -13,14 +13,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* libc/src/stdio/stdout.c
+ * Standard output.
  */
 
 #include <stdio.h>
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    puts("Hello World from userspace!");
-    return 42;
-}
+FILE __stdout = {
+    .fd = 1,
+};
+
+FILE* stdout = &__stdout;

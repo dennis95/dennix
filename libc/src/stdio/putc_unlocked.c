@@ -13,14 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* libc/src/stdio/putc_unlocked.c
+ * Puts a character into a file without locking.
  */
 
 #include <stdio.h>
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    puts("Hello World from userspace!");
-    return 42;
+int putc_unlocked(int c, FILE* file) {
+    return fputc_unlocked(c, file);
 }

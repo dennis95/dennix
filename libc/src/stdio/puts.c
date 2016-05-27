@@ -13,14 +13,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* libc/src/stdio/puts.c
+ * Puts a string and a newline into stdout.
  */
 
 #include <stdio.h>
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    puts("Hello World from userspace!");
-    return 42;
+int puts(const char* s) {
+    flockfile(stdout);
+    while (*s) {
+        putchar_unlocked(*s++);
+    }
+    putchar_unlocked('\n');
+    funlockfile(stdout);
+    return 1;
 }

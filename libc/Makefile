@@ -42,6 +42,18 @@ COMMON_OBJ := \
 
 LIBC_OBJ := \
 	$(COMMON_OBJ) \
+	stdio/flockfile \
+	stdio/fputc_unlocked \
+	stdio/fputc \
+	stdio/fputs_unlocked \
+	stdio/fputs \
+	stdio/funlockfile \
+	stdio/putc_unlocked \
+	stdio/putc \
+	stdio/putchar_unlocked \
+	stdio/putchar \
+	stdio/puts \
+	stdio/stdout \
 	stdlib/_Exit \
 	stdlib/exit \
 	unistd/_exit \

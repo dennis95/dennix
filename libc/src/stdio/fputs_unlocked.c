@@ -13,14 +13,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* libc/src/stdio/fputs_unlocked.c
+ * Puts a string into a file without locking.
  */
 
 #include <stdio.h>
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    puts("Hello World from userspace!");
-    return 42;
+int fputs_unlocked(const char* restrict s, FILE* restrict file) {
+    while (*s) {
+        fputc_unlocked(*s++, file);
+    }
+    return 1;
 }
