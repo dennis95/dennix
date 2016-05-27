@@ -26,6 +26,7 @@ CXXFLAGS ?= -O2 -g
 CXXFLAGS += --sysroot=$(SYSROOT) -std=gnu++14 -ffreestanding -fno-exceptions
 CXXFLAGS += -fno-rtti -Wall -Wextra
 CPPFLAGS += -I include -I $(SYSROOT)/usr/include
+CPPFLAGS += -D__is_dennix_kernel -D_DENNIX_SOURCE
 LDFLAGS += --sysroot=$(SYSROOT) -T linker.ld -ffreestanding -nostdlib
 LIBS += -lk -lgcc
 
