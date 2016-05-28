@@ -34,6 +34,7 @@ LIBK_FLAGS += -D__is_dennix_libk
 COMMON_OBJ := \
 	cxx/new \
 	errno/errno \
+	stdio/vcbprintf \
 	string/memcmp \
 	string/memcpy \
 	string/memmove \
@@ -43,17 +44,21 @@ COMMON_OBJ := \
 LIBC_OBJ := \
 	$(COMMON_OBJ) \
 	stdio/flockfile \
+	stdio/fprintf \
 	stdio/fputc_unlocked \
 	stdio/fputc \
 	stdio/fputs_unlocked \
 	stdio/fputs \
 	stdio/funlockfile \
+	stdio/printf \
 	stdio/putc_unlocked \
 	stdio/putc \
 	stdio/putchar_unlocked \
 	stdio/putchar \
 	stdio/puts \
 	stdio/stdout \
+	stdio/vfprintf_unlocked \
+	stdio/vfprintf \
 	stdlib/_Exit \
 	stdlib/exit \
 	unistd/_exit \

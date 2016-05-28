@@ -47,12 +47,14 @@ struct __FILE {
 extern FILE* stdout;
 #define stdout stdout
 
+int fprintf(FILE* __restrict, const char* __restrict, ...);
 int fputc(int, FILE*);
 int fputs(const char* __restrict, FILE* __restrict);
+int printf(const char* __restrict, ...);
 int putc(int, FILE*);
 int putchar(int);
 int puts(const char*);
-
+int vfprintf(FILE* __restrict, const char* __restrict, __gnuc_va_list);
 
 #if __USE_DENNIX || __USE_POSIX
 void flockfile(FILE*);
@@ -64,6 +66,10 @@ int putchar_unlocked(int);
 #if __USE_DENNIX
 int fputc_unlocked(int, FILE*);
 int fputs_unlocked(const char* __restrict, FILE* __restrict);
+int vcbprintf(void*, size_t (*)(void*, const char*, size_t), const char*,
+        __gnuc_va_list);
+int vfprintf_unlocked(FILE* __restrict, const char* __restrict,
+        __gnuc_va_list);
 #endif
 
 /* These are just declared to make libgcc compile and are not implemented. */
@@ -71,7 +77,6 @@ extern FILE* stderr;
 #define stderr stderr
 
 int fflush(FILE*);
-int fprintf(FILE* __restrict, const char* __restrict, ...);
 
 /* These are just declared to make libgcov compile, which is compiled with
    libgcc, and are not implemented. */
@@ -83,7 +88,6 @@ int fseek(FILE*, long, int);
 long ftell(FILE*);
 size_t fwrite(const void* __restrict, size_t, size_t, FILE* __restrict);
 void setbuf(FILE* __restrict, char* __restrict);
-int vfprintf(FILE* __restrict, const char* __restrict, __gnuc_va_list);
 
 #ifdef __cplusplus
 }

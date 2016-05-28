@@ -13,15 +13,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* libc/src/stdio/vfprintf_unlocked.c
+ * Print format.
  */
 
+#include <stdarg.h>
 #include <stdio.h>
+#include <unistd.h>
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    printf("Hello %s from userspace!\n", "World");
-    printf("%u = 0x%x = 0%o\n", 42, 42, 42);
-    return 42;
+static size_t callback(void* file, const char* s, size_t nBytes) {
+    FILE* f = (FILE*) file;
+    return write(f->fd, s, nBytes);
+}
+
+int vfprintf_unlocked(FILE* restrict file, const char* restrict format,
+        va_list ap) {
+    return vcbprintf(file, callback, format, ap);
 }

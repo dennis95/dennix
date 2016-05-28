@@ -18,85 +18,19 @@
  */
 
 #include <stdarg.h>
-#include <stddef.h>
+#include <stdio.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/terminal.h>
 
-static void printCharacter(char c);
-static void printString(const char* s);
-static void printNumber(unsigned u, int base);
+static size_t callback(void*, const char* s, size_t nBytes);
 
 void Log::printf(const char* format, ...) {
     va_list ap;
     va_start(ap, format);
-
-    unsigned u;
-    unsigned char c;
-    const char* s;
-
-    while (*format) {
-        if (*format != '%') {
-            printCharacter(*format);
-        } else {
-            switch (*++format) {
-            case 'u':
-                u = va_arg(ap, unsigned);
-                printNumber(u, 10);
-                break;
-            case 'x':
-                u = va_arg(ap, unsigned);
-                printNumber(u, 16);
-                break;
-            case 'c':
-                c = (unsigned char) va_arg(ap, int);
-                printCharacter(c);
-                break;
-            case 's':
-                s = va_arg(ap, char*);
-                printString(s);
-                break;
-            case '%':
-                printCharacter('%');
-                break;
-            case '\0':
-                // The format string ended prematurely.
-                va_end(ap);
-                return;
-            default:
-                // Unknown conversion specifier
-                // TODO: implement more specifiers
-                printCharacter('%');
-                printCharacter(*format);
-            }
-        }
-
-        format++;
-    }
+    vcbprintf(nullptr, callback, format, ap);
     va_end(ap);
 }
 
-static void printCharacter(char c) {
-    terminal.write(&c, 1);
-}
-
-static void printString(const char* s) {
-    while (*s) {
-        printCharacter(*s++);
-    }
-}
-
-static void printNumber(unsigned u, int base) {
-    static const char* digits = "0123456789abcdef";
-
-    // This buffer is big enough to contain any 32 bit number.
-    char buffer[11];
-    char* p = buffer + 10;
-    *p = '\0';
-
-    do {
-        *--p = digits[u % base];
-        u /= base;
-    } while (u);
-
-    printString(p);
+static size_t callback(void*, const char* s, size_t nBytes) {
+    return (size_t) terminal.write(s, nBytes);
 }

@@ -13,15 +13,19 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* libc/src/stdio/printf.c
+ * Print format.
  */
 
+#include <stdarg.h>
 #include <stdio.h>
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    printf("Hello %s from userspace!\n", "World");
-    printf("%u = 0x%x = 0%o\n", 42, 42, 42);
-    return 42;
+int printf(const char* restrict format, ...) {
+    flockfile(stdout);
+    va_list ap;
+    va_start(ap, format);
+    int result = vfprintf_unlocked(stdout, format, ap);
+    va_end(ap);
+    funlockfile(stdout);
+    return result;
 }
