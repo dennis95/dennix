@@ -18,6 +18,7 @@
  */
 
 #include <assert.h>
+#include <stdint.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/physicalmemory.h>
@@ -57,7 +58,9 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
     while (mmap < mmapEnd) {
         multiboot_mmap_entry* mmapEntry = (multiboot_mmap_entry*) mmap;
 
-        if (mmapEntry->type == MULTIBOOT_MEMORY_AVAILABLE) {
+        // Only use addresses marked as available that fit into 32bit
+        if (mmapEntry->type == MULTIBOOT_MEMORY_AVAILABLE &&
+            mmapEntry->addr + mmapEntry->len <= UINTPTR_MAX) {
             paddr_t addr = (paddr_t) mmapEntry->addr;
             for (uint64_t i = 0; i < mmapEntry->len; i += 0x1000) {
                 if (isAddressInUse(addr + i)) continue;
