@@ -13,23 +13,21 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/portio.h
- * Port IO.
+/* kernel/include/dennix/kernel/ps2.h
+ * PS/2 Controller.
  */
 
-#ifndef KERNEL_PORTIO_H
-#define KERNEL_PORTIO_H
+#ifndef KERNEL_PS2_H
+#define KERNEL_PS2_H
 
-#include <stdint.h>
-
-static inline uint8_t inb(uint16_t port) {
-    uint8_t result;
-    asm volatile ("inb %1, %0" : "=a"(result) : "Nd"(port));
-    return result;
+namespace PS2 {
+void initialize();
 }
 
-static inline void outb(uint16_t port, uint8_t value) {
-    asm volatile ("outb %0, %1" :: "a"(value), "Nd"(port));
-}
+class PS2Device {
+public:
+    virtual void irqHandler() = 0;
+    virtual ~PS2Device() {}
+};
 
 #endif

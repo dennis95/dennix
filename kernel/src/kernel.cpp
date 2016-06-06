@@ -22,6 +22,7 @@
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/physicalmemory.h>
 #include <dennix/kernel/process.h>
+#include <dennix/kernel/ps2.h>
 
 static void startProcesses(multiboot_info* multiboot);
 
@@ -35,6 +36,9 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
 
     PhysicalMemory::initialize(multiboot);
     Log::printf("Physical Memory initialized\n");
+
+    PS2::initialize();
+    Log::printf("PS/2 Controller initialized\n");
 
     Process::initialize();
     startProcesses(multiboot);

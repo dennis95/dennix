@@ -33,6 +33,7 @@ LIBK_FLAGS += -D__is_dennix_libk
 
 COMMON_OBJ := \
 	cxx/new \
+	cxx/purevirtual \
 	errno/errno \
 	stdio/vcbprintf \
 	string/memcmp \

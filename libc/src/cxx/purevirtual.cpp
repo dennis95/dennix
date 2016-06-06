@@ -13,23 +13,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/portio.h
- * Port IO.
+/* libc/src/cxx/purevirtual.cpp
+ * C++ pure virtual function support.
  */
 
-#ifndef KERNEL_PORTIO_H
-#define KERNEL_PORTIO_H
-
-#include <stdint.h>
-
-static inline uint8_t inb(uint16_t port) {
-    uint8_t result;
-    asm volatile ("inb %1, %0" : "=a"(result) : "Nd"(port));
-    return result;
+extern "C" void __cxa_pure_virtual() {
+    // Do nothing
 }
-
-static inline void outb(uint16_t port, uint8_t value) {
-    asm volatile ("outb %0, %1" :: "a"(value), "Nd"(port));
-}
-
-#endif
