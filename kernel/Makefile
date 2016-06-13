@@ -38,6 +38,7 @@ OBJ := \
 	idt.o \
 	interrupts.o \
 	kernel.o \
+	keyboard.o \
 	log.o \
 	physicalmemory.o \
 	process.o \

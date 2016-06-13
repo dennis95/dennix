@@ -13,23 +13,21 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/terminal.h
- * Terminal class.
+/* kernel/include/dennix/kernel/keyboard.h
+ * Keyboard.
  */
 
-#ifndef KERNEL_TERMINAL_H
-#define KERNEL_TERMINAL_H
+#ifndef KERNEL_KEYBOARD_H
+#define KERNEL_KEYBOARD_H
 
-#include <dennix/kernel/keyboard.h>
-#include <dennix/kernel/vnode.h>
+namespace Keyboard {
+char getCharFromKey(int key);
+}
 
-class Terminal : public Vnode, public KeyboardListener {
+class KeyboardListener {
 public:
-    virtual ssize_t write(const void* buffer, size_t size);
-private:
-    virtual void onKeyboardEvent(int key);
+    virtual void onKeyboardEvent(int key) = 0;
+    virtual ~KeyboardListener() {}
 };
-
-extern Terminal terminal;
 
 #endif

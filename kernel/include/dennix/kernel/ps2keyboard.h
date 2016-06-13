@@ -20,6 +20,7 @@
 #ifndef KERNEL_PS2KEYBOARD_H
 #define KERNEL_PS2KEYBOARD_H
 
+#include <dennix/kernel/keyboard.h>
 #include <dennix/kernel/ps2.h>
 
 class PS2Keyboard : public PS2Device {
@@ -28,6 +29,8 @@ public:
     virtual void irqHandler();
 private:
     void handleKey(int keycode);
+public:
+    KeyboardListener* listener;
 };
 
 #endif

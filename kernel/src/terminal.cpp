@@ -28,6 +28,14 @@ static int cursorPosY = 0;
 
 static void printCharacter(char c);
 
+void Terminal::onKeyboardEvent(int key) {
+    char c = Keyboard::getCharFromKey(key);
+
+    if (c) {
+        write(&c, 1);
+    }
+}
+
 ssize_t Terminal::write(const void* buffer, size_t size) {
     const char* buf = (const char*) buffer;
 

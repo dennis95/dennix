@@ -28,6 +28,7 @@ static void sendKeyboardCommand(uint8_t command);
 static void sendKeyboardCommand(uint8_t command, uint8_t data);
 
 PS2Keyboard::PS2Keyboard() {
+    listener = nullptr;
     sendKeyboardCommand(KEYBOARD_ENABLE_SCANNING);
     Log::printf("Keyboard initialized\n");
 }
@@ -58,8 +59,6 @@ void PS2Keyboard::irqHandler() {
         bool released = data & 0x80;
 
         handleKey(released ? -keycode : keycode);
-
-        Log::printf("Key 0x%x %s.\n", keycode, released ? "released" : "pressed");
     }
 }
 
@@ -77,6 +76,10 @@ void PS2Keyboard::handleKey(int keycode) {
         ledState = newLed;
 
         sendKeyboardCommand(KEYBOARD_SET_LED, ledState);
+    }
+
+    if (listener) {
+        listener->onKeyboardEvent(keycode);
     }
 }
 

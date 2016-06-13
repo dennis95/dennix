@@ -22,6 +22,7 @@
 #include <dennix/kernel/portio.h>
 #include <dennix/kernel/ps2.h>
 #include <dennix/kernel/ps2keyboard.h>
+#include <dennix/kernel/terminal.h>
 
 #define PS2_DATA_PORT 0x60
 #define PS2_STATUS_PORT 0x64
@@ -126,7 +127,10 @@ void PS2::initialize() {
             id = inb(PS2_DATA_PORT);
             if (id == 0x41 || id == 0xC1 || id == 0x83) {
                 // The device identified itself as a keyboard
-                ps2Device1 = new PS2Keyboard();
+                PS2Keyboard* keyboard = new PS2Keyboard();
+                keyboard->listener = &terminal;
+
+                ps2Device1 = keyboard;
                 Interrupts::irqHandlers[1] = irqHandler;
             }
         }
