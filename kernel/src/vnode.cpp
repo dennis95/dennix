@@ -21,6 +21,11 @@
 #include <dennix/kernel/vnode.h>
 
 // Default implementation. Inheriting classes will override these functions.
+ssize_t Vnode::read(void* /*buffer*/, size_t /*size*/) {
+    errno = ENOSYS;
+    return -1;
+}
+
 ssize_t Vnode::write(const void* /*buffer*/, size_t /*size*/) {
     errno = ENOSYS;
     return -1;

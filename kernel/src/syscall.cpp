@@ -24,6 +24,7 @@
 static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_EXIT] =*/ (void*) Syscall::exit,
     /*[SYSCALL_WRITE] =*/ (void*) Syscall::write,
+    /*[SYSCALL_READ] =*/ (void*) Syscall::read,
 };
 
 extern "C" const void* getSyscallHandler(unsigned interruptNumber) {
@@ -38,6 +39,11 @@ NORETURN void Syscall::exit(int status) {
     Process::current->exit(status);
     asm volatile ("int $0x31");
     __builtin_unreachable();
+}
+
+ssize_t Syscall::read(int fd, void* buffer, size_t size) {
+    FileDescription* descr = Process::current->fd[fd];
+    return descr->read(buffer, size);
 }
 
 ssize_t Syscall::write(int fd, const void* buffer, size_t size) {

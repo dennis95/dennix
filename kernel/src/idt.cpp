@@ -82,6 +82,7 @@ struct idt_entry {
 }
 
 #define IDT_INTERRUPT_GATE 0xE
+#define IDT_TRAP_GATE 0xF
 #define IDT_RING0 (0 << 5)
 #define IDT_RING3 (3 << 5)
 #define IDT_PRESENT (1 << 7)
@@ -140,8 +141,7 @@ idt_entry idt[] = {
     IDT_ENTRY(isr_46, 0x8, IDT_INTERRUPT_GATE | IDT_RING0 | IDT_PRESENT),
     IDT_ENTRY(isr_47, 0x8, IDT_INTERRUPT_GATE | IDT_RING0 | IDT_PRESENT),
 
-    IDT_ENTRY(syscallHandler, 0x8,
-            IDT_INTERRUPT_GATE | IDT_RING3 | IDT_PRESENT),
+    IDT_ENTRY(syscallHandler, 0x8, IDT_TRAP_GATE | IDT_RING3 | IDT_PRESENT),
     IDT_ENTRY(isr_49, 0x8, IDT_INTERRUPT_GATE | IDT_RING0 | IDT_PRESENT),
 };
 

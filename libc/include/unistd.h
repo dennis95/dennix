@@ -35,6 +35,7 @@ extern "C" {
 #endif
 
 __noreturn void _exit(int);
+ssize_t read(int, void*, size_t);
 ssize_t write(int, const void*, size_t);
 
 /* These are just declared to make libgcov compile, which is compiled with

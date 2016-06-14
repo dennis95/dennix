@@ -13,20 +13,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/src/filedescription.cpp
- * FileDescription class.
+/* libc/src/unistd/read.c
+ * Read from a file.
  */
 
-#include <dennix/kernel/filedescription.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 
-FileDescription::FileDescription(Vnode* vnode) {
-    this->vnode = vnode;
-}
-
-ssize_t FileDescription::read(void* buffer, size_t size) {
-    return vnode->read(buffer, size);
-}
-
-ssize_t FileDescription::write(const void* buffer, size_t size) {
-    return vnode->write(buffer, size);
-}
+DEFINE_SYSCALL_GLOBAL(SYSCALL_READ, ssize_t, read, (int, void*, size_t));

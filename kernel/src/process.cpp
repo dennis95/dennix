@@ -124,7 +124,9 @@ Process* Process::startProcess(void* entry, AddressSpace* addressSpace) {
     process->addressSpace = addressSpace;
 
     // Initialize file descriptors
+    process->fd[0] = new FileDescription(&terminal); // stdin
     process->fd[1] = new FileDescription(&terminal); // stdout
+    process->fd[2] = new FileDescription(&terminal); // stderr
 
     process->next = firstProcess;
     if (process->next) {
