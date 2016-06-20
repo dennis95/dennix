@@ -13,17 +13,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* libc/src/stdio/getchar.c
+ * Gets a character from stdin.
  */
 
 #include <stdio.h>
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    printf("Hello %s from userspace!\n", "World");
-    char buffer[81];
-    fgets(buffer, sizeof(buffer), stdin);
-    printf("You wrote: %s\n", buffer);
-    return 42;
+int getchar(void) {
+    flockfile(stdin);
+    int result = getchar_unlocked();
+    funlockfile(stdin);
+    return result;
 }

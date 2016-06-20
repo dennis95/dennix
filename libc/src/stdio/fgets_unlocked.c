@@ -13,17 +13,19 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* libc/src/stdio/fgets_unlocked.c
+ * Gets a string from a file without locking.
  */
 
 #include <stdio.h>
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    printf("Hello %s from userspace!\n", "World");
-    char buffer[81];
-    fgets(buffer, sizeof(buffer), stdin);
-    printf("You wrote: %s\n", buffer);
-    return 42;
+char* fgets_unlocked(char* restrict buffer, int size, FILE* restrict file) {
+    int i = 0;
+    for (; i < size - 1; i++) {
+        int c = fgetc_unlocked(file);
+        if (c == '\n') break;
+        buffer[i] = c;
+    }
+    buffer[i] = '\0';
+    return buffer;
 }

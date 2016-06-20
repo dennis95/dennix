@@ -13,17 +13,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* libc/src/stdio/fgetc_unlocked.c
+ * Gets a character from a file without locking.
  */
 
 #include <stdio.h>
+#include <unistd.h>
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    printf("Hello %s from userspace!\n", "World");
-    char buffer[81];
-    fgets(buffer, sizeof(buffer), stdin);
-    printf("You wrote: %s\n", buffer);
-    return 42;
+int fgetc_unlocked(FILE* file) {
+    unsigned char result;
+    read(file->fd, &result, 1);
+    return result;
 }

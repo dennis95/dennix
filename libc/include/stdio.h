@@ -44,12 +44,20 @@ struct __FILE {
 };
 #endif
 
+extern FILE* stdin;
 extern FILE* stdout;
+extern FILE* stderr;
+#define stdin stdin
 #define stdout stdout
+#define stderr stderr
 
+int fgetc(FILE*);
+char* fgets(char* __restrict, int, FILE* __restrict);
 int fprintf(FILE* __restrict, const char* __restrict, ...);
 int fputc(int, FILE*);
 int fputs(const char* __restrict, FILE* __restrict);
+int getc(FILE*);
+int getchar(void);
 int printf(const char* __restrict, ...);
 int putc(int, FILE*);
 int putchar(int);
@@ -59,11 +67,15 @@ int vfprintf(FILE* __restrict, const char* __restrict, __gnuc_va_list);
 #if __USE_DENNIX || __USE_POSIX
 void flockfile(FILE*);
 void funlockfile(FILE*);
+int getc_unlocked(FILE*);
+int getchar_unlocked(void);
 int putc_unlocked(int, FILE*);
 int putchar_unlocked(int);
 #endif
 
 #if __USE_DENNIX
+int fgetc_unlocked(FILE*);
+char* fgets_unlocked(char* __restrict, int, FILE* __restrict);
 int fputc_unlocked(int, FILE*);
 int fputs_unlocked(const char* __restrict, FILE* __restrict);
 int vcbprintf(void*, size_t (*)(void*, const char*, size_t), const char*,
@@ -73,9 +85,6 @@ int vfprintf_unlocked(FILE* __restrict, const char* __restrict,
 #endif
 
 /* These are just declared to make libgcc compile and are not implemented. */
-extern FILE* stderr;
-#define stderr stderr
-
 int fflush(FILE*);
 
 /* These are just declared to make libgcov compile, which is compiled with
