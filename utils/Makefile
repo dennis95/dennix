@@ -22,7 +22,8 @@ include $(REPO_ROOT)/build-aux/toolchain.mk
 BUILD = $(BUILD_DIR)/utils
 
 CFLAGS ?= -O2 -g
-CFLAGS += -Wall -Wextra
+CFLAGS += --sysroot=$(SYSROOT) -Wall -Wextra
+CPPFLAGS += -D_DENNIX_SOURCE
 
 PROGRAMS = \
 	test

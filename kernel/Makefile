@@ -21,11 +21,10 @@ include $(REPO_ROOT)/build-aux/toolchain.mk
 
 BUILD = $(BUILD_DIR)/kernel
 
-ASFLAGS += -Wa,--divide
 CXXFLAGS ?= -O2 -g
 CXXFLAGS += --sysroot=$(SYSROOT) -std=gnu++14 -ffreestanding -fno-exceptions
 CXXFLAGS += -fno-rtti -Wall -Wextra
-CPPFLAGS += -I include -I $(SYSROOT)/usr/include
+CPPFLAGS += -I include
 CPPFLAGS += -D__is_dennix_kernel -D_DENNIX_SOURCE
 LDFLAGS += --sysroot=$(SYSROOT) -T linker.ld -ffreestanding -nostdlib
 LIBS += -lk -lgcc
@@ -53,6 +52,10 @@ include $(ARCH).mk
 OBJ := $(START_OBJ) $(addprefix $(BUILD)/, $(OBJ)) $(END_OBJ)
 
 all: $(BUILD)/kernel
+
+install-headers:
+	@mkdir -p $(INCLUDE_DIR)
+	cp -rf include/. $(INCLUDE_DIR)
 
 $(BUILD)/kernel: $(OBJ)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)

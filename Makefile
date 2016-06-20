@@ -22,18 +22,19 @@ include $(REPO_ROOT)/build-aux/toolchain.mk
 KERNEL = $(BUILD_DIR)/kernel/kernel
 ISO = dennix.iso
 
-all: install-headers libc install-libc kernel utils iso
+all: libc kernel utils iso
 
-kernel:
+kernel: $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C kernel
 
-libc:
+libc: $(INCLUDE_DIR)
 	$(MAKE) -C libc
 
 install-libc:
 	$(MAKE) -C libc install
 
 install-headers:
+	$(MAKE) -C kernel install-headers
 	$(MAKE) -C libc install-headers
 
 iso: $(ISO)
@@ -45,14 +46,21 @@ $(ISO): $(KERNEL)
 	cp -f $(BUILD_DIR)/utils/test $(BUILD_DIR)/isosrc
 	$(MKRESCUE) -o $@ $(BUILD_DIR)/isosrc
 
-$(KERNEL):
+$(KERNEL): $(INCLUDE_DIR)
 	$(MAKE) -C kernel
 
 qemu: $(ISO)
 	qemu-system-i386 -cdrom $^
 
-utils:
+utils: $(INCLUDE_DIR)
 	$(MAKE) -C utils
+
+$(INCLUDE_DIR):
+	$(MAKE) -C kernel install-headers
+	$(MAKE) -C libc install-headers
+
+$(LIB_DIR):
+	$(MAKE) -C libc install-libs
 
 clean:
 	rm -rf $(BUILD_DIR)

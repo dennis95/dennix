@@ -26,7 +26,7 @@ CFLAGS ?= -O2 -g
 CFLAGS += --sysroot=$(SYSROOT) -std=gnu11 -ffreestanding -Wall -Wextra
 CXXFLAGS ?= -O2 -g
 CXXFLAGS += --sysroot=$(SYSROOT) -std=gnu++14 -ffreestanding -Wall -Wextra
-CPPFLAGS += -I include -I $(SYSROOT)/usr/include -D_ALL_SOURCE
+CPPFLAGS += -I include -D_ALL_SOURCE
 
 LIBC_FLAGS += -D__is_dennix_libc
 LIBK_FLAGS += -D__is_dennix_libk
@@ -93,16 +93,13 @@ all: $(BUILD)/libc.a $(BUILD)/libk.a $(CRT_OBJ)
 
 install: install-headers install-libs
 
-install-headers: $(SYSROOT)/usr/include
+install-headers:
+	@mkdir -p $(INCLUDE_DIR)
+	cp -rf include/. $(INCLUDE_DIR)
 
 install-libs: $(BUILD)/libc.a $(BUILD)/libk.a $(CRT_OBJ)
 	@mkdir -p $(SYSROOT)/usr/lib
 	cp -f $^ $(SYSROOT)/usr/lib
-
-$(SYSROOT)/usr/include: include $(REPO_ROOT)/kernel/include
-	@mkdir -p $@
-	@touch $@
-	cp -rf $^ $(SYSROOT)/usr
 
 $(BUILD)/libc.a: $(LIBC_OBJ)
 	$(AR) $(ARFLAGS) $@ $^

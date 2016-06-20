@@ -14,3 +14,5 @@
 
 BUILD_DIR = $(REPO_ROOT)/build/$(ARCH)
 SYSROOT ?= $(REPO_ROOT)/sysroot
+INCLUDE_DIR = $(SYSROOT)/usr/include
+LIB_DIR = $(SYSROOT)/usr/lib
