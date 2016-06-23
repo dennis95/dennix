@@ -49,9 +49,12 @@ OBJ := \
 
 include $(ARCH).mk
 
-OBJ := $(START_OBJ) $(addprefix $(BUILD)/, $(OBJ)) $(END_OBJ)
-
 all: $(BUILD)/kernel
+
+OBJ := $(addprefix $(BUILD)/, $(OBJ))
+-include $(OBJ:.o=.d)
+
+OBJ := $(START_OBJ) $(OBJ) $(END_OBJ)
 
 install-headers:
 	@mkdir -p $(INCLUDE_DIR)
@@ -62,11 +65,11 @@ $(BUILD)/kernel: $(OBJ)
 
 $(BUILD)/%.o: src/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c -o $@ $^
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -MD -MP -c -o $@ $<
 
 $(BUILD)/%.o: src/%.S
 	@mkdir -p $(dir $@)
-	$(CXX) $(ASFLAGS) $(CPPFLAGS) -c -o $@ $^
+	$(CXX) $(ASFLAGS) $(CPPFLAGS) -MD -MP -c -o $@ $<
 
 clean:
 	rm -rf $(BUILD)

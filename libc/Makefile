@@ -91,6 +91,9 @@ LIBK_OBJ := $(addprefix $(BUILD)/, $(addsuffix .libk.o, $(LIBK_OBJ)))
 
 all: $(BUILD)/libc.a $(BUILD)/libk.a $(CRT_OBJ)
 
+-include $(LIBC_OBJ:.o=.d)
+-include $(LIBK_OBJ:.o=.d)
+
 install: install-headers install-libs
 
 install-headers:
@@ -109,23 +112,23 @@ $(BUILD)/libk.a: $(LIBK_OBJ)
 
 $(BUILD)/%.o: src/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(LIBC_FLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(LIBC_FLAGS) -MD -MP -c -o $@ $<
 
 $(BUILD)/%.o: src/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LIBC_FLAGS) -c -o $@ $^
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LIBC_FLAGS) -MD -MP -c -o $@ $<
 
 $(BUILD)/%.o: src/%.S
 	@mkdir -p $(dir $@)
-	$(CC) $(ASFLAGS) $(CPPFLAGS) $(LIBC_FLAGS) -c -o $@ $^
+	$(CC) $(ASFLAGS) $(CPPFLAGS) $(LIBC_FLAGS) -c -o $@ $<
 
 $(BUILD)/%.libk.o: src/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(CPPFLAGS) $(LIBK_FLAGS) -c -o $@ $^
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(LIBK_FLAGS) -MD -MP -c -o $@ $<
 
 $(BUILD)/%.libk.o: src/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LIBK_FLAGS) -c -o $@ $^
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LIBK_FLAGS) -MD -MP -c -o $@ $<
 
 clean:
 	rm -rf $(BUILD)
