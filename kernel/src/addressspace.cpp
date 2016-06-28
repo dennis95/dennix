@@ -18,11 +18,15 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <string.h>
+#include <dennix/mman.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/kernel.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/physicalmemory.h>
+#include <dennix/kernel/process.h>
+#include <dennix/kernel/syscall.h>
 
 #define RECURSIVE_MAPPING 0xFFC00000
 
@@ -372,6 +376,40 @@ void AddressSpace::unmapRange(vaddr_t firstVirtualAddress, size_t nPages) {
         unmap(firstVirtualAddress);
         firstVirtualAddress += 0x1000;
     }
+}
+
+static void* mmapImplementation(void* /*addr*/, size_t size, int /*protection*/,
+        int flags, int /*fd*/, off_t /*offset*/) {
+    if (size == 0 || !(flags & MAP_PRIVATE)) {
+        errno = EINVAL;
+        return MAP_FAILED;
+    }
+
+    if (flags & MAP_ANONYMOUS) {
+        AddressSpace* addressSpace = Process::current->addressSpace;
+        return (void*) addressSpace->allocate(size / 0x1000);
+    }
+
+    //TODO: Implement other flags than MAP_ANONYMOUS
+    errno = ENOTSUP;
+    return MAP_FAILED;
+}
+
+void* Syscall::mmap(__mmapRequest* request) {
+    return mmapImplementation(request->_addr, request->_size, request->_protection,
+            request->_flags, request->_fd, request->_offset);
+}
+
+int Syscall::munmap(void* addr, size_t size) {
+    if (size == 0 || (vaddr_t) addr & 0xFFF) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    AddressSpace* addressSpace = Process::current->addressSpace;
+    //TODO: The userspace process could unmap kernel pages!
+    addressSpace->free((vaddr_t) addr, size / 0x1000);
+    return 0;
 }
 
 // These two functions are called from libk.

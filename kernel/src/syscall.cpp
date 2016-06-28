@@ -25,6 +25,8 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_EXIT] =*/ (void*) Syscall::exit,
     /*[SYSCALL_WRITE] =*/ (void*) Syscall::write,
     /*[SYSCALL_READ] =*/ (void*) Syscall::read,
+    /*[SYSCALL_MMAP] =*/ (void*) Syscall::mmap,
+    /*[SYSCALL_MUNMAP] =*/ (void*) Syscall::munmap,
 };
 
 extern "C" const void* getSyscallHandler(unsigned interruptNumber) {

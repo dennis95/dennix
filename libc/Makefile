@@ -36,6 +36,9 @@ COMMON_OBJ := \
 	cxx/purevirtual \
 	errno/errno \
 	stdio/vcbprintf \
+	stdlib/free \
+	stdlib/malloc \
+	stdlib/malloc-util \
 	string/memcmp \
 	string/memcpy \
 	string/memmove \
@@ -44,6 +47,7 @@ COMMON_OBJ := \
 
 LIBC_OBJ := \
 	$(COMMON_OBJ) \
+	assert/assert \
 	stdio/fgetc_unlocked \
 	stdio/fgetc \
 	stdio/fgets_unlocked \
@@ -72,15 +76,13 @@ LIBC_OBJ := \
 	stdio/vfprintf \
 	stdlib/_Exit \
 	stdlib/exit \
+	sys/mman/mmap \
+	sys/mman/munmap \
 	unistd/_exit \
 	unistd/read \
 	unistd/write
 
-LIBK_OBJ := \
-	$(COMMON_OBJ) \
-	stdlib/free \
-	stdlib/malloc \
-	stdlib/malloc-util
+LIBK_OBJ := $(COMMON_OBJ)
 
 include $(ARCH).mk
 

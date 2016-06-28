@@ -23,7 +23,9 @@
 #define SYSCALL_EXIT 0
 #define SYSCALL_WRITE 1
 #define SYSCALL_READ 2
+#define SYSCALL_MMAP 3
+#define SYSCALL_MUNMAP 4
 
-#define NUM_SYSCALLS 3
+#define NUM_SYSCALLS 5
 
 #endif

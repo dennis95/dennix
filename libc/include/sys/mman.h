@@ -13,38 +13,28 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/process.h
- * Process class.
+/* libc/include/sys/mman.h
+ * Memory management.
  */
 
-#ifndef KERNEL_PROCESS_H
-#define KERNEL_PROCESS_H
+#ifndef _SYS_MMAN_H
+#define _SYS_MMAN_H
 
-#include <dennix/kernel/addressspace.h>
-#include <dennix/kernel/filedescription.h>
-#include <dennix/kernel/interrupts.h>
+#define __need_mode_t
+#define __need_off_t
+#define __need_size_t
+#include <sys/libc-types.h>
+#include <dennix/mman.h>
 
-class Process {
-public:
-    Process();
-    void exit(int status);
-private:
-    InterruptContext* interruptContext;
-    Process* prev;
-    Process* next;
-    void* stack;
-    void* kernelStack;
-public:
-    AddressSpace* addressSpace;
-    FileDescription* fd[20];
-public:
-    static void initialize();
-    static Process* loadELF(vaddr_t elf);
-    static InterruptContext* schedule(InterruptContext* context);
-    static Process* startProcess(void* entry, AddressSpace* addressSpace);
-    static Process* current;
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void setKernelStack(uintptr_t stack);
+void* mmap(void*, size_t, int, int, int, off_t);
+int munmap(void*, size_t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

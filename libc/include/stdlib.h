@@ -31,8 +31,6 @@ extern "C" {
 
 __noreturn void _Exit(int);
 __noreturn void exit(int);
-
-/* These are not yet ported to user space. */
 void free(void*);
 void* malloc(size_t);
 

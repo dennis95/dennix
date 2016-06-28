@@ -13,37 +13,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/sys/libc-types.h
- * Data types.
+/* libc/src/sys/mman/mmap.c
+ * Map pages.
  */
 
-#include <dennix/types.h>
+#include <sys/mman.h>
+#include <sys/syscall.h>
 
-#if defined(__need_FILE) && !defined(__FILE_defined)
-typedef struct __FILE FILE;
-#  define __FILE_defined
-#endif
+DEFINE_SYSCALL(SYSCALL_MMAP, void*, sys_mmap, (struct __mmapRequest*));
 
-#if defined(__need_off_t) && !defined(__off_t_defined)
-typedef __off_t off_t;
-#  define __off_t_defined
-#endif
+void* mmap(void* addr, size_t size, int protection, int flags, int fd,
+        off_t offset) {
+    struct __mmapRequest request = {
+        ._addr = addr,
+        ._size = size,
+        ._protection = protection,
+        ._flags = flags,
+        ._fd = fd,
+        ._offset = offset,
+    };
 
-#if defined(__need_pid_t) && !defined(__pid_t_defined)
-typedef __pid_t pid_t;
-#  define __pid_t_defined
-#endif
-
-#if defined(__need_size_t) || defined(__need_NULL)
-#  include <stddef.h>
-#endif
-
-#if defined(__need_ssize_t) && !defined(__ssize_t_defined)
-typedef __SSIZE_TYPE__ ssize_t;
-#  define __ssize_t_defined
-#endif
-
-#undef __need_FILE
-#undef __need_off_t
-#undef __need_pid_t
-#undef __need_ssize_t
+    return sys_mmap(&request);
+}

@@ -17,13 +17,18 @@
  * Some program to test program loading.
  */
 
+#include <stdlib.h>
 #include <stdio.h>
 
 int main(int argc, char* argv[]) {
     (void) argc; (void) argv;
     printf("Hello %s from userspace!\n", "World");
-    char buffer[81];
-    fgets(buffer, sizeof(buffer), stdin);
+
+    char* buffer = malloc(81);
+
+    fgets(buffer, 81, stdin);
     printf("You wrote: %s\n", buffer);
+
+    free(buffer);
     return 42;
 }

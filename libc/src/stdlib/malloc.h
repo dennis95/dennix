@@ -22,7 +22,12 @@
 
 #include <stdlib.h>
 
-#if 1 // kernel implementation
+#if __is_dennix_libc
+#  include <sys/mman.h>
+#  define mapPages(nPages) mmap(NULL, nPages * PAGESIZE, \
+     PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)
+#  define unmapPages(addr, nPages) munmap(addr, nPages * PAGESIZE)
+#else /* if __is_dennix_libk */
 extern void* __mapPages(size_t);
 extern void __unmapPages(void*, size_t);
 

@@ -13,38 +13,35 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/process.h
- * Process class.
+/* kernel/include/dennix/mman.h
+ * Memory management.
  */
 
-#ifndef KERNEL_PROCESS_H
-#define KERNEL_PROCESS_H
+#ifndef _DENNIX_MMAN_H
+#define _DENNIX_MMAN_H
 
-#include <dennix/kernel/addressspace.h>
-#include <dennix/kernel/filedescription.h>
-#include <dennix/kernel/interrupts.h>
+#define PROT_READ (1 << 0)
+#define PROT_WRITE (1 << 1)
+#define PROT_EXEC (1 << 2)
+#define PROT_NONE 0
 
-class Process {
-public:
-    Process();
-    void exit(int status);
-private:
-    InterruptContext* interruptContext;
-    Process* prev;
-    Process* next;
-    void* stack;
-    void* kernelStack;
-public:
-    AddressSpace* addressSpace;
-    FileDescription* fd[20];
-public:
-    static void initialize();
-    static Process* loadELF(vaddr_t elf);
-    static InterruptContext* schedule(InterruptContext* context);
-    static Process* startProcess(void* entry, AddressSpace* addressSpace);
-    static Process* current;
+#define MAP_PRIVATE (1 << 0)
+#define MAP_ANONYMOUS (1 << 1)
+
+#define MAP_FAILED ((void*) 0)
+
+#if defined(__is_dennix_kernel) || defined(__is_dennix_libc)
+/* The mmap() function has to many parameters to be passed in registers */
+#  include <stddef.h>
+#  include <dennix/types.h>
+struct __mmapRequest {
+    void* _addr;
+    size_t _size;
+    int _protection;
+    int _flags;
+    int _fd;
+    __off_t _offset;
 };
-
-void setKernelStack(uintptr_t stack);
+#endif
 
 #endif
