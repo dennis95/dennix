@@ -28,6 +28,7 @@ class Process {
 public:
     Process();
     void exit(int status);
+    int registerFileDescriptor(FileDescription* descr);
 private:
     InterruptContext* interruptContext;
     Process* prev;
@@ -37,8 +38,10 @@ private:
 public:
     AddressSpace* addressSpace;
     FileDescription* fd[20];
+    FileDescription* rootFd;
+    FileDescription* cwdFd;
 public:
-    static void initialize();
+    static void initialize(FileDescription* rootFd);
     static Process* loadELF(vaddr_t elf);
     static InterruptContext* schedule(InterruptContext* context);
     static Process* startProcess(void* entry, AddressSpace* addressSpace);

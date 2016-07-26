@@ -13,27 +13,30 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* kernel/src/file.cpp
+ * File Vnode.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <string.h>
+#include <dennix/kernel/file.h>
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    printf("Hello %s from userspace!\n", "World");
+FileVnode::FileVnode() {
+    // Since we don't have a harddrive driver we have to use hardcoded strings.
+    data = "Hello World!";
+    fileSize = strlen(data);
+}
 
-    FILE* file = fopen("hello", "r");
-    char* buffer = malloc(81);
+bool FileVnode::isSeekable() {
+    return true;
+}
 
-    while (fgets(buffer, 7, file)) {
-        printf("Read from file: %s\n", buffer);
+ssize_t FileVnode::pread(void* buffer, size_t size, off_t offset) {
+    char* buf = (char*) buffer;
+
+    for (size_t i = 0; i < size; i++) {
+        if (offset + i >= fileSize) return i;
+        buf[i] = data[offset + i];
     }
 
-    fgets(buffer, 81, stdin);
-    printf("You wrote: %s\n", buffer);
-
-    free(buffer);
-    return 42;
+    return size;
 }

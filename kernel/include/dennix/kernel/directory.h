@@ -13,27 +13,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* kernel/include/dennix/kernel/directory.h
+ * Directory Vnode.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
+#ifndef KERNEL_DIRECTORY_H
+#define KERNEL_DIRECTORY_H
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    printf("Hello %s from userspace!\n", "World");
+#include <dennix/kernel/vnode.h>
 
-    FILE* file = fopen("hello", "r");
-    char* buffer = malloc(81);
+class DirectoryVnode : public Vnode {
+public:
+    DirectoryVnode();
+    void addChildNode(const char* path, Vnode* vnode);
+    virtual Vnode* openat(const char* path, int flags, mode_t mode);
+private:
+    size_t childCount;
+    Vnode** childNodes;
+    const char** fileNames;
+};
 
-    while (fgets(buffer, 7, file)) {
-        printf("Read from file: %s\n", buffer);
-    }
-
-    fgets(buffer, 81, stdin);
-    printf("You wrote: %s\n", buffer);
-
-    free(buffer);
-    return 42;
-}
+#endif

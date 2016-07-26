@@ -25,6 +25,7 @@
 #include <stdarg.h>
 #define __need_FILE
 #define __need_fpos_t
+#define __need_NULL
 #define __need_off_t
 #define __need_size_t
 
@@ -44,6 +45,8 @@ struct __FILE {
 };
 #endif
 
+#define EOF (-1)
+
 extern FILE* stdin;
 extern FILE* stdout;
 extern FILE* stderr;
@@ -53,6 +56,7 @@ extern FILE* stderr;
 
 int fgetc(FILE*);
 char* fgets(char* __restrict, int, FILE* __restrict);
+FILE* fopen(const char* __restrict, const char* __restrict);
 int fprintf(FILE* __restrict, const char* __restrict, ...);
 int fputc(int, FILE*);
 int fputs(const char* __restrict, FILE* __restrict);
@@ -65,6 +69,7 @@ int puts(const char*);
 int vfprintf(FILE* __restrict, const char* __restrict, __gnuc_va_list);
 
 #if __USE_DENNIX || __USE_POSIX
+FILE* fdopen(int, const char*);
 void flockfile(FILE*);
 void funlockfile(FILE*);
 int getc_unlocked(FILE*);
@@ -91,7 +96,6 @@ int fflush(FILE*);
    libgcc, and are not implemented. */
 #define SEEK_SET 1
 int fclose(FILE*);
-FILE* fopen(const char* __restrict, const char* __restrict);
 size_t fread(void* __restrict, size_t, size_t, FILE* __restrict);
 int fseek(FILE*, long, int);
 long ftell(FILE*);

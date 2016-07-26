@@ -13,37 +13,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/src/filedescription.cpp
- * FileDescription class.
+/* libc/src/string/strncmp.c
+ * String comparison.
  */
 
-#include <dennix/kernel/filedescription.h>
+#include <string.h>
 
-FileDescription::FileDescription(Vnode* vnode) {
-    this->vnode = vnode;
-    offset = 0;
-}
-
-FileDescription* FileDescription::openat(const char* path, int flags, mode_t mode) {
-    Vnode* node = vnode->openat(path, flags, mode);
-    if (!node) {
-        return nullptr;
-    }
-    return new FileDescription(node);
-}
-
-ssize_t FileDescription::read(void* buffer, size_t size) {
-    if (vnode->isSeekable()) {
-        ssize_t result = vnode->pread(buffer, size, offset);
-
-        if (result != -1) {
-            offset += result;
+int strncmp(const char* str1, const char* str2, size_t length) {
+    const unsigned char* s1 = (const unsigned char*) str1;
+    const unsigned char* s2 = (const unsigned char*) str2;
+    
+    for (size_t i = 0; i < length; i++) {
+        if (s1[i] < s2[i]) {
+            return -1;
+        } else if (s1[i] > s2[i]) {
+            return 1;
+        } else if (s1[i] == '\0') {
+            return 0;
         }
-        return result;
     }
-    return vnode->read(buffer, size);
-}
 
-ssize_t FileDescription::write(const void* buffer, size_t size) {
-    return vnode->write(buffer, size);
+    return 0;
 }

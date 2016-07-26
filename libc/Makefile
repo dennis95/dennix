@@ -43,16 +43,23 @@ COMMON_OBJ := \
 	string/memcpy \
 	string/memmove \
 	string/memset \
-	string/strlen
+	string/strcmp \
+	string/strcspn \
+	string/strlen \
+	string/strncmp
 
 LIBC_OBJ := \
 	$(COMMON_OBJ) \
 	assert/assert \
+	fcntl/open \
+	fcntl/openat \
+	stdio/fdopen \
 	stdio/fgetc_unlocked \
 	stdio/fgetc \
 	stdio/fgets_unlocked \
 	stdio/fgets \
 	stdio/flockfile \
+	stdio/fopen \
 	stdio/fprintf \
 	stdio/fputc_unlocked \
 	stdio/fputc \

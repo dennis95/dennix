@@ -13,27 +13,30 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* libc/include/fcntl.h
+ * File control.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
+#ifndef _FCNTL_H
+#define _FCNTL_H
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    printf("Hello %s from userspace!\n", "World");
+#include <sys/cdefs.h>
+#define __need_mode_t
+#define __need_off_t
+#define __need_pid_t
+#include <sys/libc-types.h>
+#include <sys/stat.h>
+#include <dennix/fcntl.h>
 
-    FILE* file = fopen("hello", "r");
-    char* buffer = malloc(81);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-    while (fgets(buffer, 7, file)) {
-        printf("Read from file: %s\n", buffer);
-    }
+int open(const char*, int, ...);
+int openat(int, const char*, int, ...);
 
-    fgets(buffer, 81, stdin);
-    printf("You wrote: %s\n", buffer);
-
-    free(buffer);
-    return 42;
+#ifdef __cplusplus
 }
+#endif
+
+#endif

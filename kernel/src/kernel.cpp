@@ -19,6 +19,8 @@
 
 #include <string.h>
 #include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/directory.h>
+#include <dennix/kernel/file.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/physicalmemory.h>
 #include <dennix/kernel/process.h>
@@ -40,7 +42,12 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     PS2::initialize();
     Log::printf("PS/2 Controller initialized\n");
 
-    Process::initialize();
+    // Create a root directory with a file.
+    DirectoryVnode* rootDir = new DirectoryVnode();
+    rootDir->addChildNode("hello", new FileVnode());
+    FileDescription* rootFd = new FileDescription(rootDir);
+
+    Process::initialize(rootFd);
     startProcesses(multiboot);
     Log::printf("Processes initialized\n");
     kernelSpace->unmap((vaddr_t) multiboot);

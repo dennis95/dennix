@@ -13,27 +13,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* kernel/include/dennix/kernel/file.h
+ * File Vnode.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
+#ifndef KERNEL_FILE_H
+#define KERNEL_FILE_H
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    printf("Hello %s from userspace!\n", "World");
+#include <dennix/kernel/vnode.h>
 
-    FILE* file = fopen("hello", "r");
-    char* buffer = malloc(81);
+class FileVnode : public Vnode {
+public:
+    FileVnode();
+    virtual bool isSeekable();
+    virtual ssize_t pread(void* buffer, size_t size, off_t offset);
+private:
+    const char* data;
+    size_t fileSize;
+};
 
-    while (fgets(buffer, 7, file)) {
-        printf("Read from file: %s\n", buffer);
-    }
-
-    fgets(buffer, 81, stdin);
-    printf("You wrote: %s\n", buffer);
-
-    free(buffer);
-    return 42;
-}
+#endif

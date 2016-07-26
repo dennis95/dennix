@@ -13,27 +13,31 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* kernel/include/dennix/fcntl.h
+ * File control.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
+#ifndef _DENNIX_FCNTL_H
+#define _DENNIX_FCNTL_H
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    printf("Hello %s from userspace!\n", "World");
+#define AT_FDCWD (-1)
 
-    FILE* file = fopen("hello", "r");
-    char* buffer = malloc(81);
+#define O_EXEC (1 << 0)
+#define O_RDONLY (1 << 1)
+#define O_WRONLY (1 << 2)
+#define O_RDWR (O_RDONLY | O_WRONLY)
+#define O_SEARCH O_EXEC
 
-    while (fgets(buffer, 7, file)) {
-        printf("Read from file: %s\n", buffer);
-    }
+#define O_APPEND (1 << 3)
+#define O_CLOEXEC (1 << 4)
+#define O_CREAT (1 << 5)
+#define O_DIRECTORY (1 << 6)
+#define O_EXCL (1 << 7)
+#define O_NOCTTY (1 << 8)
+#define O_NOFOLLOW (1 << 9)
+#define O_NONBLOCK (1 << 10)
+#define O_SYNC (1 << 11)
+#define O_TRUNC (1 << 12)
+#define O_TTY_INIT (1 << 13)
 
-    fgets(buffer, 81, stdin);
-    printf("You wrote: %s\n", buffer);
-
-    free(buffer);
-    return 42;
-}
+#endif

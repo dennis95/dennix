@@ -13,27 +13,22 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* libc/src/fcntl/open.c
+ * Opens a file.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <stdarg.h>
+#include <fcntl.h>
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    printf("Hello %s from userspace!\n", "World");
+int open(const char* path, int flags, ...) {
+    mode_t mode = 0;
 
-    FILE* file = fopen("hello", "r");
-    char* buffer = malloc(81);
-
-    while (fgets(buffer, 7, file)) {
-        printf("Read from file: %s\n", buffer);
+    if (flags == O_CREAT) {
+        va_list ap;
+        va_start(ap, flags);
+        mode = va_arg(ap, mode_t);
+        va_end(ap);
     }
 
-    fgets(buffer, 81, stdin);
-    printf("You wrote: %s\n", buffer);
-
-    free(buffer);
-    return 42;
+    return openat(AT_FDCWD, path, flags, mode);
 }

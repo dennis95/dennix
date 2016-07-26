@@ -17,6 +17,7 @@
  * Syscall implementations.
  */
 
+#include <dennix/fcntl.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/syscall.h>
@@ -27,6 +28,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_READ] =*/ (void*) Syscall::read,
     /*[SYSCALL_MMAP] =*/ (void*) Syscall::mmap,
     /*[SYSCALL_MUNMAP] =*/ (void*) Syscall::munmap,
+    /*[SYSCALL_OPENAT] =*/ (void*) Syscall::openat,
 };
 
 extern "C" const void* getSyscallHandler(unsigned interruptNumber) {
@@ -41,6 +43,24 @@ NORETURN void Syscall::exit(int status) {
     Process::current->exit(status);
     asm volatile ("int $0x31");
     __builtin_unreachable();
+}
+
+int Syscall::openat(int fd, const char* path, int flags, mode_t mode) {
+    FileDescription* descr;
+
+    if (path[0] == '/') {
+        descr = Process::current->rootFd;
+    } else if (fd == AT_FDCWD) {
+        descr = Process::current->cwdFd;
+    } else {
+        descr = Process::current->fd[fd];
+    }
+
+    FileDescription* result = descr->openat(path, flags, mode);
+    if (!result) {
+        return -1;
+    }
+    return Process::current->registerFileDescriptor(result);
 }
 
 ssize_t Syscall::read(int fd, void* buffer, size_t size) {

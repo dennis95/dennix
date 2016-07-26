@@ -13,27 +13,45 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* libc/include/sys/stat.h
+ * File information.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
+#ifndef _SYS_STAT_H
+#define _SYS_STAT_H
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    printf("Hello %s from userspace!\n", "World");
+#include <sys/cdefs.h>
+#define __need_dev_t
+#define __need_ino_t
+#define __need_mode_t
+#define __need_nlink_t
+#define __need_uid_t
+#define __need_gid_t
+#define __need_off_t
+#define __need_time_t
+#include <sys/libc-types.h>
 
-    FILE* file = fopen("hello", "r");
-    char* buffer = malloc(81);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-    while (fgets(buffer, 7, file)) {
-        printf("Read from file: %s\n", buffer);
-    }
+#define S_IRWXU 0700
+#define S_IRUSR 0400
+#define S_IWUSR 0200
+#define S_IXUSR 0100
+#define S_IRWXG 070
+#define S_IRGRP 040
+#define S_IWGRP 020
+#define S_IXGRP 010
+#define S_IRWXO 07
+#define S_IROTH 04
+#define S_IWOTH 02
+#define S_IXOTH 01
+#define S_ISUID 04000
+#define S_ISGID 02000
 
-    fgets(buffer, 81, stdin);
-    printf("You wrote: %s\n", buffer);
-
-    free(buffer);
-    return 42;
+#ifdef __cplusplus
 }
+#endif
+
+#endif

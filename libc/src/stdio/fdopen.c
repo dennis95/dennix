@@ -13,27 +13,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* libc/src/stdio/fdopen.c
+ * Associates a file with a file descriptor.
  */
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    printf("Hello %s from userspace!\n", "World");
+FILE* fdopen(int fd, const char* mode) {
+    (void) mode;
 
-    FILE* file = fopen("hello", "r");
-    char* buffer = malloc(81);
-
-    while (fgets(buffer, 7, file)) {
-        printf("Read from file: %s\n", buffer);
-    }
-
-    fgets(buffer, 81, stdin);
-    printf("You wrote: %s\n", buffer);
-
-    free(buffer);
-    return 42;
+    FILE* file = malloc(sizeof(FILE));
+    file->fd = fd;
+    return file;
 }
