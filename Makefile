@@ -20,6 +20,7 @@ include $(REPO_ROOT)/build-aux/paths.mk
 include $(REPO_ROOT)/build-aux/toolchain.mk
 
 KERNEL = $(BUILD_DIR)/kernel/kernel
+INITRD = $(BUILD_DIR)/initrd/initrd.tar
 ISO = dennix.iso
 
 all: libc kernel utils iso
@@ -39,15 +40,21 @@ install-headers:
 
 iso: $(ISO)
 
-$(ISO): $(KERNEL)
+$(ISO): $(KERNEL) $(INITRD)
 	rm -rf $(BUILD_DIR)/isosrc
 	cp -rf isosrc $(BUILD_DIR)
 	cp -f $(KERNEL) $(BUILD_DIR)/isosrc
-	cp -f $(BUILD_DIR)/utils/test $(BUILD_DIR)/isosrc
+	cp -f $(INITRD) $(BUILD_DIR)/isosrc
 	$(MKRESCUE) -o $@ $(BUILD_DIR)/isosrc
 
 $(KERNEL): $(INCLUDE_DIR)
 	$(MAKE) -C kernel
+
+$(INITRD): $(BUILD_DIR)/utils/test
+	@mkdir -p $(BUILD_DIR)/initrd
+	echo Hello World! > $(BUILD_DIR)/initrd/hello
+	cp -f $(BUILD_DIR)/utils/test $(BUILD_DIR)/initrd
+	cd $(BUILD_DIR)/initrd && tar cvf initrd.tar --format=ustar hello test
 
 qemu: $(ISO)
 	qemu-system-i386 -cdrom $^

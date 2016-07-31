@@ -24,11 +24,11 @@
 
 class FileVnode : public Vnode {
 public:
-    FileVnode();
+    FileVnode(const void* data, size_t size);
     virtual bool isSeekable();
     virtual ssize_t pread(void* buffer, size_t size, off_t offset);
-private:
-    const char* data;
+public:
+    char* data;
     size_t fileSize;
 };
 

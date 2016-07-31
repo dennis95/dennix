@@ -21,12 +21,13 @@
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/directory.h>
 #include <dennix/kernel/file.h>
+#include <dennix/kernel/initrd.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/physicalmemory.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/ps2.h>
 
-static void startProcesses(multiboot_info* multiboot);
+static DirectoryVnode* loadInitrd(multiboot_info* multiboot);
 
 extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     Log::printf("Hello World!\n");
@@ -42,13 +43,16 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     PS2::initialize();
     Log::printf("PS/2 Controller initialized\n");
 
-    // Create a root directory with a file.
-    DirectoryVnode* rootDir = new DirectoryVnode();
-    rootDir->addChildNode("hello", new FileVnode());
+    // Load the initrd.
+    DirectoryVnode* rootDir = loadInitrd(multiboot);
     FileDescription* rootFd = new FileDescription(rootDir);
+    Log::printf("Initrd loaded\n");
 
     Process::initialize(rootFd);
-    startProcesses(multiboot);
+    FileVnode* program = (FileVnode*) rootDir->openat("test", 0, 0);
+    if (program) {
+        Process::loadELF((vaddr_t) program->data);
+    }
     Log::printf("Processes initialized\n");
     kernelSpace->unmap((vaddr_t) multiboot);
 
@@ -61,7 +65,9 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     }
 }
 
-static void startProcesses(multiboot_info* multiboot) {
+static DirectoryVnode* loadInitrd(multiboot_info* multiboot) {
+    DirectoryVnode* root = nullptr;
+
     paddr_t modulesAligned = multiboot->mods_addr & ~0xFFF;
     ptrdiff_t offset = multiboot->mods_addr - modulesAligned;
 
@@ -74,10 +80,14 @@ static void startProcesses(multiboot_info* multiboot) {
     for (size_t i = 0; i < multiboot->mods_count; i++) {
         size_t nPages = ALIGNUP(modules[i].mod_end - modules[i].mod_start,
                 0x1000) / 0x1000;
-        vaddr_t elf = kernelSpace->mapRange(modules[i].mod_start,
+        vaddr_t initrd = kernelSpace->mapRange(modules[i].mod_start,
                 nPages, PAGE_PRESENT);
-        Process::loadELF(elf);
-        kernelSpace->unmapRange(elf, nPages);
+        root = Initrd::loadInitrd(initrd);
+        kernelSpace->unmapRange(initrd, nPages);
+
+        if (root->childCount) break;
     }
     kernelSpace->unmap((vaddr_t) modulesPage);
+
+    return root;
 }

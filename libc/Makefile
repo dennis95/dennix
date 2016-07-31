@@ -32,6 +32,7 @@ LIBC_FLAGS += -D__is_dennix_libc
 LIBK_FLAGS += -D__is_dennix_libk
 
 COMMON_OBJ := \
+	ctype/isspace \
 	cxx/new \
 	cxx/purevirtual \
 	errno/errno \
@@ -39,12 +40,15 @@ COMMON_OBJ := \
 	stdlib/free \
 	stdlib/malloc \
 	stdlib/malloc-util \
+	stdlib/strtol \
+	stdlib/strtoul \
 	string/memcmp \
 	string/memcpy \
 	string/memmove \
 	string/memset \
 	string/strcmp \
 	string/strcspn \
+	string/strdup \
 	string/strlen \
 	string/strncmp
 

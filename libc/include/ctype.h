@@ -13,38 +13,22 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/string.h
- * String and memory functions.
+/* libc/include/ctype.h
+ * Character types.
  */
 
-#ifndef _STRING_H
-#define _STRING_H
+#ifndef _CTYPE_H
+#define _CTYPE_H
 
 #include <sys/cdefs.h>
-#define __need_NULL
-#define __need_size_t
+#define __need_locale_t
 #include <sys/libc-types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int memcmp(const void*, const void*, size_t);
-void* memcpy(void* __restrict, const void* __restrict, size_t);
-void* memmove(void*, const void*, size_t);
-void* memset(void*, int, size_t);
-int strcmp(const char*, const char*);
-size_t strcspn(const char*, const char*);
-size_t strlen(const char*);
-int strncmp(const char*, const char*, size_t);
-
-#if __USE_DENNIX || __USE_POSIX
-char* strdup(const char*);
-#endif
-
-/* These are just declared to make libgcov compile, which is compiled with
-   libgcc, and are not implemented. */
-char* strcpy(char* __restrict, const char* __restrict);
+int isspace(int);
 
 #ifdef __cplusplus
 }

@@ -13,30 +13,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/src/file.cpp
- * File Vnode.
+/* kernel/include/dennix/kernel/initrd.h
+ * Initial RAM disk.
  */
 
-#include <string.h>
-#include <dennix/kernel/file.h>
+#ifndef KERNEL_INITRD_H
+#define KERNEL_INITRD_H
 
-FileVnode::FileVnode(const void* data, size_t size) {
-    this->data = new char[size];
-    memcpy(this->data, data, size);
-    fileSize = size;
+#include <dennix/kernel/directory.h>
+#include <dennix/kernel/kernel.h>
+
+namespace Initrd {
+DirectoryVnode* loadInitrd(vaddr_t initrd);
 }
 
-bool FileVnode::isSeekable() {
-    return true;
-}
-
-ssize_t FileVnode::pread(void* buffer, size_t size, off_t offset) {
-    char* buf = (char*) buffer;
-
-    for (size_t i = 0; i < size; i++) {
-        if (offset + i >= fileSize) return i;
-        buf[i] = data[offset + i];
-    }
-
-    return size;
-}
+#endif
