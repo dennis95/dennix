@@ -49,7 +49,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     Log::printf("Initrd loaded\n");
 
     Process::initialize(rootFd);
-    FileVnode* program = (FileVnode*) rootDir->openat("test", 0, 0);
+    FileVnode* program = (FileVnode*) rootDir->openat("/bin/test", 0, 0);
     if (program) {
         Process::loadELF((vaddr_t) program->data);
     }

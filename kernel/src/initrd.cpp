@@ -17,6 +17,7 @@
  * Initial RAM disk.
  */
 
+#include <libgen.h>
 #include <stdlib.h>
 #include <string.h>
 #include <tar.h>
@@ -45,22 +46,50 @@ struct TarHeader {
 };
 
 DirectoryVnode* Initrd::loadInitrd(vaddr_t initrd) {
-    DirectoryVnode* root = new DirectoryVnode();
+    DirectoryVnode* root = new DirectoryVnode(nullptr);
     TarHeader* header = (TarHeader*) initrd;
 
     while (strcmp(header->magic, TMAGIC) == 0) {
-        // TODO: Add support for subdirectories
+        size_t size = (size_t) strtoul(header->size, NULL, 8);
+        char* path;
 
-        size_t size = (size_t) strtoul(header->size, NULL, 10);
+        if (header->prefix[0]) {
+            path = (char*) malloc(strlen(header->name) + strlen(header->prefix) + 2);
 
-        if (header->typeflag == REGTYPE || header->typeflag == AREGTYPE) {
-            FileVnode* file = new FileVnode(header + 1, size);
-            root->addChildNode(strdup(header->name), file);
-
-            Log::printf("File: /%s, size = %zu\n", header->name, size);
+            stpcpy(stpcpy(stpcpy(path, header->prefix), "/"), header->name);
+        } else {
+            path = strdup(header->name);
         }
 
-        header += 1 + ALIGNUP(size, 512) / 512;
+        char* path2 = strdup(path);
+        char* dirName = dirname(path);
+        char* fileName = basename(path2);
+
+        DirectoryVnode* directory = (DirectoryVnode*) root->openat(dirName, 0, 0);
+
+        if (!directory) {
+            Log::printf("Could not add '%s' to nonexistent directory '%s'.\n", fileName, dirName);
+            return root;
+        }
+
+        Vnode* newFile;
+
+        if (header->typeflag == REGTYPE || header->typeflag == AREGTYPE) {
+            newFile = new FileVnode(header + 1, size);
+            header += 1 + ALIGNUP(size, 512) / 512;
+        } else if (header->typeflag == DIRTYPE) {
+            newFile = new DirectoryVnode(directory);
+            header++;
+        } else {
+            Log::printf("Unknown typeflag '%c'\n", header->typeflag);
+            return root;
+        }
+
+        directory->addChildNode(fileName, newFile);
+        Log::printf("File: %s/%s, size = %zu\n", dirName, fileName, size);
+
+        free(path);
+        free(path2);
     }
 
     return root;

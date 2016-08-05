@@ -30,6 +30,10 @@ PROGRAMS = \
 
 all: $(addprefix $(BUILD)/, $(PROGRAMS))
 
+install: $(addprefix $(BUILD)/, $(PROGRAMS))
+	@mkdir -p $(BIN_DIR)
+	cp -f $^ $(BIN_DIR)
+
 $(BUILD)/%: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $^
@@ -37,4 +41,4 @@ $(BUILD)/%: %.c
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all clean
+.PHONY: all install clean

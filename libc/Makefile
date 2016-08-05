@@ -36,6 +36,8 @@ COMMON_OBJ := \
 	cxx/new \
 	cxx/purevirtual \
 	errno/errno \
+	libgen/basename \
+	libgen/dirname \
 	stdio/vcbprintf \
 	stdlib/free \
 	stdlib/malloc \
@@ -46,11 +48,14 @@ COMMON_OBJ := \
 	string/memcpy \
 	string/memmove \
 	string/memset \
+	string/stpcpy \
 	string/strcmp \
+	string/strcpy \
 	string/strcspn \
 	string/strdup \
 	string/strlen \
-	string/strncmp
+	string/strncmp \
+	string/strrchr
 
 LIBC_OBJ := \
 	$(COMMON_OBJ) \
@@ -112,8 +117,8 @@ install-headers:
 	cp -rf include/. $(INCLUDE_DIR)
 
 install-libs: $(BUILD)/libc.a $(BUILD)/libk.a $(CRT_OBJ)
-	@mkdir -p $(SYSROOT)/usr/lib
-	cp -f $^ $(SYSROOT)/usr/lib
+	@mkdir -p $(LIB_DIR)
+	cp -f $^ $(LIB_DIR)
 
 $(BUILD)/libc.a: $(LIBC_OBJ)
 	$(AR) $(ARFLAGS) $@ $^

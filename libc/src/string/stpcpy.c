@@ -13,26 +13,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/directory.h
- * Directory Vnode.
+/* libc/src/string/stpcpy.c
+ * Copies a string into a buffer.
  */
 
-#ifndef KERNEL_DIRECTORY_H
-#define KERNEL_DIRECTORY_H
+#include <string.h>
 
-#include <dennix/kernel/vnode.h>
+char* stpcpy(char* restrict s1, const char* restrict s2) {
+    while (*s2) {
+        *s1++ = *s2++;
+    }
 
-class DirectoryVnode : public Vnode {
-public:
-    DirectoryVnode(DirectoryVnode* parent);
-    void addChildNode(const char* path, Vnode* vnode);
-    virtual Vnode* openat(const char* path, int flags, mode_t mode);
-public:
-    size_t childCount;
-private:
-    Vnode** childNodes;
-    const char** fileNames;
-    DirectoryVnode* parent;
-};
+    *s1 = '\0';
 
-#endif
+    return s1;
+}

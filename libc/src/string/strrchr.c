@@ -13,26 +13,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/directory.h
- * Directory Vnode.
+/* libc/src/string/strrchr.c
+ * Finds the last occurrence of a character in a string.
  */
 
-#ifndef KERNEL_DIRECTORY_H
-#define KERNEL_DIRECTORY_H
+#include <string.h>
 
-#include <dennix/kernel/vnode.h>
+char* strrchr(const char* s, int c) {
+    const char* result = NULL;
 
-class DirectoryVnode : public Vnode {
-public:
-    DirectoryVnode(DirectoryVnode* parent);
-    void addChildNode(const char* path, Vnode* vnode);
-    virtual Vnode* openat(const char* path, int flags, mode_t mode);
-public:
-    size_t childCount;
-private:
-    Vnode** childNodes;
-    const char** fileNames;
-    DirectoryVnode* parent;
-};
+    do {
+        if (*s == (char) c) {
+            result = s;
+        }
+    } while (*s++);
 
-#endif
+    return (char*) result;
+}

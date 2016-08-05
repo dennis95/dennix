@@ -13,26 +13,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/directory.h
- * Directory Vnode.
+/* libc/include/libgen.h
+ * dirname and basename functions.
  */
 
-#ifndef KERNEL_DIRECTORY_H
-#define KERNEL_DIRECTORY_H
+#ifndef _LIBGEN_H
+#define _LIBGEN_H
 
-#include <dennix/kernel/vnode.h>
+#include <sys/cdefs.h>
 
-class DirectoryVnode : public Vnode {
-public:
-    DirectoryVnode(DirectoryVnode* parent);
-    void addChildNode(const char* path, Vnode* vnode);
-    virtual Vnode* openat(const char* path, int flags, mode_t mode);
-public:
-    size_t childCount;
-private:
-    Vnode** childNodes;
-    const char** fileNames;
-    DirectoryVnode* parent;
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+char* basename(char*);
+char* dirname(char*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

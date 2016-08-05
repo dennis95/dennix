@@ -13,26 +13,42 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/directory.h
- * Directory Vnode.
+/* libc/src/libgen/dirname.c
+ * Extracts the directory name from a path.
  */
 
-#ifndef KERNEL_DIRECTORY_H
-#define KERNEL_DIRECTORY_H
+#include <libgen.h>
+#include <string.h>
 
-#include <dennix/kernel/vnode.h>
+static const char* cwd = ".";
 
-class DirectoryVnode : public Vnode {
-public:
-    DirectoryVnode(DirectoryVnode* parent);
-    void addChildNode(const char* path, Vnode* vnode);
-    virtual Vnode* openat(const char* path, int flags, mode_t mode);
-public:
-    size_t childCount;
-private:
-    Vnode** childNodes;
-    const char** fileNames;
-    DirectoryVnode* parent;
-};
+char* dirname(char* path) {
+    if (!path || !*path) {
+        return (char*) cwd;
+    }
 
-#endif
+    // Remove trailing slashes
+    size_t size = strlen(path);
+    while (path[size - 1] == '/') {
+        path[--size] = '\0';
+    }
+
+    if (!*path) {
+        *path = '/';
+        return path;
+    }
+
+    char* lastSlash = strrchr(path, '/');
+
+    if (!lastSlash) {
+        return (char*) cwd;
+    }
+
+    if (lastSlash == path) {
+        // Special case for the root directory which begins with a slash.
+        lastSlash++;
+    }
+
+    *lastSlash = '\0';
+    return path;
+}
