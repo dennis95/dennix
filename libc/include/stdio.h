@@ -54,6 +54,8 @@ extern FILE* stderr;
 #define stdout stdout
 #define stderr stderr
 
+int fclose(FILE*);
+int fflush(FILE*);
 int fgetc(FILE*);
 char* fgets(char* __restrict, int, FILE* __restrict);
 FILE* fopen(const char* __restrict, const char* __restrict);
@@ -89,13 +91,9 @@ int vfprintf_unlocked(FILE* __restrict, const char* __restrict,
         __gnuc_va_list);
 #endif
 
-/* These are just declared to make libgcc compile and are not implemented. */
-int fflush(FILE*);
-
 /* These are just declared to make libgcov compile, which is compiled with
    libgcc, and are not implemented. */
 #define SEEK_SET 1
-int fclose(FILE*);
 size_t fread(void* __restrict, size_t, size_t, FILE* __restrict);
 int fseek(FILE*, long, int);
 long ftell(FILE*);

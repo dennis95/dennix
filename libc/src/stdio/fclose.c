@@ -13,21 +13,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/syscall.h
- * Syscall numbers.
+/* libc/src/stdio/fclose.c
+ * Closes a file.
  */
 
-#ifndef _DENNIX_SYSCALL_H
-#define _DENNIX_SYSCALL_H
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
-#define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_READ 2
-#define SYSCALL_MMAP 3
-#define SYSCALL_MUNMAP 4
-#define SYSCALL_OPENAT 5
-#define SYSCALL_CLOSE 6
-
-#define NUM_SYSCALLS 7
-
-#endif
+int fclose(FILE* file) {
+    if (fflush(file) == EOF) return EOF;
+    if (close(file->fd) == -1) return EOF;
+    free(file);
+    return 0;
+}

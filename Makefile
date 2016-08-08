@@ -56,7 +56,6 @@ $(KERNEL): $(INCLUDE_DIR)
 	$(MAKE) -C kernel
 
 $(INITRD): $(SYSROOT)
-	echo Hello World! > $(SYSROOT)/hello
 	cd $(SYSROOT) && tar cvf ../$(INITRD) --format=ustar *
 
 qemu: $(ISO)

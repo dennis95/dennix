@@ -17,6 +17,7 @@
  * Syscall implementations.
  */
 
+#include <errno.h>
 #include <dennix/fcntl.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/process.h>
@@ -29,6 +30,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_MMAP] =*/ (void*) Syscall::mmap,
     /*[SYSCALL_MUNMAP] =*/ (void*) Syscall::munmap,
     /*[SYSCALL_OPENAT] =*/ (void*) Syscall::openat,
+    /*[SYSCALL_CLOSE] =*/ (void*) Syscall::close,
 };
 
 extern "C" const void* getSyscallHandler(unsigned interruptNumber) {
@@ -37,6 +39,19 @@ extern "C" const void* getSyscallHandler(unsigned interruptNumber) {
     } else {
         return syscallList[interruptNumber];
     }
+}
+
+int Syscall::close(int fd) {
+    FileDescription* descr = Process::current->fd[fd];
+
+    if (!descr) {
+        errno = EBADF;
+        return -1;
+    }
+
+    delete descr;
+    Process::current->fd[fd] = nullptr;
+    return 0;
 }
 
 NORETURN void Syscall::exit(int status) {

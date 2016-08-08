@@ -17,23 +17,40 @@
  * Some program to test program loading.
  */
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 int main(int argc, char* argv[]) {
     (void) argc; (void) argv;
     printf("Hello %s from userspace!\n", "World");
 
-    FILE* file = fopen("hello", "r");
-    char* buffer = malloc(81);
+    char buffer[81];
 
-    while (fgets(buffer, 7, file)) {
-        printf("Read from file: %s\n", buffer);
+    while (1) {
+        fgets(buffer, sizeof (buffer), stdin);
+
+        // Remove the trailing newline
+        size_t length = strlen(buffer);
+        if (buffer[length - 1] == '\n') {
+            buffer[length - 1] = '\0';
+        }
+
+        if (strcmp(buffer, "exit") == 0) {
+            puts("Exiting.");
+            return 42;
+        }
+
+        FILE* file = fopen(buffer, "r");
+
+        if (!file) {
+            printf("Failed to open file '%s'\n", buffer);
+            continue;
+        }
+
+        while (fgets(buffer, sizeof(buffer), file)) {
+            fputs(buffer, stdout);
+        }
+
+        fclose(file);
     }
-
-    fgets(buffer, 81, stdin);
-    printf("You wrote: %s\n", buffer);
-
-    free(buffer);
-    return 42;
 }

@@ -13,21 +13,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/syscall.h
- * Syscall numbers.
+/* libc/src/stdio/fflush.c
+ * Flushes all buffered output to a file.
  */
 
-#ifndef _DENNIX_SYSCALL_H
-#define _DENNIX_SYSCALL_H
+#include <stdio.h>
 
-#define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_READ 2
-#define SYSCALL_MMAP 3
-#define SYSCALL_MUNMAP 4
-#define SYSCALL_OPENAT 5
-#define SYSCALL_CLOSE 6
-
-#define NUM_SYSCALLS 7
-
-#endif
+int fflush(FILE* file) {
+    (void) file;
+    // Buffering is not yet implemented so there is nothing to do.
+    return 0;
+}

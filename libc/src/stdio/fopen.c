@@ -47,5 +47,6 @@ FILE* fopen(const char* restrict path, const char* restrict mode) {
 
     int fd = open(path, flags,
             S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    if (fd == -1) return NULL;
     return fdopen(fd, mode);
 }
