@@ -50,7 +50,7 @@ void free(void* addr) {
         if (bigChunk->next) {
             bigChunk->next->prev = bigChunk->prev;
         }
-        unmapPages(bigChunk, bigChunk->size / PAGESIZE);
+        unmapMemory(bigChunk, bigChunk->size);
     }
 
     __unlockHeap();

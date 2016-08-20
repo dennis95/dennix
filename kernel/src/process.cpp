@@ -62,22 +62,15 @@ Process* Process::loadELF(vaddr_t elf) {
         ptrdiff_t offset = programHeader[i].p_paddr - loadAddressAligned;
 
         const void* src = (void*) (elf + programHeader[i].p_offset);
-        size_t nPages = ALIGNUP(programHeader[i].p_memsz + offset, 0x1000)
-                / 0x1000;
-        paddr_t destPhys[nPages + 1];
-        for (size_t j = 0; j < nPages; j++) {
-            destPhys[j] = PhysicalMemory::popPageFrame();
-        }
-        destPhys[nPages] = 0;
+        size_t size = ALIGNUP(programHeader[i].p_memsz + offset, 0x1000);
 
-        vaddr_t dest =
-                kernelSpace->mapRange(destPhys, PAGE_PRESENT | PAGE_WRITABLE);
+        addressSpace->mapMemory(loadAddressAligned, size,
+                PROT_READ | PROT_WRITE | PROT_EXEC);
+        vaddr_t dest = kernelSpace->mapFromOtherAddressSpace(addressSpace,
+                loadAddressAligned, size, PROT_WRITE);
         memset((void*) (dest + offset), 0, programHeader[i].p_memsz);
         memcpy((void*) (dest + offset), src, programHeader[i].p_filesz);
-        kernelSpace->unmapRange(dest, nPages);
-
-        addressSpace->mapRangeAt(loadAddressAligned, destPhys,
-                PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
+        kernelSpace->unmapPhysical(dest, size);
     }
 
     return startProcess((void*) header->e_entry, addressSpace);
@@ -104,8 +97,10 @@ InterruptContext* Process::schedule(InterruptContext* context) {
 
 Process* Process::startProcess(void* entry, AddressSpace* addressSpace) {
     Process* process = new Process();
-    process->stack = (void*) addressSpace->allocate(1);
-    process->kernelStack = (void*) kernelSpace->allocate(1);
+    process->stack = (void*) addressSpace->mapMemory(0x1000,
+            PROT_READ | PROT_WRITE);
+    process->kernelStack = (void*) kernelSpace->mapMemory(0x1000,
+            PROT_READ | PROT_WRITE);
 
     process->interruptContext = (InterruptContext*) ((uintptr_t)
             process->kernelStack + 0x1000 - sizeof(InterruptContext));

@@ -49,8 +49,8 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
     ptrdiff_t offset = mmapPhys - mmapAligned;
 
     //FIXME: This assumes that the mmap is in a single page.
-    vaddr_t virtualAddress = kernelSpace->map(mmapAligned,
-            PAGE_PRESENT | PAGE_WRITABLE);
+    vaddr_t virtualAddress = kernelSpace->mapPhysical(mmapAligned, 0x1000,
+            PROT_READ);
 
     vaddr_t mmap = virtualAddress + offset;
     vaddr_t mmapEnd = mmap + multiboot->mmap_length;
@@ -72,7 +72,7 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
         mmap += mmapEntry->size + 4;
     }
 
-    kernelSpace->unmap(virtualAddress);
+    kernelSpace->unmapPhysical(virtualAddress, 0x1000);
 
     Log::printf("We have %u free page frames!\n", stackUsed);
 }
@@ -83,8 +83,8 @@ void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
     if (unlikely(stackUnused == 0)) {
         // Use the page frame to extend the stack
         //TODO: What if the address is already in use?
-        kernelSpace->mapAt((vaddr_t) stack - 0x1000 - stackUsed * 4,
-                physicalAddress, PAGE_PRESENT | PAGE_WRITABLE);
+        kernelSpace->mapPhysical((vaddr_t) stack - 0x1000 - stackUsed * 4,
+                physicalAddress, 0x1000, PROT_READ | PROT_WRITE);
         stackUnused += 1024;
     } else {
         stack[-++stackUsed] = physicalAddress;
@@ -97,7 +97,7 @@ paddr_t PhysicalMemory::popPageFrame() {
         if (likely(stackUnused > 0)) {
             vaddr_t virt = (vaddr_t) stack - stackUnused * 4;
             paddr_t result = kernelSpace->getPhysicalAddress(virt);
-            kernelSpace->unmap(virt);
+            kernelSpace->unmapPhysical(virt, 0x1000);
             stackUnused -= 1024;
             return result;
         } else {

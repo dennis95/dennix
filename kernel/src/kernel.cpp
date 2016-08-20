@@ -34,8 +34,8 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     AddressSpace::initialize();
     Log::printf("Address space initialized!\n");
 
-    multiboot_info* multiboot = (multiboot_info*) kernelSpace->map(
-            multibootAddress, PAGE_PRESENT | PAGE_WRITABLE);
+    multiboot_info* multiboot = (multiboot_info*)
+            kernelSpace->mapPhysical(multibootAddress, 0x1000, PROT_READ);
 
     PhysicalMemory::initialize(multiboot);
     Log::printf("Physical Memory initialized\n");
@@ -54,7 +54,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
         Process::loadELF((vaddr_t) program->data);
     }
     Log::printf("Processes initialized\n");
-    kernelSpace->unmap((vaddr_t) multiboot);
+    kernelSpace->unmapPhysical((vaddr_t) multiboot, 0x1000);
 
     Interrupts::initPic();
     Interrupts::enable();
@@ -72,22 +72,22 @@ static DirectoryVnode* loadInitrd(multiboot_info* multiboot) {
     ptrdiff_t offset = multiboot->mods_addr - modulesAligned;
 
     //FIXME: This assumes that the module list is in a single page.
-    vaddr_t modulesPage = kernelSpace->map(modulesAligned,
-            PAGE_PRESENT | PAGE_WRITABLE);
+    vaddr_t modulesPage = kernelSpace->mapPhysical(modulesAligned, 0x1000,
+            PROT_READ);
 
     const multiboot_mod_list* modules = (multiboot_mod_list*)
             (modulesPage + offset);
     for (size_t i = 0; i < multiboot->mods_count; i++) {
-        size_t nPages = ALIGNUP(modules[i].mod_end - modules[i].mod_start,
-                0x1000) / 0x1000;
-        vaddr_t initrd = kernelSpace->mapRange(modules[i].mod_start,
-                nPages, PAGE_PRESENT);
+        size_t size = ALIGNUP(modules[i].mod_end - modules[i].mod_start,
+                0x1000);
+        vaddr_t initrd = kernelSpace->mapPhysical(modules[i].mod_start, size,
+                PROT_READ);
         root = Initrd::loadInitrd(initrd);
-        kernelSpace->unmapRange(initrd, nPages);
+        kernelSpace->unmapPhysical(initrd, size);
 
         if (root->childCount) break;
     }
-    kernelSpace->unmap((vaddr_t) modulesPage);
+    kernelSpace->unmapPhysical((vaddr_t) modulesPage, 0x1000);
 
     return root;
 }

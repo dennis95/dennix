@@ -20,40 +20,42 @@
 #ifndef KERNEL_ADDRESSSPACE_H
 #define KERNEL_ADDRESSSPACE_H
 
-#include <stddef.h>
-#include <dennix/kernel/kernel.h>
-
-#define PAGE_PRESENT (1 << 0)
-#define PAGE_WRITABLE (1 << 1)
-#define PAGE_USER (1 << 2)
+#include <dennix/mman.h>
+#include <dennix/kernel/memorysegment.h>
 
 class AddressSpace {
 public:
     void activate();
-    vaddr_t allocate(size_t nPages);
     AddressSpace* fork();
-    void free(vaddr_t virtualAddress, size_t nPages);
     paddr_t getPhysicalAddress(vaddr_t virtualAddress);
-    bool isFree(vaddr_t virtualAddress);
-    bool isFree(size_t pdIndex, size_t ptIndex);
-    vaddr_t map(paddr_t physicalAddress, int flags);
-    vaddr_t mapAt(vaddr_t virtualAddress, paddr_t physicalAddress, int flags);
-    vaddr_t mapAt(size_t pdIndex, size_t ptIndex, paddr_t physicalAddress,
-            int flags);
-    vaddr_t mapRange(paddr_t* physicalAddresses, int flags);
-    vaddr_t mapRange(paddr_t firstPhysicalAddress, size_t nPages, int flags);
-    vaddr_t mapRangeAt(vaddr_t virtualAddress, paddr_t* physicalAddresses,
-            int flags);
-    void unmap(vaddr_t virtualAddress);
-    void unmapRange(vaddr_t firstVirtualAddress, size_t nPages);
-private:
-    paddr_t pageDir;
-    AddressSpace* next;
+    vaddr_t mapFromOtherAddressSpace(AddressSpace* sourceSpace,
+            vaddr_t sourceVirtualAddress, size_t size, int protection);
+    vaddr_t mapMemory(size_t size, int protection);
+    vaddr_t mapMemory(vaddr_t virtualAddress, size_t size, int protection);
+    vaddr_t mapPhysical(paddr_t physicalAddress, size_t size, int protection);
+    vaddr_t mapPhysical(vaddr_t virtualAddress, paddr_t physicalAddress,
+            size_t size, int protection);
+    void unmapMemory(vaddr_t virtualAddress, size_t size);
+    void unmapPhysical(vaddr_t firstVirtualAddress, size_t size);
 private:
     AddressSpace();
-    static AddressSpace _kernelSpace;
+    bool isFree(size_t pdIndex, size_t ptIndex);
+    vaddr_t map(paddr_t physicalAddress, int protection);
+    vaddr_t mapAt(vaddr_t virtualAddress, paddr_t physicalAddress,
+            int protection);
+    vaddr_t mapAt(size_t pdIndex, size_t ptIndex, paddr_t physicalAddress,
+            int protection);
+    vaddr_t mapAtWithFlags(size_t pdIndex, size_t ptIndex,
+            paddr_t physicalAddress, int flags);
+    void unmap(vaddr_t virtualAddress);
+private:
+    paddr_t pageDir;
+    MemorySegment* firstSegment;
+    AddressSpace* next;
 public:
     static void initialize();
+private:
+    static AddressSpace _kernelSpace;
 };
 
 // Global variable for the kernel's address space

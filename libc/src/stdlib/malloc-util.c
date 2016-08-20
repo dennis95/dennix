@@ -37,7 +37,7 @@ Chunk* __allocateBigChunk(Chunk* lastBigChunk, size_t size) {
         size = 4 * PAGESIZE;
     }
 
-    Chunk* bigChunk = mapPages(size / PAGESIZE);
+    Chunk* bigChunk = mapMemory(size);
     Chunk* chunk = bigChunk + 1;
     Chunk* endChunk = (void*) bigChunk + size - sizeof(Chunk);
 

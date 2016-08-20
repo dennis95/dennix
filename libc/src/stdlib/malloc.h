@@ -24,15 +24,15 @@
 
 #if __is_dennix_libc
 #  include <sys/mman.h>
-#  define mapPages(nPages) mmap(NULL, nPages * PAGESIZE, \
-     PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)
-#  define unmapPages(addr, nPages) munmap(addr, nPages * PAGESIZE)
+#  define mapMemory(size) mmap(NULL, size, PROT_READ | PROT_WRITE, \
+        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)
+#  define unmapMemory(addr, size) munmap(addr, size)
 #else /* if __is_dennix_libk */
-extern void* __mapPages(size_t);
-extern void __unmapPages(void*, size_t);
+extern void* __mapMemory(size_t);
+extern void __unmapMemory(void*, size_t);
 
-#  define mapPages(nPages) __mapPages(nPages)
-#  define unmapPages(addr, nPages) __unmapPages(addr, nPages)
+#  define mapMemory(size) __mapMemory(size)
+#  define unmapMemory(addr, size) __unmapMemory(addr, size)
 #endif
 
 typedef struct Chunk {

@@ -42,6 +42,7 @@ OBJ := \
 	kernel.o \
 	keyboard.o \
 	log.o \
+	memorysegment.o \
 	physicalmemory.o \
 	process.o \
 	ps2.o \

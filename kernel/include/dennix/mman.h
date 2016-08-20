@@ -25,6 +25,8 @@
 #define PROT_EXEC (1 << 2)
 #define PROT_NONE 0
 
+#define _PROT_FLAGS (PROT_READ | PROT_WRITE | PROT_EXEC | PROT_NONE)
+
 #define MAP_PRIVATE (1 << 0)
 #define MAP_ANONYMOUS (1 << 1)
 
