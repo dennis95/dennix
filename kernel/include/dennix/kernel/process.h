@@ -33,7 +33,6 @@ private:
     InterruptContext* interruptContext;
     Process* prev;
     Process* next;
-    void* stack;
     void* kernelStack;
 public:
     AddressSpace* addressSpace;

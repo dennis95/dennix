@@ -22,6 +22,8 @@
 
 #include <dennix/kernel/kernel.h>
 
+#define SEG_NOUNMAP (1 << 16)
+
 class MemorySegment {
 public:
     MemorySegment(vaddr_t address, size_t size, int flags, MemorySegment* prev,

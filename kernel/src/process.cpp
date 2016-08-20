@@ -34,7 +34,6 @@ Process::Process() {
     interruptContext = nullptr;
     prev = nullptr;
     next = nullptr;
-    stack = nullptr;
     kernelStack = nullptr;
     memset(fd, 0, sizeof(fd));
     rootFd = nullptr;
@@ -97,8 +96,7 @@ InterruptContext* Process::schedule(InterruptContext* context) {
 
 Process* Process::startProcess(void* entry, AddressSpace* addressSpace) {
     Process* process = new Process();
-    process->stack = (void*) addressSpace->mapMemory(0x1000,
-            PROT_READ | PROT_WRITE);
+    vaddr_t stack = addressSpace->mapMemory(0x1000, PROT_READ | PROT_WRITE);
     process->kernelStack = (void*) kernelSpace->mapMemory(0x1000,
             PROT_READ | PROT_WRITE);
 
@@ -117,7 +115,7 @@ Process* Process::startProcess(void* entry, AddressSpace* addressSpace) {
     process->interruptContext->eip = (uint32_t) entry;
     process->interruptContext->cs = 0x1B;
     process->interruptContext->eflags = 0x200; // Interrupt enable
-    process->interruptContext->esp = (uint32_t) process->stack + 0x1000;
+    process->interruptContext->esp = (uint32_t) stack + 0x1000;
     process->interruptContext->ss = 0x23;
 
     process->addressSpace = addressSpace;
@@ -127,8 +125,8 @@ Process* Process::startProcess(void* entry, AddressSpace* addressSpace) {
     process->fd[1] = new FileDescription(&terminal); // stdout
     process->fd[2] = new FileDescription(&terminal); // stderr
 
-    process->rootFd = idleProcess->rootFd;
-    process->cwdFd = process->rootFd;
+    process->rootFd = new FileDescription(*idleProcess->rootFd);
+    process->cwdFd = new FileDescription(*process->rootFd);
 
     process->next = firstProcess;
     if (process->next) {
@@ -152,7 +150,19 @@ void Process::exit(int status) {
         firstProcess = next;
     }
 
-    // TODO: We currently leak the processes memory.
+    // Clean up
+    delete addressSpace;
+
+    for (size_t i = 0; i < 20; i++) {
+        if (fd[i]) delete fd[i];
+    }
+    delete rootFd;
+    delete cwdFd;
+
+    // TODO: Clean up the process itself and the kernel stack
+    // This cannot be done here because they are still in use we need to
+    // schedule first
+
     Log::printf("Process exited with status %u\n", status);
 }
 

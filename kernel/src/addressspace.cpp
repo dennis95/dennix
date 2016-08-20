@@ -69,6 +69,19 @@ AddressSpace::AddressSpace() {
     next = nullptr;
 }
 
+AddressSpace::~AddressSpace() {
+    MemorySegment* currentSegment = firstSegment;
+
+    while (currentSegment) {
+        MemorySegment* next = currentSegment->next;
+
+        if (!(currentSegment->flags & SEG_NOUNMAP)) {
+            unmapMemory(currentSegment->address, currentSegment->size);
+        }
+        currentSegment = next;
+    }
+}
+
 // We need to create the initial kernel segments at compile time because
 // they are needed before memory allocations are possible.
 static MemorySegment segment1(0, 0xC0000000, PROT_NONE, nullptr, nullptr);
@@ -120,10 +133,10 @@ AddressSpace* AddressSpace::fork() {
     kernelSpace->unmap(currentPageDir);
     kernelSpace->unmap(newPageDir);
 
-    result->firstSegment = new MemorySegment(0, 0x1000, PROT_NONE, nullptr,
-            nullptr);
+    result->firstSegment = new MemorySegment(0, 0x1000,
+            PROT_NONE | SEG_NOUNMAP, nullptr, nullptr);
     MemorySegment::addSegment(result->firstSegment, 0xC0000000, -0xC0000000,
-            PROT_NONE);
+            PROT_NONE | SEG_NOUNMAP);
 
     result->next = firstAddressSpace;
     firstAddressSpace = result;

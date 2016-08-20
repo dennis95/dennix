@@ -25,6 +25,7 @@
 
 class AddressSpace {
 public:
+    ~AddressSpace();
     void activate();
     AddressSpace* fork();
     paddr_t getPhysicalAddress(vaddr_t virtualAddress);
