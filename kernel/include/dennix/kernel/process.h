@@ -20,14 +20,19 @@
 #ifndef KERNEL_PROCESS_H
 #define KERNEL_PROCESS_H
 
+#include <sys/types.h>
+#include <dennix/fork.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/filedescription.h>
 #include <dennix/kernel/interrupts.h>
+
+#define OPEN_MAX 20
 
 class Process {
 public:
     Process();
     void exit(int status);
+    Process* regfork(int flags, struct regfork* registers);
     int registerFileDescriptor(FileDescription* descr);
 private:
     InterruptContext* interruptContext;
@@ -36,9 +41,10 @@ private:
     void* kernelStack;
 public:
     AddressSpace* addressSpace;
-    FileDescription* fd[20];
+    FileDescription* fd[OPEN_MAX];
     FileDescription* rootFd;
     FileDescription* cwdFd;
+    pid_t pid;
 public:
     static void initialize(FileDescription* rootFd);
     static Process* loadELF(vaddr_t elf);

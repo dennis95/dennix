@@ -98,7 +98,9 @@ LIBC_OBJ := \
 	sys/mman/munmap \
 	unistd/close \
 	unistd/_exit \
+	unistd/fork \
 	unistd/read \
+	unistd/regfork \
 	unistd/write
 
 LIBK_OBJ := $(COMMON_OBJ)

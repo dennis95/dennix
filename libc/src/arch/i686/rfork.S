@@ -13,22 +13,35 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/syscall.h
- * Syscall numbers.
+/* libc/src/arch/i686/rfork.S
+ * Creates a new process.
  */
 
-#ifndef _DENNIX_SYSCALL_H
-#define _DENNIX_SYSCALL_H
+.global rfork
+.type rfork, @function
+rfork:
+    push %ebp
+    mov %esp, %ebp
+    sub $12, %esp
 
-#define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_READ 2
-#define SYSCALL_MMAP 3
-#define SYSCALL_MUNMAP 4
-#define SYSCALL_OPENAT 5
-#define SYSCALL_CLOSE 6
-#define SYSCALL_REGFORK 7
+    # Push struct regfork
+    push %ebp
+    push %edi
+    push %esi
+    push %edx
+    push %ecx
+    push %ebx
+    # In the child process this returns 0
+    push $0
+    push $afterFork
+    # The value for %esp does not matter because leave will modify %esp anyway
+    push $0
 
-#define NUM_SYSCALLS 8
+    push %esp
+    push 8(%ebp)
 
-#endif
+    call regfork
+afterFork:
+    leave
+    ret
+.size rfork, . - rfork

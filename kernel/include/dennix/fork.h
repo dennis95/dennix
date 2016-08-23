@@ -13,22 +13,30 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/syscall.h
- * Syscall numbers.
+/* kernel/include/dennix/fork.h
+ * Declarations for rfork() and regfork().
  */
 
-#ifndef _DENNIX_SYSCALL_H
-#define _DENNIX_SYSCALL_H
+#ifndef _DENNIX_FORK_H
+#define _DENNIX_FORK_H
 
-#define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_READ 2
-#define SYSCALL_MMAP 3
-#define SYSCALL_MUNMAP 4
-#define SYSCALL_OPENAT 5
-#define SYSCALL_CLOSE 6
-#define SYSCALL_REGFORK 7
+#include <stdint.h>
 
-#define NUM_SYSCALLS 8
+#define RFPROC (1 << 0)
+#define RFFDG (1 << 1)
+
+#define _RFFORK (RFPROC | RFFDG)
+
+struct regfork {
+    uint32_t rf_esp;
+    uint32_t rf_eip;
+    uint32_t rf_eax;
+    uint32_t rf_ebx;
+    uint32_t rf_ecx;
+    uint32_t rf_edx;
+    uint32_t rf_esi;
+    uint32_t rf_edi;
+    uint32_t rf_ebp;
+};
 
 #endif

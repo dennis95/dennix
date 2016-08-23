@@ -29,6 +29,8 @@ Process* Process::current;
 static Process* firstProcess;
 static Process* idleProcess;
 
+static pid_t nextPid = 0;
+
 Process::Process() {
     addressSpace = kernelSpace;
     interruptContext = nullptr;
@@ -38,6 +40,7 @@ Process::Process() {
     memset(fd, 0, sizeof(fd));
     rootFd = nullptr;
     cwdFd = nullptr;
+    pid = nextPid++;
 }
 
 void Process::initialize(FileDescription* rootFd) {
@@ -52,7 +55,7 @@ Process* Process::loadELF(vaddr_t elf) {
     ElfHeader* header = (ElfHeader*) elf;
     ProgramHeader* programHeader = (ProgramHeader*) (elf + header->e_phoff);
 
-    AddressSpace* addressSpace = kernelSpace->fork();
+    AddressSpace* addressSpace = new AddressSpace();
 
     for (size_t i = 0; i < header->e_phnum; i++) {
         if (programHeader[i].p_type != PT_LOAD) continue;
@@ -153,7 +156,7 @@ void Process::exit(int status) {
     // Clean up
     delete addressSpace;
 
-    for (size_t i = 0; i < 20; i++) {
+    for (size_t i = 0; i < OPEN_MAX; i++) {
         if (fd[i]) delete fd[i];
     }
     delete rootFd;
@@ -163,11 +166,56 @@ void Process::exit(int status) {
     // This cannot be done here because they are still in use we need to
     // schedule first
 
-    Log::printf("Process exited with status %u\n", status);
+    Log::printf("Process %u exited with status %u\n", pid, status);
+}
+
+Process* Process::regfork(int /*flags*/, struct regfork* registers) {
+    Process* process = new Process();
+
+    process->kernelStack = (void*) kernelSpace->mapMemory(0x1000,
+            PROT_READ | PROT_WRITE);
+    process->interruptContext = (InterruptContext*) ((uintptr_t)
+            process->kernelStack + 0x1000 - sizeof(InterruptContext));
+    process->interruptContext->eax = registers->rf_eax;
+    process->interruptContext->ebx = registers->rf_ebx;
+    process->interruptContext->ecx = registers->rf_ecx;
+    process->interruptContext->edx = registers->rf_edx;
+    process->interruptContext->esi = registers->rf_esi;
+    process->interruptContext->edi = registers->rf_edi;
+    process->interruptContext->ebp = registers->rf_ebp;
+    process->interruptContext->eip = registers->rf_eip;
+    process->interruptContext->esp = registers->rf_esp;
+    // Register that are not controlled by the user
+    process->interruptContext->interrupt = 0;
+    process->interruptContext->error = 0;
+    process->interruptContext->cs = 0x1B;
+    process->interruptContext->eflags = 0x200; // Interrupt enable
+    process->interruptContext->ss = 0x23;
+
+    // Fork the address space
+    process->addressSpace = addressSpace->fork();
+
+    // Fork the file descriptor table
+    for (size_t i = 0; i < OPEN_MAX; i++) {
+        if (fd[i]) {
+            process->fd[i] = new FileDescription(*fd[i]);
+        }
+    }
+
+    process->rootFd = new FileDescription(*rootFd);
+    process->cwdFd = new FileDescription(*cwdFd);
+
+    process->next = firstProcess;
+    if (process->next) {
+        process->next->prev = process;
+    }
+    firstProcess = process;
+
+    return process;
 }
 
 int Process::registerFileDescriptor(FileDescription* descr) {
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < OPEN_MAX; i++) {
         if (fd[i] == nullptr) {
             fd[i] = descr;
             return i;

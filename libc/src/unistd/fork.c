@@ -13,22 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/syscall.h
- * Syscall numbers.
+/* libc/src/unistd/fork.c
+ * Creates a copy of the current process.
  */
 
-#ifndef _DENNIX_SYSCALL_H
-#define _DENNIX_SYSCALL_H
+#include <unistd.h>
 
-#define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_READ 2
-#define SYSCALL_MMAP 3
-#define SYSCALL_MUNMAP 4
-#define SYSCALL_OPENAT 5
-#define SYSCALL_CLOSE 6
-#define SYSCALL_REGFORK 7
-
-#define NUM_SYSCALLS 8
-
-#endif
+pid_t fork(void) {
+    return rfork(_RFFORK);
+}

@@ -13,22 +13,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/syscall.h
- * Syscall numbers.
+/* libc/src/unistd/regfork.c
+ * Creates a new process.
  */
 
-#ifndef _DENNIX_SYSCALL_H
-#define _DENNIX_SYSCALL_H
+#include <unistd.h>
+#include <sys/syscall.h>
 
-#define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_READ 2
-#define SYSCALL_MMAP 3
-#define SYSCALL_MUNMAP 4
-#define SYSCALL_OPENAT 5
-#define SYSCALL_CLOSE 6
-#define SYSCALL_REGFORK 7
-
-#define NUM_SYSCALLS 8
-
-#endif
+DEFINE_SYSCALL_GLOBAL(SYSCALL_REGFORK, pid_t, regfork, (int, struct regfork*));

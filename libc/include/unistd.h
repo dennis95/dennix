@@ -30,18 +30,27 @@
 #define __need_uid_t
 #include <sys/libc-types.h>
 
+#if __USE_DENNIX
+#  include <dennix/fork.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 int close(int);
 __noreturn void _exit(int);
+pid_t fork(void);
 ssize_t read(int, void*, size_t);
 ssize_t write(int, const void*, size_t);
 
+#if __USE_DENNIX
+pid_t rfork(int);
+pid_t regfork(int, struct regfork*);
+#endif
+
 /* These are just declared to make libgcov compile, which is compiled with
    libgcc, and are not implemented. */
-pid_t fork(void);
 int execv(const char*, char* const[]);
 int execve(const char*, char* const[], char* const[]);
 int execvp(const char*, char* const[]);

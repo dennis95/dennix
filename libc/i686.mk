@@ -18,4 +18,5 @@ CRT_OBJ := \
 	$(BUILD)/arch/i686/crtn.o
 
 LIBC_OBJ += \
+	arch/i686/rfork \
 	arch/i686/syscall
