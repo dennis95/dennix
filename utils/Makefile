@@ -26,7 +26,8 @@ CFLAGS += --sysroot=$(SYSROOT) -Wall -Wextra
 CPPFLAGS += -D_DENNIX_SOURCE
 
 PROGRAMS = \
-	test
+	test \
+	test2
 
 all: $(addprefix $(BUILD)/, $(PROGRAMS))
 

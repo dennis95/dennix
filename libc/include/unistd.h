@@ -39,6 +39,8 @@ extern "C" {
 #endif
 
 int close(int);
+int execv(const char*, char* const[]);
+int execve(const char*, char* const[], char* const[]);
 __noreturn void _exit(int);
 pid_t fork(void);
 ssize_t read(int, void*, size_t);
@@ -51,8 +53,6 @@ pid_t regfork(int, struct regfork*);
 
 /* These are just declared to make libgcov compile, which is compiled with
    libgcc, and are not implemented. */
-int execv(const char*, char* const[]);
-int execve(const char*, char* const[], char* const[]);
 int execvp(const char*, char* const[]);
 
 #ifdef __cplusplus

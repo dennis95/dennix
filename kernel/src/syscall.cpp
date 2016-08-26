@@ -32,6 +32,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_OPENAT] =*/ (void*) Syscall::openat,
     /*[SYSCALL_CLOSE] =*/ (void*) Syscall::close,
     /*[SYSCALL_REGFORK] =*/ (void*) Syscall::regfork,
+    /*[SYSCALL_EXECVE] =*/ (void*) Syscall::execve,
 };
 
 extern "C" const void* getSyscallHandler(unsigned interruptNumber) {
@@ -53,6 +54,18 @@ int Syscall::close(int fd) {
     delete descr;
     Process::current->fd[fd] = nullptr;
     return 0;
+}
+
+int Syscall::execve(const char* path, char* const argv[], char* const envp[]) {
+    FileDescription* descr = Process::current->rootFd->openat(path, 0, 0);
+
+    if (!descr || Process::current->execute(descr, argv, envp) == -1) {
+        return -1;
+    }
+
+    // Schedule
+    asm volatile ("int $0x31");
+    __builtin_unreachable();
 }
 
 NORETURN void Syscall::exit(int status) {

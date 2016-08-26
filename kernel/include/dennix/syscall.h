@@ -28,7 +28,8 @@
 #define SYSCALL_OPENAT 5
 #define SYSCALL_CLOSE 6
 #define SYSCALL_REGFORK 7
+#define SYSCALL_EXECVE 8
 
-#define NUM_SYSCALLS 8
+#define NUM_SYSCALLS 9
 
 #endif

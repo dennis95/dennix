@@ -33,12 +33,17 @@ public:
     Process();
     void exit(int status);
     Process* regfork(int flags, struct regfork* registers);
+    int execute(FileDescription* descr, char* const argv[], char* const envp[]);
     int registerFileDescriptor(FileDescription* descr);
+private:
+    uintptr_t loadELF(uintptr_t elf);
 private:
     InterruptContext* interruptContext;
     Process* prev;
     Process* next;
     void* kernelStack;
+    bool contextChanged;
+    bool fdInitialized;
 public:
     AddressSpace* addressSpace;
     FileDescription* fd[OPEN_MAX];
@@ -46,10 +51,9 @@ public:
     FileDescription* cwdFd;
     pid_t pid;
 public:
+    static void addProcess(Process* process);
     static void initialize(FileDescription* rootFd);
-    static Process* loadELF(vaddr_t elf);
     static InterruptContext* schedule(InterruptContext* context);
-    static Process* startProcess(void* entry, AddressSpace* addressSpace);
     static Process* current;
 };
 

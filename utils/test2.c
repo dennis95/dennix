@@ -13,26 +13,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* utils/test2.c
+ * Another test program.
  */
 
 #include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 
 int main(int argc, char* argv[]) {
     (void) argc; (void) argv;
-    puts("Start the other program?");
-
-    char buffer[81];
-    fgets(buffer, sizeof(buffer), stdin);
-
-    if (strcmp(buffer, "yes\n") == 0) {
-        char* const args[] = { NULL };
-        execv("/bin/test2", args);
-        puts("execv failed!\n");
-    }
-
-    return 42;
+    puts("Hello! I am the other program.");
 }
