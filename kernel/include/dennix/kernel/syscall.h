@@ -37,6 +37,7 @@ int munmap(void* addr, size_t size);
 int openat(int fd, const char* path, int flags, mode_t mode);
 ssize_t read(int fd, void* buffer, size_t size);
 pid_t regfork(int flags, struct regfork* registers);
+pid_t waitpid(pid_t pid, int* status, int flags);
 ssize_t write(int fd, const void* buffer, size_t size);
 
 void badSyscall();

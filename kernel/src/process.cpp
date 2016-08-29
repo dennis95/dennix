@@ -17,7 +17,9 @@
  * Process class.
  */
 
+#include <assert.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 #include <dennix/kernel/elf.h>
 #include <dennix/kernel/file.h>
@@ -44,6 +46,17 @@ Process::Process() {
     pid = nextPid++;
     contextChanged = false;
     fdInitialized = false;
+    terminated = false;
+    parent = nullptr;
+    children = nullptr;
+    numChildren = 0;
+    status = 0;
+}
+
+Process::~Process() {
+    assert(terminated);
+    kernelSpace->unmapMemory((vaddr_t) kernelStack, 0x1000);
+    free(children);
 }
 
 void Process::initialize(FileDescription* rootFd) {
@@ -177,15 +190,16 @@ void Process::exit(int status) {
     delete rootFd;
     delete cwdFd;
 
-    // TODO: Clean up the process itself and the kernel stack
-    // This cannot be done here because they are still in use we need to
-    // schedule first
-
-    Log::printf("Process %u exited with status %u\n", pid, status);
+    terminated = true;
+    this->status = status;
 }
 
 Process* Process::regfork(int /*flags*/, struct regfork* registers) {
     Process* process = new Process();
+    process->parent = this;
+    // Add the process to the list of children.
+    children = (Process**) realloc(children, ++numChildren * sizeof(Process*));
+    children[numChildren - 1] = process;
 
     process->kernelStack = (void*) kernelSpace->mapMemory(0x1000,
             PROT_READ | PROT_WRITE);
@@ -236,4 +250,34 @@ int Process::registerFileDescriptor(FileDescription* descr) {
 
     errno = EMFILE;
     return -1;
+}
+
+Process* Process::waitpid(pid_t pid, int flags) {
+    if (flags) {
+        // Flags are not yet supported
+        errno = EINVAL;
+        return nullptr;
+    }
+
+    for (size_t i = 0; i < numChildren; i++) {
+        if (children[i]->pid == pid) {
+            Process* result = children[i];
+            while (!result->terminated) {
+                // Yield until the process terminates.
+                asm volatile("int $0x31");
+                __sync_synchronize();
+            }
+
+            // Remove the process from the list
+            if (i < numChildren - 1) {
+                children[i] = children[numChildren - 1];
+            }
+            realloc(children, --numChildren * sizeof(Process*));
+
+            return result;
+        }
+    }
+
+    errno = ECHILD;
+    return nullptr;
 }

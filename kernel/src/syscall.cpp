@@ -33,6 +33,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_CLOSE] =*/ (void*) Syscall::close,
     /*[SYSCALL_REGFORK] =*/ (void*) Syscall::regfork,
     /*[SYSCALL_EXECVE] =*/ (void*) Syscall::execve,
+    /*[SYSCALL_WAITPID] =*/ (void*) Syscall::waitpid,
 };
 
 extern "C" const void* getSyscallHandler(unsigned interruptNumber) {
@@ -106,6 +107,18 @@ pid_t Syscall::regfork(int flags, struct regfork* registers) {
     Process* newProcess = Process::current->regfork(flags, registers);
 
     return newProcess->pid;
+}
+
+pid_t Syscall::waitpid(pid_t pid, int* status, int flags) {
+    Process* process = Process::current->waitpid(pid, flags);
+
+    if (!process) {
+        return -1;
+    }
+
+    *status = process->status;
+    delete process;
+    return pid;
 }
 
 ssize_t Syscall::write(int fd, const void* buffer, size_t size) {

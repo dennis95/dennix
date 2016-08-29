@@ -13,24 +13,28 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/syscall.h
- * Syscall numbers.
+/* libc/include/sys/wait.h
+ * Waiting for other processes.
  */
 
-#ifndef _DENNIX_SYSCALL_H
-#define _DENNIX_SYSCALL_H
+#ifndef _SYS_WAIT_H
+#define _SYS_WAIT_H
 
-#define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_READ 2
-#define SYSCALL_MMAP 3
-#define SYSCALL_MUNMAP 4
-#define SYSCALL_OPENAT 5
-#define SYSCALL_CLOSE 6
-#define SYSCALL_REGFORK 7
-#define SYSCALL_EXECVE 8
-#define SYSCALL_WAITPID 9
+#include <sys/cdefs.h>
+#define __need_id_t
+#define __need_pid_t
+#define __need_siginfo_t
+#include <sys/libc-types.h>
+#include <dennix/wait.h>
 
-#define NUM_SYSCALLS 10
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+pid_t waitpid(pid_t, int*, int);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

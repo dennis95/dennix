@@ -13,24 +13,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/syscall.h
- * Syscall numbers.
+/* kernel/include/dennix/wait.h
+ * Waiting for other processes.
  */
 
-#ifndef _DENNIX_SYSCALL_H
-#define _DENNIX_SYSCALL_H
+#ifndef _DENNIX_WAIT_H
+#define _DENNIX_WAIT_H
 
-#define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_READ 2
-#define SYSCALL_MMAP 3
-#define SYSCALL_MUNMAP 4
-#define SYSCALL_OPENAT 5
-#define SYSCALL_CLOSE 6
-#define SYSCALL_REGFORK 7
-#define SYSCALL_EXECVE 8
-#define SYSCALL_WAITPID 9
+#define WNOHANG (1 << 0)
+#define WUNTRACED (1 << 1)
 
-#define NUM_SYSCALLS 10
+#define WEXITSTATUS(status) ((status) & 0xFF)
+#define WIFEXITED(status) 1 /* All terminations are currently normal exit */
 
 #endif
