@@ -51,7 +51,7 @@ typedef struct Chunk {
 
 #define alignUp(val, alignment) ((((val) - 1) & ~((alignment) - 1)) + (alignment))
 
-extern Chunk* firstBigChunk;
+extern Chunk* __firstBigChunk;
 
 Chunk* __allocateBigChunk(Chunk* lastBigChunk, size_t size);
 void __splitChunk(Chunk* chunk, size_t size);

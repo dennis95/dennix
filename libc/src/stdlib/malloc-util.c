@@ -18,6 +18,7 @@
  */
 
 #include <assert.h>
+#include <stdint.h>
 #include "malloc.h"
 
 static Chunk emptyBigChunk[2] = {
@@ -25,12 +26,12 @@ static Chunk emptyBigChunk[2] = {
     {MAGIC_END_CHUNK, 0, NULL, NULL}
 };
 
-Chunk* firstBigChunk = emptyBigChunk;
+Chunk* __firstBigChunk = emptyBigChunk;
 
 Chunk* __allocateBigChunk(Chunk* lastBigChunk, size_t size) {
     assert(lastBigChunk->magic == MAGIC_BIG_CHUNK);
 
-    size += 2 * sizeof(Chunk);
+    size += 3 * sizeof(Chunk);
     size = alignUp(size, PAGESIZE);
 
     if (size < 4 * PAGESIZE) {
@@ -38,8 +39,11 @@ Chunk* __allocateBigChunk(Chunk* lastBigChunk, size_t size) {
     }
 
     Chunk* bigChunk = mapMemory(size);
+
+    if (!bigChunk) return NULL;
+
     Chunk* chunk = bigChunk + 1;
-    Chunk* endChunk = (void*) bigChunk + size - sizeof(Chunk);
+    Chunk* endChunk = (Chunk*) ((uintptr_t) bigChunk + size - sizeof(Chunk));
 
     bigChunk->magic = MAGIC_BIG_CHUNK;
     bigChunk->size = size;
@@ -64,7 +68,7 @@ Chunk* __allocateBigChunk(Chunk* lastBigChunk, size_t size) {
 void __splitChunk(Chunk* chunk, size_t size) {
     assert(chunk->magic == MAGIC_FREE_CHUNK);
 
-    Chunk* newChunk = (Chunk*) ((void*) chunk + sizeof(Chunk) + size);
+    Chunk* newChunk = (Chunk*) ((uintptr_t) chunk + sizeof(Chunk) + size);
     newChunk->magic = MAGIC_FREE_CHUNK;
     newChunk->size = chunk->size - sizeof(Chunk) - size;
     newChunk->prev = chunk;
@@ -77,7 +81,7 @@ void __splitChunk(Chunk* chunk, size_t size) {
 
 Chunk* __unifyChunks(Chunk* first, Chunk* second) {
     assert(first->magic == MAGIC_FREE_CHUNK);
-    assert(first->magic == MAGIC_FREE_CHUNK);
+    assert(second->magic == MAGIC_FREE_CHUNK);
 
     first->next = second->next;
     first->size += sizeof(Chunk) + second->size;
