@@ -30,9 +30,8 @@ int main(int argc, char* argv[]) {
         puts("fork failed");
     } else if (pid == 0) {
         puts("Executing new process");
-        char* const args[] = { NULL };
-        execv("/bin/test2", args);
-        puts("execv failed!\n");
+        execl("/bin/test2", "test2", "Hello", "World!", NULL);
+        puts("execl failed!\n");
     } else {
         printf("New child process has pid %u. Waiting...\n", pid);
         int status;

@@ -13,18 +13,38 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test2.c
- * Another test program.
+/* libc/src/unistd/execl.c
+ * Executes a program.
  */
 
-#include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <unistd.h>
 
-int main(int argc, char* argv[]) {
-    puts("Hello! I am the other program.");
-    printf("argc = %u, argv = 0x%p\n", argc, argv);
-    for (int i = 0; i < argc; i++) {
-        printf("argv[%u] = %s\n", i, argv[i]);
+int execl(const char* path, const char* argv0, ...) {
+    // Count the arguments
+    int argc = 1;
+    va_list ap;
+    va_start(ap, argv0);
+    while (va_arg(ap, char*)) {
+        argc++;
     }
+    va_end(ap);
 
-    return argc;
+    // Create an array containing all arguments
+    char** argv = malloc((argc + 1) * sizeof(char*));
+
+    va_start(ap, argv0);
+    argv[0] = (char*) argv0;
+    for (int i = 1; i < argc; i++) {
+        argv[i] = va_arg(ap, char*);
+    }
+    argv[argc] = NULL;
+    va_end(ap);
+
+    execv(path, argv);
+
+    // Cleanup if execv failed
+    free(argv);
+    return -1;
 }

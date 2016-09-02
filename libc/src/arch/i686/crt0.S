@@ -22,7 +22,6 @@
 .type _start, @function
 _start:
     # The kernel has put argc into eax, argv into ebx and envp into ecx.
-    # (At least it will as soon as we have these things.)
 
     # Create a stack frame
     push $0

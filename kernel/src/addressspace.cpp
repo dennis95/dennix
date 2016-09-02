@@ -98,6 +98,8 @@ AddressSpace::~AddressSpace() {
         }
         currentSegment = next;
     }
+
+    PhysicalMemory::pushPageFrame(pageDir);
 }
 
 // We need to create the initial kernel segments at compile time because

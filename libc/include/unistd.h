@@ -39,6 +39,7 @@ extern "C" {
 #endif
 
 int close(int);
+int execl(const char*, const char*, ...);
 int execv(const char*, char* const[]);
 int execve(const char*, char* const[], char* const[]);
 __noreturn void _exit(int);

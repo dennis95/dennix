@@ -77,11 +77,54 @@ void Process::addProcess(Process* process) {
 
 }
 
+int Process::copyArguments(char* const argv[], char* const envp[],
+        char**& newArgv, char**& newEnvp) {
+    int argc;
+    int envc;
+    size_t stringSizes = 0;
+
+    for (argc = 0; argv[argc]; argc++) {
+        stringSizes += strlen(argv[argc]) + 1;
+    }
+    for (envc = 0; envp[envc]; envc++) {
+        stringSizes += strlen(envp[envc]) + 1;
+    }
+
+    stringSizes = ALIGNUP(stringSizes, alignof(char*));
+
+    size_t size = ALIGNUP(stringSizes + (argc + envc + 2) * sizeof(char*),
+            0x1000);
+
+    vaddr_t page = addressSpace->mapMemory(size, PROT_READ | PROT_WRITE);
+    vaddr_t pageMapped = kernelSpace->mapFromOtherAddressSpace(addressSpace,
+            page, size, PROT_WRITE);
+
+    char* nextString = (char*) pageMapped;
+    char** argvMapped = (char**) (pageMapped + stringSizes);
+    char** envpMapped = argvMapped + argc + 1;
+
+    for (int i = 0; i < argc; i++) {
+        argvMapped[i] = nextString - pageMapped + page;
+        nextString = stpcpy(nextString, argv[i]) + 1;
+    }
+    for (int i = 0; i < envc; i++) {
+        envpMapped[i] = nextString;
+        nextString = stpcpy(nextString, envp[i]) + 1;
+    }
+    argvMapped[argc] = nullptr;
+    envpMapped[envc] = nullptr;
+
+    kernelSpace->unmapPhysical(pageMapped, size);
+
+    newArgv = (char**) (page + stringSizes);
+    newEnvp = (char**) (page + stringSizes + (argc + 1) * sizeof(char*));
+    return argc;
+}
+
 uintptr_t Process::loadELF(uintptr_t elf) {
     ElfHeader* header = (ElfHeader*) elf;
     ProgramHeader* programHeader = (ProgramHeader*) (elf + header->e_phoff);
 
-    if (addressSpace) delete addressSpace;
     addressSpace = new AddressSpace();
 
     for (size_t i = 0; i < header->e_phnum; i++) {
@@ -128,8 +171,10 @@ InterruptContext* Process::schedule(InterruptContext* context) {
     return current->interruptContext;
 }
 
-int Process::execute(FileDescription* descr, char* const /*argv*/[],
-        char* const /*envp*/[]) {
+int Process::execute(FileDescription* descr, char* const argv[],
+        char* const envp[]) {
+    AddressSpace* oldAddressSpace = addressSpace;
+
     // Load the program
     FileVnode* file = (FileVnode*) descr->vnode;
     uintptr_t entry = loadELF((uintptr_t) file->data);
@@ -143,7 +188,14 @@ int Process::execute(FileDescription* descr, char* const /*argv*/[],
 
     memset(interruptContext, 0, sizeof(InterruptContext));
 
-    // TODO: Pass argc, argv and envp to the process.
+    char** newArgv;
+    char** newEnvp;
+    int argc = copyArguments(argv, envp, newArgv, newEnvp);
+
+    // Pass argc, argv and envp to the process.
+    interruptContext->eax = argc;
+    interruptContext->ebx = (uint32_t) newArgv;
+    interruptContext->ecx = (uint32_t) newEnvp;
     interruptContext->eip = (uint32_t) entry;
     interruptContext->cs = 0x1B;
     interruptContext->eflags = 0x200; // Interrupt enable
@@ -163,7 +215,10 @@ int Process::execute(FileDescription* descr, char* const /*argv*/[],
 
     if (this == current) {
         contextChanged = true;
+        kernelSpace->activate();
     }
+
+    if (oldAddressSpace) delete oldAddressSpace;
 
     return 0;
 }

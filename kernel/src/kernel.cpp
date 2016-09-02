@@ -52,7 +52,8 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     FileVnode* program = (FileVnode*) rootDir->openat("/bin/test", 0, 0);
     if (program) {
         Process* newProcess = new Process();
-        newProcess->execute(new FileDescription(program), nullptr, nullptr);
+        char* args[] = {nullptr};
+        newProcess->execute(new FileDescription(program), args, args);
         Process::addProcess(newProcess);
     }
     Log::printf("Processes initialized\n");
