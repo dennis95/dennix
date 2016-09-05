@@ -13,33 +13,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test.c
- * Some program to test program loading.
+/* utils/echo.c
+ * Echos its arguments to stdout.
  */
 
 #include <stdio.h>
-#include <unistd.h>
-#include <sys/wait.h>
 
 int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-    puts("Now forking the process.");
-    pid_t pid = fork();
-
-    if (pid == -1) {
-        puts("fork failed");
-    } else if (pid == 0) {
-        puts("Executing new process");
-        execl("/bin/test2", "test2", "Hello", "World!", NULL);
-        puts("execl failed!\n");
-    } else {
-        printf("New child process has pid %u. Waiting...\n", pid);
-        int status;
-        waitpid(pid, &status, 0);
-        if (WIFEXITED(status)) {
-            printf("Child process exited with status %u\n", WEXITSTATUS(status));
+    for (int i = 1; i < argc; i++) {
+        fputs(argv[i], stdout);
+        if (i + 1 < argc) {
+            fputc(' ', stdout);
         }
     }
-
-    return 42;
+    fputc('\n', stdout);
 }

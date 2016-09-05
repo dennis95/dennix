@@ -13,18 +13,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/test2.c
- * Another test program.
+/* utils/false.c
+ * Exits with a non successful status.
  */
 
-#include <stdio.h>
+#include <stdlib.h>
 
 int main(int argc, char* argv[]) {
-    puts("Hello! I am the other program.");
-    printf("argc = %u, argv = 0x%p\n", argc, argv);
-    for (int i = 0; i < argc; i++) {
-        printf("argv[%u] = %s\n", i, argv[i]);
-    }
-
-    return argc;
+    (void) argc; (void) argv;
+    return EXIT_FAILURE;
 }

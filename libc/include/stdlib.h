@@ -29,6 +29,9 @@
 extern "C" {
 #endif
 
+#define EXIT_FAILURE 1
+#define EXIT_SUCCESS 0
+
 void* calloc(size_t, size_t);
 __noreturn void _Exit(int);
 __noreturn void exit(int);
