@@ -39,6 +39,7 @@ size_t strcspn(const char*, const char*);
 size_t strlen(const char*);
 int strncmp(const char*, const char*, size_t);
 char* strrchr(const char*, int);
+char* strtok(char* __restrict, const char* __restrict);
 
 #if __USE_DENNIX || __USE_POSIX
 char* stpcpy(char* __restrict, const char* __restrict);

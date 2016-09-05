@@ -26,6 +26,7 @@ CFLAGS += --sysroot=$(SYSROOT) -Wall -Wextra
 CPPFLAGS += -D_DENNIX_SOURCE
 
 PROGRAMS = \
+	sh \
 	test \
 	test2
 

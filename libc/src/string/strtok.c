@@ -13,14 +13,27 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/stdio/fputc_unlocked.c
- * Puts a character into a file without locking.
+/* libc/src/string/strtok.c
+ * Splits a string into tokens.
  */
 
-#include <stdio.h>
-#include <unistd.h>
+#include <string.h>
 
-int fputc_unlocked(int c, FILE* file) {
-    if (write(file->fd, &c, 1) < 0) return EOF;
-    return c;
+static char* next = NULL;
+
+char* strtok(char* restrict str, const char* restrict seperators) {
+    if (!str) {
+        str = next;
+        if (!str) return NULL;
+    }
+
+    size_t tokenEnd = strcspn(str, seperators);
+    if (str[tokenEnd] == '\0') {
+        next = NULL;
+    } else {
+        str[tokenEnd] = '\0';
+        next = str + tokenEnd + 1;
+    }
+
+    return str;
 }

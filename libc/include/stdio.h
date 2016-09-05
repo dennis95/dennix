@@ -62,6 +62,7 @@ FILE* fopen(const char* __restrict, const char* __restrict);
 int fprintf(FILE* __restrict, const char* __restrict, ...);
 int fputc(int, FILE*);
 int fputs(const char* __restrict, FILE* __restrict);
+size_t fwrite(const void* __restrict, size_t, size_t, FILE* __restrict);
 int getc(FILE*);
 int getchar(void);
 int printf(const char* __restrict, ...);
@@ -97,7 +98,6 @@ int vfprintf_unlocked(FILE* __restrict, const char* __restrict,
 size_t fread(void* __restrict, size_t, size_t, FILE* __restrict);
 int fseek(FILE*, long, int);
 long ftell(FILE*);
-size_t fwrite(const void* __restrict, size_t, size_t, FILE* __restrict);
 void setbuf(FILE* __restrict, char* __restrict);
 
 #ifdef __cplusplus

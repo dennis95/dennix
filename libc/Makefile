@@ -57,7 +57,8 @@ COMMON_OBJ := \
 	string/strdup \
 	string/strlen \
 	string/strncmp \
-	string/strrchr
+	string/strrchr \
+	string/strtok
 
 LIBC_OBJ := \
 	$(COMMON_OBJ) \
@@ -79,6 +80,7 @@ LIBC_OBJ := \
 	stdio/fputs_unlocked \
 	stdio/fputs \
 	stdio/funlockfile \
+	stdio/fwrite \
 	stdio/getc_unlocked \
 	stdio/getc \
 	stdio/getchar_unlocked \

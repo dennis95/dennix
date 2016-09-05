@@ -108,7 +108,7 @@ static MemorySegment segment1(0, 0xC0000000, PROT_NONE, nullptr, nullptr);
 static MemorySegment segment2(0xC0000000, 0x1000, PROT_READ | PROT_WRITE,
         &segment1, nullptr);
 static MemorySegment segment3((vaddr_t) &kernelVirtualBegin,
-        (vaddr_t) &kernelVirtualEnd - (vaddr_t) &kernelVirtualEnd,
+        (vaddr_t) &kernelVirtualEnd - (vaddr_t) &kernelVirtualBegin,
         PROT_READ | PROT_WRITE | PROT_EXEC, &segment2, nullptr);
 static MemorySegment segment4(RECURSIVE_MAPPING, -RECURSIVE_MAPPING,
         PROT_READ | PROT_WRITE, &segment3, nullptr);

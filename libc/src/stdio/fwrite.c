@@ -13,14 +13,28 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/stdio/fputc_unlocked.c
- * Puts a character into a file without locking.
+/* libc/src/stdio/fwrite.c
+ * Writes data to a file.
  */
 
 #include <stdio.h>
-#include <unistd.h>
 
-int fputc_unlocked(int c, FILE* file) {
-    if (write(file->fd, &c, 1) < 0) return EOF;
-    return c;
+size_t fwrite(const void* restrict ptr, size_t size, size_t count,
+        FILE* restrict file) {
+    const unsigned char* p = (const unsigned char*) ptr;
+
+    if (size == 0 || count == 0) return 0;
+    flockfile(file);
+
+    size_t i;
+    for (i = 0; i < count; i++) {
+        for (size_t j = 0; j < size; j++) {
+            if (fputc_unlocked(p[i * size + j], file) < 0) {
+                goto end;
+            }
+        }
+    }
+end:
+    funlockfile(file);
+    return i;
 }
