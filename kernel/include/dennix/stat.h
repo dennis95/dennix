@@ -13,25 +13,21 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/vnode.h
- * Vnode class.
+/* kernel/include/dennix/stat.h
+ * File information.
  */
 
-#ifndef KERNEL_VNODE_H
-#define KERNEL_VNODE_H
+#ifndef _DENNIX_STAT_H
+#define _DENNIX_STAT_H
 
-#include <sys/types.h>
+#define S_IFBLK 010000
+#define S_IFCHR 020000
+#define S_IFIFO 030000
+#define S_IFREG 040000
+#define S_IFDIR 050000
+#define S_IFLNK 060000
+#define S_IFSOCK 070000
 
-class Vnode {
-public:
-    virtual bool isSeekable();
-    virtual Vnode* openat(const char* path, int flags, mode_t mode);
-    virtual ssize_t pread(void* buffer, size_t size, off_t offset);
-    virtual ssize_t read(void* buffer, size_t size);
-    virtual ssize_t write(const void* buffer, size_t size);
-    virtual ~Vnode() {}
-public:
-    mode_t mode;
-};
+#define S_IFMT 070000
 
 #endif

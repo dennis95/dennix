@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <dennix/kernel/elf.h>
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/log.h>
@@ -123,6 +124,12 @@ int Process::copyArguments(char* const argv[], char* const envp[],
 
 uintptr_t Process::loadELF(uintptr_t elf) {
     ElfHeader* header = (ElfHeader*) elf;
+
+    if (memcmp(header->e_ident, "\x7F""ELF", 4) != 0) {
+        errno = ENOEXEC;
+        return 0;
+    }
+
     ProgramHeader* programHeader = (ProgramHeader*) (elf + header->e_phoff);
 
     addressSpace = new AddressSpace();
@@ -175,9 +182,15 @@ int Process::execute(FileDescription* descr, char* const argv[],
         char* const envp[]) {
     AddressSpace* oldAddressSpace = addressSpace;
 
+    if (!S_ISREG(descr->vnode->mode)) {
+        errno = EACCES;
+        return -1;
+    }
+
     // Load the program
     FileVnode* file = (FileVnode*) descr->vnode;
     uintptr_t entry = loadELF((uintptr_t) file->data);
+    if (!entry) return -1;
 
     vaddr_t stack = addressSpace->mapMemory(0x1000, PROT_READ | PROT_WRITE);
     kernelStack = (void*) kernelSpace->mapMemory(0x1000,

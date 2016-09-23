@@ -17,6 +17,7 @@
  * Terminal class.
  */
 
+#include <dennix/stat.h>
 #include <dennix/kernel/terminal.h>
 
 Terminal terminal;
@@ -29,6 +30,7 @@ static int cursorPosY = 0;
 static void printCharacter(char c);
 
 Terminal::Terminal() {
+    mode = S_IFCHR;
     readIndex = 0;
     writeIndex = 0;
 }

@@ -18,9 +18,11 @@
  */
 
 #include <string.h>
+#include <dennix/stat.h>
 #include <dennix/kernel/file.h>
 
 FileVnode::FileVnode(const void* data, size_t size) {
+    mode = S_IFREG;
     this->data = new char[size];
     memcpy(this->data, data, size);
     fileSize = size;
