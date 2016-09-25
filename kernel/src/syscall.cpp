@@ -34,7 +34,18 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_REGFORK] =*/ (void*) Syscall::regfork,
     /*[SYSCALL_EXECVE] =*/ (void*) Syscall::execve,
     /*[SYSCALL_WAITPID] =*/ (void*) Syscall::waitpid,
+    /*[SYSCALL_FSTATAT] =*/ (void*) Syscall::fstatat,
 };
+
+static FileDescription* getRootFd(int fd, const char* restrict path) {
+    if (path[0] == '/') {
+        return Process::current->rootFd;
+    } else if (fd == AT_FDCWD) {
+        return Process::current->cwdFd;
+    } else {
+        return Process::current->fd[fd];
+    }
+}
 
 extern "C" const void* getSyscallHandler(unsigned interruptNumber) {
     if (interruptNumber >= NUM_SYSCALLS) {
@@ -75,16 +86,18 @@ NORETURN void Syscall::exit(int status) {
     __builtin_unreachable();
 }
 
-int Syscall::openat(int fd, const char* path, int flags, mode_t mode) {
-    FileDescription* descr;
+int Syscall::fstatat(int fd, const char* restrict path,
+        struct stat* restrict result, int /*flags*/) {
+    FileDescription* descr = getRootFd(fd, path);
 
-    if (path[0] == '/') {
-        descr = Process::current->rootFd;
-    } else if (fd == AT_FDCWD) {
-        descr = Process::current->cwdFd;
-    } else {
-        descr = Process::current->fd[fd];
-    }
+    Vnode* vnode = descr->vnode->openat(path, 0, 0);
+    if (!vnode) return -1;
+
+    return vnode->stat(result);
+}
+
+int Syscall::openat(int fd, const char* path, int flags, mode_t mode) {
+    FileDescription* descr = getRootFd(fd, path);
 
     FileDescription* result = descr->openat(path, flags, mode);
     if (!result) {

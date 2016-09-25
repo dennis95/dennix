@@ -30,7 +30,8 @@
 #define SYSCALL_REGFORK 7
 #define SYSCALL_EXECVE 8
 #define SYSCALL_WAITPID 9
+#define SYSCALL_FSTATAT 10
 
-#define NUM_SYSCALLS 10
+#define NUM_SYSCALLS 11
 
 #endif

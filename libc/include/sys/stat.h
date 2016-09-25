@@ -59,6 +59,9 @@ extern "C" {
 #define S_ISLNK(mode) (((mode) & S_IFMT) == S_IFLNK)
 #define S_ISSOCK(mode) (((mode) & S_IFMT) == S_IFSOCK)
 
+int fstatat(int, const char* __restrict, struct stat* __restrict, int);
+int stat(const char* __restrict, struct stat* __restrict);
+
 #ifdef __cplusplus
 }
 #endif

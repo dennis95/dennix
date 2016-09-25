@@ -100,6 +100,8 @@ LIBC_OBJ := \
 	stdlib/exit \
 	sys/mman/mmap \
 	sys/mman/munmap \
+	sys/stat/fstatat \
+	sys/stat/stat \
 	sys/wait/waitpid \
 	unistd/close \
 	unistd/environ \

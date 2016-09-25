@@ -20,6 +20,8 @@
 #ifndef _DENNIX_STAT_H
 #define _DENNIX_STAT_H
 
+#include <dennix/types.h>
+
 #define S_IFBLK 010000
 #define S_IFCHR 020000
 #define S_IFIFO 030000
@@ -29,5 +31,10 @@
 #define S_IFSOCK 070000
 
 #define S_IFMT 070000
+
+struct stat {
+    /* TODO: Add the other members of struct stat */
+    __mode_t st_mode;
+};
 
 #endif

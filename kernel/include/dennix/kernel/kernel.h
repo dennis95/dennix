@@ -26,6 +26,7 @@
 #define ALIGNED(alignment) __attribute__((__aligned__(alignment)))
 #define NORETURN __attribute__((__noreturn__))
 #define PACKED __attribute__((__packed__))
+#define restrict __restrict
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect((x), 0)

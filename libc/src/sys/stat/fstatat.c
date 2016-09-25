@@ -13,32 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/src/file.cpp
- * File Vnode.
+/* libc/src/sys/stat/fstatat.c
+ * File information.
  */
 
-#include <string.h>
-#include <dennix/stat.h>
-#include <dennix/kernel/file.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
 
-FileVnode::FileVnode(const void* data, size_t size, mode_t mode)
-        : Vnode(S_IFREG | mode) {
-    this->data = new char[size];
-    memcpy(this->data, data, size);
-    fileSize = size;
-}
-
-bool FileVnode::isSeekable() {
-    return true;
-}
-
-ssize_t FileVnode::pread(void* buffer, size_t size, off_t offset) {
-    char* buf = (char*) buffer;
-
-    for (size_t i = 0; i < size; i++) {
-        if (offset + i >= fileSize) return i;
-        buf[i] = data[offset + i];
-    }
-
-    return size;
-}
+DEFINE_SYSCALL_GLOBAL(SYSCALL_FSTATAT, int, fstatat,
+        (int, const char* restrict, struct stat* restrict, int));

@@ -22,8 +22,8 @@
 #include <dennix/stat.h>
 #include <dennix/kernel/directory.h>
 
-DirectoryVnode::DirectoryVnode(DirectoryVnode* parent) {
-    mode  = S_IFDIR;
+DirectoryVnode::DirectoryVnode(DirectoryVnode* parent, mode_t mode)
+        : Vnode(S_IFDIR | mode) {
     childCount = 0;
     childNodes = nullptr;
     fileNames = nullptr;

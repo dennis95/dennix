@@ -29,8 +29,7 @@ static int cursorPosY = 0;
 
 static void printCharacter(char c);
 
-Terminal::Terminal() {
-    mode = S_IFCHR;
+Terminal::Terminal() : Vnode(S_IFCHR) {
     readIndex = 0;
     writeIndex = 0;
 }

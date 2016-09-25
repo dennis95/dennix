@@ -13,43 +13,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/src/vnode.cpp
- * Vnode class.
+/* libc/src/sys/stat/stat.c
+ * File information.
  */
 
-#include <errno.h>
-#include <dennix/kernel/vnode.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
-Vnode::Vnode(mode_t mode) {
-    this->mode = mode;
-}
-
-// Default implementation. Inheriting classes will override these functions.
-bool Vnode::isSeekable() {
-    return false;
-}
-
-Vnode* Vnode::openat(const char* /*path*/, int /*flags*/, mode_t /*mode*/) {
-    errno = ENOTDIR;
-    return nullptr;
-}
-
-ssize_t Vnode::pread(void* /*buffer*/, size_t /*size*/, off_t /*offset*/) {
-    errno = EBADF;
-    return -1;
-}
-
-ssize_t Vnode::read(void* /*buffer*/, size_t /*size*/) {
-    errno = EBADF;
-    return -1;
-}
-
-int Vnode::stat(struct stat* result) {
-    result->st_mode = mode;
-    return 0;
-}
-
-ssize_t Vnode::write(const void* /*buffer*/, size_t /*size*/) {
-    errno = EBADF;
-    return -1;
+int stat(const char* restrict path, struct stat* restrict result) {
+    return fstatat(AT_FDCWD, path, result, 0);
 }

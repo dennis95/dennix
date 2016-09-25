@@ -26,12 +26,15 @@
 #include <dennix/kernel/kernel.h>
 
 struct __mmapRequest;
+struct stat;
 
 namespace Syscall {
 
 int close(int fd);
 int execve(const char* path, char* const argv[], char* const envp[]);
 NORETURN void exit(int status);
+int fstatat(int fd, const char* restrict path, struct stat* restrict result,
+        int flags);
 void* mmap(__mmapRequest* request);
 int munmap(void* addr, size_t size);
 int openat(int fd, const char* path, int flags, mode_t mode);
