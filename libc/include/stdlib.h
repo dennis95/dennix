@@ -36,6 +36,7 @@ void* calloc(size_t, size_t);
 __noreturn void _Exit(int);
 __noreturn void exit(int);
 void free(void*);
+char* getenv(const char*);
 void* malloc(size_t);
 void* realloc(void*, size_t);
 long strtol(const char* __restrict, char** __restrict, int);
@@ -48,7 +49,6 @@ __noreturn void abort(void);
    libgcc, and are not implemented. */
 int atexit(void (*)(void));
 int atoi(const char*);
-char* getenv(const char*);
 
 #ifdef __cplusplus
 }

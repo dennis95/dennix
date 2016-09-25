@@ -52,8 +52,10 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     FileVnode* program = (FileVnode*) rootDir->openat("/bin/sh", 0, 0);
     if (program) {
         Process* newProcess = new Process();
-        char* args[] = {nullptr};
-        newProcess->execute(new FileDescription(program), args, args);
+        const char* argv[] = { "/bin/sh", nullptr };
+        const char* envp[] = { "PATH=/bin", nullptr };
+        newProcess->execute(new FileDescription(program), (char**) argv,
+                (char**) envp);
         Process::addProcess(newProcess);
     }
     Log::printf("Processes initialized\n");
