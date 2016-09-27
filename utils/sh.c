@@ -24,6 +24,9 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
+static int executeCommand(char* arguments[]);
+static const char* getExecutablePath(const char* command);
+
 int main(int argc, char* argv[]) {
     (void) argc; (void) argv;
 
@@ -55,24 +58,61 @@ int main(int argc, char* argv[]) {
         }
         arguments[argumentCount] = NULL;
 
-        // Special built-ins
-        if (strcmp(arguments[0], "exit") == 0) {
-            exit(0);
-        }
-
-        pid_t pid = fork();
-
-        if (pid < 0) {
-            fputs("fork() failed\n", stderr);
-        } else if (pid == 0) {
-            execv(arguments[0], arguments);
-            fputs("Command not found\n", stderr);
-            _Exit(127);
-        } else {
-            int status;
-            waitpid(pid, &status, 0);
-        }
-
+        executeCommand(arguments);
         free(arguments);
     }
+}
+
+static int executeCommand(char* arguments[]) {
+    const char* command = arguments[0];
+    // Special built-ins
+    if (strcmp(command, "exit") == 0) {
+        exit(0);
+    }
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        fputs("fork() failed\n", stderr);
+        return -1;
+    } else if (pid == 0) {
+        if (!strchr(command, '/')) {
+            command = getExecutablePath(command);
+        }
+
+        if (command) {
+            execv(command, arguments);
+        }
+
+        fputs("Command not found\n", stderr);
+        _Exit(127);
+    } else {
+        int status;
+        waitpid(pid, &status, 0);
+        return WEXITSTATUS(status);
+    }
+}
+
+static const char* getExecutablePath(const char* command) {
+    size_t commandLength = strlen(command);
+    const char* path = getenv("PATH");
+
+    while (*path) {
+        size_t length = strcspn(path, ":");
+        char* buffer = malloc(commandLength + length + 2);
+
+        memcpy(buffer, path, length);
+        buffer[length] = '/';
+        memcpy(buffer + length + 1, command, commandLength);
+        buffer[commandLength + length + 1] = '\0';
+
+        if (access(buffer, X_OK) == 0) {
+            return buffer;
+        }
+
+        free(buffer);
+        path += length + 1;
+    }
+
+    return NULL;
 }

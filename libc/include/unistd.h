@@ -38,6 +38,12 @@
 extern "C" {
 #endif
 
+#define F_OK 0
+#define R_OK (1 << 0)
+#define W_OK (1 << 1)
+#define X_OK (1 << 2)
+
+int access(const char*, int);
 int close(int);
 int execl(const char*, const char*, ...);
 int execv(const char*, char* const[]);

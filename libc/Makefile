@@ -51,6 +51,7 @@ COMMON_OBJ := \
 	string/memmove \
 	string/memset \
 	string/stpcpy \
+	string/strchr \
 	string/strcmp \
 	string/strcpy \
 	string/strcspn \
@@ -104,6 +105,7 @@ LIBC_OBJ := \
 	sys/stat/fstatat \
 	sys/stat/stat \
 	sys/wait/waitpid \
+	unistd/access \
 	unistd/close \
 	unistd/environ \
 	unistd/execl \
