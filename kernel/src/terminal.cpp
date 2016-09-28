@@ -18,6 +18,7 @@
  */
 
 #include <dennix/stat.h>
+#include <dennix/kernel/kernel.h>
 #include <dennix/kernel/terminal.h>
 
 Terminal terminal;
@@ -30,36 +31,33 @@ static int cursorPosY = 0;
 static void printCharacter(char c);
 
 Terminal::Terminal() : Vnode(S_IFCHR) {
-    readIndex = 0;
-    writeIndex = 0;
-}
 
-void Terminal::writeToCircularBuffer(char c) {
-    while ((writeIndex + 1) % 4096 == readIndex);
-    circularBuffer[writeIndex] = c;
-    writeIndex = (writeIndex + 1) % 4096;
-}
-
-char Terminal::readFromCircularBuffer() {
-    while (readIndex == writeIndex);
-    char result = circularBuffer[readIndex];
-    readIndex = (readIndex + 1) % 4096;
-    return result;
 }
 
 void Terminal::onKeyboardEvent(int key) {
     char c = Keyboard::getCharFromKey(key);
 
-    if (c) {
+    if (c == '\b') {
+        if (terminalBuffer.backspace()) {
+            cursorPosX--;
+            if (cursorPosX < 0) {
+                cursorPosX = 79;
+                cursorPosY--;
+            }
+            video[cursorPosY * 2 * 80 + 2 * cursorPosX] = 0;
+            video[cursorPosY * 2 * 80 + 2 * cursorPosX + 1] = 0;
+        }
+
+    } else if (c) {
         printCharacter(c);
-        writeToCircularBuffer(c);
+        terminalBuffer.write(c);
     }
 }
 
 ssize_t Terminal::read(void* buffer, size_t size) {
     char* buf = (char*) buffer;
     for (size_t i = 0; i < size; i++) {
-        buf[i] = readFromCircularBuffer();
+        buf[i] = terminalBuffer.read();
     }
 
     return (ssize_t) size;
@@ -102,4 +100,35 @@ static void printCharacter(char c) {
     video[cursorPosY * 2 * 80 + 2 * cursorPosX + 1] = 0x07; // gray on black
 
     cursorPosX++;
+}
+
+TerminalBuffer::TerminalBuffer() {
+    readIndex = 0;
+    lineIndex = 0;
+    writeIndex = 0;
+}
+
+bool TerminalBuffer::backspace() {
+    if (lineIndex == writeIndex) return false;
+
+    if (likely(writeIndex != 0)) {
+        writeIndex = (writeIndex - 1) % TERMINAL_BUFFER_SIZE;
+    } else {
+        writeIndex = TERMINAL_BUFFER_SIZE - 1;
+    }
+    return true;
+}
+
+char TerminalBuffer::read() {
+    while (readIndex == lineIndex);
+    char result = circularBuffer[readIndex];
+    readIndex = (readIndex + 1) % TERMINAL_BUFFER_SIZE;
+    return result;
+}
+
+void TerminalBuffer::write(char c) {
+    while ((writeIndex + 1) % TERMINAL_BUFFER_SIZE == readIndex);
+    circularBuffer[writeIndex] = c;
+    writeIndex = (writeIndex + 1) % TERMINAL_BUFFER_SIZE;
+    if (c == '\n') lineIndex = writeIndex;
 }
