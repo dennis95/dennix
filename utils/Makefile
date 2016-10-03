@@ -28,6 +28,7 @@ CPPFLAGS += -D_DENNIX_SOURCE
 PROGRAMS = \
 	echo \
 	false \
+	ls \
 	sh \
 	true
 
