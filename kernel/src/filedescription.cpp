@@ -44,6 +44,11 @@ ssize_t FileDescription::read(void* buffer, size_t size) {
     return vnode->read(buffer, size);
 }
 
+ssize_t FileDescription::readdir(unsigned long offset, void* buffer,
+        size_t size) {
+    return vnode->readdir(offset, buffer, size);
+}
+
 ssize_t FileDescription::write(const void* buffer, size_t size) {
     return vnode->write(buffer, size);
 }

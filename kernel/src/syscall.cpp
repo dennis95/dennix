@@ -35,6 +35,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_EXECVE] =*/ (void*) Syscall::execve,
     /*[SYSCALL_WAITPID] =*/ (void*) Syscall::waitpid,
     /*[SYSCALL_FSTATAT] =*/ (void*) Syscall::fstatat,
+    /*[SYSCALL_READDIR] =*/ (void*) Syscall::readdir,
 };
 
 static FileDescription* getRootFd(int fd, const char* restrict path) {
@@ -109,6 +110,12 @@ int Syscall::openat(int fd, const char* path, int flags, mode_t mode) {
 ssize_t Syscall::read(int fd, void* buffer, size_t size) {
     FileDescription* descr = Process::current->fd[fd];
     return descr->read(buffer, size);
+}
+
+ssize_t Syscall::readdir(int fd, unsigned long offset, void* buffer,
+        size_t size) {
+    FileDescription* descr = Process::current->fd[fd];
+    return descr->readdir(offset, buffer, size);
 }
 
 pid_t Syscall::regfork(int flags, struct regfork* registers) {

@@ -64,6 +64,10 @@ COMMON_OBJ := \
 LIBC_OBJ := \
 	$(COMMON_OBJ) \
 	assert/assert \
+	dirent/closedir \
+	dirent/fdopendir \
+	dirent/opendir \
+	dirent/readdir \
 	fcntl/open \
 	fcntl/openat \
 	stdio/fclose \

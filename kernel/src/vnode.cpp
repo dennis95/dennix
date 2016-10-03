@@ -44,6 +44,12 @@ ssize_t Vnode::read(void* /*buffer*/, size_t /*size*/) {
     return -1;
 }
 
+ssize_t Vnode::readdir(unsigned long /*offset*/, void* /*buffer*/,
+        size_t /*size*/) {
+    errno = EBADF;
+    return -1;
+}
+
 int Vnode::stat(struct stat* result) {
     result->st_mode = mode;
     return 0;

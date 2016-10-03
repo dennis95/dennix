@@ -13,26 +13,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/syscall.h
- * Syscall numbers.
+/* libc/src/dirent/fdopendir.c
+ * Opens a directory.
  */
 
-#ifndef _DENNIX_SYSCALL_H
-#define _DENNIX_SYSCALL_H
+#include <dirent.h>
+#include <stdlib.h>
 
-#define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_READ 2
-#define SYSCALL_MMAP 3
-#define SYSCALL_MUNMAP 4
-#define SYSCALL_OPENAT 5
-#define SYSCALL_CLOSE 6
-#define SYSCALL_REGFORK 7
-#define SYSCALL_EXECVE 8
-#define SYSCALL_WAITPID 9
-#define SYSCALL_FSTATAT 10
-#define SYSCALL_READDIR 11
-
-#define NUM_SYSCALLS 12
-
-#endif
+DIR* fdopendir(int fd) {
+    DIR* dir = malloc(sizeof(DIR));
+    dir->fd = fd;
+    dir->offset = 0;
+    dir->dirent = NULL;
+    return dir;
+}

@@ -13,26 +13,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/syscall.h
- * Syscall numbers.
+/* libc/include/dirent.h
+ * Directory definitions.
  */
 
-#ifndef _DENNIX_SYSCALL_H
-#define _DENNIX_SYSCALL_H
+#ifndef _DIRENT_H
+#define _DIRENT_H
 
-#define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_READ 2
-#define SYSCALL_MMAP 3
-#define SYSCALL_MUNMAP 4
-#define SYSCALL_OPENAT 5
-#define SYSCALL_CLOSE 6
-#define SYSCALL_REGFORK 7
-#define SYSCALL_EXECVE 8
-#define SYSCALL_WAITPID 9
-#define SYSCALL_FSTATAT 10
-#define SYSCALL_READDIR 11
+#include <sys/cdefs.h>
+#include <dennix/dirent.h>
 
-#define NUM_SYSCALLS 12
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct __DIR DIR;
+
+#ifdef __is_dennix_libc
+struct __DIR {
+    int fd;
+    struct dirent* dirent;
+    unsigned long offset;
+};
+#endif
+
+int closedir(DIR*);
+DIR* fdopendir(int);
+DIR* opendir(const char*);
+struct dirent* readdir(DIR*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
