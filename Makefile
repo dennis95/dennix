@@ -40,6 +40,9 @@ install-headers:
 install-libc:
 	$(MAKE) -C libc install-libs
 
+install-toolchain: install-headers
+	SYSROOT=$(SYSROOT) $(REPO_ROOT)/build-aux/install-toolchain.sh
+
 install-utils:
 	$(MAKE) -C utils install
 
@@ -85,4 +88,4 @@ distclean:
 	rm -f *.iso
 
 .PHONY: all kernel libc install-all install-headers install-libc
-.PHONY: install-utils iso qemu utils clean distclean
+.PHONY: install-toolchain install-utils iso qemu utils clean distclean
