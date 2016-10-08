@@ -24,6 +24,7 @@
 #include <dennix/kernel/initrd.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/physicalmemory.h>
+#include <dennix/kernel/pit.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/ps2.h>
 
@@ -62,6 +63,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     kernelSpace->unmapPhysical((vaddr_t) multiboot, 0x1000);
 
     Interrupts::initPic();
+    Pit::initialize();
     Interrupts::enable();
     Log::printf("Interrupts enabled!\n");
 

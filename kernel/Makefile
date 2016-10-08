@@ -44,6 +44,7 @@ OBJ := \
 	log.o \
 	memorysegment.o \
 	physicalmemory.o \
+	pit.o \
 	process.o \
 	ps2.o \
 	ps2keyboard.o \
