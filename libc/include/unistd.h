@@ -51,6 +51,7 @@ int execve(const char*, char* const[], char* const[]);
 __noreturn void _exit(int);
 pid_t fork(void);
 ssize_t read(int, void*, size_t);
+unsigned int sleep(unsigned int);
 ssize_t write(int, const void*, size_t);
 
 #if __USE_DENNIX

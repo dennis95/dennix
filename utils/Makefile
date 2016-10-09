@@ -30,6 +30,7 @@ PROGRAMS = \
 	false \
 	ls \
 	sh \
+	sleep \
 	true
 
 all: $(addprefix $(BUILD)/, $(PROGRAMS))

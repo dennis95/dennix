@@ -13,19 +13,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/pit.h
- * Programmable Interval Timer.
+/* kernel/include/dennix/kernel/timer.h
+ * Timers.
  */
 
-#ifndef KERNEL_PIT_H
-#define KERNEL_PIT_H
+#ifndef KERNEL_TIMER_H
+#define KERNEL_TIMER_H
 
-#include <dennix/kernel/timer.h>
+#include <dennix/timespec.h>
+#include <dennix/kernel/kernel.h>
 
-namespace Pit {
-void initialize();
-void deregisterTimer(size_t index);
-size_t registerTimer(Timer* timer);
-}
+class Timer {
+public:
+    Timer(struct timespec time);
+    void advance(unsigned long nanoseconds);
+    void start();
+    void wait();
+private:
+    struct timespec time;
+    size_t index;
+};
 
 #endif

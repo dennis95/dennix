@@ -50,6 +50,7 @@ OBJ := \
 	ps2keyboard.o \
 	syscall.o \
 	terminal.o \
+	timer.o \
 	vnode.o
 
 include $(ARCH).mk

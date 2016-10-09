@@ -109,6 +109,7 @@ LIBC_OBJ := \
 	sys/stat/fstatat \
 	sys/stat/stat \
 	sys/wait/waitpid \
+	time/nanosleep \
 	unistd/access \
 	unistd/close \
 	unistd/environ \
@@ -119,6 +120,7 @@ LIBC_OBJ := \
 	unistd/fork \
 	unistd/read \
 	unistd/regfork \
+	unistd/sleep \
 	unistd/write
 
 LIBK_OBJ := $(COMMON_OBJ)

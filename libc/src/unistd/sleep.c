@@ -13,19 +13,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/pit.h
- * Programmable Interval Timer.
+/* libc/src/unistd/sleep.c
+ * Sleeps for a given time.
  */
 
-#ifndef KERNEL_PIT_H
-#define KERNEL_PIT_H
+#include <time.h>
+#include <unistd.h>
 
-#include <dennix/kernel/timer.h>
+unsigned int sleep(unsigned int seconds) {
+    struct timespec requested;
+    struct timespec remaining;
 
-namespace Pit {
-void initialize();
-void deregisterTimer(size_t index);
-size_t registerTimer(Timer* timer);
+    requested.tv_sec = seconds;
+    requested.tv_nsec = 0;
+
+    int result = nanosleep(&requested, &remaining);
+
+    if (result < 0) {
+        return remaining.tv_sec;
+    }
+    return 0;
 }
-
-#endif

@@ -13,19 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/pit.h
- * Programmable Interval Timer.
+/* libc/src/time/nanosleep.c
+ * Sleeps for a given time.
  */
 
-#ifndef KERNEL_PIT_H
-#define KERNEL_PIT_H
+#include <time.h>
+#include <sys/syscall.h>
 
-#include <dennix/kernel/timer.h>
-
-namespace Pit {
-void initialize();
-void deregisterTimer(size_t index);
-size_t registerTimer(Timer* timer);
-}
-
-#endif
+DEFINE_SYSCALL_GLOBAL(SYSCALL_NANOSLEEP, int, nanosleep,
+        (const struct timespec*, struct timespec*));

@@ -13,19 +13,21 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/pit.h
- * Programmable Interval Timer.
+/* utils/sleep.c
+ * Sleeps for a given time.
  */
 
-#ifndef KERNEL_PIT_H
-#define KERNEL_PIT_H
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
-#include <dennix/kernel/timer.h>
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        fputs("Missing operand.\n", stderr);
+        return 1;
+    }
 
-namespace Pit {
-void initialize();
-void deregisterTimer(size_t index);
-size_t registerTimer(Timer* timer);
+    unsigned long time = strtoul(argv[1], NULL, 10);
+
+    sleep(time);
 }
-
-#endif

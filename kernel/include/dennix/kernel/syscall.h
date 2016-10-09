@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <dennix/fork.h>
 #include <dennix/syscall.h>
+#include <dennix/timespec.h>
 #include <dennix/kernel/kernel.h>
 
 struct __mmapRequest;
@@ -37,6 +38,7 @@ int fstatat(int fd, const char* restrict path, struct stat* restrict result,
         int flags);
 void* mmap(__mmapRequest* request);
 int munmap(void* addr, size_t size);
+int nanosleep(const struct timespec* requested, struct timespec* remaining);
 int openat(int fd, const char* path, int flags, mode_t mode);
 ssize_t read(int fd, void* buffer, size_t size);
 ssize_t readdir(int fd, unsigned long offset, void* buffer, size_t size);
