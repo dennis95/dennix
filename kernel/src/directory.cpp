@@ -66,7 +66,8 @@ Vnode* DirectoryVnode::openat(const char* path, int flags, mode_t mode) {
     }
 
     for (size_t i = 0; i < childCount; i++) {
-        if (strncmp(path, fileNames[i], length) == 0) {
+        if (strlen(fileNames[i]) == length &&
+                strncmp(path, fileNames[i], length) == 0) {
             if (path[length] == '\0') {
                 return childNodes[i];
             } else {
