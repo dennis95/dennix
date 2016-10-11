@@ -45,6 +45,10 @@ void Interrupts::initPic() {
     outb(PIC2_DATA, 0x1);
 }
 
+void Interrupts::disable() {
+    asm volatile ("cli");
+}
+
 void Interrupts::enable() {
     asm volatile ("sti");
 }
