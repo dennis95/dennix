@@ -30,7 +30,7 @@ static void sendKeyboardCommand(uint8_t command, uint8_t data);
 PS2Keyboard::PS2Keyboard() {
     listener = nullptr;
     sendKeyboardCommand(KEYBOARD_ENABLE_SCANNING);
-    Log::printf("Keyboard initialized\n");
+    Log::printf("PS/2 Keyboard found.\n");
 }
 
 enum {

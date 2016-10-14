@@ -68,7 +68,8 @@ DirectoryVnode* Initrd::loadInitrd(vaddr_t initrd) {
         DirectoryVnode* directory = (DirectoryVnode*) root->openat(dirName, 0, 0);
 
         if (!directory) {
-            Log::printf("Could not add '%s' to nonexistent directory '%s'.\n", fileName, dirName);
+            Log::printf("Could not add '%s' to nonexistent directory '%s'.\n",
+                    fileName, dirName);
             return root;
         }
 
@@ -87,7 +88,6 @@ DirectoryVnode* Initrd::loadInitrd(vaddr_t initrd) {
         }
 
         directory->addChildNode(fileName, newFile);
-        Log::printf("File: %s/%s, size = %zu\n", dirName, fileName, size);
 
         free(path);
         free(path2);

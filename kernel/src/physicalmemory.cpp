@@ -74,7 +74,7 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
 
     kernelSpace->unmapPhysical(virtualAddress, 0x1000);
 
-    Log::printf("We have %u free page frames!\n", stackUsed);
+    Log::printf("Free Memory: %zu KiB\n", stackUsed * 4);
 }
 
 void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {

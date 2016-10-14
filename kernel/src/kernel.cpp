@@ -28,27 +28,31 @@
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/ps2.h>
 
+#ifndef DENNIX_VERSION
+#  define DENNIX_VERSION ""
+#endif
+
 static DirectoryVnode* loadInitrd(multiboot_info* multiboot);
 
 extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
-    Log::printf("Hello World!\n");
+    Log::printf("Welcome to Dennix " DENNIX_VERSION "\n");
+    Log::printf("Initializing Address space...\n");
     AddressSpace::initialize();
-    Log::printf("Address space initialized!\n");
 
+    Log::printf("Initializing Physical Memory...\n");
     multiboot_info* multiboot = (multiboot_info*)
             kernelSpace->mapPhysical(multibootAddress, 0x1000, PROT_READ);
-
     PhysicalMemory::initialize(multiboot);
-    Log::printf("Physical Memory initialized\n");
 
+    Log::printf("Initializing PS/2 Controller...\n");
     PS2::initialize();
-    Log::printf("PS/2 Controller initialized\n");
 
     // Load the initrd.
+    Log::printf("Loading Initrd...\n");
     DirectoryVnode* rootDir = loadInitrd(multiboot);
     FileDescription* rootFd = new FileDescription(rootDir);
-    Log::printf("Initrd loaded\n");
 
+    Log::printf("Initializing processes...\n");
     Process::initialize(rootFd);
     FileVnode* program = (FileVnode*) rootDir->openat("/bin/sh", 0, 0);
     if (program) {
@@ -59,13 +63,13 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
                 (char**) envp);
         Process::addProcess(newProcess);
     }
-    Log::printf("Processes initialized\n");
     kernelSpace->unmapPhysical((vaddr_t) multiboot, 0x1000);
 
+    Log::printf("Enabling interrupts...\n");
     Interrupts::initPic();
     Pit::initialize();
     Interrupts::enable();
-    Log::printf("Interrupts enabled!\n");
+    Log::printf("Initialization completed.\n");
 
     while (true) {
         asm volatile ("hlt");

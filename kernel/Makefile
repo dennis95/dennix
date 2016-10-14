@@ -18,13 +18,14 @@ REPO_ROOT = ..
 
 include $(REPO_ROOT)/build-aux/paths.mk
 include $(REPO_ROOT)/build-aux/toolchain.mk
+include $(REPO_ROOT)/build-aux/version.mk
 
 BUILD = $(BUILD_DIR)/kernel
 
 CXXFLAGS ?= -O2 -g
 CXXFLAGS += --sysroot=$(SYSROOT) -std=gnu++14 -ffreestanding -fno-exceptions
 CXXFLAGS += -fno-rtti -Wall -Wextra
-CPPFLAGS += -I include
+CPPFLAGS += -I include -DDENNIX_VERSION=\"$(VERSION)\"
 CPPFLAGS += -D__is_dennix_kernel -D_DENNIX_SOURCE
 LDFLAGS += --sysroot=$(SYSROOT) -T linker.ld -ffreestanding -nostdlib
 LIBS += -lk -lgcc
