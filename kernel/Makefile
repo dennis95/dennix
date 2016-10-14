@@ -29,7 +29,7 @@ CPPFLAGS += -D__is_dennix_kernel -D_DENNIX_SOURCE
 LDFLAGS += --sysroot=$(SYSROOT) -T linker.ld -ffreestanding -nostdlib
 LIBS += -lk -lgcc
 
-OBJ := \
+OBJ = \
 	addressspace.o \
 	assert.o \
 	directory.o \
@@ -64,7 +64,8 @@ OBJ := $(START_OBJ) $(OBJ) $(END_OBJ)
 
 install-headers:
 	@mkdir -p $(INCLUDE_DIR)
-	cp -rf include/. $(INCLUDE_DIR)
+	cp -rf --preserve=timestamp include/. $(INCLUDE_DIR)
+	touch $(SYSROOT)
 
 $(BUILD)/kernel: $(OBJ)
 	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)

@@ -21,7 +21,7 @@ include $(REPO_ROOT)/build-aux/toolchain.mk
 
 BUILD = $(BUILD_DIR)/libc
 
-ARFLAGS := -crs
+ARFLAGS = -crs
 CFLAGS ?= -O2 -g
 CFLAGS += --sysroot=$(SYSROOT) -std=gnu11 -ffreestanding -Wall -Wextra
 CXXFLAGS ?= -O2 -g
@@ -31,7 +31,7 @@ CPPFLAGS += -I include -D_ALL_SOURCE
 LIBC_FLAGS += -D__is_dennix_libc
 LIBK_FLAGS += -D__is_dennix_libk
 
-COMMON_OBJ := \
+COMMON_OBJ = \
 	ctype/isspace \
 	cxx/new \
 	cxx/purevirtual \
@@ -61,7 +61,7 @@ COMMON_OBJ := \
 	string/strrchr \
 	string/strtok
 
-LIBC_OBJ := \
+LIBC_OBJ = \
 	$(COMMON_OBJ) \
 	assert/assert \
 	dirent/closedir \
@@ -123,7 +123,7 @@ LIBC_OBJ := \
 	unistd/sleep \
 	unistd/write
 
-LIBK_OBJ := $(COMMON_OBJ)
+LIBK_OBJ = $(COMMON_OBJ)
 
 include $(ARCH).mk
 
@@ -139,11 +139,13 @@ install: install-headers install-libs
 
 install-headers:
 	@mkdir -p $(INCLUDE_DIR)
-	cp -rf include/. $(INCLUDE_DIR)
+	cp -rf --preserve=timestamp include/. $(INCLUDE_DIR)
+	touch $(SYSROOT)
 
 install-libs: $(BUILD)/libc.a $(BUILD)/libk.a $(CRT_OBJ)
 	@mkdir -p $(LIB_DIR)
-	cp -f $^ $(LIB_DIR)
+	cp -f --preserve=timestamp $^ $(LIB_DIR)
+	touch $(SYSROOT)
 
 $(BUILD)/libc.a: $(LIBC_OBJ)
 	$(AR) $(ARFLAGS) $@ $^

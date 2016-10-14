@@ -14,15 +14,15 @@
 
 # Don't use the default values from make.
 ifneq ($(filter default undefined, $(origin AR)),)
-  AR := $(ARCH)-dennix-ar
+  AR = $(ARCH)-dennix-ar
 endif
 
 ifneq ($(filter default undefined, $(origin CC)),)
-  CC := $(ARCH)-dennix-gcc
+  CC = $(ARCH)-dennix-gcc
 endif
 
 ifneq ($(filter default undefined, $(origin CXX)),)
-  CXX := $(ARCH)-dennix-g++
+  CXX = $(ARCH)-dennix-g++
 endif
 
 MKRESCUE ?= grub-mkrescue

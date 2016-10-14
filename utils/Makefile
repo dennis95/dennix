@@ -38,6 +38,7 @@ all: $(addprefix $(BUILD)/, $(PROGRAMS))
 install: $(addprefix $(BUILD)/, $(PROGRAMS))
 	@mkdir -p $(BIN_DIR)
 	cp -f $^ $(BIN_DIR)
+	touch $(SYSROOT)
 
 $(BUILD)/%: %.c
 	@mkdir -p $(dir $@)
