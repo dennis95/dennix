@@ -42,6 +42,7 @@
 #define DEVICE_DISABLE_SCANNING 0xF5
 #define DEVICE_RESET 0xFF
 
+static void checkPort1();
 static void irqHandler(int irq);
 static uint8_t readDataPort();
 static void sendPS2Command(uint8_t command);
@@ -110,36 +111,67 @@ void PS2::initialize() {
 
     // Scan for connected devices
     if (port1Exists) {
-        while (inb(PS2_STATUS_PORT) & 2);
-        outb(PS2_DATA_PORT, DEVICE_RESET);
-        if (readDataPort() != 0xFA) goto checkPort2;
-        if (readDataPort() != 0xAA) goto checkPort2;
-
-        while (inb(PS2_STATUS_PORT) & 2);
-        outb(PS2_DATA_PORT, DEVICE_DISABLE_SCANNING);
-        if (readDataPort() != 0xFA) goto checkPort2;
-
-        while (inb(PS2_STATUS_PORT) & 2);
-        outb(PS2_DATA_PORT, DEVICE_IDENTIFY);
-        if (readDataPort() != 0xFA) goto checkPort2;
-        uint8_t id = readDataPort();
-        if (id == 0xAB) {
-            id = inb(PS2_DATA_PORT);
-            if (id == 0x41 || id == 0xC1 || id == 0x83) {
-                // The device identified itself as a keyboard
-                PS2Keyboard* keyboard = new PS2Keyboard();
-                keyboard->listener = &terminal;
-
-                ps2Device1 = keyboard;
-                Interrupts::irqHandlers[1] = irqHandler;
-            }
-        }
+        checkPort1();
     }
 
-    checkPort2:
     if (port2Exists) {
         //TODO: Check PS/2 port 2
     }
+}
+
+static void checkPort1() {
+#ifdef BROKEN_PS2_EMULATION
+    /* On some computers PS/2 emulation is completely broken. In this case we
+       just assume that there is a keyboard connected to port 1 that just
+       works without any additional initialization. */
+    PS2Keyboard* keyboard = new PS2Keyboard();
+    keyboard->listener = &terminal;
+
+    ps2Device1 = keyboard;
+    Interrupts::irqHandlers[1] = irqHandler;
+#else
+    if (PS2::sendDeviceCommand(DEVICE_RESET) != 0xFA) return;
+    if (readDataPort() != 0xAA) return;
+
+    if (PS2::sendDeviceCommand(DEVICE_DISABLE_SCANNING) != 0xFA) return;
+
+    if (PS2::sendDeviceCommand(DEVICE_IDENTIFY) != 0xFA) return;
+    if (readDataPort() == 0xAB) {
+        uint8_t id = readDataPort();
+        if (id == 0x41 || id == 0xC1 || id == 0x83) {
+            // The device identified itself as a keyboard
+            PS2Keyboard* keyboard = new PS2Keyboard();
+            keyboard->listener = &terminal;
+
+            ps2Device1 = keyboard;
+            Interrupts::irqHandlers[1] = irqHandler;
+        }
+    }
+#endif
+}
+
+uint8_t PS2::sendDeviceCommand(uint8_t command) {
+    uint8_t response;
+    for (int i = 0; i < 3; i++) {
+        while (inb(PS2_STATUS_PORT) & 2);
+        outb(PS2_DATA_PORT, command);
+        response = readDataPort();
+        if (response != 0xFE) return response;
+    }
+    return response;
+}
+
+uint8_t PS2::sendDeviceCommand(uint8_t command, uint8_t data) {
+    uint8_t response;
+    for (int i = 0; i < 3; i++) {
+        while (inb(PS2_STATUS_PORT) & 2);
+        outb(PS2_DATA_PORT, command);
+        while (inb(PS2_STATUS_PORT) & 2);
+        outb(PS2_DATA_PORT, data);
+        response = readDataPort();
+        if (response != 0xFE) return response;
+    }
+    return response;
 }
 
 static void irqHandler(int irq) {
@@ -168,6 +200,5 @@ static void sendPS2Command(uint8_t command, uint8_t data) {
 static uint8_t sendPS2CommandWithResponse(uint8_t command) {
     while (inb(PS2_STATUS_PORT) & 2);
     outb(PS2_COMMAND_PORT, command);
-    while (!(inb(PS2_STATUS_PORT) & 1));
-    return inb(PS2_DATA_PORT);
+    return readDataPort();
 }

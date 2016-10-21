@@ -24,12 +24,9 @@
 #define KEYBOARD_ENABLE_SCANNING 0xF4
 #define KEYBOARD_SET_LED 0xED
 
-static void sendKeyboardCommand(uint8_t command);
-static void sendKeyboardCommand(uint8_t command, uint8_t data);
-
 PS2Keyboard::PS2Keyboard() {
     listener = nullptr;
-    sendKeyboardCommand(KEYBOARD_ENABLE_SCANNING);
+    PS2::sendDeviceCommand(KEYBOARD_ENABLE_SCANNING);
     Log::printf("PS/2 Keyboard found.\n");
 }
 
@@ -75,21 +72,10 @@ void PS2Keyboard::handleKey(int keycode) {
     if (newLed != ledState) {
         ledState = newLed;
 
-        sendKeyboardCommand(KEYBOARD_SET_LED, ledState);
+        PS2::sendDeviceCommand(KEYBOARD_SET_LED, ledState);
     }
 
     if (listener) {
         listener->onKeyboardEvent(keycode);
     }
-}
-
-static void sendKeyboardCommand(uint8_t command) {
-    while (inb(0x64) & 2);
-    outb(0x60, command);
-}
-static void sendKeyboardCommand(uint8_t command, uint8_t data) {
-    while (inb(0x64) & 2);
-    outb(0x60, command);
-    while (inb(0x64) & 2);
-    outb(0x60, data);
 }
