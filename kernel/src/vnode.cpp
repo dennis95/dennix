@@ -50,6 +50,16 @@ ssize_t Vnode::readdir(unsigned long /*offset*/, void* /*buffer*/,
     return -1;
 }
 
+int Vnode::tcgetattr(struct termios* /*result*/) {
+    errno = ENOTTY;
+    return -1;
+}
+
+int Vnode::tcsetattr(int /*flags*/, const struct termios* /*termio*/) {
+    errno = ENOTTY;
+    return -1;
+}
+
 int Vnode::stat(struct stat* result) {
     result->st_mode = mode;
     return 0;

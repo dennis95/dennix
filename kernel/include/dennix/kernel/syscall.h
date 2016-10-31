@@ -43,6 +43,8 @@ int openat(int fd, const char* path, int flags, mode_t mode);
 ssize_t read(int fd, void* buffer, size_t size);
 ssize_t readdir(int fd, unsigned long offset, void* buffer, size_t size);
 pid_t regfork(int flags, struct regfork* registers);
+int tcgetattr(int fd, struct termios* result);
+int tcsetattr(int fd, int flags, const struct termios* termio);
 pid_t waitpid(pid_t pid, int* status, int flags);
 ssize_t write(int fd, const void* buffer, size_t size);
 

@@ -49,6 +49,14 @@ ssize_t FileDescription::readdir(unsigned long offset, void* buffer,
     return vnode->readdir(offset, buffer, size);
 }
 
+int FileDescription::tcgetattr(struct termios* result) {
+    return vnode->tcgetattr(result);
+}
+
+int FileDescription::tcsetattr(int flags, const struct termios* termio) {
+    return vnode->tcsetattr(flags, termio);
+}
+
 ssize_t FileDescription::write(const void* buffer, size_t size) {
     return vnode->write(buffer, size);
 }
