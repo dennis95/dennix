@@ -13,31 +13,21 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/string/strtok.c
- * Splits a string into tokens.
+/* libc/src/string/strspn.c
+ * Calculates the length of a substring.
  */
 
 #include <string.h>
 
-static char* next = NULL;
+size_t strspn(const char* string, const char* characters) {
+    size_t result = 0;
 
-char* strtok(char* restrict str, const char* restrict separators) {
-    if (!str) {
-        str = next;
-        if (!str) return NULL;
+    while (1) {
+        for (size_t i = 0; characters[i]; i++) {
+            if (string[result] != characters[i]) {
+                return result;
+            }
+        }
+        result++;
     }
-
-    // Discard any leading separators.
-    str = str + strspn(str, separators);
-    if (!*str) return NULL;
-
-    size_t tokenEnd = strcspn(str, separators);
-    if (str[tokenEnd] == '\0') {
-        next = NULL;
-    } else {
-        str[tokenEnd] = '\0';
-        next = str + tokenEnd + 1;
-    }
-
-    return str;
 }

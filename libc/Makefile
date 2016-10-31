@@ -59,6 +59,7 @@ COMMON_OBJ = \
 	string/strlen \
 	string/strncmp \
 	string/strrchr \
+	string/strspn \
 	string/strtok
 
 LIBC_OBJ = \
