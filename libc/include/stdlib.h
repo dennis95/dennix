@@ -32,6 +32,7 @@ extern "C" {
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
 
+int atexit(void (*)(void));
 void* calloc(size_t, size_t);
 __noreturn void _Exit(int);
 __noreturn void exit(int);
@@ -47,7 +48,6 @@ __noreturn void abort(void);
 
 /* These are just declared to make libgcov compile, which is compiled with
    libgcc, and are not implemented. */
-int atexit(void (*)(void));
 int atoi(const char*);
 
 #ifdef __cplusplus
