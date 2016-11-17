@@ -32,6 +32,8 @@ extern "C" {
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
 
+#define RAND_MAX 32767
+
 int atexit(void (*)(void));
 void* calloc(size_t, size_t);
 __noreturn void _Exit(int);
@@ -39,7 +41,9 @@ __noreturn void exit(int);
 void free(void*);
 char* getenv(const char*);
 void* malloc(size_t);
+int rand(void);
 void* realloc(void*, size_t);
+void srand(unsigned int);
 long strtol(const char* __restrict, char** __restrict, int);
 unsigned long strtoul(const char* __restrict, char** __restrict, int);
 

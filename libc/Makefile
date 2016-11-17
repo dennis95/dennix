@@ -43,6 +43,7 @@ COMMON_OBJ = \
 	stdlib/free \
 	stdlib/malloc \
 	stdlib/malloc-util \
+	stdlib/rand \
 	stdlib/realloc \
 	stdlib/strtol \
 	stdlib/strtoul \
