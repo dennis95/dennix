@@ -17,6 +17,7 @@
  * Terminal class.
  */
 
+#include <string.h>
 #include <dennix/stat.h>
 #include <dennix/kernel/kernel.h>
 #include <dennix/kernel/terminal.h>
@@ -94,6 +95,15 @@ ssize_t Terminal::write(const void* buffer, size_t size) {
 }
 
 static void printCharacter(char c) {
+    if (c == '\0') {
+        // HACK: Clear the screen and reset cursor position when a null
+        // character is written. This makes printing to the screen in snake
+        // much faster because it doesn't need to move all the lines up.
+        cursorPosX = 0;
+        cursorPosY = 0;
+        memset(video, 0, 2 * 25 * 80);
+        return;
+    }
     if (c == '\n' || cursorPosX > 79) {
         cursorPosX = 0;
         cursorPosY++;
@@ -101,14 +111,10 @@ static void printCharacter(char c) {
         if (cursorPosY > 24) {
 
             // Move every line up by one
-            for (size_t i = 0; i < 2 * 24 * 80; i++) {
-                video[i] = video[i + 2 * 80];
-            }
+            memmove(video, video + 2 * 80, 2 * 24 * 80);
 
             // Clean the last line
-            for (size_t i = 2 * 24 * 80; i < 2 * 25 * 80; i++) {
-                video[i] = 0;
-            }
+            memset(video + 2 * 24 * 80, 0, 2 * 80);
 
             cursorPosY = 24;
         }

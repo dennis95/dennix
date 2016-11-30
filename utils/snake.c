@@ -160,8 +160,15 @@ static void drawScreen(void) {
 
     screen[food.row][food.col] = 'X';
 
-    putchar('\n');
-    fputs((char*) screen, stdout);
+#ifdef __dennix__
+    // HACK: Dennix currently clears the screen and resets the cursor position
+    // when a null character is written. This allows printing the screen much
+    // faster because it no longer needs to move all the lines up.
+    write(1, "\0", 1);
+#else
+    write(1, "\n", 1);
+#endif
+    write(1, screen, sizeof(screen) - 1);
 }
 
 static void handleInput(void) {
