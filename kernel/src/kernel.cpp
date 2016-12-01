@@ -34,22 +34,28 @@
 
 static DirectoryVnode* loadInitrd(multiboot_info* multiboot);
 
+static multiboot_info multiboot;
+
 extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     Log::printf("Welcome to Dennix " DENNIX_VERSION "\n");
     Log::printf("Initializing Address space...\n");
     AddressSpace::initialize();
 
-    Log::printf("Initializing Physical Memory...\n");
-    multiboot_info* multiboot = (multiboot_info*)
+    // Copy the multiboot structure.
+    multiboot_info* multibootMapped = (multiboot_info*)
             kernelSpace->mapPhysical(multibootAddress, 0x1000, PROT_READ);
-    PhysicalMemory::initialize(multiboot);
+    memcpy(&multiboot, multibootMapped, sizeof(multiboot_info));
+    kernelSpace->unmapPhysical((vaddr_t) multibootMapped, 0x1000);
+
+    Log::printf("Initializing Physical Memory...\n");
+    PhysicalMemory::initialize(&multiboot);
 
     Log::printf("Initializing PS/2 Controller...\n");
     PS2::initialize();
 
     // Load the initrd.
     Log::printf("Loading Initrd...\n");
-    DirectoryVnode* rootDir = loadInitrd(multiboot);
+    DirectoryVnode* rootDir = loadInitrd(&multiboot);
     FileDescription* rootFd = new FileDescription(rootDir);
 
     Log::printf("Initializing processes...\n");
@@ -63,13 +69,12 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
                 (char**) envp);
         Process::addProcess(newProcess);
     }
-    kernelSpace->unmapPhysical((vaddr_t) multiboot, 0x1000);
 
     Log::printf("Enabling interrupts...\n");
     Interrupts::initPic();
     Pit::initialize();
-    Interrupts::enable();
     Log::printf("Initialization completed.\n");
+    Interrupts::enable();
 
     while (true) {
         asm volatile ("hlt");
@@ -81,9 +86,10 @@ static DirectoryVnode* loadInitrd(multiboot_info* multiboot) {
 
     paddr_t modulesAligned = multiboot->mods_addr & ~0xFFF;
     ptrdiff_t offset = multiboot->mods_addr - modulesAligned;
+    size_t mappedSize = ALIGNUP(offset +
+            multiboot->mods_count * sizeof(multiboot_mod_list), 0x1000);
 
-    //FIXME: This assumes that the module list is in a single page.
-    vaddr_t modulesPage = kernelSpace->mapPhysical(modulesAligned, 0x1000,
+    vaddr_t modulesPage = kernelSpace->mapPhysical(modulesAligned, mappedSize,
             PROT_READ);
 
     const multiboot_mod_list* modules = (multiboot_mod_list*)
@@ -98,7 +104,7 @@ static DirectoryVnode* loadInitrd(multiboot_info* multiboot) {
 
         if (root->childCount) break;
     }
-    kernelSpace->unmapPhysical((vaddr_t) modulesPage, 0x1000);
+    kernelSpace->unmapPhysical((vaddr_t) modulesPage, mappedSize);
 
     return root;
 }

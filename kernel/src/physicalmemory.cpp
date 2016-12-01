@@ -34,26 +34,59 @@ extern symbol_t kernelPhysicalBegin;
 extern symbol_t kernelPhysicalEnd;
 }
 
-static inline bool isAddressInUse(paddr_t physicalAddress) {
+static inline bool isUsedByKernel(paddr_t physicalAddress) {
     return (physicalAddress >= (paddr_t) &bootstrapBegin &&
-            physicalAddress <= (paddr_t) &bootstrapEnd) ||
+            physicalAddress < (paddr_t) &bootstrapEnd) ||
             (physicalAddress >= (paddr_t) &kernelPhysicalBegin &&
-            physicalAddress <= (paddr_t) &kernelPhysicalEnd) ||
+            physicalAddress < (paddr_t) &kernelPhysicalEnd) ||
             physicalAddress == 0;
+}
+
+static inline bool isUsedByModule(paddr_t physicalAddress,
+        multiboot_mod_list* modules, uint32_t moduleCount) {
+    for (size_t i = 0; i < moduleCount; i++) {
+        if (physicalAddress >= modules[i].mod_start &&
+                physicalAddress < modules[i].mod_end) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static inline bool isUsedByMultiboot(paddr_t physicalAddress,
+        multiboot_info* multiboot) {
+    paddr_t mmapEnd = multiboot->mmap_addr + multiboot->mmap_length;
+    paddr_t modsEnd = multiboot->mods_addr +
+            multiboot->mods_count * sizeof(multiboot_mod_list);
+    return ((physicalAddress >= (multiboot->mmap_addr & ~0xFFF) &&
+            physicalAddress < mmapEnd) ||
+            (physicalAddress >= (multiboot->mods_addr & ~0xFFF) &&
+            physicalAddress < modsEnd));
 }
 
 void PhysicalMemory::initialize(multiboot_info* multiboot) {
     paddr_t mmapPhys = (paddr_t) multiboot->mmap_addr;
-
     paddr_t mmapAligned = mmapPhys & ~0xFFF;
-    ptrdiff_t offset = mmapPhys - mmapAligned;
+    ptrdiff_t mmapOffset = mmapPhys - mmapAligned;
+    size_t mmapSize = ALIGNUP(mmapOffset + multiboot->mmap_length, 0x1000);
 
-    //FIXME: This assumes that the mmap is in a single page.
-    vaddr_t virtualAddress = kernelSpace->mapPhysical(mmapAligned, 0x1000,
+    // Map the module list so we can check which addresses are used by modules
+    paddr_t modulesPhys = (paddr_t) multiboot->mods_addr;
+    paddr_t modulesAligned = modulesPhys & ~0xFFF;
+    ptrdiff_t modulesOffset = modulesPhys - modulesAligned;
+    size_t modulesSize = ALIGNUP(modulesOffset +
+            multiboot->mods_count * sizeof(multiboot_mod_list), 0x1000);
+
+    vaddr_t mmapMapped = kernelSpace->mapPhysical(mmapAligned, mmapSize,
             PROT_READ);
+    vaddr_t modulesMapped = kernelSpace->mapPhysical(modulesAligned,
+            modulesSize, PROT_READ);
 
-    vaddr_t mmap = virtualAddress + offset;
+    vaddr_t mmap = mmapMapped + mmapOffset;
     vaddr_t mmapEnd = mmap + multiboot->mmap_length;
+
+    multiboot_mod_list* modules =
+            (multiboot_mod_list*) (modulesMapped + modulesOffset);
 
     while (mmap < mmapEnd) {
         multiboot_mmap_entry* mmapEntry = (multiboot_mmap_entry*) mmap;
@@ -63,7 +96,11 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
             mmapEntry->addr + mmapEntry->len <= UINTPTR_MAX) {
             paddr_t addr = (paddr_t) mmapEntry->addr;
             for (uint64_t i = 0; i < mmapEntry->len; i += 0x1000) {
-                if (isAddressInUse(addr + i)) continue;
+                if (isUsedByModule(addr + i, modules, multiboot->mods_count) ||
+                        isUsedByKernel(addr + i) ||
+                        isUsedByMultiboot(addr + i, multiboot)) {
+                    continue;
+                }
 
                 pushPageFrame(addr + i);
             }
@@ -72,7 +109,8 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
         mmap += mmapEntry->size + 4;
     }
 
-    kernelSpace->unmapPhysical(virtualAddress, 0x1000);
+    kernelSpace->unmapPhysical(mmapMapped, mmapSize);
+    kernelSpace->unmapPhysical(modulesMapped, modulesSize);
 
     Log::printf("Free Memory: %zu KiB\n", stackUsed * 4);
 }
