@@ -24,8 +24,10 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-static int executeCommand(char* arguments[]);
+static int executeCommand(int argc, char* arguments[]);
 static const char* getExecutablePath(const char* command);
+
+static int cd(int argc, char* argv[]);
 
 int main(int argc, char* argv[]) {
     (void) argc; (void) argv;
@@ -41,7 +43,8 @@ int main(int argc, char* argv[]) {
             buffer[length - 1] = '\0';
         }
 
-        // Count the arguments
+        // TODO: Counting the spaces gives us a number that might be higher
+        // than argc. We get the real argument number below using strtok.
         size_t argumentCount = 1;
         for (size_t i = 0; buffer[i]; i++) {
             if (buffer[i] == ' ') {
@@ -51,25 +54,32 @@ int main(int argc, char* argv[]) {
 
         // Create the argument list
         char** arguments = malloc((argumentCount + 1) * sizeof(char*));
-        char* str = strtok(buffer, " ");
-        for (size_t i = 0; i < argumentCount; i++) {
-            arguments[i] = str;
-            str = strtok(NULL, " ");
+        char* token = strtok(buffer, " ");
+        size_t argCount = 0;
+
+        while (token) {
+            arguments[argCount++] = token;
+            token = strtok(NULL, " ");
         }
-        arguments[argumentCount] = NULL;
+        arguments[argCount] = NULL;
 
         if (arguments[0]) {
-            executeCommand(arguments);
+            executeCommand(argCount, arguments);
         }
         free(arguments);
     }
 }
 
-static int executeCommand(char* arguments[]) {
+static int executeCommand(int argc, char* arguments[]) {
     const char* command = arguments[0];
     // Special built-ins
     if (strcmp(command, "exit") == 0) {
         exit(0);
+    }
+
+    // Regular built-ins
+    if (strcmp(command, "cd") == 0) {
+        return cd(argc, arguments);
     }
 
     pid_t pid = fork();
@@ -117,4 +127,23 @@ static const char* getExecutablePath(const char* command) {
     }
 
     return NULL;
+}
+
+static int cd(int argc, char* argv[]) {
+    const char* newCwd;
+    if (argc >= 2) {
+        newCwd = argv[1];
+    } else {
+        newCwd = getenv("HOME");
+        if (!newCwd) {
+            fputs("HOME not set\n", stderr);
+            return 1;
+        }
+    }
+
+    if (chdir(newCwd) == -1) {
+        fputs("Error: chdir failed\n", stderr);
+        return 1;
+    }
+    return 0;
 }
