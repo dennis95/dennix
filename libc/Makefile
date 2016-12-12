@@ -116,12 +116,14 @@ LIBC_OBJ = \
 	termios/tcsetattr \
 	time/nanosleep \
 	unistd/access \
+	unistd/chdir \
 	unistd/close \
 	unistd/environ \
 	unistd/execl \
 	unistd/execv \
 	unistd/execve \
 	unistd/_exit \
+	unistd/fchdirat \
 	unistd/fork \
 	unistd/read \
 	unistd/regfork \

@@ -34,6 +34,7 @@ namespace Syscall {
 int close(int fd);
 int execve(const char* path, char* const argv[], char* const envp[]);
 NORETURN void exit(int status);
+int fchdirat(int fd, const char* path);
 int fstatat(int fd, const char* restrict path, struct stat* restrict result,
         int flags);
 void* mmap(__mmapRequest* request);
