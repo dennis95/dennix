@@ -75,7 +75,7 @@ int Syscall::close(int fd) {
 }
 
 int Syscall::execve(const char* path, char* const argv[], char* const envp[]) {
-    FileDescription* descr = Process::current->rootFd->openat(path, 0, 0);
+    FileDescription* descr = getRootFd(AT_FDCWD, path)->openat(path, 0, 0);
 
     if (!descr || Process::current->execute(descr, argv, envp) == -1) {
         return -1;
