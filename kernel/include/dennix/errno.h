@@ -41,7 +41,7 @@
 #define EDQUOT 19
 #define EEXIST 20
 #define EFAULT 21
-#define EEFBIG 22
+#define EFBIG 22
 #define EHOSTUNREACH 23
 #define EIDRM 24
 #define EILSEQ 25

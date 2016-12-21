@@ -37,6 +37,7 @@ char* strchr(const char*, int);
 int strcmp(const char*, const char*);
 char* strcpy(char* __restrict, const char* __restrict);
 size_t strcspn(const char*, const char*);
+char* strerror(int);
 size_t strlen(const char*);
 int strncmp(const char*, const char*, size_t);
 char* strrchr(const char*, int);
