@@ -40,6 +40,7 @@ syscallHandler:
 
     call getSyscallHandler
     add $16, %esp
+    movl $0, errno
 
     call *%eax
 
@@ -47,6 +48,7 @@ syscallHandler:
     mov %cx, %ds
     mov %cx, %es
 
+    mov errno, %ecx
     mov %ebp, %esp
     iret
 .size syscallHandler, . - syscallHandler

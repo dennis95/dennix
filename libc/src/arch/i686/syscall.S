@@ -39,7 +39,13 @@ __syscall:
 
     int $0x30
 
-    add $12, %esp
+    # Set errno if it was changed. The kernel sets %ecx to 0 if errno is
+    # unchanged and puts errno into %ecx otherwise.
+    test %ecx, %ecx
+    jz 1f
+    mov %ecx, errno
+
+1:  add $12, %esp
     pop %ebx
     pop %esi
     pop %edi
