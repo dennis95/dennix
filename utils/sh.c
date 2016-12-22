@@ -17,6 +17,7 @@
  * The shell.
  */
 
+#include <err.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,6 +55,7 @@ int main(int argc, char* argv[]) {
 
         // Create the argument list
         char** arguments = malloc((argumentCount + 1) * sizeof(char*));
+        if (!arguments) err(1, "malloc");
         char* token = strtok(buffer, " ");
         size_t argCount = 0;
 
@@ -85,7 +87,7 @@ static int executeCommand(int argc, char* arguments[]) {
     pid_t pid = fork();
 
     if (pid < 0) {
-        fputs("fork() failed\n", stderr);
+        warn("fork");
         return -1;
     } else if (pid == 0) {
         if (!strchr(command, '/')) {
@@ -94,13 +96,16 @@ static int executeCommand(int argc, char* arguments[]) {
 
         if (command) {
             execv(command, arguments);
+            warn("execv: '%s'", command);
+        } else {
+            warnx("'%s': Command not found", arguments[0]);
         }
-
-        fputs("Command not found\n", stderr);
         _Exit(127);
     } else {
         int status;
-        waitpid(pid, &status, 0);
+        if (waitpid(pid, &status, 0) == -1) {
+            err(1, "waitpid");
+        }
         return WEXITSTATUS(status);
     }
 }
@@ -112,6 +117,7 @@ static const char* getExecutablePath(const char* command) {
     while (*path) {
         size_t length = strcspn(path, ":");
         char* buffer = malloc(commandLength + length + 2);
+        if (!buffer) err(1, "malloc");
 
         memcpy(buffer, path, length);
         buffer[length] = '/';
@@ -136,13 +142,13 @@ static int cd(int argc, char* argv[]) {
     } else {
         newCwd = getenv("HOME");
         if (!newCwd) {
-            fputs("HOME not set\n", stderr);
+            warnx("HOME not set");
             return 1;
         }
     }
 
     if (chdir(newCwd) == -1) {
-        fputs("Error: chdir failed\n", stderr);
+        warn("cd: '%s'", newCwd);
         return 1;
     }
     return 0;
