@@ -13,30 +13,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/errno.h
- * Error numbers.
+/* libc/src/errno/initProgname.c
+ * Initializes the program name.
  */
 
-#ifndef _ERRNO_H
-#define _ERRNO_H
+#include <errno.h>
 
-#include <sys/cdefs.h>
-#include <dennix/errno.h>
+char* program_invocation_name;
+char* program_invocation_short_name;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+void __initProgname(char* argv[]) {
+    program_invocation_name = argv[0] ? argv[0] : "";
+    program_invocation_short_name = program_invocation_name;
 
-extern int errno;
-#define errno errno
-
-#if __USE_DENNIX
-extern char* program_invocation_name;
-extern char* program_invocation_short_name;
-#endif
-
-#ifdef __cplusplus
+    // Get the last part of argv[0].
+    char* s = program_invocation_name;
+    while (*s) {
+        if (*s++ == '/') {
+            program_invocation_short_name = s;
+        }
+    }
 }
-#endif
-
-#endif

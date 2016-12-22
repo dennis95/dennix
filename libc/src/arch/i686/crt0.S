@@ -33,11 +33,19 @@ _start:
     push %ebx # argv
     push %eax # argc
 
+    # Push argv for __initProgname
+    sub $12, %esp
+    push %ebx # argv
+
     # Set environ
     mov %ecx, environ
 
     # Call global constructors
     call _init
+
+    # Initialize program_invocation_name
+    call __initProgname
+    add $16, %esp
 
     call main
 
