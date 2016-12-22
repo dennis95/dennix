@@ -71,6 +71,18 @@ LIBC_OBJ = \
 	dirent/fdopendir \
 	dirent/opendir \
 	dirent/readdir \
+	err/err \
+	err/errc \
+	err/errx \
+	err/verr \
+	err/verrc \
+	err/verrx \
+	err/vwarn \
+	err/vwarnc \
+	err/vwarnx \
+	err/warn \
+	err/warnc \
+	err/warnx \
 	errno/initProgname \
 	fcntl/open \
 	fcntl/openat \
