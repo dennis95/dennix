@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,19 +17,11 @@
  * Terminal class.
  */
 
-#include <string.h>
-#include <dennix/stat.h>
 #include <dennix/kernel/kernel.h>
 #include <dennix/kernel/terminal.h>
+#include <dennix/kernel/vgaterminal.h>
 
 Terminal terminal;
-
-// In _start the video memory is mapped at this address.
-static char* video = (char*) 0xC0000000;
-static int cursorPosX = 0;
-static int cursorPosY = 0;
-
-static void printCharacter(char c);
 
 Terminal::Terminal() : Vnode(S_IFCHR) {
     termio.c_lflag = ECHO | ICANON;
@@ -41,18 +33,12 @@ void Terminal::onKeyboardEvent(int key) {
 
     if ((termio.c_lflag & ICANON) && c == '\b') {
         if (terminalBuffer.backspace() && (termio.c_lflag & ECHO)) {
-            cursorPosX--;
-            if (cursorPosX < 0) {
-                cursorPosX = 79;
-                cursorPosY--;
-            }
-            video[cursorPosY * 2 * 80 + 2 * cursorPosX] = 0;
-            video[cursorPosY * 2 * 80 + 2 * cursorPosX + 1] = 0;
+            VgaTerminal::backspace();
         }
 
     } else if (c) {
         if (termio.c_lflag & ECHO) {
-            printCharacter(c);
+            VgaTerminal::printCharacterRaw(c);
         }
         terminalBuffer.write(c, termio.c_lflag & ICANON);
     }
@@ -88,44 +74,10 @@ ssize_t Terminal::write(const void* buffer, size_t size) {
     const char* buf = (const char*) buffer;
 
     for (size_t i = 0; i < size; i++) {
-        printCharacter(buf[i]);
+        VgaTerminal::printCharacter(buf[i]);
     }
 
     return (ssize_t) size;
-}
-
-static void printCharacter(char c) {
-    if (c == '\0') {
-        // HACK: Clear the screen and reset cursor position when a null
-        // character is written. This makes printing to the screen in snake
-        // much faster because it doesn't need to move all the lines up.
-        cursorPosX = 0;
-        cursorPosY = 0;
-        memset(video, 0, 2 * 25 * 80);
-        return;
-    }
-    if (c == '\n' || cursorPosX > 79) {
-        cursorPosX = 0;
-        cursorPosY++;
-
-        if (cursorPosY > 24) {
-
-            // Move every line up by one
-            memmove(video, video + 2 * 80, 2 * 24 * 80);
-
-            // Clean the last line
-            memset(video + 2 * 24 * 80, 0, 2 * 80);
-
-            cursorPosY = 24;
-        }
-
-        if (c == '\n') return;
-    }
-
-    video[cursorPosY * 2 * 80 + 2 * cursorPosX] = c;
-    video[cursorPosY * 2 * 80 + 2 * cursorPosX + 1] = 0x07; // gray on black
-
-    cursorPosX++;
 }
 
 TerminalBuffer::TerminalBuffer() {
