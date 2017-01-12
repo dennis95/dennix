@@ -301,15 +301,6 @@ void VgaTerminal::printCharacter(char c) {
 }
 
 void VgaTerminal::printCharacterRaw(char c) {
-    if (c == '\0') {
-        // HACK: Clear the screen and reset cursor position when a null
-        // character is written. This makes printing to the screen in snake
-        // much faster because it doesn't need to move all the lines up.
-        cursorPosX = 0;
-        cursorPosY = 0;
-        memset(video, 0, VIDEO_SIZE);
-        return;
-    }
     if (c == '\n' || cursorPosX > WIDTH - 1) {
         cursorPosX = 0;
         cursorPosY++;
