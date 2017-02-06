@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -59,17 +59,18 @@ int fflush(FILE*);
 int fgetc(FILE*);
 char* fgets(char* __restrict, int, FILE* __restrict);
 FILE* fopen(const char* __restrict, const char* __restrict);
-int fprintf(FILE* __restrict, const char* __restrict, ...);
+int fprintf(FILE* __restrict, const char* __restrict, ...) __printf_like(2, 3);
 int fputc(int, FILE*);
 int fputs(const char* __restrict, FILE* __restrict);
 size_t fwrite(const void* __restrict, size_t, size_t, FILE* __restrict);
 int getc(FILE*);
 int getchar(void);
-int printf(const char* __restrict, ...);
+int printf(const char* __restrict, ...) __printf_like(1, 2);
 int putc(int, FILE*);
 int putchar(int);
 int puts(const char*);
-int vfprintf(FILE* __restrict, const char* __restrict, __gnuc_va_list);
+int vfprintf(FILE* __restrict, const char* __restrict, __gnuc_va_list)
+    __printf_like(2, 0);
 
 #if __USE_DENNIX || __USE_POSIX
 FILE* fdopen(int, const char*);
@@ -87,9 +88,9 @@ char* fgets_unlocked(char* __restrict, int, FILE* __restrict);
 int fputc_unlocked(int, FILE*);
 int fputs_unlocked(const char* __restrict, FILE* __restrict);
 int vcbprintf(void*, size_t (*)(void*, const char*, size_t), const char*,
-        __gnuc_va_list);
+        __gnuc_va_list) __printf_like(3, 0);
 int vfprintf_unlocked(FILE* __restrict, const char* __restrict,
-        __gnuc_va_list);
+        __gnuc_va_list) __printf_like(2, 0);
 #endif
 
 /* These are just declared to make libgcov compile, which is compiled with

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,5 +27,8 @@
 #else
 # define __noreturn __attribute__((__noreturn__))
 #endif
+
+#define __printf_like(format, firstArg) \
+    __attribute__((__format__(__printf__, format, firstArg)))
 
 #endif

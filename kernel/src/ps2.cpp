@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,6 +17,7 @@
  * PS/2 Controller.
  */
 
+#include <inttypes.h>
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/portio.h>
@@ -69,7 +70,7 @@ void PS2::initialize() {
 
     uint8_t test = sendPS2CommandWithResponse(COMMAND_SELF_TEST);
     if (test != 0x55) {
-        Log::printf("PS/2 self test failed (response = 0x%x)\n", test);
+        Log::printf("PS/2 self test failed (response = 0x%" PRIX8 ")\n", test);
         return;
     }
 

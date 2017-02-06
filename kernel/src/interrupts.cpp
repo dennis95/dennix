@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,6 +17,7 @@
  * Interrupt handling.
  */
 
+#include <inttypes.h>
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/portio.h>
@@ -57,15 +58,18 @@ extern "C" InterruptContext* handleInterrupt(InterruptContext* context) {
     InterruptContext* newContext = context;
 
     if (context->interrupt <= 31) { // CPU Exception
-        Log::printf("Exception %u occurred!\n", context->interrupt);
-        Log::printf("eax: 0x%x, ebx: 0x%x, ecx: 0x%x, edx: 0x%x\n",
+        Log::printf("Exception %" PRIu32 " occurred!\n", context->interrupt);
+        Log::printf("eax: 0x%" PRIX32 ", ebx: 0x%" PRIX32 ", ecx: 0x%" PRIX32
+                ", edx: 0x%" PRIX32 "\n",
                 context->eax, context->ebx, context->ecx, context->edx);
-        Log::printf("edi: 0x%x, esi: 0x%x, ebp: 0x%x, error: 0x%x\n",
+        Log::printf("edi: 0x%" PRIX32 ", esi: 0x%" PRIX32 ", ebp: 0x%" PRIX32
+                ", error: 0x%" PRIX32 "\n",
                 context->edi, context->esi, context->ebp, context->error);
-        Log::printf("eip: 0x%x, cs: 0x%x, eflags: 0x%x\n",
-                context->eip, context->cs, context->eflags);
+        Log::printf("eip: 0x%" PRIX32 ", cs: 0x%" PRIX32 ", eflags: 0x%" PRIX32
+                "\n", context->eip, context->cs, context->eflags);
         if (context->cs != 0x8) {
-            Log::printf("ss: 0x%x, esp: 0x%x\n", context->ss, context->esp);
+            Log::printf("ss: 0x%" PRIX32 ", esp: 0x%" PRIX32 "\n",
+                    context->ss, context->esp);
         }
         // Halt the cpu
         while (true) asm volatile ("cli; hlt");

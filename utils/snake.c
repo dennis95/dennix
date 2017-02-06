@@ -149,12 +149,12 @@ static void drawScreen(void) {
     while (current) {
         if (current->row >= 0 && current->row < HEIGHT &&
                 current->col >= 0 && current->col < WIDTH) {
-            printf("\e[%u;%uH0", current->row, current->col);
+            printf("\e[%d;%dH0", current->row, current->col);
         }
         current = current->next;
     }
 
-    printf("\e[%u;%uHX", food.row, food.col);
+    printf("\e[%d;%dHX", food.row, food.col);
     printf("\e[H");
 }
 
