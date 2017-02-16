@@ -18,12 +18,13 @@ REPO_ROOT = ..
 
 include $(REPO_ROOT)/build-aux/paths.mk
 include $(REPO_ROOT)/build-aux/toolchain.mk
+include $(REPO_ROOT)/build-aux/version.mk
 
 BUILD = $(BUILD_DIR)/utils
 
 CFLAGS ?= -O2 -g
 CFLAGS += --sysroot=$(SYSROOT) -Wall -Wextra
-CPPFLAGS += -D_DENNIX_SOURCE
+CPPFLAGS += -D_DENNIX_SOURCE -DDENNIX_VERSION=\"$(VERSION)\"
 
 PROGRAMS = \
 	cat \

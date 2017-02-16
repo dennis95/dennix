@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,7 +17,9 @@
  * The shell.
  */
 
+#include "utils.h"
 #include <err.h>
+#include <getopt.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +33,23 @@ static const char* getExecutablePath(const char* command);
 static int cd(int argc, char* argv[]);
 
 int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
+    struct option longopts[] = {
+        { "help", no_argument, 0, '?' },
+        { "version", no_argument, 0, 1 },
+        { 0, 0, 0, 0 }
+    };
+
+    int c;
+    while ((c = getopt_long(argc, argv, "?", longopts, NULL)) != -1) {
+        switch (c) {
+        case 1:
+            return version(argv[0]);
+        case '?':
+            return help(argv[0], "[OPTIONS]\n"
+                    "  -?, --help               display this help\n"
+                    "      --version            display version info");
+        }
+    }
 
     while (true) {
         fputs("$ ", stderr);
