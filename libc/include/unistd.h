@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -43,6 +43,11 @@ extern "C" {
 #define W_OK (1 << 1)
 #define X_OK (1 << 2)
 
+extern char* optarg;
+extern int opterr;
+extern int optind;
+extern int optopt;
+
 int access(const char*, int);
 int close(int);
 int chdir(const char*);
@@ -51,6 +56,7 @@ int execv(const char*, char* const[]);
 int execve(const char*, char* const[], char* const[]);
 __noreturn void _exit(int);
 pid_t fork(void);
+int getopt(int, char* const[], const char*);
 ssize_t read(int, void*, size_t);
 unsigned int sleep(unsigned int);
 ssize_t write(int, const void*, size_t);
