@@ -29,7 +29,7 @@
 #define __need_ssize_t
 #define __need_uid_t
 #include <sys/libc-types.h>
-
+#include <dennix/conf.h>
 #if __USE_DENNIX
 #  include <dennix/fork.h>
 #endif
@@ -49,8 +49,9 @@ extern int optind;
 extern int optopt;
 
 int access(const char*, int);
-int close(int);
 int chdir(const char*);
+int close(int);
+size_t confstr(int, char*, size_t);
 int execl(const char*, const char*, ...);
 int execv(const char*, char* const[]);
 int execve(const char*, char* const[], char* const[]);

@@ -41,6 +41,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_TCGETATTR] =*/ (void*) Syscall::tcgetattr,
     /*[SYSCALL_TCSETATTR] =*/ (void*) Syscall::tcsetattr,
     /*[SYSCALL_FCHDIRAT] =*/ (void*) Syscall::fchdirat,
+    /*[SYSCALL_CONFSTR] =*/ (void*) Syscall::confstr,
 };
 
 static FileDescription* getRootFd(int fd, const char* path) {

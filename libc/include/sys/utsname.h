@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,31 +13,33 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/syscall.h
- * Syscall numbers.
+/* libc/include/sys/utsname.h
+ * System name.
  */
 
-#ifndef _DENNIX_SYSCALL_H
-#define _DENNIX_SYSCALL_H
+#ifndef _SYS_UTSNAME_H
+#define _SYS_UTSNAME_H
 
-#define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_READ 2
-#define SYSCALL_MMAP 3
-#define SYSCALL_MUNMAP 4
-#define SYSCALL_OPENAT 5
-#define SYSCALL_CLOSE 6
-#define SYSCALL_REGFORK 7
-#define SYSCALL_EXECVE 8
-#define SYSCALL_WAITPID 9
-#define SYSCALL_FSTATAT 10
-#define SYSCALL_READDIR 11
-#define SYSCALL_NANOSLEEP 12
-#define SYSCALL_TCGETATTR 13
-#define SYSCALL_TCSETATTR 14
-#define SYSCALL_FCHDIRAT 15
-#define SYSCALL_CONFSTR 16
+#include <sys/cdefs.h>
 
-#define NUM_SYSCALLS 17
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define _UNAME_LENGTH 65
+
+struct utsname {
+    char sysname[_UNAME_LENGTH];
+    char nodename[_UNAME_LENGTH];
+    char release[_UNAME_LENGTH];
+    char version[_UNAME_LENGTH];
+    char machine[_UNAME_LENGTH];
+};
+
+int uname(struct utsname*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

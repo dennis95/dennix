@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,31 +13,19 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/syscall.h
- * Syscall numbers.
+/* libc/src/sys/utsname/uname.c
+ * System name.
  */
 
-#ifndef _DENNIX_SYSCALL_H
-#define _DENNIX_SYSCALL_H
+#include <string.h>
+#include <unistd.h>
+#include <sys/utsname.h>
 
-#define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_READ 2
-#define SYSCALL_MMAP 3
-#define SYSCALL_MUNMAP 4
-#define SYSCALL_OPENAT 5
-#define SYSCALL_CLOSE 6
-#define SYSCALL_REGFORK 7
-#define SYSCALL_EXECVE 8
-#define SYSCALL_WAITPID 9
-#define SYSCALL_FSTATAT 10
-#define SYSCALL_READDIR 11
-#define SYSCALL_NANOSLEEP 12
-#define SYSCALL_TCGETATTR 13
-#define SYSCALL_TCSETATTR 14
-#define SYSCALL_FCHDIRAT 15
-#define SYSCALL_CONFSTR 16
-
-#define NUM_SYSCALLS 17
-
-#endif
+int uname(struct utsname* result) {
+    confstr(_CS_UNAME_SYSNAME, result->sysname, sizeof(result->sysname));
+    strcpy(result->nodename, "dennix");
+    confstr(_CS_UNAME_RELEASE, result->release, sizeof(result->release));
+    confstr(_CS_UNAME_VERSION, result->version, sizeof(result->version));
+    confstr(_CS_UNAME_MACHINE, result->machine, sizeof(result->machine));
+    return 0;
+}

@@ -32,6 +32,7 @@ struct stat;
 namespace Syscall {
 
 int close(int fd);
+size_t confstr(int name, char* buffer, size_t size);
 int execve(const char* path, char* const argv[], char* const envp[]);
 NORETURN void exit(int status);
 int fchdirat(int fd, const char* path);

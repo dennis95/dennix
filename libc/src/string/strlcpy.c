@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,31 +13,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/syscall.h
- * Syscall numbers.
+/* libc/src/string/strlcpy.c
+ * Copies a string of limited length.
  */
 
-#ifndef _DENNIX_SYSCALL_H
-#define _DENNIX_SYSCALL_H
+#include <string.h>
 
-#define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_READ 2
-#define SYSCALL_MMAP 3
-#define SYSCALL_MUNMAP 4
-#define SYSCALL_OPENAT 5
-#define SYSCALL_CLOSE 6
-#define SYSCALL_REGFORK 7
-#define SYSCALL_EXECVE 8
-#define SYSCALL_WAITPID 9
-#define SYSCALL_FSTATAT 10
-#define SYSCALL_READDIR 11
-#define SYSCALL_NANOSLEEP 12
-#define SYSCALL_TCGETATTR 13
-#define SYSCALL_TCSETATTR 14
-#define SYSCALL_FCHDIRAT 15
-#define SYSCALL_CONFSTR 16
+size_t strlcpy(char* restrict dest, const char* restrict source, size_t size) {
+    size_t i = 0;
+    for (; i < size - 1; i++) {
+        dest[i] = source[i];
+        if (source[i] == '\0') return i;
+    }
 
-#define NUM_SYSCALLS 17
+    dest[i] = '\0';
 
-#endif
+    while (source[i] != '\0') {
+        i++;
+    }
+    return i;
+}

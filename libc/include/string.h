@@ -49,6 +49,10 @@ char* stpcpy(char* __restrict, const char* __restrict);
 char* strdup(const char*);
 #endif
 
+#if __USE_DENNIX
+size_t strlcpy(char* __restrict, const char* __restrict, size_t);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

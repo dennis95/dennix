@@ -33,6 +33,7 @@ LIBS += -lk -lgcc
 OBJ = \
 	addressspace.o \
 	assert.o \
+	conf.o \
 	directory.o \
 	file.o \
 	filedescription.o \
