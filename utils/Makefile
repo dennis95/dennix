@@ -35,7 +35,8 @@ PROGRAMS = \
 	sh \
 	sleep \
 	snake \
-	true
+	true \
+	uname
 
 all: $(addprefix $(BUILD)/, $(PROGRAMS))
 
