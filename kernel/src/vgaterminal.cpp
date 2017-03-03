@@ -19,6 +19,7 @@
 
 #include <string.h>
 #include <dennix/kernel/kernel.h>
+#include <dennix/kernel/portio.h>
 #include <dennix/kernel/vgaterminal.h>
 
 #define HEIGHT 25
@@ -49,6 +50,13 @@ static inline char* videoOffset(unsigned int line, unsigned int column) {
     return video + 2 * line * WIDTH + 2 * column;
 }
 
+static void clear(char* offset, size_t size) {
+    for (size_t i = 0; i < size; i += 2) {
+        offset[i] = 0;
+        offset[i + 1] = color;
+    }
+}
+
 void VgaTerminal::backspace() {
     if (cursorPosX == 0 && cursorPosY > 0) {
         cursorPosX = WIDTH - 1;
@@ -57,7 +65,7 @@ void VgaTerminal::backspace() {
         cursorPosX--;
     }
     *videoOffset(cursorPosY, cursorPosX) = 0;
-    *(videoOffset(cursorPosY, cursorPosX) + 1) = 0;
+    *(videoOffset(cursorPosY, cursorPosX) + 1) = 0x07;
 }
 
 static void setGraphicsRendition() {
@@ -150,10 +158,10 @@ void VgaTerminal::printCharacter(char c) {
             }
             paramIndex = 0;
         } else if (c == 'c') { // RIS - Reset to Initial State
-            memset(video, 0, VIDEO_SIZE);
+            color = 0x07;
+            clear(video, VIDEO_SIZE);
             cursorPosX = cursorPosY = 0;
             savedX = savedY = 0;
-            color = 0x07;
             status = NORMAL;
         } else {
             // Unknown escape sequence, ignore.
@@ -240,38 +248,38 @@ void VgaTerminal::printCharacter(char c) {
                 unsigned int param = paramSpecified[0] ? params[0] : 0;
                 if (param == 0) {
                     char* from = videoOffset(cursorPosY, cursorPosX);
-                    memset(from, 0, VIDEO_SIZE - (from - video));
+                    clear(from, VIDEO_SIZE - (from - video));
                 } else if (param == 1) {
                     char* to = videoOffset(cursorPosY, cursorPosX);
-                    memset(video, 0, to - video);
+                    clear(video, to - video);
                 } else if (param == 2) {
-                    memset(video, 0, VIDEO_SIZE);
+                    clear(video, VIDEO_SIZE);
                 }
             } break;
             case 'K': { // EL - Erase in Line
                 unsigned int param = paramSpecified[0] ? params[0] : 0;
                 if (param == 0) {
                     char* from = videoOffset(cursorPosY, cursorPosX);
-                    memset(from, 0, videoOffset(cursorPosY + 1, 0) - from);
+                    clear(from, videoOffset(cursorPosY + 1, 0) - from);
                 } else if (param == 1) {
                     char* from = videoOffset(cursorPosY, 0);
                     char* to = videoOffset(cursorPosY, cursorPosX);
-                    memset(from, 0, to - from);
+                    clear(from, to - from);
                 } else if (param == 2) {
-                    memset(videoOffset(cursorPosY, 0), 0, 2 * WIDTH);
+                    clear(videoOffset(cursorPosY, 0), 2 * WIDTH);
                 }
             } break;
             case 'S': { // SU - Scroll Up
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
                 memmove(video, videoOffset(param, 0),
                         2 * (HEIGHT - param) * WIDTH);
-                memset(videoOffset(HEIGHT - param, 0), 0, 2 * param * WIDTH);
+                clear(videoOffset(HEIGHT - param, 0), 2 * param * WIDTH);
             } break;
             case 'T': { // SD - Scroll Down
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
                 memmove(videoOffset(param, 0), video,
                         2 * (HEIGHT - param) * WIDTH);
-                memset(video, 0, 2 * WIDTH * param);
+                clear(video, 2 * WIDTH * param);
             } break;
             case 'd': { // VPA - Line Position Absolute
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
@@ -311,7 +319,7 @@ void VgaTerminal::printCharacterRaw(char c) {
             memmove(video, videoOffset(1, 0), 2 * (HEIGHT - 1) * WIDTH);
 
             // Clean the last line
-            memset(videoOffset(HEIGHT - 1, 0), 0, 2 * WIDTH);
+            clear(videoOffset(HEIGHT - 1, 0), 2 * WIDTH);
 
             cursorPosY = HEIGHT - 1;
         }
@@ -323,4 +331,12 @@ void VgaTerminal::printCharacterRaw(char c) {
     *(videoOffset(cursorPosY, cursorPosX) + 1) = color;
 
     cursorPosX++;
+}
+
+void VgaTerminal::updateCursorPosition() {
+    uint16_t position = cursorPosX + cursorPosY * 80;
+    outb(0x3D4, 0x0E);
+    outb(0x3D5, (position >> 8) & 0xFF);
+    outb(0x3D4, 0x0F);
+    outb(0x3D5, position & 0xFF);
 }

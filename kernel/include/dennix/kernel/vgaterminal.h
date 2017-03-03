@@ -24,6 +24,7 @@ namespace VgaTerminal {
 void backspace();
 void printCharacter(char c);
 void printCharacterRaw(char c);
+void updateCursorPosition();
 }
 
 #endif

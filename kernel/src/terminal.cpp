@@ -30,18 +30,20 @@ Terminal::Terminal() : Vnode(S_IFCHR) {
 
 void Terminal::onKeyboardEvent(int key) {
     char c = Keyboard::getCharFromKey(key);
+    if (!c) return;
 
     if ((termio.c_lflag & ICANON) && c == '\b') {
         if (terminalBuffer.backspace() && (termio.c_lflag & ECHO)) {
             VgaTerminal::backspace();
         }
 
-    } else if (c) {
+    } else {
         if (termio.c_lflag & ECHO) {
             VgaTerminal::printCharacterRaw(c);
         }
         terminalBuffer.write(c, termio.c_lflag & ICANON);
     }
+    VgaTerminal::updateCursorPosition();
 }
 
 ssize_t Terminal::read(void* buffer, size_t size) {
@@ -76,6 +78,7 @@ ssize_t Terminal::write(const void* buffer, size_t size) {
     for (size_t i = 0; i < size; i++) {
         VgaTerminal::printCharacter(buf[i]);
     }
+    VgaTerminal::updateCursorPosition();
 
     return (ssize_t) size;
 }
