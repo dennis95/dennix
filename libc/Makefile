@@ -109,6 +109,8 @@ LIBC_OBJ = \
 	stdio/getc \
 	stdio/getchar_unlocked \
 	stdio/getchar \
+	stdio/getdelim \
+	stdio/getline \
 	stdio/printf \
 	stdio/putc_unlocked \
 	stdio/putc \

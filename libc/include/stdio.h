@@ -78,6 +78,8 @@ void flockfile(FILE*);
 void funlockfile(FILE*);
 int getc_unlocked(FILE*);
 int getchar_unlocked(void);
+ssize_t getdelim(char** __restrict, size_t* __restrict, int, FILE* __restrict);
+ssize_t getline(char** __restrict, size_t* __restrict, FILE* __restrict);
 int putc_unlocked(int, FILE*);
 int putchar_unlocked(int);
 #endif
