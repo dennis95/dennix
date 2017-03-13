@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -52,6 +52,9 @@ SECTIONS {
         *(.rodata)
     }
 
+    kernelReadOnlyEnd = ALIGN(4096);
+    numReadOnlyPages = (kernelReadOnlyEnd - kernelVirtualBegin) / 0x1000;
+
     .data ALIGN(4096) : AT(ADDR(.data) - KERNEL_VIRTUAL) {
         *(.data)
     }
@@ -62,5 +65,5 @@ SECTIONS {
 
     kernelVirtualEnd = ALIGN(4096);
     kernelPhysicalEnd = kernelVirtualEnd - KERNEL_VIRTUAL;
-    numKernelPages = (kernelVirtualEnd - kernelVirtualBegin) / 0x1000;
+    numWritablePages = (kernelVirtualEnd - kernelReadOnlyEnd) / 0x1000;
 }

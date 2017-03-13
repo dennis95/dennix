@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,9 +17,15 @@
  * Contains the multiboot header and the entry point.
  */
 
+#define CR0_WRITE_PROTECT (1 << 16)
+#define CR0_PAGING_ENABLE (1 << 31)
+
 #define MULTIBOOT_MAGIC 0x1BADB002
 #define MULTIBOOT_FLAGS 0x3
 #define MULTIBOOT_CHECKSUM -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
+
+#define PAGE_READONLY 0x1
+#define PAGE_WRITE 0x3
 
 .section multiboot
 .align 4
@@ -32,27 +38,36 @@
 .type _start, @function
 _start:
     # Add the page tables to the page directory
-    movl $(pageTableBootstrap + 0x3), kernelPageDirectory
-    movl $(pageTableKernel + 0x3), kernelPageDirectory + 0xC00
-    movl $(pageTablePhysicalMemory + 0x3), kernelPageDirectory + 0xFF8
+    movl $(pageTableBootstrap + PAGE_WRITE), kernelPageDirectory
+    movl $(pageTableKernel + PAGE_WRITE), kernelPageDirectory + 0xC00
+    movl $(pageTablePhysicalMemory + PAGE_WRITE), kernelPageDirectory + 0xFF8
 
     # Recursively map the page directory at 0xFFC00000
-    movl $(kernelPageDirectory + 0x3), kernelPageDirectory + 0xFFC
+    movl $(kernelPageDirectory + PAGE_WRITE), kernelPageDirectory + 0xFFC
 
     # Identity-map the bootstrap section
     mov $numBootstrapPages, %ecx
     mov $(pageTableBootstrap + 256 * 4), %edi
-    mov $(bootstrapBegin + 3), %edx
+    mov $(bootstrapBegin + PAGE_WRITE), %edx
 
 1:  mov %edx, (%edi)
     add $4, %edi
     add $0x1000, %edx
     loop 1b
 
-    # Map the kernel
-    mov $numKernelPages, %ecx
+    # Map readonly part of the kernel
+    mov $numReadOnlyPages, %ecx
     add $(pageTableKernel - pageTableBootstrap), %edi
-    mov $(kernelPhysicalBegin + 3), %edx
+    mov $(kernelPhysicalBegin + PAGE_READONLY), %edx
+
+1:  mov %edx, (%edi)
+    add $4, %edi
+    add $0x1000, %edx
+    loop 1b
+
+    # Map writable part
+    mov $numWritablePages, %ecx
+    or $PAGE_WRITE, %edx
 
 1:  mov %edx, (%edi)
     add $4, %edi
@@ -67,7 +82,7 @@ _start:
     mov %ecx, %cr3
 
     mov %cr0, %ecx
-    or $0x80000000, %ecx
+    or $(CR0_WRITE_PROTECT | CR0_PAGING_ENABLE), %ecx
     mov %ecx, %cr0
 
     # Jump into the higher half
