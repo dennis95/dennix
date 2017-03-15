@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,13 +17,14 @@
  * Associates a file with a file descriptor.
  */
 
-#include <stdio.h>
 #include <stdlib.h>
+#include "FILE.h"
 
 FILE* fdopen(int fd, const char* mode) {
     (void) mode;
 
     FILE* file = malloc(sizeof(FILE));
     file->fd = fd;
+    file->flags = 0;
     return file;
 }

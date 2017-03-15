@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,8 +22,7 @@
 #include <unistd.h>
 
 static size_t callback(void* file, const char* s, size_t nBytes) {
-    FILE* f = (FILE*) file;
-    return write(f->fd, s, nBytes);
+    return fwrite_unlocked(s, 1, nBytes, (FILE*) file);
 }
 
 int vfprintf_unlocked(FILE* restrict file, const char* restrict format,

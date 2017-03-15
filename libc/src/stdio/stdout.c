@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,10 +17,11 @@
  * Standard output.
  */
 
-#include <stdio.h>
+#include "FILE.h"
 
-FILE __stdout = {
+static FILE __stdout = {
     .fd = 1,
+    .flags = 0,
 };
 
 FILE* stdout = &__stdout;

@@ -89,8 +89,14 @@ LIBC_OBJ = \
 	errno/initProgname \
 	fcntl/open \
 	fcntl/openat \
+	stdio/clearerr_unlocked \
+	stdio/clearerr \
 	stdio/fclose \
 	stdio/fdopen \
+	stdio/feof_unlocked \
+	stdio/feof \
+	stdio/ferror_unlocked \
+	stdio/ferror \
 	stdio/fflush \
 	stdio/fgetc_unlocked \
 	stdio/fgetc \
@@ -104,6 +110,7 @@ LIBC_OBJ = \
 	stdio/fputs_unlocked \
 	stdio/fputs \
 	stdio/funlockfile \
+	stdio/fwrite_unlocked \
 	stdio/fwrite \
 	stdio/getc_unlocked \
 	stdio/getc \

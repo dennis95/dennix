@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,9 +17,9 @@
  * Closes a file.
  */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "FILE.h"
 
 int fclose(FILE* file) {
     if (fflush(file) == EOF) return EOF;

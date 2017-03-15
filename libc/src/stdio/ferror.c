@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,15 +13,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/stdio/stderr.c
- * Standard error.
+/* libc/src/stdio/ferror.c
+ * Checks the error indicator.
  */
 
-#include "FILE.h"
+#include <stdio.h>
 
-static FILE __stderr = {
-    .fd = 2,
-    .flags = 0,
-};
-
-FILE* stderr = &__stderr;
+int ferror(FILE* file) {
+    flockfile(file);
+    int result = ferror_unlocked(file);
+    funlockfile(file);
+    return result;
+}
