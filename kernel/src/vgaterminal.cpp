@@ -231,7 +231,7 @@ void VgaTerminal::printCharacter(char c) {
             } break;
             case 'G': { // CHA - Cursor Horizontal Absolute
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
-                if (0 < param && param < WIDTH) {
+                if (0 < param && param <= WIDTH) {
                     cursorPosX = param - 1;
                 }
             } break;
@@ -239,7 +239,7 @@ void VgaTerminal::printCharacter(char c) {
             case 'f': { // CUP - Cursor Position
                 unsigned int x = paramSpecified[1] ? params[1] : 1;
                 unsigned int y = paramSpecified[0] ? params[0] : 1;
-                if (0 < x && x < WIDTH && 0 < y && y < HEIGHT) {
+                if (0 < x && x <= WIDTH && 0 < y && y <= HEIGHT) {
                     cursorPosX = x - 1;
                     cursorPosY = y - 1;
                 }

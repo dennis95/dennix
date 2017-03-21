@@ -51,6 +51,7 @@ struct SnakeSegment* snakeHead;
 struct SnakeSegment* snakeTail;
 struct Food food;
 struct termios oldTermios;
+unsigned int score;
 
 static bool checkCollision(void);
 static void checkFood(void);
@@ -97,7 +98,7 @@ int main(int argc, char* argv[]) {
         move(snakeHead);
 
         if (checkCollision()) {
-            puts("\e[2JYou loose");
+            printf("\e[2JGame Over. Your score is: %u\n", score);
             return 0;
         }
     }
@@ -136,6 +137,8 @@ static void checkFood(void) {
         snakeTail->next = newSegment;
         snakeTail = newSegment;
 
+        score++;
+
         // Create some new food at a random location.
         food.row = rand() % HEIGHT;
         food.col = rand() % WIDTH;
@@ -149,12 +152,12 @@ static void drawScreen(void) {
     while (current) {
         if (current->row >= 0 && current->row < HEIGHT &&
                 current->col >= 0 && current->col < WIDTH) {
-            printf("\e[%d;%dH0", current->row, current->col);
+            printf("\e[%d;%dH0", current->row + 1, current->col + 1);
         }
         current = current->next;
     }
 
-    printf("\e[%d;%dHX", food.row, food.col);
+    printf("\e[%d;%dHX", food.row + 1, food.col + 1);
     printf("\e[H");
 }
 
