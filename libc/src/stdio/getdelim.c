@@ -52,7 +52,7 @@ ssize_t getdelim(char** restrict lineptr, size_t* restrict size, int delimiter,
         if (c == EOF) {
             (*lineptr)[i] = '\0';
             funlockfile(file);
-            return -1;
+            return i > 0 ? (ssize_t) i : -1;
         }
 
         (*lineptr)[i++] = c;
