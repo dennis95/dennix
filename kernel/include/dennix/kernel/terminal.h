@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -49,6 +49,8 @@ public:
     virtual int tcsetattr(int flags, const struct termios* termios);
     virtual ssize_t write(const void* buffer, size_t size);
 private:
+    void handleCharacter(char c);
+    void handleSequence(const char* sequence);
     virtual void onKeyboardEvent(int key);
 private:
     TerminalBuffer terminalBuffer;

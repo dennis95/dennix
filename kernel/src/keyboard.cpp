@@ -116,10 +116,41 @@ static const char KBLAYOUT_US[] = {
     // Most things below are not printable
 };
 
+static const struct {
+    int key;
+    const char* sequence;
+} sequences[] = {
+    { KB_UP, "\e[A" },
+    { KB_DOWN, "\e[B" },
+    { KB_RIGHT, "\e[C" },
+    { KB_LEFT, "\e[D" },
+    { KB_END, "\e[F" },
+    { KB_HOME, "\e[H" },
+    { KB_INSERT, "\e[2~" },
+    { KB_DELETE, "\e[3~" },
+    { KB_PAGEUP, "\e[5~" },
+    { KB_PAGEDOWN, "\e[6~" },
+    { KB_F1, "\e[OP" },
+    { KB_F2, "\e[OQ" },
+    { KB_F3, "\e[OR" },
+    { KB_F4, "\e[OS" },
+    { KB_F5, "\e[15~" },
+    { KB_F6, "\e[17~" },
+    { KB_F7, "\e[18~" },
+    { KB_F8, "\e[19~" },
+    { KB_F9, "\e[20~" },
+    { KB_F10, "\e[21~" },
+    { KB_F11, "\e[23~" },
+    { KB_F12, "\e[24~" },
+    { 0, 0 }
+};
+
 char Keyboard::getCharFromKey(int key) {
     static bool leftShift = false;
     static bool rightShift = false;
     static bool capsLock = false;
+    static bool leftControl = false;
+    static bool rightControl = false;
 
     if (key == KB_LSHIFT) {
         leftShift = true;
@@ -127,24 +158,45 @@ char Keyboard::getCharFromKey(int key) {
         rightShift = true;
     } else if (key == KB_CAPSLOCK) {
         capsLock = !capsLock;
+    } else if (key == KB_LCONTROL) {
+        leftControl = true;
+    } else if (key == KB_RCONTROL) {
+        rightControl = true;
     } else if (key == -KB_LSHIFT) {
         leftShift = false;
     } else if (key == -KB_RSHIFT) {
         rightShift = false;
+    } else if (key == -KB_LCONTROL) {
+        leftControl = false;
+    } else if (key == -KB_RCONTROL) {
+        rightControl = false;
     }
 
     if (key < 0) return '\0';
 
+    char result = '\0';
     size_t index = key << 2 | (capsLock << 1) | (leftShift || rightShift);
     if (index < sizeof(KBLAYOUT_US)) {
-        return KBLAYOUT_US[index];
-    }
-
-    if (key == KB_NUMPAD_ENTER) {
-        return '\n';
+        result = KBLAYOUT_US[index];
+    } else if (key == KB_NUMPAD_ENTER) {
+        result = '\n';
     } else if (key == KB_NUMPAD_DIV) {
-        return '/';
+        result = '/';
     }
 
-    return '\0';
+    if (leftControl || rightControl) {
+        result = result & 0x1F;
+    }
+
+    return result;
+}
+
+const char* Keyboard::getSequenceFromKey(int key) {
+    for (size_t i = 0; sequences[i].key != 0; i++) {
+        if (sequences[i].key == key) {
+            return sequences[i].sequence;
+        }
+    }
+
+    return NULL;
 }
