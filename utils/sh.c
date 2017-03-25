@@ -58,6 +58,11 @@ int main(int argc, char* argv[]) {
         fputs("$ ", stderr);
 
         ssize_t length = getline(&buffer, &bufferSize, stdin);
+        if (length < 0) {
+            if (feof(stdin)) exit(0);
+            err(1, NULL);
+        }
+
         if (buffer[length - 1] == '\n') {
             buffer[length - 1] = '\0';
         }
