@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,6 +18,7 @@
  */
 
 #include <stddef.h>
+#include <dennix/kbkeys.h>
 #include <dennix/kernel/keyboard.h>
 
 // US keyboard layout.
@@ -120,15 +121,15 @@ char Keyboard::getCharFromKey(int key) {
     static bool rightShift = false;
     static bool capsLock = false;
 
-    if (key == 0x2A) {
+    if (key == KB_LSHIFT) {
         leftShift = true;
-    } else if (key == 0x36) {
+    } else if (key == KB_RSHIFT) {
         rightShift = true;
-    } else if (key == 0x3A) {
+    } else if (key == KB_CAPSLOCK) {
         capsLock = !capsLock;
-    } else if (key == -0x2A) {
+    } else if (key == -KB_LSHIFT) {
         leftShift = false;
-    } else if (key == -0x36) {
+    } else if (key == -KB_RSHIFT) {
         rightShift = false;
     }
 
@@ -139,9 +140,9 @@ char Keyboard::getCharFromKey(int key) {
         return KBLAYOUT_US[index];
     }
 
-    if (key == 0x9C) {
+    if (key == KB_NUMPAD_ENTER) {
         return '\n';
-    } else if (key == 0xB5) {
+    } else if (key == KB_NUMPAD_DIV) {
         return '/';
     }
 
