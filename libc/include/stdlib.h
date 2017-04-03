@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -46,6 +46,10 @@ void* realloc(void*, size_t);
 void srand(unsigned int);
 long strtol(const char* __restrict, char** __restrict, int);
 unsigned long strtoul(const char* __restrict, char** __restrict, int);
+
+#if __USE_DENNIX
+void* reallocarray(void*, size_t, size_t);
+#endif
 
 /* These are just declared to make libgcc compile and are not implemented. */
 __noreturn void abort(void);

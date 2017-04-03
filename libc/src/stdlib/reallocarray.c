@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,24 +13,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/stdlib/calloc.c
- * Memory allocation.
+/* libc/src/stdlib/reallocarray.c
+ * Changes the size of an allocation.
  */
 
 #include <errno.h>
 #include <stdlib.h>
-#include <string.h>
 
-void* calloc(size_t size1, size_t size2) {
+void* reallocarray(void* ptr, size_t size1, size_t size2) {
     size_t resultSize;
     if (__builtin_mul_overflow(size1, size2, &resultSize)) {
         errno = ENOMEM;
         return NULL;
     }
-
-    void* result = malloc(resultSize);
-    if (result) {
-        memset(result, 0, resultSize);
-    }
-    return result;
+    return realloc(ptr, resultSize);
 }
