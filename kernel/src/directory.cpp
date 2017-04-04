@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,6 +18,7 @@
  */
 
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 #include <dennix/dirent.h>
 #include <dennix/stat.h>
@@ -31,12 +32,18 @@ DirectoryVnode::DirectoryVnode(DirectoryVnode* parent, mode_t mode)
     this->parent = parent;
 }
 
-void DirectoryVnode::addChildNode(const char* path, Vnode* vnode) {
-    Vnode** newChildNodes = new Vnode*[childCount + 1];
-    const char** newFileNames = new const char*[childCount + 1];
+DirectoryVnode::~DirectoryVnode() {
+    free(childNodes);
+    free(fileNames);
+}
 
-    memcpy(newChildNodes, childNodes, sizeof(Vnode*) * childCount);
-    memcpy(newFileNames, fileNames, sizeof(const char*) * childCount);
+bool DirectoryVnode::addChildNode(const char* path, Vnode* vnode) {
+    Vnode** newChildNodes = (Vnode**) reallocarray(childNodes, childCount + 1,
+            sizeof(Vnode*));
+    if (!newChildNodes) return false;
+    const char** newFileNames = (const char**) reallocarray(fileNames,
+            childCount + 1, sizeof(const char*));
+    if (!newFileNames) return false;
 
     childNodes = newChildNodes;
     fileNames = newFileNames;
@@ -44,6 +51,7 @@ void DirectoryVnode::addChildNode(const char* path, Vnode* vnode) {
     childNodes[childCount] = vnode;
     fileNames[childCount] = strdup(path);
     childCount++;
+    return true;
 }
 
 Vnode* DirectoryVnode::openat(const char* path, int flags, mode_t mode) {

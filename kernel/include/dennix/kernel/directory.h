@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,7 +25,8 @@
 class DirectoryVnode : public Vnode {
 public:
     DirectoryVnode(DirectoryVnode* parent, mode_t mode);
-    void addChildNode(const char* path, Vnode* vnode);
+    ~DirectoryVnode();
+    bool addChildNode(const char* path, Vnode* vnode);
     virtual Vnode* openat(const char* path, int flags, mode_t mode);
     virtual ssize_t readdir(unsigned long offset, void* buffer, size_t size);
 public:

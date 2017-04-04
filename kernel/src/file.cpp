@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,6 +26,10 @@ FileVnode::FileVnode(const void* data, size_t size, mode_t mode)
     this->data = new char[size];
     memcpy(this->data, data, size);
     fileSize = size;
+}
+
+FileVnode::~FileVnode() {
+    delete data;
 }
 
 bool FileVnode::isSeekable() {

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -268,8 +268,14 @@ Process* Process::regfork(int /*flags*/, struct regfork* registers) {
     Process* process = new Process();
     process->parent = this;
     // Add the process to the list of children.
-    children = (Process**) realloc(children, ++numChildren * sizeof(Process*));
-    children[numChildren - 1] = process;
+    Process** newChildren = (Process**) reallocarray(children, numChildren + 1,
+            sizeof(Process*));
+    if (!newChildren) {
+        errno = ENOMEM;
+        return nullptr;
+    }
+    children = newChildren;
+    children[numChildren++] = process;
 
     process->kernelStack = (void*) kernelSpace->mapMemory(0x1000,
             PROT_READ | PROT_WRITE);

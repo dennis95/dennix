@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,6 +25,7 @@
 class FileVnode : public Vnode {
 public:
     FileVnode(const void* data, size_t size, mode_t mode);
+    ~FileVnode();
     virtual bool isSeekable();
     virtual ssize_t pread(void* buffer, size_t size, off_t offset);
 public:
