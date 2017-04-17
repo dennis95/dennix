@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,6 +17,7 @@
  * Timers.
  */
 
+#include <sched.h>
 #include <dennix/kernel/pit.h>
 #include <dennix/kernel/syscall.h>
 #include <dennix/kernel/timer.h>
@@ -53,8 +54,7 @@ void Timer::start() {
 
 void Timer::wait() {
     while (!isZero(time)) {
-        asm volatile ("int $0x31");
-        __sync_synchronize();
+        sched_yield();
     }
 
     Pit::deregisterTimer(index);

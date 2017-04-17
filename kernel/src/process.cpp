@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <sched.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -340,8 +341,7 @@ Process* Process::waitpid(pid_t pid, int flags) {
             Process* result = children[i];
             while (!result->terminated) {
                 // Yield until the process terminates.
-                asm volatile("int $0x31");
-                __sync_synchronize();
+                sched_yield();
             }
 
             // Remove the process from the list

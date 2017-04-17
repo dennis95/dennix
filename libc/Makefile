@@ -40,6 +40,7 @@ COMMON_OBJ = \
 	getopt/getopt_long \
 	libgen/basename \
 	libgen/dirname \
+	sched/sched_yield \
 	stdio/vcbprintf \
 	stdlib/calloc \
 	stdlib/free \
