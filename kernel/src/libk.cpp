@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,11 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/src/assert.cpp
- * Assertions.
+/* kernel/src/libk.cpp
+ * Functions used by libk.
  */
 
 #include <assert.h>
+#include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/log.h>
 
 extern "C" void __assertionFailure(const char* assertion, const char* file,
@@ -26,4 +27,12 @@ extern "C" void __assertionFailure(const char* assertion, const char* file,
             assertion, func, file, line);
     // Halt the kernel.
     while (true) asm volatile("cli; hlt");
+}
+
+extern "C" void* __mapMemory(size_t size) {
+    return (void*) kernelSpace->mapMemory(size, PROT_READ | PROT_WRITE);
+}
+
+extern "C" void __unmapMemory(void* addr, size_t size) {
+    kernelSpace->unmapMemory((vaddr_t) addr, size);
 }

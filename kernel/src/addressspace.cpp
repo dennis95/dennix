@@ -464,12 +464,3 @@ int Syscall::munmap(void* addr, size_t size) {
     addressSpace->unmapMemory((vaddr_t) addr, size);
     return 0;
 }
-
-// These two functions are called from libk.
-extern "C" void* __mapMemory(size_t size) {
-    return (void*) kernelSpace->mapMemory(size, PROT_READ | PROT_WRITE);
-}
-
-extern "C" void __unmapMemory(void* addr, size_t size) {
-    kernelSpace->unmapMemory((vaddr_t) addr, size);
-}

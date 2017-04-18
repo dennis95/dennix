@@ -32,7 +32,6 @@ LIBS += -lk -lgcc
 
 OBJ = \
 	addressspace.o \
-	assert.o \
 	conf.o \
 	directory.o \
 	file.o \
@@ -43,6 +42,7 @@ OBJ = \
 	interrupts.o \
 	kernel.o \
 	keyboard.o \
+	libk.o \
 	log.o \
 	memorysegment.o \
 	physicalmemory.o \
