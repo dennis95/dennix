@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -40,6 +40,8 @@ public:
     static void removeSegment(MemorySegment* firstSegment, vaddr_t address,
             size_t size);
     static vaddr_t findFreeSegment(MemorySegment* firstSegment, size_t size);
+    static vaddr_t findAndAddNewSegment(MemorySegment* firstSegment,
+            size_t size, int protection);
 private:
     static void addSegment(MemorySegment* firstSegment,
             MemorySegment* newSegment);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -40,7 +40,6 @@ public:
     void unmapMemory(vaddr_t virtualAddress, size_t size);
     void unmapPhysical(vaddr_t firstVirtualAddress, size_t size);
 private:
-    bool isFree(size_t pdIndex, size_t ptIndex);
     vaddr_t map(paddr_t physicalAddress, int protection);
     vaddr_t mapAt(vaddr_t virtualAddress, paddr_t physicalAddress,
             int protection);
@@ -51,7 +50,9 @@ private:
     void unmap(vaddr_t virtualAddress);
 private:
     paddr_t pageDir;
+    vaddr_t pageDirMapped;
     MemorySegment* firstSegment;
+    AddressSpace* prev;
     AddressSpace* next;
 public:
     static void initialize();

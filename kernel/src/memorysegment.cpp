@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -176,6 +176,13 @@ vaddr_t MemorySegment::findFreeSegment(MemorySegment* firstSegment,
     }
 
     return currentSegment->address + currentSegment->size;
+}
+
+vaddr_t MemorySegment::findAndAddNewSegment(MemorySegment* firstSegment,
+        size_t size, int protection) {
+    vaddr_t address = findFreeSegment(firstSegment, size);
+    addSegment(firstSegment, address, size, protection);
+    return address;
 }
 
 void MemorySegment::verifySegmentList() {
