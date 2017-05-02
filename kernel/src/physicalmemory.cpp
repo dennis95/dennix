@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -120,9 +120,8 @@ void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
 
     if (unlikely(stackUnused == 0)) {
         // Use the page frame to extend the stack
-        //TODO: What if the address is already in use?
-        kernelSpace->mapPhysical((vaddr_t) stack - 0x1000 - stackUsed * 4,
-                physicalAddress, 0x1000, PROT_READ | PROT_WRITE);
+        kernelSpace->mapAt((vaddr_t) stack - 0x1000 - stackUsed * 4,
+                physicalAddress, PROT_READ | PROT_WRITE);
         stackUnused += 1024;
     } else {
         stack[-++stackUsed] = physicalAddress;
@@ -135,7 +134,7 @@ paddr_t PhysicalMemory::popPageFrame() {
         if (likely(stackUnused > 0)) {
             vaddr_t virt = (vaddr_t) stack - stackUnused * 4;
             paddr_t result = kernelSpace->getPhysicalAddress(virt);
-            kernelSpace->unmapPhysical(virt, 0x1000);
+            kernelSpace->unmap(virt);
             stackUnused -= 1024;
             return result;
         } else {
