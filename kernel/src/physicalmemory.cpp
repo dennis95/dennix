@@ -20,12 +20,15 @@
 #include <assert.h>
 #include <stdint.h>
 #include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/kthread.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/physicalmemory.h>
 
 static paddr_t* const stack = (paddr_t*) 0xFFC00000;
 static size_t stackUsed = 0;
 static size_t stackUnused = 0;
+
+static kthread_mutex_t mutex = KTHREAD_MUTEX_INITIALIZER;
 
 extern "C" {
 extern symbol_t bootstrapBegin;
@@ -117,6 +120,7 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
 
 void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
     assert(!(physicalAddress & 0xFFF));
+    AutoLock lock(&mutex);
 
     if (unlikely(stackUnused == 0)) {
         // Use the page frame to extend the stack
@@ -130,6 +134,8 @@ void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
 }
 
 paddr_t PhysicalMemory::popPageFrame() {
+    AutoLock lock(&mutex);
+
     if (unlikely(stackUsed == 0)) {
         if (likely(stackUnused > 0)) {
             vaddr_t virt = (vaddr_t) stack - stackUnused * 4;

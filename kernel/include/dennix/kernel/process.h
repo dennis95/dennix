@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,6 +25,7 @@
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/filedescription.h>
 #include <dennix/kernel/interrupts.h>
+#include <dennix/kernel/kthread.h>
 
 #define OPEN_MAX 20
 
@@ -38,10 +39,6 @@ public:
     int registerFileDescriptor(FileDescription* descr);
     Process* waitpid(pid_t pid, int flags);
 private:
-    int copyArguments(char* const argv[], char* const envp[], char**& newArgv,
-            char**& newEnvp, AddressSpace* newAddressSpace);
-    uintptr_t loadELF(uintptr_t elf, AddressSpace* newAddressSpace);
-private:
     InterruptContext* interruptContext;
     Process* prev;
     Process* next;
@@ -52,6 +49,7 @@ private:
     Process* parent;
     Process** children;
     size_t numChildren;
+    kthread_mutex_t childrenMutex;
 public:
     AddressSpace* addressSpace;
     FileDescription* fd[OPEN_MAX];
@@ -64,6 +62,10 @@ public:
     static void initialize(FileDescription* rootFd);
     static InterruptContext* schedule(InterruptContext* context);
     static Process* current;
+private:
+    static int copyArguments(char* const argv[], char* const envp[],
+            char**& newArgv, char**& newEnvp, AddressSpace* newAddressSpace);
+    static uintptr_t loadELF(uintptr_t elf, AddressSpace* newAddressSpace);
 };
 
 void setKernelStack(uintptr_t stack);

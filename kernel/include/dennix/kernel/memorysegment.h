@@ -39,7 +39,6 @@ public:
             size_t size, int protection);
     static void removeSegment(MemorySegment* firstSegment, vaddr_t address,
             size_t size);
-    static vaddr_t findFreeSegment(MemorySegment* firstSegment, size_t size);
     static vaddr_t findAndAddNewSegment(MemorySegment* firstSegment,
             size_t size, int protection);
 private:
@@ -48,6 +47,7 @@ private:
     static MemorySegment* allocateSegment(vaddr_t address, size_t size,
             int flags);
     static void deallocateSegment(MemorySegment* segment);
+    static vaddr_t findFreeSegment(MemorySegment* firstSegment, size_t size);
     static void verifySegmentList();
 };
 

@@ -25,7 +25,6 @@
 #include <sys/stat.h>
 #include <dennix/kernel/elf.h>
 #include <dennix/kernel/file.h>
-#include <dennix/kernel/log.h>
 #include <dennix/kernel/physicalmemory.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/terminal.h>
@@ -45,7 +44,7 @@ Process::Process() {
     memset(fd, 0, sizeof(fd));
     rootFd = nullptr;
     cwdFd = nullptr;
-    pid = nextPid++;
+    pid = 0;
     contextChanged = false;
     fdInitialized = false;
     terminated = false;
@@ -53,6 +52,7 @@ Process::Process() {
     children = nullptr;
     numChildren = 0;
     status = 0;
+    childrenMutex = KTHREAD_MUTEX_INITIALIZER;
 }
 
 Process::~Process() {
@@ -71,6 +71,7 @@ void Process::initialize(FileDescription* rootFd) {
 }
 
 void Process::addProcess(Process* process) {
+    process->pid = nextPid++;
     process->next = firstProcess;
     if (process->next) {
         process->next->prev = process;
@@ -191,11 +192,11 @@ int Process::execute(FileDescription* descr, char* const argv[],
     if (!entry) return -1;
 
     vaddr_t stack = newAddressSpace->mapMemory(0x1000, PROT_READ | PROT_WRITE);
-    kernelStack = (void*) kernelSpace->mapMemory(0x1000,
+    void* newKernelStack = (void*) kernelSpace->mapMemory(0x1000,
             PROT_READ | PROT_WRITE);
 
     InterruptContext* newInterruptContext = (InterruptContext*)
-            ((uintptr_t) kernelStack + 0x1000 - sizeof(InterruptContext));
+            ((uintptr_t) newKernelStack + 0x1000 - sizeof(InterruptContext));
 
     memset(newInterruptContext, 0, sizeof(InterruptContext));
 
@@ -224,14 +225,19 @@ int Process::execute(FileDescription* descr, char* const argv[],
         fdInitialized = true;
     }
 
+    AddressSpace* oldAddressSpace = addressSpace;
+    addressSpace = newAddressSpace;
+    if (this == current) {
+        addressSpace->activate();
+    }
+    delete oldAddressSpace;
+
     Interrupts::disable();
     if (this == current) {
         contextChanged = true;
-        kernelSpace->activate();
     }
 
-    if (addressSpace) delete addressSpace;
-    addressSpace = newAddressSpace;
+    kernelStack = newKernelStack;
     interruptContext = newInterruptContext;
     if (this == current) Interrupts::enable();
     return 0;
@@ -269,14 +275,18 @@ Process* Process::regfork(int /*flags*/, struct regfork* registers) {
     Process* process = new Process();
     process->parent = this;
     // Add the process to the list of children.
+    kthread_mutex_lock(&childrenMutex);
     Process** newChildren = (Process**) reallocarray(children, numChildren + 1,
             sizeof(Process*));
+
     if (!newChildren) {
+        kthread_mutex_unlock(&childrenMutex);
         errno = ENOMEM;
         return nullptr;
     }
     children = newChildren;
     children[numChildren++] = process;
+    kthread_mutex_unlock(&childrenMutex);
 
     process->kernelStack = (void*) kernelSpace->mapMemory(0x1000,
             PROT_READ | PROT_WRITE);
@@ -312,7 +322,9 @@ Process* Process::regfork(int /*flags*/, struct regfork* registers) {
     process->cwdFd = new FileDescription(*cwdFd);
     process->fdInitialized = true;
 
+    Interrupts::disable();
     addProcess(process);
+    Interrupts::enable();
 
     return process;
 }
@@ -336,14 +348,19 @@ Process* Process::waitpid(pid_t pid, int flags) {
         return nullptr;
     }
 
+    AutoLock lock(&childrenMutex);
+
     for (size_t i = 0; i < numChildren; i++) {
         if (children[i]->pid == pid) {
             Process* result = children[i];
+            kthread_mutex_unlock(&childrenMutex);
+
             while (!result->terminated) {
                 // Yield until the process terminates.
                 sched_yield();
             }
 
+            kthread_mutex_lock(&childrenMutex);
             // Remove the process from the list
             if (i < numChildren - 1) {
                 children[i] = children[numChildren - 1];

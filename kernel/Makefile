@@ -42,6 +42,7 @@ OBJ = \
 	interrupts.o \
 	kernel.o \
 	keyboard.o \
+	kthread.o \
 	libk.o \
 	log.o \
 	memorysegment.o \
