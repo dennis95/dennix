@@ -178,15 +178,14 @@ InterruptContext* Process::schedule(InterruptContext* context) {
     return current->interruptContext;
 }
 
-int Process::execute(FileDescription* descr, char* const argv[],
-        char* const envp[]) {
-    if (!S_ISREG(descr->vnode->mode)) {
+int Process::execute(Vnode* vnode, char* const argv[], char* const envp[]) {
+    if (!S_ISREG(vnode->mode)) {
         errno = EACCES;
         return -1;
     }
 
     // Load the program
-    FileVnode* file = (FileVnode*) descr->vnode;
+    FileVnode* file = (FileVnode*) vnode;
     AddressSpace* newAddressSpace = new AddressSpace();
     uintptr_t entry = loadELF((uintptr_t) file->data, newAddressSpace);
     if (!entry) return -1;

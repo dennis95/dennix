@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -54,7 +54,8 @@ DirectoryVnode* Initrd::loadInitrd(vaddr_t initrd) {
         char* path;
 
         if (header->prefix[0]) {
-            path = (char*) malloc(strlen(header->name) + strlen(header->prefix) + 2);
+            path = (char*) malloc(strlen(header->name) +
+                    strlen(header->prefix) + 2);
 
             stpcpy(stpcpy(stpcpy(path, header->prefix), "/"), header->name);
         } else {
@@ -65,7 +66,8 @@ DirectoryVnode* Initrd::loadInitrd(vaddr_t initrd) {
         char* dirName = dirname(path);
         char* fileName = basename(path2);
 
-        DirectoryVnode* directory = (DirectoryVnode*) root->openat(dirName, 0, 0);
+        DirectoryVnode* directory =
+                (DirectoryVnode*) resolvePath(root, dirName);
 
         if (!directory) {
             Log::printf("Could not add '%s' to nonexistent directory '%s'.\n",

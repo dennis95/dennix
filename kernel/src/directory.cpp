@@ -54,33 +54,16 @@ bool DirectoryVnode::addChildNode(const char* path, Vnode* vnode) {
     return true;
 }
 
-Vnode* DirectoryVnode::openat(const char* path, int flags, mode_t mode) {
-    // TODO: We currently ignore flags.
-    while (*path == '/') {
-        path++;
-    }
-
-    size_t length = strcspn(path, "/");
-
-    if (length == 0) {
+Vnode* DirectoryVnode::getChildNode(const char* path) {
+    if (strcmp(path, ".") == 0) {
         return this;
-    }
-
-    if (strncmp(path, ".", length) == 0) {
-        return openat(path + length, flags, mode);
-    } else if (length == 2 && strncmp(path, "..", length) == 0) {
-        Vnode* dotdot = parent ? parent : this;
-        return dotdot->openat(path + length, flags, mode);
+    } else if (strcmp(path, "..") == 0) {
+        return parent ? parent : this;
     }
 
     for (size_t i = 0; i < childCount; i++) {
-        if (strlen(fileNames[i]) == length &&
-                strncmp(path, fileNames[i], length) == 0) {
-            if (path[length] == '\0') {
-                return childNodes[i];
-            } else {
-                return childNodes[i]->openat(path + length, flags, mode);
-            }
+        if (strcmp(path, fileNames[i]) == 0) {
+            return childNodes[i];
         }
     }
 

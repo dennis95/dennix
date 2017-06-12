@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,11 +24,10 @@ FileDescription::FileDescription(Vnode* vnode) {
     offset = 0;
 }
 
-FileDescription* FileDescription::openat(const char* path, int flags, mode_t mode) {
-    Vnode* node = vnode->openat(path, flags, mode);
-    if (!node) {
-        return nullptr;
-    }
+FileDescription* FileDescription::openat(const char* path, int /*flags*/,
+        mode_t /*mode*/) {
+    Vnode* node = resolvePath(vnode, path);
+    if (!node) return nullptr;
     return new FileDescription(node);
 }
 

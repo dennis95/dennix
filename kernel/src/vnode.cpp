@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,20 +18,66 @@
  */
 
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
 #include <dennix/kernel/vnode.h>
 
 Vnode::Vnode(mode_t mode) {
     this->mode = mode;
 }
 
-// Default implementation. Inheriting classes will override these functions.
-bool Vnode::isSeekable() {
-    return false;
+Vnode* resolvePath(Vnode* vnode, const char* path) {
+    if (!*path) {
+        errno = ENOENT;
+        return nullptr;
+    }
+
+    Vnode* currentVnode = vnode;
+    char* pathCopy = strdup(path);
+    if (!pathCopy) {
+        errno = ENFILE;
+        return nullptr;
+    }
+
+    char* currentName = pathCopy;
+    char* slash = strchr(currentName, '/');
+
+    while (slash) {
+        *slash = '\0';
+        if (*currentName) {
+            currentVnode = currentVnode->getChildNode(currentName);
+            if (!currentVnode) {
+                free(pathCopy);
+                return nullptr;
+            }
+
+            if (!S_ISDIR(currentVnode->mode)) {
+                free(pathCopy);
+                errno = ENOTDIR;
+                return nullptr;
+            }
+        }
+        currentName = slash + 1;
+        slash = strchr(currentName, '/');
+    }
+
+    if (*currentName) {
+        currentVnode = currentVnode->getChildNode(currentName);
+    }
+
+    free(pathCopy);
+    return currentVnode;
 }
 
-Vnode* Vnode::openat(const char* /*path*/, int /*flags*/, mode_t /*mode*/) {
-    errno = ENOTDIR;
+// Default implementation. Inheriting classes will override these functions.
+Vnode* Vnode::getChildNode(const char* /*path*/) {
+    errno = EBADF;
     return nullptr;
+}
+
+bool Vnode::isSeekable() {
+    return false;
 }
 
 ssize_t Vnode::pread(void* /*buffer*/, size_t /*size*/, off_t /*offset*/) {

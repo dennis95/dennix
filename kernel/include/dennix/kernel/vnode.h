@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,8 +25,8 @@
 
 class Vnode {
 public:
+    virtual Vnode* getChildNode(const char* path);
     virtual bool isSeekable();
-    virtual Vnode* openat(const char* path, int flags, mode_t mode);
     virtual ssize_t pread(void* buffer, size_t size, off_t offset);
     virtual ssize_t read(void* buffer, size_t size);
     virtual ssize_t readdir(unsigned long offset, void* buffer, size_t size);
@@ -40,5 +40,7 @@ protected:
 public:
     mode_t mode;
 };
+
+Vnode* resolvePath(Vnode* vnode, const char* path);
 
 #endif
