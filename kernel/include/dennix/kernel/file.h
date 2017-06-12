@@ -20,6 +20,7 @@
 #ifndef KERNEL_FILE_H
 #define KERNEL_FILE_H
 
+#include <dennix/kernel/kthread.h>
 #include <dennix/kernel/vnode.h>
 
 class FileVnode : public Vnode {
@@ -28,9 +29,11 @@ public:
     ~FileVnode();
     virtual bool isSeekable();
     virtual ssize_t pread(void* buffer, size_t size, off_t offset);
+    virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset);
 public:
     char* data;
     size_t fileSize;
+    kthread_mutex_t mutex;
 };
 
 #endif

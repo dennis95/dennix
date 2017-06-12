@@ -57,5 +57,13 @@ int FileDescription::tcsetattr(int flags, const struct termios* termio) {
 }
 
 ssize_t FileDescription::write(const void* buffer, size_t size) {
+    if (vnode->isSeekable()) {
+        ssize_t result = vnode->pwrite(buffer, size, offset);
+
+        if (result != -1) {
+            offset += result;
+        }
+        return result;
+    }
     return vnode->write(buffer, size);
 }

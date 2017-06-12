@@ -28,6 +28,7 @@ public:
     virtual Vnode* getChildNode(const char* path);
     virtual bool isSeekable();
     virtual ssize_t pread(void* buffer, size_t size, off_t offset);
+    virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset);
     virtual ssize_t read(void* buffer, size_t size);
     virtual ssize_t readdir(unsigned long offset, void* buffer, size_t size);
     virtual int stat(struct stat* result);
