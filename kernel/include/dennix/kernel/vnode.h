@@ -25,6 +25,7 @@
 
 class Vnode {
 public:
+    virtual int ftruncate(off_t length);
     virtual Vnode* getChildNode(const char* path);
     virtual bool isSeekable();
     virtual ssize_t pread(void* buffer, size_t size, off_t offset);

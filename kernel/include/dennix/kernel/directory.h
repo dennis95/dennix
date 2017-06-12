@@ -20,6 +20,7 @@
 #ifndef KERNEL_DIRECTORY_H
 #define KERNEL_DIRECTORY_H
 
+#include <dennix/kernel/kthread.h>
 #include <dennix/kernel/vnode.h>
 
 class DirectoryVnode : public Vnode {
@@ -34,6 +35,7 @@ public:
 private:
     Vnode** childNodes;
     const char** fileNames;
+    kthread_mutex_t mutex;
     DirectoryVnode* parent;
 };
 

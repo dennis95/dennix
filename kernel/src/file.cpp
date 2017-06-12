@@ -35,6 +35,28 @@ FileVnode::~FileVnode() {
     free(data);
 }
 
+int FileVnode::ftruncate(off_t length) {
+    if (length < 0 || length > __SIZE_MAX__) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    AutoLock lock(&mutex);
+    void* newData = realloc(data, (size_t) length);
+    if (!newData) {
+        errno = ENOSPC;
+        return -1;
+    }
+    data = (char*) newData;
+
+    if (length > fileSize) {
+        memset(data + fileSize, '\0', length - fileSize);
+    }
+
+    fileSize = (size_t) length;
+    return 0;
+}
+
 bool FileVnode::isSeekable() {
     return true;
 }

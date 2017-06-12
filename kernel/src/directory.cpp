@@ -29,6 +29,7 @@ DirectoryVnode::DirectoryVnode(DirectoryVnode* parent, mode_t mode)
     childCount = 0;
     childNodes = nullptr;
     fileNames = nullptr;
+    mutex = KTHREAD_MUTEX_INITIALIZER;
     this->parent = parent;
 }
 
@@ -38,6 +39,8 @@ DirectoryVnode::~DirectoryVnode() {
 }
 
 bool DirectoryVnode::addChildNode(const char* path, Vnode* vnode) {
+    AutoLock lock(&mutex);
+
     Vnode** newChildNodes = (Vnode**) reallocarray(childNodes, childCount + 1,
             sizeof(Vnode*));
     if (!newChildNodes) return false;
@@ -55,6 +58,8 @@ bool DirectoryVnode::addChildNode(const char* path, Vnode* vnode) {
 }
 
 Vnode* DirectoryVnode::getChildNode(const char* path) {
+    AutoLock lock(&mutex);
+
     if (strcmp(path, ".") == 0) {
         return this;
     } else if (strcmp(path, "..") == 0) {
@@ -73,7 +78,9 @@ Vnode* DirectoryVnode::getChildNode(const char* path) {
 
 ssize_t DirectoryVnode::readdir(unsigned long offset, void* buffer,
         size_t size) {
+    AutoLock lock(&mutex);
     const char* name;
+
     if (offset == 0) {
         name = ".";
     } else if (offset == 1) {

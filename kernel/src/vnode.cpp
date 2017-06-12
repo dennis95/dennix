@@ -71,6 +71,11 @@ Vnode* resolvePath(Vnode* vnode, const char* path) {
 }
 
 // Default implementation. Inheriting classes will override these functions.
+int Vnode::ftruncate(off_t /*length*/) {
+    errno = EBADF;
+    return -1;
+}
+
 Vnode* Vnode::getChildNode(const char* /*path*/) {
     errno = EBADF;
     return nullptr;
