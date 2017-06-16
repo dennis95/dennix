@@ -30,6 +30,7 @@ PROGRAMS = \
 	cat \
 	clear \
 	echo \
+	editor \
 	false \
 	ls \
 	sh \
