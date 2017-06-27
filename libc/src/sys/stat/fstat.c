@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,32 +13,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/syscall.h
- * Syscall numbers.
+/* libc/src/sys/stat/fstat.c
+ * File information.
  */
 
-#ifndef _DENNIX_SYSCALL_H
-#define _DENNIX_SYSCALL_H
+#include <sys/stat.h>
+#include <sys/syscall.h>
 
-#define SYSCALL_EXIT 0
-#define SYSCALL_WRITE 1
-#define SYSCALL_READ 2
-#define SYSCALL_MMAP 3
-#define SYSCALL_MUNMAP 4
-#define SYSCALL_OPENAT 5
-#define SYSCALL_CLOSE 6
-#define SYSCALL_REGFORK 7
-#define SYSCALL_EXECVE 8
-#define SYSCALL_WAITPID 9
-#define SYSCALL_FSTATAT 10
-#define SYSCALL_READDIR 11
-#define SYSCALL_NANOSLEEP 12
-#define SYSCALL_TCGETATTR 13
-#define SYSCALL_TCSETATTR 14
-#define SYSCALL_FCHDIRAT 15
-#define SYSCALL_CONFSTR 16
-#define SYSCALL_FSTAT 17
-
-#define NUM_SYSCALLS 18
-
-#endif
+DEFINE_SYSCALL_GLOBAL(SYSCALL_FSTAT, int, fstat, (int, struct stat*));

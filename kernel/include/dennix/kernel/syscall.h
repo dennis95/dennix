@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -36,6 +36,7 @@ size_t confstr(int name, char* buffer, size_t size);
 int execve(const char* path, char* const argv[], char* const envp[]);
 NORETURN void exit(int status);
 int fchdirat(int fd, const char* path);
+int fstat(int fd, struct stat* result);
 int fstatat(int fd, const char* restrict path, struct stat* restrict result,
         int flags);
 void* mmap(__mmapRequest* request);
