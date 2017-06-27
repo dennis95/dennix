@@ -59,7 +59,8 @@ FileDescription* FileDescription::openat(const char* path, int flags,
             return nullptr;
         }
 
-        FileVnode* file = new FileVnode(nullptr, 0, mode & 07777);
+        FileVnode* file =
+                new FileVnode(nullptr, 0, mode & 07777, vnode->dev, 0);
         DirectoryVnode* directory = (DirectoryVnode*) node;
         if (!directory->addChildNode(newFileName, file)) {
             free(pathCopy);

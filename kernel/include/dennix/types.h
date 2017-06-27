@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,6 +20,8 @@
 #ifndef _DENNIX_TYPES_H
 #define _DENNIX_TYPES_H
 
+typedef unsigned long __dev_t;
+typedef __UINTMAX_TYPE__ __ino_t;
 typedef int __mode_t;
 typedef __INTMAX_TYPE__ __off_t;
 typedef int __pid_t;

@@ -25,7 +25,8 @@
 
 class FileVnode : public Vnode {
 public:
-    FileVnode(const void* data, size_t size, mode_t mode);
+    FileVnode(const void* data, size_t size, mode_t mode, dev_t dev,
+            ino_t ino);
     ~FileVnode();
     virtual int ftruncate(off_t length);
     virtual bool isSeekable();

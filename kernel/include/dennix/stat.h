@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,6 +34,8 @@
 
 struct stat {
     /* TODO: Add the other members of struct stat */
+    __dev_t st_dev;
+    __ino_t st_ino;
     __mode_t st_mode;
 };
 

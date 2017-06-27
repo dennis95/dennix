@@ -25,7 +25,7 @@
 
 class DirectoryVnode : public Vnode {
 public:
-    DirectoryVnode(DirectoryVnode* parent, mode_t mode);
+    DirectoryVnode(DirectoryVnode* parent, mode_t mode, dev_t dev, ino_t ino);
     ~DirectoryVnode();
     bool addChildNode(const char* path, Vnode* vnode);
     virtual Vnode* getChildNode(const char* path);

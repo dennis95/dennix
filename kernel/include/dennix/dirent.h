@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,11 @@
 #ifndef _DENNIX_DIRENT_H
 #define _DENNIX_DIRENT_H
 
+#include <dennix/types.h>
+
 struct dirent {
+    __dev_t d_dev;
+    __ino_t d_ino;
     __SIZE_TYPE__ d_reclen;
     __extension__ char d_name[];
 };

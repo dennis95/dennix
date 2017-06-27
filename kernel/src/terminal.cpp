@@ -26,7 +26,7 @@
 
 Terminal terminal;
 
-Terminal::Terminal() : Vnode(S_IFCHR) {
+Terminal::Terminal() : Vnode(S_IFCHR, 0, 0) {
     termio.c_iflag = 0;
     termio.c_oflag = 0;
     termio.c_cflag = 0;

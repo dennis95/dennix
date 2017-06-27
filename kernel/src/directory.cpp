@@ -24,8 +24,8 @@
 #include <dennix/stat.h>
 #include <dennix/kernel/directory.h>
 
-DirectoryVnode::DirectoryVnode(DirectoryVnode* parent, mode_t mode)
-        : Vnode(S_IFDIR | mode) {
+DirectoryVnode::DirectoryVnode(DirectoryVnode* parent, mode_t mode, dev_t dev,
+        ino_t ino) : Vnode(S_IFDIR | mode, dev, ino) {
     childCount = 0;
     childNodes = nullptr;
     fileNames = nullptr;
@@ -80,13 +80,17 @@ ssize_t DirectoryVnode::readdir(unsigned long offset, void* buffer,
         size_t size) {
     AutoLock lock(&mutex);
     const char* name;
+    Vnode* vnode;
 
     if (offset == 0) {
         name = ".";
+        vnode = this;
     } else if (offset == 1) {
         name = "..";
+        vnode = parent ? parent : this;
     } else if (offset - 2 < childCount) {
         name = fileNames[offset - 2];
+        vnode = childNodes[offset - 2];
     } else if (offset - 2  == childCount) {
         return 0;
     } else {
@@ -96,6 +100,8 @@ ssize_t DirectoryVnode::readdir(unsigned long offset, void* buffer,
     size_t structSize = sizeof(struct dirent) + strlen(name) + 1;
     if (size >= structSize) {
         struct dirent* entry = (struct dirent*) buffer;
+        entry->d_dev = vnode->dev;
+        entry->d_ino = vnode->ino;
         entry->d_reclen = size;
         strcpy(entry->d_name, name);
     }

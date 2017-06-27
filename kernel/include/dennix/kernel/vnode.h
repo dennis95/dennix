@@ -38,8 +38,10 @@ public:
     virtual ssize_t write(const void* buffer, size_t size);
     virtual ~Vnode() {}
 protected:
-    Vnode(mode_t mode);
+    Vnode(mode_t mode, dev_t dev, ino_t ino);
 public:
+    dev_t dev;
+    ino_t ino;
     mode_t mode;
 };
 

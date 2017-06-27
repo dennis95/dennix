@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,9 +19,19 @@
 
 #include <dennix/types.h>
 
+#if defined(__need_dev_t) && !defined(__dev_t_defined)
+typedef __dev_t dev_t;
+#  define __dev_t_defined
+#endif
+
 #if defined(__need_FILE) && !defined(__FILE_defined)
 typedef struct __FILE FILE;
 #  define __FILE_defined
+#endif
+
+#if defined(__need_ino_t) && !defined(__ino_t_defined)
+typedef __ino_t ino_t;
+#  define __ino_t_defined
 #endif
 
 #if defined(__need_mode_t) && !defined(__mode_t_defined)
@@ -39,7 +49,8 @@ typedef __pid_t pid_t;
 #  define __pid_t_defined
 #endif
 
-#if defined(__need_size_t) || defined(__need_NULL)
+#if defined(__need_NULL) || defined(__need_ptrdiff_t) || \
+    defined(__need_size_t) || defined(__need_wchar_t) || defined(__need_wint_t)
 #  include <stddef.h>
 #endif
 
@@ -53,7 +64,9 @@ typedef __time_t time_t;
 #  define __time_t_defined
 #endif
 
+#undef __need_dev_t
 #undef __need_FILE
+#undef __need_ino_t
 #undef __need_mode_t
 #undef __need_off_t
 #undef __need_pid_t
