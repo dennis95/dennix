@@ -136,6 +136,8 @@ LIBC_OBJ = \
 	stdlib/_Exit \
 	stdlib/exit \
 	stdlib/getenv \
+	stdlib/setenv \
+	stdlib/unsetenv \
 	sys/mman/mmap \
 	sys/mman/munmap \
 	sys/stat/fstat \
