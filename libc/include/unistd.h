@@ -57,6 +57,7 @@ int execv(const char*, char* const[]);
 int execve(const char*, char* const[], char* const[]);
 __noreturn void _exit(int);
 pid_t fork(void);
+char* getcwd(char*, size_t);
 int getopt(int, char* const[], const char*);
 ssize_t read(int, void*, size_t);
 unsigned int sleep(unsigned int);
