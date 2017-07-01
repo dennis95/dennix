@@ -33,6 +33,7 @@ PROGRAMS = \
 	editor \
 	false \
 	ls \
+	pwd \
 	sh \
 	sleep \
 	snake \
