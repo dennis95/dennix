@@ -38,6 +38,10 @@
 extern "C" {
 #endif
 
+/* TODO: This should be defined in <limits.h> which is currently provided by
+   the compiler. */
+#define HOST_NAME_MAX 255
+
 #define F_OK 0
 #define R_OK (1 << 0)
 #define W_OK (1 << 1)
@@ -58,6 +62,8 @@ int execve(const char*, char* const[], char* const[]);
 __noreturn void _exit(int);
 pid_t fork(void);
 char* getcwd(char*, size_t);
+int gethostname(char*, size_t);
+char* getlogin(void);
 int getopt(int, char* const[], const char*);
 ssize_t read(int, void*, size_t);
 unsigned int sleep(unsigned int);

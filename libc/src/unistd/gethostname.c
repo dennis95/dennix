@@ -13,18 +13,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/sys/utsname/uname.c
- * System name.
+/* libc/src/unistd/gethostname.c
+ * Gets the current host name.
  */
 
+#include <string.h>
 #include <unistd.h>
-#include <sys/utsname.h>
 
-int uname(struct utsname* result) {
-    confstr(_CS_UNAME_SYSNAME, result->sysname, sizeof(result->sysname));
-    gethostname(result->nodename, sizeof(result->nodename));
-    confstr(_CS_UNAME_RELEASE, result->release, sizeof(result->release));
-    confstr(_CS_UNAME_VERSION, result->version, sizeof(result->version));
-    confstr(_CS_UNAME_MACHINE, result->machine, sizeof(result->machine));
+static const char* hostname = "dennix";
+
+int gethostname(char* result, size_t size) {
+    strlcpy(result, hostname, size);
     return 0;
 }

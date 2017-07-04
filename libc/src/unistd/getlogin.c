@@ -13,18 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/sys/utsname/uname.c
- * System name.
+/* libc/src/unistd/getlogin.c
+ * Gets the login name.
  */
 
 #include <unistd.h>
-#include <sys/utsname.h>
 
-int uname(struct utsname* result) {
-    confstr(_CS_UNAME_SYSNAME, result->sysname, sizeof(result->sysname));
-    gethostname(result->nodename, sizeof(result->nodename));
-    confstr(_CS_UNAME_RELEASE, result->release, sizeof(result->release));
-    confstr(_CS_UNAME_VERSION, result->version, sizeof(result->version));
-    confstr(_CS_UNAME_MACHINE, result->machine, sizeof(result->machine));
-    return 0;
+char* getlogin(void) {
+    return "user";
 }

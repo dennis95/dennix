@@ -20,6 +20,7 @@
 #include "utils.h"
 #include <err.h>
 #include <getopt.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,7 +57,9 @@ int main(int argc, char* argv[]) {
     }
 
     pwd = getenv("PWD");
-    if (!pwd) {
+    if (pwd) {
+        pwd = strdup(pwd);
+    } else {
         pwd = getcwd(NULL, 0);
         if (pwd) {
             setenv("PWD", pwd, 1);
@@ -67,11 +70,22 @@ int main(int argc, char* argv[]) {
     char* buffer = NULL;
     size_t bufferSize = 0;
 
+    const char* username = getlogin();
+    if (!username) {
+        username = "?";
+    }
+    char hostname[HOST_NAME_MAX + 1];
+    if (gethostname(hostname, sizeof(hostname)) < 0) {
+        strcpy(hostname, "?");
+    }
+
     while (true) {
-        fputs("$ ", stderr);
+        fprintf(stderr, "\e[32m%s@%s \e[1;36m%s $\e[22;39m ",
+                username, hostname, pwd ? pwd : ".");
 
         ssize_t length = getline(&buffer, &bufferSize, stdin);
         if (length < 0) {
+            putchar('\n');
             if (feof(stdin)) exit(0);
             err(1, NULL);
         }
