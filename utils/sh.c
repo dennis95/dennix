@@ -188,6 +188,7 @@ static const char* getExecutablePath(const char* command) {
 static void updateLogicalPwd(const char* path) {
     if (!pwd) {
         pwd = getcwd(NULL, 0);
+        pwdSize = pwd ? strlen(pwd) : 0;
         return;
     }
 
@@ -196,7 +197,7 @@ static void updateLogicalPwd(const char* path) {
     }
 
     // The resulting string cannot be longer than this.
-    size_t newSize = strlen(pwd) + strlen(path) + 1;
+    size_t newSize = strlen(pwd) + strlen(path) + 2;
     if (newSize > pwdSize) {
         char* newPwd = realloc(pwd, newSize);
         if (!newPwd) {
@@ -205,6 +206,7 @@ static void updateLogicalPwd(const char* path) {
             return;
         }
         pwd = newPwd;
+        pwdSize = newSize;
     }
 
     char* pwdEnd = pwd + strlen(pwd);
