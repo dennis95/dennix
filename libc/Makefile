@@ -142,6 +142,8 @@ LIBC_OBJ = \
 	sys/mman/munmap \
 	sys/stat/fstat \
 	sys/stat/fstatat \
+	sys/stat/mkdir \
+	sys/stat/mkdirat \
 	sys/stat/stat \
 	sys/utsname/uname \
 	sys/wait/waitpid \

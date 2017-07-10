@@ -38,9 +38,12 @@ DirectoryVnode::~DirectoryVnode() {
     free(fileNames);
 }
 
-bool DirectoryVnode::addChildNode(const char* path, Vnode* vnode) {
+bool DirectoryVnode::addChildNode(const char* name, Vnode* vnode) {
     AutoLock lock(&mutex);
+    return addChildNodeUnlocked(name, vnode);
+}
 
+bool DirectoryVnode::addChildNodeUnlocked(const char* name, Vnode* vnode) {
     Vnode** newChildNodes = (Vnode**) reallocarray(childNodes, childCount + 1,
             sizeof(Vnode*));
     if (!newChildNodes) return false;
@@ -52,28 +55,47 @@ bool DirectoryVnode::addChildNode(const char* path, Vnode* vnode) {
     fileNames = newFileNames;
 
     childNodes[childCount] = vnode;
-    fileNames[childCount] = strdup(path);
+    fileNames[childCount] = strdup(name);
     childCount++;
     return true;
 }
 
-Vnode* DirectoryVnode::getChildNode(const char* path) {
+Vnode* DirectoryVnode::getChildNode(const char* name) {
     AutoLock lock(&mutex);
+    return getChildNodeUnlocked(name);
+}
 
-    if (strcmp(path, ".") == 0) {
+Vnode* DirectoryVnode::getChildNodeUnlocked(const char* name) {
+    if (strcmp(name, ".") == 0) {
         return this;
-    } else if (strcmp(path, "..") == 0) {
+    } else if (strcmp(name, "..") == 0) {
         return parent ? parent : this;
     }
 
     for (size_t i = 0; i < childCount; i++) {
-        if (strcmp(path, fileNames[i]) == 0) {
+        if (strcmp(name, fileNames[i]) == 0) {
             return childNodes[i];
         }
     }
 
     errno = ENOENT;
     return nullptr;
+}
+
+int DirectoryVnode::mkdir(const char* name, mode_t mode) {
+    AutoLock lock(&mutex);
+
+    if (!*name || getChildNodeUnlocked(name)) {
+        errno = EEXIST;
+        return -1;
+    }
+
+    Vnode* newDirectory = new DirectoryVnode(this, mode, dev, 0);
+    if (!addChildNodeUnlocked(name, newDirectory)) {
+        delete newDirectory;
+        return -1;
+    }
+    return 0;
 }
 
 ssize_t DirectoryVnode::readdir(unsigned long offset, void* buffer,

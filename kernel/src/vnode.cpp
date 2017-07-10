@@ -93,6 +93,11 @@ bool Vnode::isSeekable() {
     return false;
 }
 
+int Vnode::mkdir(const char* /*name*/, mode_t /*mode*/) {
+    errno = ENOTDIR;
+    return -1;
+}
+
 ssize_t Vnode::pread(void* /*buffer*/, size_t /*size*/, off_t /*offset*/) {
     errno = EBADF;
     return -1;
