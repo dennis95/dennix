@@ -33,6 +33,7 @@ PROGRAMS = \
 	editor \
 	false \
 	ls \
+	mkdir \
 	pwd \
 	sh \
 	sleep \
