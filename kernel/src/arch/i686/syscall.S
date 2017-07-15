@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,6 +21,8 @@
 .global syscallHandler
 .type syscallHandler, @function
 syscallHandler:
+    cld
+
     mov %esp, %ebp
     and $(~0xFF), %esp
     sub $12, %esp
