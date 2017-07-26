@@ -51,6 +51,7 @@ OBJ = \
 	process.o \
 	ps2.o \
 	ps2keyboard.o \
+	refcount.o \
 	syscall.o \
 	terminal.o \
 	timer.o \
