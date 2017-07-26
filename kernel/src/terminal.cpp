@@ -24,7 +24,8 @@
 
 #define CTRL(c) ((c) & 0x1F)
 
-Terminal terminal;
+static Terminal _terminal;
+Reference<Terminal> terminal(&_terminal);
 
 Terminal::Terminal() : Vnode(S_IFCHR, 0, 0) {
     termio.c_iflag = 0;

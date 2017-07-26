@@ -45,8 +45,9 @@ struct TarHeader {
     char padding[12];
 };
 
-DirectoryVnode* Initrd::loadInitrd(vaddr_t initrd) {
-    DirectoryVnode* root = new DirectoryVnode(nullptr, 0755, 0, 0);
+Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
+    Reference<DirectoryVnode> root(
+            new DirectoryVnode(Reference<DirectoryVnode>(), 0755, 0, 0));
     TarHeader* header = (TarHeader*) initrd;
 
     while (strcmp(header->magic, TMAGIC) == 0) {
@@ -66,8 +67,8 @@ DirectoryVnode* Initrd::loadInitrd(vaddr_t initrd) {
         char* dirName = dirname(path);
         char* fileName = basename(path2);
 
-        DirectoryVnode* directory =
-                (DirectoryVnode*) resolvePath(root, dirName);
+        Reference<DirectoryVnode> directory =
+                (Reference<DirectoryVnode>) resolvePath(root, dirName);
 
         if (!directory) {
             Log::printf("Could not add '%s' to nonexistent directory '%s'.\n",
@@ -75,14 +76,16 @@ DirectoryVnode* Initrd::loadInitrd(vaddr_t initrd) {
             return root;
         }
 
-        Vnode* newFile;
+        Reference<Vnode> newFile;
         mode_t mode = (mode_t) strtol(header->mode, nullptr, 8);
 
         if (header->typeflag == REGTYPE || header->typeflag == AREGTYPE) {
-            newFile = new FileVnode(header + 1, size, mode, directory->dev, 0);
+            newFile = Reference<Vnode>(new FileVnode(header + 1, size, mode,
+                    directory->dev, 0));
             header += 1 + ALIGNUP(size, 512) / 512;
         } else if (header->typeflag == DIRTYPE) {
-            newFile = new DirectoryVnode(directory, mode, directory->dev, 0);
+            newFile = Reference<Vnode>(new DirectoryVnode(directory, mode,
+                    directory->dev, 0));
             header++;
         } else {
             Log::printf("Unknown typeflag '%c'\n", header->typeflag);
@@ -90,7 +93,6 @@ DirectoryVnode* Initrd::loadInitrd(vaddr_t initrd) {
         }
 
         directory->addChildNode(fileName, newFile);
-
         free(path);
         free(path2);
     }

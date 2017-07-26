@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +14,7 @@
  */
 
 /* kernel/include/dennix/kernel/kernel.h
- * Contains some common definitions for the kernel.
+ * Common definitions for the kernel.
  */
 
 #ifndef KERNEL_KERNEL_H
@@ -38,5 +38,15 @@ typedef struct _incomplete_type symbol_t;
 
 typedef uintptr_t paddr_t;
 typedef uintptr_t vaddr_t;
+
+// Placement new
+inline void* operator new(size_t /*size*/, void* addr) {
+    return addr;
+}
+inline void* operator new[](size_t /*size*/, void* addr) {
+    return addr;
+}
+inline void operator delete(void*, void*) {};
+inline void operator delete[](void*, void*) {};
 
 #endif

@@ -126,7 +126,7 @@ static void checkPort1() {
        just assume that there is a keyboard connected to port 1 that just
        works without any additional initialization. */
     PS2Keyboard* keyboard = new PS2Keyboard();
-    keyboard->listener = &terminal;
+    keyboard->listener = (Terminal*) terminal;
 
     ps2Device1 = keyboard;
     Interrupts::irqHandlers[1] = irqHandler;
@@ -142,7 +142,7 @@ static void checkPort1() {
         if (id == 0x41 || id == 0xC1 || id == 0x83) {
             // The device identified itself as a keyboard
             PS2Keyboard* keyboard = new PS2Keyboard();
-            keyboard->listener = &terminal;
+            keyboard->listener = (Terminal*) terminal;
 
             ps2Device1 = keyboard;
             Interrupts::irqHandlers[1] = irqHandler;

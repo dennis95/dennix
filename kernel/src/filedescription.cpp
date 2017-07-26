@@ -26,14 +26,14 @@
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/filedescription.h>
 
-FileDescription::FileDescription(Vnode* vnode) {
-    this->vnode = vnode;
+FileDescription::FileDescription(const Reference<Vnode>& vnode)
+        : vnode(vnode) {
     offset = 0;
 }
 
 FileDescription* FileDescription::openat(const char* path, int flags,
         mode_t mode) {
-    Vnode* node = resolvePath(vnode, path);
+    Reference<Vnode> node = resolvePath(vnode, path);
     if (!node) {
         if (!(flags & O_CREAT)) return nullptr;
         char* pathCopy = strdup(path);
@@ -59,12 +59,11 @@ FileDescription* FileDescription::openat(const char* path, int flags,
             return nullptr;
         }
 
-        FileVnode* file =
-                new FileVnode(nullptr, 0, mode & 07777, vnode->dev, 0);
-        DirectoryVnode* directory = (DirectoryVnode*) node;
+        Reference<FileVnode> file(new FileVnode(nullptr, 0, mode & 07777,
+                vnode->dev, 0));
+        Reference<DirectoryVnode> directory = (Reference<DirectoryVnode>) node;
         if (!directory->addChildNode(newFileName, file)) {
             free(pathCopy);
-            delete file;
             return nullptr;
         }
 

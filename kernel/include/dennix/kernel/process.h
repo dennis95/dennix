@@ -35,7 +35,8 @@ public:
     ~Process();
     void exit(int status);
     Process* regfork(int flags, struct regfork* registers);
-    int execute(Vnode* vnode, char* const argv[], char* const envp[]);
+    int execute(const Reference<Vnode>& vnode, char* const argv[],
+            char* const envp[]);
     int registerFileDescriptor(FileDescription* descr);
     Process* waitpid(pid_t pid, int flags);
 private:

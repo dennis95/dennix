@@ -22,11 +22,12 @@
 
 #include <sys/types.h>
 #include <dennix/stat.h>
+#include <dennix/kernel/refcount.h>
 
-class Vnode {
+class Vnode : public ReferenceCounted {
 public:
     virtual int ftruncate(off_t length);
-    virtual Vnode* getChildNode(const char* path);
+    virtual Reference<Vnode> getChildNode(const char* path);
     virtual bool isSeekable();
     virtual int mkdir(const char* name, mode_t mode);
     virtual ssize_t pread(void* buffer, size_t size, off_t offset);
@@ -46,6 +47,6 @@ public:
     mode_t mode;
 };
 
-Vnode* resolvePath(Vnode* vnode, const char* path);
+Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path);
 
 #endif

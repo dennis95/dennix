@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,7 +24,7 @@
 
 class FileDescription {
 public:
-    FileDescription(Vnode* vnode);
+    FileDescription(const Reference<Vnode>& vnode);
     FileDescription* openat(const char* path, int flags, mode_t mode);
     ssize_t read(void* buffer, size_t size);
     ssize_t readdir(unsigned long offset, void* buffer, size_t size);
@@ -32,7 +32,7 @@ public:
     int tcsetattr(int flags, const struct termios* termio);
     ssize_t write(const void* buffer, size_t size);
 public:
-    Vnode* vnode;
+    Reference<Vnode> vnode;
 private:
     off_t offset;
 };
