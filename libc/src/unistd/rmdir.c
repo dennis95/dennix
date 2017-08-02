@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,35 +13,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/fcntl.h
- * File control.
+/* libc/src/unistd/rmdir.c
+ * Removes a directory.
  */
 
-#ifndef _DENNIX_FCNTL_H
-#define _DENNIX_FCNTL_H
+#include <fcntl.h>
+#include <unistd.h>
 
-#define AT_FDCWD (-1)
-
-#define AT_REMOVEDIR (1 << 0)
-/* Non standard flag to remove files */
-#define AT_REMOVEFILE (1 << 1)
-
-#define O_EXEC (1 << 0)
-#define O_RDONLY (1 << 1)
-#define O_WRONLY (1 << 2)
-#define O_RDWR (O_RDONLY | O_WRONLY)
-#define O_SEARCH O_EXEC
-
-#define O_APPEND (1 << 3)
-#define O_CLOEXEC (1 << 4)
-#define O_CREAT (1 << 5)
-#define O_DIRECTORY (1 << 6)
-#define O_EXCL (1 << 7)
-#define O_NOCTTY (1 << 8)
-#define O_NOFOLLOW (1 << 9)
-#define O_NONBLOCK (1 << 10)
-#define O_SYNC (1 << 11)
-#define O_TRUNC (1 << 12)
-#define O_TTY_INIT (1 << 13)
-
-#endif
+int rmdir(const char* path) {
+    return unlinkat(AT_FDCWD, path, AT_REMOVEDIR);
+}

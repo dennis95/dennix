@@ -20,8 +20,9 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <dennix/dirent.h>
-#include <dennix/stat.h>
+#include <dennix/fcntl.h>
 #include <dennix/kernel/directory.h>
 
 DirectoryVnode::DirectoryVnode(const Reference<DirectoryVnode>& parent,
@@ -49,8 +50,8 @@ bool DirectoryVnode::addChildNodeUnlocked(const char* name,
     Reference<Vnode>* newChildNodes = (Reference<Vnode>*)
             reallocarray(childNodes, childCount + 1, sizeof(Reference<Vnode>));
     if (!newChildNodes) return false;
-    const char** newFileNames = (const char**) reallocarray(fileNames,
-            childCount + 1, sizeof(const char*));
+    char** newFileNames = (char**) reallocarray(fileNames, childCount + 1,
+            sizeof(const char*));
     if (!newFileNames) return false;
 
     childNodes = newChildNodes;
@@ -102,6 +103,14 @@ int DirectoryVnode::mkdir(const char* name, mode_t mode) {
     return 0;
 }
 
+bool DirectoryVnode::onUnlink() {
+    if (childCount > 0) {
+        errno = ENOTEMPTY;
+        return false;
+    }
+    return true;
+}
+
 ssize_t DirectoryVnode::readdir(unsigned long offset, void* buffer,
         size_t size) {
     AutoLock lock(&mutex);
@@ -133,4 +142,53 @@ ssize_t DirectoryVnode::readdir(unsigned long offset, void* buffer,
     }
 
     return structSize;
+}
+
+int DirectoryVnode::unlink(const char* name, int flags) {
+    if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    AutoLock lock(&mutex);
+
+    for (size_t i = 0; i < childCount; i++) {
+        if (strcmp(name, fileNames[i]) == 0) {
+            Reference<Vnode> vnode = childNodes[i];
+            if (S_ISDIR(vnode->mode) && !(flags & AT_REMOVEDIR)) {
+                errno = EPERM;
+                return -1;
+            }
+            if (!S_ISDIR(vnode->mode) && !(flags & AT_REMOVEFILE)) {
+                errno = ENOTDIR;
+                return -1;
+            }
+
+            if (!vnode->onUnlink()) return -1;
+
+            free(fileNames[i]);
+            if (i != childCount - 1) {
+                childNodes[i] = childNodes[childCount - 1];
+                fileNames[i] = fileNames[childCount - 1];
+            }
+            childNodes[--childCount].~Reference();
+
+            // Resize the list. Reallocation failure is not an error because we
+            // are just making the list smaller.
+            Reference<Vnode>* newChildNodes = (Reference<Vnode>*)
+                    realloc(childNodes, childCount * sizeof(Reference<Vnode>));
+            char** newFileNames = (char**) realloc(fileNames, childCount *
+                    sizeof(const char*));
+            if (newChildNodes) {
+                childNodes = newChildNodes;
+            }
+            if (newFileNames) {
+                fileNames = newFileNames;
+            }
+            return 0;
+        }
+    }
+
+    errno = ENOENT;
+    return -1;
 }

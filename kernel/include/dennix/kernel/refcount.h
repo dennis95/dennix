@@ -85,6 +85,11 @@ public:
         return *this;
     }
 
+    template <typename T2>
+    bool operator==(const Reference<T2>& ref) {
+        return object == (T2*) ref;
+    }
+
     operator bool() const {
         return object;
     }

@@ -39,7 +39,8 @@
 #define SYSCALL_CONFSTR 16
 #define SYSCALL_FSTAT 17
 #define SYSCALL_MKDIRAT 18
+#define SYSCALL_UNLINKAT 19
 
-#define NUM_SYSCALLS 19
+#define NUM_SYSCALLS 20
 
 #endif

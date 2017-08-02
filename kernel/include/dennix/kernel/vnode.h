@@ -30,6 +30,7 @@ public:
     virtual Reference<Vnode> getChildNode(const char* path);
     virtual bool isSeekable();
     virtual int mkdir(const char* name, mode_t mode);
+    virtual bool onUnlink();
     virtual ssize_t pread(void* buffer, size_t size, off_t offset);
     virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset);
     virtual ssize_t read(void* buffer, size_t size);
@@ -37,6 +38,7 @@ public:
     virtual int stat(struct stat* result);
     virtual int tcgetattr(struct termios* result);
     virtual int tcsetattr(int flags, const struct termios* termio);
+    virtual int unlink(const char* name, int flags);
     virtual ssize_t write(const void* buffer, size_t size);
     virtual ~Vnode() {}
 protected:

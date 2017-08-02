@@ -31,7 +31,9 @@ public:
     bool addChildNode(const char* name, const Reference<Vnode>& vnode);
     virtual Reference<Vnode> getChildNode(const char* name);
     virtual int mkdir(const char* name, mode_t mode);
+    virtual bool onUnlink();
     virtual ssize_t readdir(unsigned long offset, void* buffer, size_t size);
+    virtual int unlink(const char* path, int flags);
 private:
     bool addChildNodeUnlocked(const char* name, const Reference<Vnode>& vnode);
     Reference<Vnode> getChildNodeUnlocked(const char* name);
@@ -39,7 +41,7 @@ public:
     size_t childCount;
 private:
     Reference<Vnode>* childNodes;
-    const char** fileNames;
+    char** fileNames;
     kthread_mutex_t mutex;
     Reference<DirectoryVnode> parent;
 };

@@ -126,6 +126,7 @@ LIBC_OBJ = \
 	stdio/putchar_unlocked \
 	stdio/putchar \
 	stdio/puts \
+	stdio/remove \
 	stdio/stderr \
 	stdio/stdin \
 	stdio/stdout \
@@ -166,7 +167,10 @@ LIBC_OBJ = \
 	unistd/getlogin \
 	unistd/read \
 	unistd/regfork \
+	unistd/rmdir \
 	unistd/sleep \
+	unistd/unlink \
+	unistd/unlinkat \
 	unistd/write
 
 LIBK_OBJ = $(COMMON_OBJ)
