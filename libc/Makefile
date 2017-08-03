@@ -76,6 +76,7 @@ LIBC_OBJ = \
 	dirent/fdopendir \
 	dirent/opendir \
 	dirent/readdir \
+	dirent/rewinddir \
 	err/err \
 	err/errc \
 	err/errx \

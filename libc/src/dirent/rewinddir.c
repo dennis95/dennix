@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,38 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/dirent.h
- * Directory definitions.
+/* libc/src/dirent/rewinddir.c
+ * Rewinds a directory.
  */
 
-#ifndef _DIRENT_H
-#define _DIRENT_H
+#include <dirent.h>
 
-#include <sys/cdefs.h>
-#include <dennix/dirent.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef struct __DIR DIR;
-
-#ifdef __is_dennix_libc
-struct __DIR {
-    int fd;
-    struct dirent* dirent;
-    unsigned long offset;
-};
-#endif
-
-int closedir(DIR*);
-DIR* fdopendir(int);
-DIR* opendir(const char*);
-struct dirent* readdir(DIR*);
-void rewinddir(DIR*);
-
-#ifdef __cplusplus
+void rewinddir(DIR* dir) {
+    dir->offset = 0;
 }
-#endif
-
-#endif
