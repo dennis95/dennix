@@ -90,6 +90,7 @@ char* canonicalize_file_name(const char* path) {
         if (!filename) {
             closedir(dir);
             free(name);
+            errno = ENOENT;
             return NULL;
         }
 
