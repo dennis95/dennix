@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -142,7 +142,7 @@ idt_entry idt[] = {
     IDT_ENTRY(isr_47, 0x8, IDT_INTERRUPT_GATE | IDT_RING0 | IDT_PRESENT),
 
     IDT_ENTRY(syscallHandler, 0x8, IDT_TRAP_GATE | IDT_RING3 | IDT_PRESENT),
-    IDT_ENTRY(isr_49, 0x8, IDT_INTERRUPT_GATE | IDT_RING0 | IDT_PRESENT),
+    IDT_ENTRY(isr_49, 0x8, IDT_INTERRUPT_GATE | IDT_RING3 | IDT_PRESENT),
 };
 
 uint16_t idt_size = sizeof(idt) - 1;
