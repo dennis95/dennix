@@ -28,8 +28,14 @@ ssize_t getdelim(char** restrict lineptr, size_t* restrict size, int delimiter,
         return -1;
     }
 
-    if (!*lineptr) {
-        *size = 0;
+    if (!*lineptr || !*size) {
+        *size = 80;
+        char* newBuffer = realloc(*lineptr, *size);
+        if (!newBuffer) {
+            *size = 0;
+            return -1;
+        }
+        *lineptr = newBuffer;
     }
 
     flockfile(file);
@@ -38,14 +44,13 @@ ssize_t getdelim(char** restrict lineptr, size_t* restrict size, int delimiter,
     int c;
     do {
         if (i + 1 >= *size) {
-            size_t newSize = *size ? *size * 2 : 80;
-            char* newBuffer = realloc(*lineptr, newSize);
+            char* newBuffer = reallocarray(*lineptr, 2, *size);
             if (!newBuffer) {
                 funlockfile(file);
                 return -1;
             }
             *lineptr = newBuffer;
-            *size = newSize;
+            *size *= 2;
         }
 
         c = fgetc_unlocked(file);
