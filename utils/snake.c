@@ -146,19 +146,18 @@ static void checkFood(void) {
 }
 
 static void drawScreen(void) {
-    printf("\e[2J");
+    printf("\e[2J\e[42m");
 
     struct SnakeSegment* current = snakeHead;
     while (current) {
         if (current->row >= 0 && current->row < HEIGHT &&
                 current->col >= 0 && current->col < WIDTH) {
-            printf("\e[%d;%dH0", current->row + 1, current->col + 1);
+            printf("\e[%d;%dH ", current->row + 1, current->col + 1);
         }
         current = current->next;
     }
 
-    printf("\e[%d;%dHX", food.row + 1, food.col + 1);
-    printf("\e[H");
+    printf("\e[%d;%dH\e[41m \e[49m\e[H", food.row + 1, food.col + 1);
 }
 
 static void handleInput(void) {
