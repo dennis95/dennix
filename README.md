@@ -2,20 +2,21 @@
 
 Dennix is a small unix-like hobbyist operating system written from scratch.
 It includes its own monolithic kernel written in C++, a standard C library and
-a few utilities written in C.
+userspace applications written in C.
 
 ## Building
 
-To build Dennix you will need to install a cross toolchain for Dennix first.
+To build Dennix you will first need to install a cross toolchain for Dennix.
 The command `make install-toolchain` will download, build and install the
 toolchain. The installation script can be configured using environment
-variables. Use the command `./build-aux/install-toolchain.sh --help` to get
-information about these environment variables.
+variables. You can use the command `./build-aux/install-toolchain.sh --help`
+to get information about these environment variables.
 
-After you have installed the cross toolchain and have adjusted your `PATH` so
-that it contains the toolchain, you can type `make` to build Dennix.
+You will probably want to set `$PREFIX` to a path where the toolchain should be
+installed. After the toolchain has been installed you need to add `$PREFIX/bin`
+to your `$PATH`. Finally you can run `make` to build a bootable cdrom image.
 
 ## License
 
-Dennix is free software and is released under the terms of the ISC license. The
+Dennix is free software and is licensed under the terms of the ISC license. The
 full license terms can be found in the `LICENSE` file.
