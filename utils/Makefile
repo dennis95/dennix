@@ -29,6 +29,7 @@ CPPFLAGS += -D_DENNIX_SOURCE -DDENNIX_VERSION=\"$(VERSION)\"
 PROGRAMS = \
 	cat \
 	clear \
+	cp \
 	echo \
 	editor \
 	false \
