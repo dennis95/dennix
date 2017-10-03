@@ -90,6 +90,11 @@ public:
         return object == (T2*) ref;
     }
 
+    template <typename T2>
+    bool operator==(T2* const& obj) {
+        return object == obj;
+    }
+
     operator bool() const {
         return object;
     }

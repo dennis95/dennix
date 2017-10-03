@@ -124,6 +124,12 @@ ssize_t Vnode::readdir(unsigned long /*offset*/, void* /*buffer*/,
     return -1;
 }
 
+int Vnode::rename(Reference<Vnode>& /*oldDirectory*/, const char* /*oldName*/,
+        const char* /*newName*/) {
+    errno = EBADF;
+    return -1;
+}
+
 int Vnode::stat(struct stat* result) {
     result->st_dev = dev;
     result->st_ino = ino;
