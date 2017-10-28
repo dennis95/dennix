@@ -35,6 +35,7 @@ PROGRAMS = \
 	false \
 	ls \
 	mkdir \
+	mv \
 	pwd \
 	rm \
 	sh \
