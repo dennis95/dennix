@@ -50,6 +50,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_MKDIRAT] =*/ (void*) Syscall::mkdirat,
     /*[SYSCALL_UNLINKAT] =*/ (void*) Syscall::unlinkat,
     /*[SYSCALL_RENAMEAT] =*/ (void*) Syscall::renameat,
+    /*[SYSCALL_LINKAT] =*/ (void*) Syscall::linkat,
 };
 
 static FileDescription* getRootFd(int fd, const char* path) {
@@ -150,6 +151,31 @@ int Syscall::fstatat(int fd, const char* restrict path,
     if (!vnode) return -1;
 
     return vnode->stat(result);
+}
+
+int Syscall::linkat(int oldFd, const char* oldPath, int newFd,
+        const char* newPath, int flags) {
+    Reference<Vnode> vnode = resolvePath(getRootFd(oldFd, oldPath)->vnode,
+            oldPath);
+    if (!vnode) return -1;
+
+    if (S_ISDIR(vnode->mode)) {
+        errno = EPERM;
+        return -1;
+    }
+
+    char* name;
+    char* path2Copy = strdup(newPath);
+    if (!path2Copy) return -1;
+    Reference<Vnode> directory = resolvePathExceptLastComponent(newFd,
+            path2Copy, &name);
+    if (!directory) {
+        free(path2Copy);
+        return -1;
+    }
+    int result = directory->link(name, vnode);
+    free(path2Copy);
+    return result;
 }
 
 static void* mmapImplementation(void* /*addr*/, size_t size,

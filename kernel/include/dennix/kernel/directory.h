@@ -28,8 +28,8 @@ public:
     DirectoryVnode(const Reference<DirectoryVnode>& parent, mode_t mode,
             dev_t dev, ino_t ino);
     ~DirectoryVnode();
-    bool addChildNode(const char* name, const Reference<Vnode>& vnode);
     virtual Reference<Vnode> getChildNode(const char* name);
+    virtual int link(const char* name, const Reference<Vnode>& vnode);
     virtual int mkdir(const char* name, mode_t mode);
     virtual bool onUnlink();
     virtual ssize_t readdir(unsigned long offset, void* buffer, size_t size);
@@ -37,8 +37,8 @@ public:
             const char* newName);
     virtual int unlink(const char* path, int flags);
 private:
-    bool addChildNodeUnlocked(const char* name, const Reference<Vnode>& vnode);
     Reference<Vnode> getChildNodeUnlocked(const char* name);
+    int linkUnlocked(const char* name, const Reference<Vnode>& vnode);
     int unlinkUnlocked(const char* path, int flags);
 public:
     size_t childCount;

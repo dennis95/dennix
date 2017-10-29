@@ -93,6 +93,11 @@ bool Vnode::isSeekable() {
     return false;
 }
 
+int Vnode::link(const char* /*name*/, const Reference<Vnode>& /*vnode*/) {
+    errno = ENOTDIR;
+    return -1;
+}
+
 int Vnode::mkdir(const char* /*name*/, mode_t /*mode*/) {
     errno = ENOTDIR;
     return -1;

@@ -22,6 +22,10 @@
 
 #define AT_FDCWD (-1)
 
+/* Flags for linkat(2). */
+#define AT_SYMLINK_FOLLOW (1 << 0)
+
+/* Flags for unlinkat(2). */
 #define AT_REMOVEDIR (1 << 0)
 /* Non standard flag to remove files */
 #define AT_REMOVEFILE (1 << 1)

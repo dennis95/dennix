@@ -39,6 +39,8 @@ int fchdirat(int fd, const char* path);
 int fstat(int fd, struct stat* result);
 int fstatat(int fd, const char* restrict path, struct stat* restrict result,
         int flags);
+int linkat(int oldFd, const char* oldPath, int newFd, const char* newPath,
+        int flags);
 int mkdirat(int fd, const char* path, mode_t mode);
 void* mmap(__mmapRequest* request);
 int munmap(void* addr, size_t size);

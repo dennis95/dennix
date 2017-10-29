@@ -92,7 +92,7 @@ Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
             return root;
         }
 
-        directory->addChildNode(fileName, newFile);
+        directory->link(fileName, newFile);
         free(path);
         free(path2);
     }

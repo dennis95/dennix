@@ -39,20 +39,24 @@ DirectoryVnode::~DirectoryVnode() {
     free(fileNames);
 }
 
-bool DirectoryVnode::addChildNode(const char* name,
-        const Reference<Vnode>& vnode) {
+int DirectoryVnode::link(const char* name, const Reference<Vnode>& vnode) {
     AutoLock lock(&mutex);
-    return addChildNodeUnlocked(name, vnode);
+    return linkUnlocked(name, vnode);
 }
 
-bool DirectoryVnode::addChildNodeUnlocked(const char* name,
+int DirectoryVnode::linkUnlocked(const char* name,
         const Reference<Vnode>& vnode) {
+    if (getChildNodeUnlocked(name)) {
+        errno = EEXIST;
+        return -1;
+    }
+
     Reference<Vnode>* newChildNodes = (Reference<Vnode>*)
             reallocarray(childNodes, childCount + 1, sizeof(Reference<Vnode>));
-    if (!newChildNodes) return false;
+    if (!newChildNodes) return -1;
     char** newFileNames = (char**) reallocarray(fileNames, childCount + 1,
             sizeof(const char*));
-    if (!newFileNames) return false;
+    if (!newFileNames) return -1;
 
     childNodes = newChildNodes;
     fileNames = newFileNames;
@@ -64,7 +68,7 @@ bool DirectoryVnode::addChildNodeUnlocked(const char* name,
 
     childCount++;
 
-    return true;
+    return 0;
 }
 
 Reference<Vnode> DirectoryVnode::getChildNode(const char* name) {
@@ -92,14 +96,9 @@ Reference<Vnode> DirectoryVnode::getChildNodeUnlocked(const char* name) {
 int DirectoryVnode::mkdir(const char* name, mode_t mode) {
     AutoLock lock(&mutex);
 
-    if (!*name || getChildNodeUnlocked(name)) {
-        errno = EEXIST;
-        return -1;
-    }
-
     Reference<DirectoryVnode> newDirectory(
             new DirectoryVnode(this, mode, dev, 0));
-    if (!addChildNodeUnlocked(name, newDirectory)) return -1;
+    if (linkUnlocked(name, newDirectory) < 0) return -1;
     return 0;
 }
 
@@ -200,7 +199,7 @@ int DirectoryVnode::rename(Reference<Vnode>& oldDirectory, const char* oldName,
         }
     }
 
-    if (!addChildNodeUnlocked(newName, vnode)) return -1;
+    if (linkUnlocked(newName, vnode) < 0) return -1;
     oldDirectory->unlink(oldName, 0);
     if (S_ISDIR(vnode->mode)) {
         ((Reference<DirectoryVnode>) vnode)->parent = this;
