@@ -50,6 +50,7 @@ ssize_t read(int fd, void* buffer, size_t size);
 ssize_t readdir(int fd, unsigned long offset, void* buffer, size_t size);
 int renameat(int oldFd, const char* oldPath, int newFd, const char* newPath);
 pid_t regfork(int flags, struct regfork* registers);
+int symlinkat(const char* targetPath, int fd, const char* linkPath);
 int tcgetattr(int fd, struct termios* result);
 int tcsetattr(int fd, int flags, const struct termios* termio);
 int unlinkat(int fd, const char* path, int flags);

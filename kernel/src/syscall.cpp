@@ -26,6 +26,7 @@
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/process.h>
+#include <dennix/kernel/symlink.h>
 #include <dennix/kernel/syscall.h>
 
 static const void* syscallList[NUM_SYSCALLS] = {
@@ -51,6 +52,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_UNLINKAT] =*/ (void*) Syscall::unlinkat,
     /*[SYSCALL_RENAMEAT] =*/ (void*) Syscall::renameat,
     /*[SYSCALL_LINKAT] =*/ (void*) Syscall::linkat,
+    /*[SYSCALL_SYMLINKAT] =*/ (void*) Syscall::symlinkat,
 };
 
 static FileDescription* getRootFd(int fd, const char* path) {
@@ -66,23 +68,7 @@ static FileDescription* getRootFd(int fd, const char* path) {
 static Reference<Vnode> resolvePathExceptLastComponent(int fd, char* path,
         char** lastComponent) {
     Reference<Vnode> vnode = getRootFd(fd, path)->vnode;
-
-    char* slash = strrchr(path, '/');
-    while (slash && !slash[1]) {
-        *slash = '\0';
-        slash = strrchr(path, '/');
-    }
-
-    if (slash) {
-        *slash = '\0';
-        *lastComponent = slash + 1;
-        if (*path) {
-            vnode = resolvePath(vnode, path);
-        }
-    } else {
-        *lastComponent = path;
-    }
-    return vnode;
+    return resolvePathExceptLastComponent(vnode, path, lastComponent);
 }
 
 extern "C" const void* getSyscallHandler(unsigned interruptNumber) {
@@ -144,10 +130,10 @@ int Syscall::fstat(int fd, struct stat* result) {
 }
 
 int Syscall::fstatat(int fd, const char* restrict path,
-        struct stat* restrict result, int /*flags*/) {
+        struct stat* restrict result, int flags) {
+    bool followFinalSymlink = !(flags & AT_SYMLINK_NOFOLLOW);
     FileDescription* descr = getRootFd(fd, path);
-
-    Reference<Vnode> vnode = resolvePath(descr->vnode, path);
+    Reference<Vnode> vnode = resolvePath(descr->vnode, path, followFinalSymlink);
     if (!vnode) return -1;
 
     return vnode->stat(result);
@@ -155,8 +141,9 @@ int Syscall::fstatat(int fd, const char* restrict path,
 
 int Syscall::linkat(int oldFd, const char* oldPath, int newFd,
         const char* newPath, int flags) {
+    bool followFinalSymlink = flags & AT_SYMLINK_FOLLOW;
     Reference<Vnode> vnode = resolvePath(getRootFd(oldFd, oldPath)->vnode,
-            oldPath);
+            oldPath, followFinalSymlink);
     if (!vnode) return -1;
 
     if (S_ISDIR(vnode->mode)) {
@@ -204,6 +191,11 @@ int Syscall::mkdirat(int fd, const char* path, mode_t mode) {
             &name);
     if (!vnode) {
         free(pathCopy);
+        return -1;
+    }
+    if (!*name) {
+        free(pathCopy);
+        errno = EEXIST;
         return -1;
     }
 
@@ -302,6 +294,29 @@ int Syscall::renameat(int oldFd, const char* oldPath, int newFd,
     int result = newDirectory->rename(oldDirectory, oldName, newName);
     free(oldCopy);
     free(newCopy);
+    return result;
+}
+
+int Syscall::symlinkat(const char* targetPath, int fd, const char* linkPath) {
+    if (!*targetPath) {
+        errno = ENOENT;
+        return -1;
+    }
+
+    char* pathCopy = strdup(linkPath);
+    if (!pathCopy) return -1;
+
+    char* name;
+    Reference<Vnode> vnode = resolvePathExceptLastComponent(fd, pathCopy,
+            &name);
+    if (!vnode) {
+        free(pathCopy);
+        return -1;
+    }
+
+    Reference<Vnode> symlink(new SymlinkVnode(targetPath, vnode->dev, 0));
+    int result = vnode->link(name, symlink);
+    free(pathCopy);
     return result;
 }
 

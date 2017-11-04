@@ -70,6 +70,8 @@ int linkat(int, const char*, int, const char*, int);
 ssize_t read(int, void*, size_t);
 int rmdir(const char*);
 unsigned int sleep(unsigned int);
+int symlink(const char*, const char*);
+int symlinkat(const char*, int, const char*);
 int unlink(const char*);
 int unlinkat(int, const char*, int);
 ssize_t write(int, const void*, size_t);

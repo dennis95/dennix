@@ -22,6 +22,9 @@
 
 #define AT_FDCWD (-1)
 
+/* Flags for fstatat(2). */
+#define AT_SYMLINK_NOFOLLOW (1 << 0)
+
 /* Flags for linkat(2). */
 #define AT_SYMLINK_FOLLOW (1 << 0)
 

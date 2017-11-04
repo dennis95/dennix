@@ -28,6 +28,7 @@ class Vnode : public ReferenceCounted {
 public:
     virtual int ftruncate(off_t length);
     virtual Reference<Vnode> getChildNode(const char* path);
+    virtual char* getLinkTarget();
     virtual bool isSeekable();
     virtual int link(const char* name, const Reference<Vnode>& vnode);
     virtual int mkdir(const char* name, mode_t mode);
@@ -52,6 +53,9 @@ public:
     mode_t mode;
 };
 
-Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path);
+Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
+        bool followFinalSymlink = true);
+Reference<Vnode> resolvePathExceptLastComponent(const Reference<Vnode>& vnode,
+        char* path, char** lastComponent);
 
 #endif
