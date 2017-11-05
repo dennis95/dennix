@@ -33,6 +33,7 @@ PROGRAMS = \
 	echo \
 	editor \
 	false \
+	ln \
 	ls \
 	mkdir \
 	mv \
