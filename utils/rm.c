@@ -112,7 +112,7 @@ static bool getConfirmation(void) {
 static bool removeFile(const char* filename, bool force, bool prompt,
         bool recursive) {
     struct stat st;
-    if (stat(filename, &st) < 0) {
+    if (lstat(filename, &st) < 0) {
         if (force && errno == ENOENT) return true;
         warn("cannot remove '%s'", filename);
         exitStatus = 1;

@@ -61,6 +61,7 @@ extern "C" {
 
 int fstat(int, struct stat*);
 int fstatat(int, const char* __restrict, struct stat* __restrict, int);
+int lstat(const char* __restrict, struct stat* __restrict);
 int mkdir(const char*, mode_t);
 int mkdirat(int, const char*, mode_t);
 int stat(const char* __restrict, struct stat* __restrict);
