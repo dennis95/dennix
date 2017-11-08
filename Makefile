@@ -1,4 +1,4 @@
-# Copyright (c) 2016, Dennis Wölfing
+# Copyright (c) 2016, 2017 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -67,7 +67,7 @@ qemu: $(ISO)
 utils: $(INCLUDE_DIR)
 	$(MAKE) -C utils
 
-$(SYSROOT): $(INCLUDE_DIR) $(LIB_DIR) $(BIN_DIR)
+$(SYSROOT): $(INCLUDE_DIR) $(LIB_DIR) $(BIN_DIR) $(SYSROOT)/usr
 
 $(BIN_DIR):
 	$(MAKE) -C utils install
@@ -78,6 +78,9 @@ $(INCLUDE_DIR):
 
 $(LIB_DIR):
 	$(MAKE) -C libc install-libs
+
+$(SYSROOT)/usr:
+	ln -s . $@
 
 clean:
 	rm -rf $(BUILD_DIR)

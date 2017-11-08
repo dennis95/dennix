@@ -1,4 +1,4 @@
-# Copyright (c) 2016, Dennis Wölfing
+# Copyright (c) 2016, 2017 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -15,5 +15,5 @@
 BUILD_DIR = $(REPO_ROOT)/build/$(ARCH)
 SYSROOT ?= $(REPO_ROOT)/sysroot
 BIN_DIR = $(SYSROOT)/bin
-INCLUDE_DIR = $(SYSROOT)/usr/include
-LIB_DIR = $(SYSROOT)/usr/lib
+INCLUDE_DIR = $(SYSROOT)/include
+LIB_DIR = $(SYSROOT)/lib
