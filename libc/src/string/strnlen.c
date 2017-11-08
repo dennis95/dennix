@@ -13,24 +13,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/symlink.h
- * Symbolic links.
+/* libc/src/string/strnlen.c
+ * Get the length of a string.
  */
 
-#ifndef KERNEL_SYMLINK_H
-#define KERNEL_SYMLINK_H
+#include <string.h>
 
-#include <dennix/kernel/vnode.h>
-
-class SymlinkVnode : public Vnode {
-public:
-    SymlinkVnode(const char* target, dev_t dev, ino_t ino);
-    SymlinkVnode(const char* target, size_t targetLength, dev_t dev,
-            ino_t ino);
-    ~SymlinkVnode();
-    virtual char* getLinkTarget();
-private:
-    const char* target;
-};
-
-#endif
+size_t strnlen(const char* s, size_t maxlen) {
+    size_t length = 0;
+    while (length < maxlen && s[length] != '\0') {
+        length++;
+    }
+    return length;
+}

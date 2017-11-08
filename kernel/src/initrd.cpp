@@ -24,6 +24,7 @@
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/initrd.h>
 #include <dennix/kernel/log.h>
+#include <dennix/kernel/symlink.h>
 
 struct TarHeader {
     char name[100];
@@ -86,6 +87,10 @@ Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
         } else if (header->typeflag == DIRTYPE) {
             newFile = Reference<Vnode>(new DirectoryVnode(directory, mode,
                     directory->dev, 0));
+            header++;
+        } else if (header->typeflag == SYMTYPE) {
+            newFile = Reference<Vnode>(new SymlinkVnode(header->linkname,
+                    sizeof(header->linkname), directory->dev, 0));
             header++;
         } else {
             Log::printf("Unknown typeflag '%c'\n", header->typeflag);

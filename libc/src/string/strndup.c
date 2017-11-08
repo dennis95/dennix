@@ -13,24 +13,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/symlink.h
- * Symbolic links.
+/* libc/src/string/strndup.c
+ * Creates a copy of a string.
  */
 
-#ifndef KERNEL_SYMLINK_H
-#define KERNEL_SYMLINK_H
+#include <stdlib.h>
+#include <string.h>
 
-#include <dennix/kernel/vnode.h>
-
-class SymlinkVnode : public Vnode {
-public:
-    SymlinkVnode(const char* target, dev_t dev, ino_t ino);
-    SymlinkVnode(const char* target, size_t targetLength, dev_t dev,
-            ino_t ino);
-    ~SymlinkVnode();
-    virtual char* getLinkTarget();
-private:
-    const char* target;
-};
-
-#endif
+char* strndup(const char* str, size_t size) {
+    size_t length = strnlen(str, size);
+    char* result = malloc(length + 1);
+    memcpy(result, str, length);
+    result[length] = '\0';
+    return result;
+}

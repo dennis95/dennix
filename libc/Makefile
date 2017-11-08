@@ -65,6 +65,8 @@ COMMON_OBJ = \
 	string/strlcpy \
 	string/strlen \
 	string/strncmp \
+	string/strndup \
+	string/strnlen \
 	string/strrchr \
 	string/strspn \
 	string/strtok

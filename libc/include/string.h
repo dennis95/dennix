@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -47,6 +47,8 @@ char* strtok(char* __restrict, const char* __restrict);
 #if __USE_DENNIX || __USE_POSIX
 char* stpcpy(char* __restrict, const char* __restrict);
 char* strdup(const char*);
+char* strndup(const char*, size_t);
+size_t strnlen(const char*, size_t);
 #endif
 
 #if __USE_DENNIX
