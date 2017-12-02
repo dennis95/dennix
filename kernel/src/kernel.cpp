@@ -17,6 +17,7 @@
  * The kernel's main function.
  */
 
+#include <assert.h>
 #include <string.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/directory.h>
@@ -67,6 +68,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
         const char* envp[] = { "PATH=/bin", nullptr };
         newProcess->execute(program, (char**) argv, (char**) envp);
         Process::addProcess(newProcess);
+        assert(newProcess->pid == 1);
     }
 
     Log::printf("Enabling interrupts...\n");

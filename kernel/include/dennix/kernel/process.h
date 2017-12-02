@@ -41,15 +41,14 @@ public:
     Process* waitpid(pid_t pid, int flags);
 private:
     InterruptContext* interruptContext;
-    Process* prev;
-    Process* next;
     void* kernelStack;
     bool contextChanged;
     bool fdInitialized;
     bool terminated;
     Process* parent;
-    Process** children;
-    size_t numChildren;
+    Process* firstChild;
+    Process* prevChild;
+    Process* nextChild;
     kthread_mutex_t childrenMutex;
 public:
     AddressSpace* addressSpace;
@@ -60,7 +59,7 @@ public:
     int status;
     mode_t umask;
 public:
-    static void addProcess(Process* process);
+    static bool addProcess(Process* process);
     static void initialize(FileDescription* rootFd);
     static InterruptContext* schedule(InterruptContext* context);
     static Process* current;

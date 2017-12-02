@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <dennix/kernel/dynarray.h>
 #include <dennix/kernel/elf.h>
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/physicalmemory.h>
@@ -30,27 +31,24 @@
 #include <dennix/kernel/terminal.h>
 
 Process* Process::current;
-static Process* firstProcess;
-static Process* idleProcess;
 
-static pid_t nextPid = 0;
+static DynamicArray<Process*, pid_t> processes;
 
 Process::Process() {
     addressSpace = nullptr;
     interruptContext = nullptr;
-    prev = nullptr;
-    next = nullptr;
     kernelStack = nullptr;
     memset(fd, 0, sizeof(fd));
     rootFd = nullptr;
     cwdFd = nullptr;
-    pid = 0;
+    pid = -1;
     contextChanged = false;
     fdInitialized = false;
     terminated = false;
     parent = nullptr;
-    children = nullptr;
-    numChildren = 0;
+    firstChild = nullptr;
+    prevChild = nullptr;
+    nextChild = nullptr;
     status = 0;
     childrenMutex = KTHREAD_MUTEX_INITIALIZER;
     umask = S_IWGRP | S_IWOTH;
@@ -59,26 +57,21 @@ Process::Process() {
 Process::~Process() {
     assert(terminated);
     kernelSpace->unmapMemory((vaddr_t) kernelStack, 0x1000);
-    free(children);
 }
 
 void Process::initialize(FileDescription* rootFd) {
-    idleProcess = new Process();
+    Process* idleProcess = new Process();
     idleProcess->addressSpace = kernelSpace;
     idleProcess->interruptContext = new InterruptContext();
     idleProcess->rootFd = rootFd;
+    idleProcess->pid = processes.add(idleProcess);
+    assert(idleProcess->pid == 0);
     current = idleProcess;
-    firstProcess = nullptr;
 }
 
-void Process::addProcess(Process* process) {
-    process->pid = nextPid++;
-    process->next = firstProcess;
-    if (process->next) {
-        process->next->prev = process;
-    }
-    firstProcess = process;
-
+bool Process::addProcess(Process* process) {
+    process->pid = processes.add(process);
+    return process->pid != -1;
 }
 
 int Process::copyArguments(char* const argv[], char* const envp[],
@@ -163,15 +156,28 @@ InterruptContext* Process::schedule(InterruptContext* context) {
         current->contextChanged = false;
     }
 
-    if (current->next) {
-        current = current->next;
-    } else {
-        if (firstProcess) {
-            current = firstProcess;
-        } else {
-            current = idleProcess;
+    pid_t currentPid = current->pid;
+    pid_t pid = processes.next(currentPid);
+
+    while (true) {
+        if (pid == -1) {
+            if (currentPid == 0) {
+                pid = 0;
+                break;
+            }
+            pid = 1;
         }
+
+        if (!processes[pid]->terminated) break;
+        if (pid == currentPid) {
+            pid = 0;
+            break;
+        }
+
+        pid = processes.next(pid);
     }
+
+    current = processes[pid];
 
     setKernelStack((uintptr_t) current->kernelStack + 0x1000);
 
@@ -221,7 +227,7 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
         fd[1] = new FileDescription(terminal); // stdout
         fd[2] = new FileDescription(terminal); // stderr
 
-        rootFd = new FileDescription(*idleProcess->rootFd);
+        rootFd = new FileDescription(*processes[0]->rootFd);
         cwdFd = new FileDescription(*rootFd);
         fdInitialized = true;
     }
@@ -246,17 +252,6 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
 
 void Process::exit(int status) {
     Interrupts::disable();
-    if (next) {
-        next->prev = prev;
-    }
-
-    if (prev) {
-        prev->next = next;
-    }
-
-    if (this == firstProcess) {
-        firstProcess = next;
-    }
 
     // Clean up
     delete addressSpace;
@@ -275,19 +270,6 @@ void Process::exit(int status) {
 Process* Process::regfork(int /*flags*/, struct regfork* registers) {
     Process* process = new Process();
     process->parent = this;
-    // Add the process to the list of children.
-    kthread_mutex_lock(&childrenMutex);
-    Process** newChildren = (Process**) reallocarray(children, numChildren + 1,
-            sizeof(Process*));
-
-    if (!newChildren) {
-        kthread_mutex_unlock(&childrenMutex);
-        errno = ENOMEM;
-        return nullptr;
-    }
-    children = newChildren;
-    children[numChildren++] = process;
-    kthread_mutex_unlock(&childrenMutex);
 
     process->kernelStack = (void*) kernelSpace->mapMemory(0x1000,
             PROT_READ | PROT_WRITE);
@@ -323,9 +305,25 @@ Process* Process::regfork(int /*flags*/, struct regfork* registers) {
     process->cwdFd = new FileDescription(*cwdFd);
     process->fdInitialized = true;
 
+    kthread_mutex_lock(&childrenMutex);
+
+    if (firstChild) {
+        process->nextChild = firstChild;
+        firstChild->prevChild = process;
+    }
+    firstChild = process;
+
     Interrupts::disable();
-    addProcess(process);
+    if (!addProcess(process)) {
+        process->exit(0);
+        if (process->nextChild) {
+            process->nextChild->prevChild = nullptr;
+        }
+        firstChild = process->nextChild;
+        delete process;
+    }
     Interrupts::enable();
+    kthread_mutex_unlock(&childrenMutex);
 
     return process;
 }
@@ -349,30 +347,42 @@ Process* Process::waitpid(pid_t pid, int flags) {
         return nullptr;
     }
 
-    AutoLock lock(&childrenMutex);
+    kthread_mutex_lock(&childrenMutex);
+    Process* process = firstChild;
 
-    for (size_t i = 0; i < numChildren; i++) {
-        if (children[i]->pid == pid) {
-            Process* result = children[i];
-            kthread_mutex_unlock(&childrenMutex);
+    while (process && process->pid != pid) {
+        process = process->nextChild;
+    }
+    kthread_mutex_unlock(&childrenMutex);
 
-            while (!result->terminated) {
-                // Yield until the process terminates.
-                sched_yield();
-            }
-
-            kthread_mutex_lock(&childrenMutex);
-            // Remove the process from the list
-            if (i < numChildren - 1) {
-                children[i] = children[numChildren - 1];
-            }
-            children = (Process**) realloc(children,
-                    --numChildren * sizeof(Process*));
-
-            return result;
-        }
+    if (!process) {
+        errno = ECHILD;
+        return nullptr;
     }
 
-    errno = ECHILD;
-    return nullptr;
+    while (!process->terminated) {
+        sched_yield();
+    }
+
+    // TODO: If a parent terminates before its children terminate they no
+    // longer have a valid parent. We should have an init process that inherits
+    // the children and waits for their termination.
+    assert(!process->firstChild);
+
+    kthread_mutex_lock(&childrenMutex);
+    if (process->nextChild) {
+        process->nextChild->prevChild = process->prevChild;
+    }
+    if (process->prevChild) {
+        process->prevChild->nextChild = process->nextChild;
+    } else {
+        firstChild = process->nextChild;
+    }
+    kthread_mutex_unlock(&childrenMutex);
+
+    Interrupts::disable();
+    processes.remove(pid);
+    Interrupts::enable();
+
+    return process;
 }
