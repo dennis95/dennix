@@ -153,6 +153,7 @@ LIBC_OBJ = \
 	sys/stat/mkdirat \
 	sys/stat/stat \
 	sys/utsname/uname \
+	sys/wait/wait \
 	sys/wait/waitpid \
 	termios/tcgetattr \
 	termios/tcsetattr \

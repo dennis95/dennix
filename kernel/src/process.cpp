@@ -347,21 +347,42 @@ Process* Process::waitpid(pid_t pid, int flags) {
         return nullptr;
     }
 
-    kthread_mutex_lock(&childrenMutex);
-    Process* process = firstChild;
+    Process* process;
 
-    while (process && process->pid != pid) {
-        process = process->nextChild;
-    }
-    kthread_mutex_unlock(&childrenMutex);
+    if (pid == -1) {
+        while (true) {
+            kthread_mutex_lock(&childrenMutex);
+            if (!firstChild) {
+                kthread_mutex_unlock(&childrenMutex);
+                errno = ECHILD;
+                return nullptr;
+            }
 
-    if (!process) {
-        errno = ECHILD;
-        return nullptr;
-    }
+            process = firstChild;
+            while (process && !process->terminated) {
+                process = process->nextChild;
+            }
+            kthread_mutex_unlock(&childrenMutex);
+            if (process) break;
+            sched_yield();
+        }
+    } else {
+        kthread_mutex_lock(&childrenMutex);
+        process = firstChild;
 
-    while (!process->terminated) {
-        sched_yield();
+        while (process && process->pid != pid) {
+            process = process->nextChild;
+        }
+        kthread_mutex_unlock(&childrenMutex);
+
+        if (!process) {
+            errno = ECHILD;
+            return nullptr;
+        }
+
+        while (!process->terminated) {
+            sched_yield();
+        }
     }
 
     // TODO: If a parent terminates before its children terminate they no
@@ -381,7 +402,7 @@ Process* Process::waitpid(pid_t pid, int flags) {
     kthread_mutex_unlock(&childrenMutex);
 
     Interrupts::disable();
-    processes.remove(pid);
+    processes.remove(process->pid);
     Interrupts::enable();
 
     return process;

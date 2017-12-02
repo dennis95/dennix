@@ -373,8 +373,9 @@ pid_t Syscall::waitpid(pid_t pid, int* status, int flags) {
     }
 
     *status = process->status;
+    pid_t result = process->pid;
     delete process;
-    return pid;
+    return result;
 }
 
 ssize_t Syscall::write(int fd, const void* buffer, size_t size) {

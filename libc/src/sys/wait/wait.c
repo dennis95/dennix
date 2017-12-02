@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,29 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/sys/wait.h
- * Waiting for other processes.
+/* libc/src/sys/wait/wait.c
+ * Waits until a child process terminates.
  */
 
-#ifndef _SYS_WAIT_H
-#define _SYS_WAIT_H
+#include <sys/wait.h>
 
-#include <sys/cdefs.h>
-#define __need_id_t
-#define __need_pid_t
-#define __need_siginfo_t
-#include <sys/libc-types.h>
-#include <dennix/wait.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-pid_t wait(int*);
-pid_t waitpid(pid_t, int*, int);
-
-#ifdef __cplusplus
+pid_t wait(int* status) {
+    return waitpid(-1, status, 0);
 }
-#endif
-
-#endif
