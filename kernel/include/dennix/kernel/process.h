@@ -63,6 +63,7 @@ public:
     static void initialize(FileDescription* rootFd);
     static InterruptContext* schedule(InterruptContext* context);
     static Process* current;
+    static Process* initProcess;
 private:
     static int copyArguments(char* const argv[], char* const envp[],
             char**& newArgv, char**& newEnvp, AddressSpace* newAddressSpace);

@@ -17,3 +17,4 @@ SYSROOT ?= $(REPO_ROOT)/sysroot
 BIN_DIR = $(SYSROOT)/bin
 INCLUDE_DIR = $(SYSROOT)/include
 LIB_DIR = $(SYSROOT)/lib
+SBIN_DIR = $(SYSROOT)/sbin

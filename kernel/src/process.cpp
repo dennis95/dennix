@@ -31,6 +31,7 @@
 #include <dennix/kernel/terminal.h>
 
 Process* Process::current;
+Process* Process::initProcess;
 
 static DynamicArray<Process*, pid_t> processes;
 
@@ -251,6 +252,27 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
 }
 
 void Process::exit(int status) {
+    kthread_mutex_lock(&childrenMutex);
+    if (firstChild) {
+        AutoLock lock(&initProcess->childrenMutex);
+
+        Process* child = firstChild;
+        while (true) {
+            // Reassign the now orphaned processes to the init process.
+            child->parent = initProcess;
+            if (!child->nextChild) {
+                child->nextChild = initProcess->firstChild;
+                if (initProcess->firstChild) {
+                    initProcess->firstChild->prevChild = child;
+                }
+                initProcess->firstChild = firstChild;
+                break;
+            }
+            child = child->nextChild;
+        }
+    }
+    kthread_mutex_unlock(&childrenMutex);
+
     Interrupts::disable();
 
     // Clean up
@@ -384,11 +406,6 @@ Process* Process::waitpid(pid_t pid, int flags) {
             sched_yield();
         }
     }
-
-    // TODO: If a parent terminates before its children terminate they no
-    // longer have a valid parent. We should have an init process that inherits
-    // the children and waits for their termination.
-    assert(!process->firstChild);
 
     kthread_mutex_lock(&childrenMutex);
     if (process->nextChild) {

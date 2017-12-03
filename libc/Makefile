@@ -172,6 +172,7 @@ LIBC_OBJ = \
 	unistd/getcwd \
 	unistd/gethostname \
 	unistd/getlogin \
+	unistd/getpid \
 	unistd/link \
 	unistd/linkat \
 	unistd/read \
