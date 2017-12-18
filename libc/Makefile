@@ -41,6 +41,11 @@ COMMON_OBJ = \
 	libgen/basename \
 	libgen/dirname \
 	sched/sched_yield \
+	signal/sigaddset \
+	signal/sigdelset \
+	signal/sigemptyset \
+	signal/sigfillset \
+	signal/sigismember \
 	stdio/vcbprintf \
 	stdlib/calloc \
 	stdlib/free \

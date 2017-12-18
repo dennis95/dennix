@@ -17,8 +17,10 @@
  * Timers.
  */
 
+#include <errno.h>
 #include <sched.h>
 #include <dennix/kernel/pit.h>
+#include <dennix/kernel/signal.h>
 #include <dennix/kernel/syscall.h>
 #include <dennix/kernel/timer.h>
 
@@ -40,12 +42,12 @@ static inline bool isZero(struct timespec time) {
 }
 
 Timer::Timer(struct timespec time) {
-    this->time = time;
+    remaining = time;
     index = 0;
 }
 
 void Timer::advance(unsigned long nanoseconds) {
-    minus(&time, nanoseconds);
+    minus(&remaining, nanoseconds);
 }
 
 void Timer::start() {
@@ -53,7 +55,7 @@ void Timer::start() {
 }
 
 void Timer::wait() {
-    while (!isZero(time)) {
+    while (!isZero(remaining) && !Signal::isPending()) {
         sched_yield();
     }
 
@@ -66,8 +68,12 @@ int Syscall::nanosleep(const timespec* requested, timespec* remaining) {
     timer.wait();
 
     if (remaining) {
-        remaining->tv_sec = 0;
-        remaining->tv_nsec = 0;
+        *remaining = timer.remaining;
+    }
+
+    if (!isZero(timer.remaining)) {
+        errno = EINTR;
+        return -1;
     }
 
     return 0;

@@ -18,6 +18,7 @@
  */
 
 #include <inttypes.h>
+#include <signal.h>
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/portio.h>
@@ -29,6 +30,27 @@
 #define PIC2_DATA 0xA1
 
 #define PIC_EOI 0x20
+
+#define EX_DEVIDE_BY_ZERO 0
+#define EX_DEBUG 1
+#define EX_NON_MASKABLE_INTERRUPT 2
+#define EX_BREAKPOINT 3
+#define EX_OVERFLOW 4
+#define EX_BOUND_RANGE_EXCEEDED 5
+#define EX_INVALID_OPCODE 6
+#define EX_DEVICE_NOT_AVAILABLE 7
+#define EX_DOUBLE_FAULT 8
+#define EX_COPROCESSOR_SEGMENT_OVERRUN 9
+#define EX_INVAILD_TSS 10
+#define EX_SEGMENT_NOT_PRESENT 11
+#define EX_STACK_SEGMENT_FAULT 12
+#define EX_GENERAL_PROTECTION_FAULT 13
+#define EX_PAGE_FAULT 14
+#define EX_X87_FLOATING_POINT_EXCEPTION 16
+#define EX_ALIGNMENT_CHECK 17
+#define EX_MACHINE_CHECK 18
+#define EX_SIMD_FLOATING_POINT_EXCEPTION 19
+#define EX_VIRTUALIZATION_EXCEPTION 20
 
 void (*Interrupts::irqHandlers[16])(int) = {0};
 
@@ -54,10 +76,59 @@ void Interrupts::enable() {
     asm volatile ("sti");
 }
 
+static bool handleUserspaceException(const InterruptContext* context) {
+    siginfo_t siginfo = {};
+    switch (context->interrupt) {
+    case EX_DEVIDE_BY_ZERO:
+        siginfo.si_signo = SIGFPE;
+        siginfo.si_code = FPE_INTDIV;
+        siginfo.si_addr = (void*) context->eip;
+        break;
+    case EX_DEBUG:
+    case EX_BREAKPOINT:
+        siginfo.si_signo = SIGTRAP;
+        siginfo.si_code = TRAP_BRKPT;
+        siginfo.si_addr = (void*) context->eip;
+        break;
+    case EX_OVERFLOW:
+    case EX_BOUND_RANGE_EXCEEDED:
+    case EX_STACK_SEGMENT_FAULT:
+    case EX_GENERAL_PROTECTION_FAULT:
+        siginfo.si_signo = SIGSEGV;
+        siginfo.si_code = SI_KERNEL;
+        siginfo.si_addr = (void*) context->eip;
+        break;
+    case EX_INVALID_OPCODE:
+        siginfo.si_signo = SIGILL;
+        siginfo.si_code = ILL_ILLOPC;
+        siginfo.si_addr = (void*) context->eip;
+        break;
+    case EX_PAGE_FAULT:
+        siginfo.si_signo = SIGSEGV;
+        siginfo.si_code = SEGV_MAPERR;
+        asm ("mov %%cr2, %0" : "=r"(siginfo.si_addr));
+        break;
+    case EX_X87_FLOATING_POINT_EXCEPTION:
+    case EX_SIMD_FLOATING_POINT_EXCEPTION:
+        siginfo.si_signo = SIGFPE;
+        siginfo.si_code = FPE_FLTINV;
+        siginfo.si_addr = (void*) context->eip;
+        break;
+    default:
+        return false;
+    }
+
+    Process::current->raiseSignal(siginfo);
+    return true;
+}
+
 extern "C" InterruptContext* handleInterrupt(InterruptContext* context) {
     InterruptContext* newContext = context;
 
-    if (context->interrupt <= 31) { // CPU Exception
+    if (context->interrupt <= 31 && context->cs != 0x8) {
+        if (!handleUserspaceException(context)) goto handleKernelException;
+    } else if (context->interrupt <= 31) { // CPU Exception
+handleKernelException:
         Log::printf("Exception %" PRIu32 " occurred!\n", context->interrupt);
         Log::printf("eax: 0x%" PRIX32 ", ebx: 0x%" PRIX32 ", ecx: 0x%" PRIX32
                 ", edx: 0x%" PRIX32 "\n",

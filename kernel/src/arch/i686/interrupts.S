@@ -60,8 +60,24 @@ commonHandler:
     call handleInterrupt
     mov %eax, %esp
 
+    # Check whether signals are pending.
+    mov signalPending, %ebx
+    test %ebx, %ebx
+    jz 1f
+
+    # Don't handle signals when returning to kernelspace.
+    mov 40(%esp), %ebx # cs
+    cmp $0x8, %ebx
+    je 1f
+
+    and $(~0xFF), %esp # Align the stack
+    sub $12, %esp
+    push %eax
+    call handleSignal
+    mov %eax, %esp
+
     # Switch back to user data segment
-    mov $0x23, %ax
+1:  mov $0x23, %ax
     mov %ax, %ds
     mov %ax, %es
 

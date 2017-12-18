@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,8 +29,9 @@ public:
     void advance(unsigned long nanoseconds);
     void start();
     void wait();
+public:
+    struct timespec remaining;
 private:
-    struct timespec time;
     size_t index;
 };
 

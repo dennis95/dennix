@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,23 +13,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/wait.h
- * Waiting for other processes.
+/* libc/src/signal/sigismember.c
+ * Checks whether a signal is member of a sigset.
  */
 
-#ifndef _DENNIX_WAIT_H
-#define _DENNIX_WAIT_H
+#include <errno.h>
+#include <signal.h>
 
-#define WNOHANG (1 << 0)
-#define WUNTRACED (1 << 1)
+int sigismember(const sigset_t* set, int signal) {
+    if ((size_t) signal > sizeof(sigset_t) * 8) {
+        errno = EINVAL;
+        return -1;
+    }
 
-#define _WEXITED 0
-#define _WSIGNALED 1
-#define _WSTATUS(reason, si_status) ((reason) << 24 | ((si_status) & 0xFF))
-
-#define WEXITSTATUS(status) ((status) & 0xFF)
-#define WIFEXITED(status) (((status) >> 24 & 0xFF) == _WEXITED)
-#define WIFSIGNALED(status) (((status) >> 24 & 0xFF) == _WSIGNALED)
-#define WTERMSIG(status) ((status) & 0xFF)
-
-#endif
+    return *set & _SIGSET(signal) ? 1 : 0;
+}

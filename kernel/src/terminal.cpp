@@ -17,8 +17,10 @@
  * Terminal class.
  */
 
+#include <errno.h>
 #include <sched.h>
 #include <dennix/kernel/kernel.h>
+#include <dennix/kernel/signal.h>
 #include <dennix/kernel/terminal.h>
 #include <dennix/kernel/vgaterminal.h>
 
@@ -133,6 +135,12 @@ ssize_t Terminal::read(void* buffer, size_t size) {
                 }
             }
             sched_yield();
+
+            if (Signal::isPending()) {
+                if (readSize) return readSize;
+                errno = EINTR;
+                return -1;
+            }
         }
 
         if (numEof) {

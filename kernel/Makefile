@@ -52,6 +52,7 @@ OBJ = \
 	ps2.o \
 	ps2keyboard.o \
 	refcount.o \
+	signal.o \
 	symlink.o \
 	syscall.o \
 	terminal.o \

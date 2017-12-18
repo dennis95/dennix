@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,23 +13,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/wait.h
- * Waiting for other processes.
+/* kernel/include/dennix/kernel/signal.h
+ * Signals.
  */
 
-#ifndef _DENNIX_WAIT_H
-#define _DENNIX_WAIT_H
+#ifndef KERNEL_SIGNAL_H
+#define KERNEL_SIGNAL_H
 
-#define WNOHANG (1 << 0)
-#define WUNTRACED (1 << 1)
+extern "C" volatile unsigned long signalPending;
 
-#define _WEXITED 0
-#define _WSIGNALED 1
-#define _WSTATUS(reason, si_status) ((reason) << 24 | ((si_status) & 0xFF))
-
-#define WEXITSTATUS(status) ((status) & 0xFF)
-#define WIFEXITED(status) (((status) >> 24 & 0xFF) == _WEXITED)
-#define WIFSIGNALED(status) (((status) >> 24 & 0xFF) == _WSIGNALED)
-#define WTERMSIG(status) ((status) & 0xFF)
+namespace Signal {
+static inline bool isPending() { return signalPending; }
+}
 
 #endif

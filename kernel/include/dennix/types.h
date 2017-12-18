@@ -26,5 +26,6 @@ typedef int __mode_t;
 typedef __INTMAX_TYPE__ __off_t;
 typedef int __pid_t;
 typedef __INT64_TYPE__ __time_t;
+typedef __UINT64_TYPE__ __uid_t;
 
 #endif

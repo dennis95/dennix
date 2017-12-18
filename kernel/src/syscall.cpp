@@ -19,10 +19,12 @@
 
 #include <errno.h>
 #include <sched.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <dennix/fcntl.h>
+#include <dennix/wait.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/process.h>
@@ -377,7 +379,9 @@ pid_t Syscall::waitpid(pid_t pid, int* status, int flags) {
         return -1;
     }
 
-    *status = process->status;
+    int reason = (process->terminationStatus.si_code == CLD_EXITED)
+            ? _WEXITED : _WSIGNALED;
+    *status = _WSTATUS(reason, process->terminationStatus.si_status);
     pid_t result = process->pid;
     delete process;
     return result;
@@ -389,5 +393,8 @@ ssize_t Syscall::write(int fd, const void* buffer, size_t size) {
 }
 
 void Syscall::badSyscall() {
-    Log::printf("Syscall::badSyscall was called!\n");
+    siginfo_t siginfo = {};
+    siginfo.si_signo = SIGSYS;
+    siginfo.si_code = SI_KERNEL;
+    Process::current->raiseSignal(siginfo);
 }

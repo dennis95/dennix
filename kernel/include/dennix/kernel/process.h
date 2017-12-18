@@ -22,6 +22,7 @@
 
 #include <sys/types.h>
 #include <dennix/fork.h>
+#include <dennix/siginfo.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/filedescription.h>
 #include <dennix/kernel/interrupts.h>
@@ -29,16 +30,28 @@
 
 #define OPEN_MAX 20
 
+struct PendingSignal {
+    siginfo_t siginfo;
+    PendingSignal* next;
+};
+
 class Process {
 public:
     Process();
     ~Process();
     void exit(int status);
-    Process* regfork(int flags, struct regfork* registers);
     int execute(const Reference<Vnode>& vnode, char* const argv[],
             char* const envp[]);
+    Process* regfork(int flags, struct regfork* registers);
     int registerFileDescriptor(FileDescription* descr);
     Process* waitpid(pid_t pid, int flags);
+
+    InterruptContext* handleSignal(InterruptContext* context);
+    void raiseSignal(siginfo_t siginfo);
+    void terminateBySignal(siginfo_t siginfo);
+    void updatePendingSignals();
+private:
+    void terminate();
 private:
     InterruptContext* interruptContext;
     void* kernelStack;
@@ -50,14 +63,16 @@ private:
     Process* prevChild;
     Process* nextChild;
     kthread_mutex_t childrenMutex;
+    PendingSignal* pendingSignals;
+    kthread_mutex_t signalMutex;
 public:
     AddressSpace* addressSpace;
     FileDescription* fd[OPEN_MAX];
     FileDescription* rootFd;
     FileDescription* cwdFd;
     pid_t pid;
-    int status;
     mode_t umask;
+    siginfo_t terminationStatus;
 public:
     static bool addProcess(Process* process);
     static void initialize(FileDescription* rootFd);
