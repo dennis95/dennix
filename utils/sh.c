@@ -21,6 +21,7 @@
 #include <err.h>
 #include <getopt.h>
 #include <limits.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -156,6 +157,17 @@ static int executeCommand(int argc, char* arguments[]) {
         if (waitpid(pid, &status, 0) == -1) {
             err(1, "waitpid");
         }
+
+        if (WIFSIGNALED(status)) {
+            int signum = WTERMSIG(status);
+            if (signum == SIGINT) {
+                fputc('\n', stderr);
+            } else {
+                fprintf(stderr, "%s\n", strsignal(signum));
+            }
+            return 128 + signum;
+        }
+
         return WEXITSTATUS(status);
     }
 }
