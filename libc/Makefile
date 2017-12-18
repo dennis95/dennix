@@ -73,6 +73,7 @@ COMMON_OBJ = \
 	string/strndup \
 	string/strnlen \
 	string/strrchr \
+	string/strsignal \
 	string/strspn \
 	string/strtok
 

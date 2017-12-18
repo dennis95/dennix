@@ -49,6 +49,7 @@ char* stpcpy(char* __restrict, const char* __restrict);
 char* strdup(const char*);
 char* strndup(const char*, size_t);
 size_t strnlen(const char*, size_t);
+char* strsignal(int);
 #endif
 
 #if __USE_DENNIX
