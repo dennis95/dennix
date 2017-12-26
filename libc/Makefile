@@ -100,6 +100,8 @@ LIBC_OBJ = \
 	errno/initProgname \
 	fcntl/open \
 	fcntl/openat \
+	signal/kill \
+	signal/raise \
 	stdio/clearerr_unlocked \
 	stdio/clearerr \
 	stdio/fclose \

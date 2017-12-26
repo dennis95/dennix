@@ -56,6 +56,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_LINKAT] =*/ (void*) Syscall::linkat,
     /*[SYSCALL_SYMLINKAT] =*/ (void*) Syscall::symlinkat,
     /*[SYSCALL_GETPID] =*/ (void*) Syscall::getpid,
+    /*[SYSCALL_KILL] =*/ (void*) Syscall::kill,
 };
 
 static FileDescription* getRootFd(int fd, const char* path) {

@@ -18,11 +18,13 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <sched.h>
 #include <signal.h>
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/signal.h>
+#include <dennix/kernel/syscall.h>
 
 static sigset_t defaultIgnoredSignals = _SIGSET(SIGCHLD) | _SIGSET(SIGURG);
 
@@ -112,4 +114,30 @@ void Process::raiseSignal(siginfo_t siginfo) {
 void Process::updatePendingSignals() {
     // TODO: Implement signal blocking.
     signalPending = (pendingSignals != nullptr);
+}
+
+int Syscall::kill(pid_t pid, int signal) {
+    if (signal < 0 || signal >= NSIG) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    Process* process;
+    if (pid == Process::current->pid) {
+        process = Process::current;
+    } else {
+        // TODO: Allow sending signals to other processes.
+        errno = EPERM;
+        return -1;
+    }
+
+    if (signal == 0) return 0;
+
+    siginfo_t siginfo = {};
+    siginfo.si_signo = signal;
+    siginfo.si_code = SI_USER;
+    siginfo.si_pid = Process::current->pid;
+    process->raiseSignal(siginfo);
+
+    return 0;
 }

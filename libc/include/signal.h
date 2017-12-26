@@ -41,7 +41,10 @@ extern "C" {
 
 typedef __SIG_ATOMIC_TYPE__ sig_atomic_t;
 
+int raise(int);
+
 #if __USE_DENNIX || __USE_POSIX
+int kill(pid_t, int);
 int sigaddset(sigset_t*, int);
 int sigdelset(sigset_t*, int);
 int sigemptyset(sigset_t*);
