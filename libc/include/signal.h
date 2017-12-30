@@ -21,7 +21,7 @@
 #define _SIGNAL_H
 
 #include <sys/cdefs.h>
-#include <dennix/signals.h>
+#include <dennix/signal.h>
 #if __USE_DENNIX || __USE_POSIX
 #  define __need_pid_t
 #  define __need_pthread_t
@@ -29,10 +29,12 @@
 #  define __need_size_t
 #  define __need_uid_t
 #  include <sys/libc-types.h>
+#  include <dennix/sigaction.h>
 #  include <dennix/siginfo.h>
 #  include <dennix/signalcodes.h>
 #  include <dennix/sigset.h>
 #  include <dennix/timespec.h>
+#  include <dennix/ucontext.h>
 #endif
 
 #ifdef __cplusplus
@@ -42,9 +44,12 @@ extern "C" {
 typedef __SIG_ATOMIC_TYPE__ sig_atomic_t;
 
 int raise(int);
+void (*signal(int, void(*)(int)))(int);
 
 #if __USE_DENNIX || __USE_POSIX
 int kill(pid_t, int);
+int sigaction(int, const struct sigaction* __restrict,
+        struct sigaction* __restrict);
 int sigaddset(sigset_t*, int);
 int sigdelset(sigset_t*, int);
 int sigemptyset(sigset_t*);

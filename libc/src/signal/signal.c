@@ -13,21 +13,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/signal.h
- * Signals.
+/* libc/src/signal/signal.c
+ * Sets the action for a signal.
  */
 
-#ifndef KERNEL_SIGNAL_H
-#define KERNEL_SIGNAL_H
+#include <signal.h>
 
-#include <dennix/kernel/interrupts.h>
+void (*signal(int signum, void (*handler)(int)))(int) {
+    struct sigaction action;
+    action.sa_handler = handler;
+    action.sa_flags = 0;
+    sigemptyset(&action.sa_mask);
 
-extern "C" volatile unsigned long signalPending;
+    struct sigaction old;
 
-namespace Signal {
-static inline bool isPending() { return signalPending; }
+    if (sigaction(signum, &action, &old) < 0) {
+        return SIG_ERR;
+    }
 
-InterruptContext* sigreturn(InterruptContext* context);
+    return old.sa_handler;
 }
-
-#endif

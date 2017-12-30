@@ -20,9 +20,9 @@
 #ifndef KERNEL_PROCESS_H
 #define KERNEL_PROCESS_H
 
+#include <signal.h>
 #include <sys/types.h>
 #include <dennix/fork.h>
-#include <dennix/siginfo.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/filedescription.h>
 #include <dennix/kernel/interrupts.h>
@@ -65,6 +65,7 @@ private:
     kthread_mutex_t childrenMutex;
     PendingSignal* pendingSignals;
     kthread_mutex_t signalMutex;
+    vaddr_t sigreturn;
 public:
     AddressSpace* addressSpace;
     FileDescription* fd[OPEN_MAX];
@@ -73,6 +74,8 @@ public:
     pid_t pid;
     mode_t umask;
     siginfo_t terminationStatus;
+    struct sigaction sigactions[NSIG];
+    sigset_t signalMask;
 public:
     static bool addProcess(Process* process);
     static void initialize(FileDescription* rootFd);

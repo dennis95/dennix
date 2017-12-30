@@ -13,21 +13,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/signal.h
- * Signals.
+/* kernel/include/dennix/sigaction.h
+ * sigaction structure.
  */
 
-#ifndef KERNEL_SIGNAL_H
-#define KERNEL_SIGNAL_H
+#ifndef _DENNIX_SIGACTION_H
+#define _DENNIX_SIGACTION_H
 
-#include <dennix/kernel/interrupts.h>
+#include <dennix/siginfo.h>
+#include <dennix/sigset.h>
 
-extern "C" volatile unsigned long signalPending;
+struct sigaction {
+    sigset_t sa_mask;
+    int sa_flags;
+    union {
+        void (*sa_handler)(int);
+        void (*sa_sigaction)(int, siginfo_t*, void*);
+    };
+};
 
-namespace Signal {
-static inline bool isPending() { return signalPending; }
-
-InterruptContext* sigreturn(InterruptContext* context);
-}
+#define SA_SIGINFO (1 << 0)
 
 #endif

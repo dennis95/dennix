@@ -62,7 +62,7 @@ extern void isr_47(void);
 
 extern void syscallHandler(void);
 extern void isr_49(void);
-
+extern void isr_50(void);
 }
 
 struct idt_entry {
@@ -143,6 +143,7 @@ idt_entry idt[] = {
 
     IDT_ENTRY(syscallHandler, 0x8, IDT_TRAP_GATE | IDT_RING3 | IDT_PRESENT),
     IDT_ENTRY(isr_49, 0x8, IDT_INTERRUPT_GATE | IDT_RING3 | IDT_PRESENT),
+    IDT_ENTRY(isr_50, 0x8, IDT_INTERRUPT_GATE | IDT_RING3 | IDT_PRESENT),
 };
 
 uint16_t idt_size = sizeof(idt) - 1;

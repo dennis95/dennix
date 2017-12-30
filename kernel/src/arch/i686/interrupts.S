@@ -137,3 +137,13 @@ isr 47
 
 #isr 48 # Syscall
 isr 49 # Schedule
+isr 50 # sigreturn
+
+.global beginSigreturn
+beginSigreturn:
+    # This section is mapped in all user address spaces. When a userspace
+    # program returns from a signal handler it will return to this address and
+    # and then perform a sigreturn.
+    int $0x32
+.global endSigreturn
+endSigreturn:

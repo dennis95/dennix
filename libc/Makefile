@@ -102,6 +102,8 @@ LIBC_OBJ = \
 	fcntl/openat \
 	signal/kill \
 	signal/raise \
+	signal/sigaction \
+	signal/signal \
 	stdio/clearerr_unlocked \
 	stdio/clearerr \
 	stdio/fclose \

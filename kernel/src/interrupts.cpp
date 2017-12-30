@@ -23,6 +23,7 @@
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/portio.h>
 #include <dennix/kernel/process.h>
+#include <dennix/kernel/signal.h>
 
 #define PIC1_COMMAND 0x20
 #define PIC1_DATA 0x21
@@ -161,6 +162,8 @@ handleKernelException:
         outb(PIC1_COMMAND, PIC_EOI);
     } else if (context->interrupt == 0x31) {
         newContext = Process::schedule(context);
+    } else if (context->interrupt == 0x32) {
+        newContext = Signal::sigreturn(context);
     } else {
         Log::printf("Unknown interrupt %u!\n", context->interrupt);
     }
