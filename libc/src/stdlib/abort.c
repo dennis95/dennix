@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,12 +13,19 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/cxx/purevirtual.cpp
- * C++ pure virtual function support.
+/* libc/src/stdlib/abort.c
+ * Abnormal process termination.
  */
 
+#include <signal.h>
 #include <stdlib.h>
+#include <sys/syscall.h>
 
-extern "C" void __cxa_pure_virtual() {
-    abort();
+DEFINE_SYSCALL(SYSCALL_ABORT, __noreturn void, sys_abort, (void));
+
+__noreturn void abort(void) {
+    raise(SIGABRT);
+
+    // If the call above returned, terminate by sending an uncatchable SIGABRT.
+    sys_abort();
 }

@@ -18,14 +18,20 @@
  */
 
 #include <assert.h>
+#include <stdlib.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/kthread.h>
 #include <dennix/kernel/log.h>
 
 static kthread_mutex_t heapLock = KTHREAD_MUTEX_INITIALIZER;
 
-extern "C" void __assertionFailure(const char* assertion, const char* file,
-        unsigned int line, const char* func) {
+extern "C" NORETURN void abort(void) {
+    Log::printf("Kernel abort");
+    while (true) asm volatile("cli; hlt");
+}
+
+extern "C" NORETURN void __assertionFailure(const char* assertion,
+        const char* file, unsigned int line, const char* func) {
     Log::printf("Assertion failed: '%s' at function %s (%s:%u)\n",
             assertion, func, file, line);
     // Halt the kernel.

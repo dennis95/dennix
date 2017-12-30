@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -68,7 +68,7 @@ void* malloc(size_t size) {
         default:
             // This shouldn't happen!
             __unlockHeap();
-            return NULL;
+            abort();
         }
     }
 }

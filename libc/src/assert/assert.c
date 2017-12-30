@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2017 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,11 +19,11 @@
 
 #include <assert.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <stdlib.h>
 
 __noreturn void __assertionFailure(const char* assertion, const char* file,
         unsigned int line, const char* func) {
     fprintf(stderr, "Assertion failed: '%s' at function %s (%s:%u)\n",
             assertion, func, file, line);
-    _exit(1);
+    abort();
 }

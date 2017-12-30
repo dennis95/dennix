@@ -34,6 +34,7 @@ extern "C" {
 
 #define RAND_MAX 32767
 
+__noreturn void abort(void);
 int atexit(void (*)(void));
 void* calloc(size_t, size_t);
 __noreturn void _Exit(int);
@@ -56,9 +57,6 @@ int unsetenv(const char*);
 char* canonicalize_file_name(const char*);
 void* reallocarray(void*, size_t, size_t);
 #endif
-
-/* These are just declared to make libgcc compile and are not implemented. */
-__noreturn void abort(void);
 
 /* These are just declared to make libgcov compile, which is compiled with
    libgcc, and are not implemented. */

@@ -147,6 +147,7 @@ LIBC_OBJ = \
 	stdio/stdout \
 	stdio/vfprintf_unlocked \
 	stdio/vfprintf \
+	stdlib/abort \
 	stdlib/atexit \
 	stdlib/canonicalize_file_name \
 	stdlib/_Exit \
