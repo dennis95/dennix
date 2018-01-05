@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,6 +17,7 @@
  * Programmable Interval Timer.
  */
 
+#include <dennix/kernel/clock.h>
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/pit.h>
@@ -66,6 +67,8 @@ size_t Pit::registerTimer(Timer* timer) {
 }
 
 static void irqHandler(int /*irq*/) {
+    Clock::onTick(nanoseconds);
+
     for (size_t i = 0; i < NUM_TIMERS; i++) {
         if (timers[i]) {
             timers[i]->advance(nanoseconds);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <dennix/fork.h>
 #include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/clock.h>
 #include <dennix/kernel/filedescription.h>
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/kthread.h>
@@ -76,6 +77,7 @@ public:
     siginfo_t terminationStatus;
     struct sigaction sigactions[NSIG];
     sigset_t signalMask;
+    Clock cpuClock;
 public:
     static bool addProcess(Process* process);
     static void initialize(FileDescription* rootFd);

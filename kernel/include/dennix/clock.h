@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018 Dennis Wölfing
+/* Copyright (c) 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,42 +13,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/time.h
- * Time declarations.
+/* kernel/include/dennix/clock.h
+ * System clocks.
  */
 
-#ifndef _TIME_H
-#define _TIME_H
+#ifndef _DENNIX_CLOCK_H
+#define _DENNIX_CLOCK_H
 
-#include <sys/cdefs.h>
-#define __need_clock_t
-#define __need_locale_t
-#define __need_NULL
-#define __need_size_t
-#define __need_time_t
-#if __USE_DENNIX || __USE_POSIX
-#  define __need_clockid_t
-#  define __need_timer_t
-#endif
-#include <sys/libc-types.h>
-#include <dennix/timespec.h>
-#if __USE_DENNIX || __USE_POSIX
-#  include <dennix/clock.h>
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-time_t time(time_t*);
-
-#if __USE_DENNIX || __USE_POSIX
-int clock_gettime(clockid_t, struct timespec*);
-int nanosleep(const struct timespec*, struct timespec*);
-#endif
-
-#ifdef __cplusplus
-}
-#endif
+#define CLOCK_MONOTONIC 0
+#define CLOCK_REALTIME 1
+#define CLOCK_PROCESS_CPUTIME_ID 2
 
 #endif

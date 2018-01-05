@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -47,7 +47,8 @@
 #define SYSCALL_KILL 24
 #define SYSCALL_SIGACTION 25
 #define SYSCALL_ABORT 26
+#define SYSCALL_CLOCK_GETTIME 27
 
-#define NUM_SYSCALLS 27
+#define NUM_SYSCALLS 28
 
 #endif

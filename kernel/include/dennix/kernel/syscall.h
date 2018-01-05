@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -32,6 +32,7 @@ struct stat;
 namespace Syscall {
 
 NORETURN void abort();
+int clock_gettime(clockid_t clockid, struct timespec* result);
 int close(int fd);
 size_t confstr(int name, char* buffer, size_t size);
 int execve(const char* path, char* const argv[], char* const envp[]);

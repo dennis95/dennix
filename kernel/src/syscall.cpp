@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,6 +26,7 @@
 #include <dennix/fcntl.h>
 #include <dennix/wait.h>
 #include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/clock.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/symlink.h>
@@ -59,6 +60,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_KILL] =*/ (void*) Syscall::kill,
     /*[SYSCALL_SIGACTION] =*/ (void*) Syscall::sigaction,
     /*[SYSCALL_ABORT] =*/ (void*) Syscall::abort,
+    /*[SYSCALL_CLOCK_GETTIME] =*/ (void*) Syscall::clock_gettime,
 };
 
 static FileDescription* getRootFd(int fd, const char* path) {
@@ -92,6 +94,13 @@ NORETURN void Syscall::abort() {
 
     sched_yield();
     __builtin_unreachable();
+}
+
+int Syscall::clock_gettime(clockid_t clockid, struct timespec* result) {
+    Clock* clock = Clock::get(clockid);
+    if (!clock) return -1;
+
+    return clock->getTime(result);
 }
 
 int Syscall::close(int fd) {
