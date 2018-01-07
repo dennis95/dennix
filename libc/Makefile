@@ -75,7 +75,8 @@ COMMON_OBJ = \
 	string/strrchr \
 	string/strsignal \
 	string/strspn \
-	string/strtok
+	string/strtok \
+	time/timegm
 
 LIBC_OBJ = \
 	$(COMMON_OBJ) \
