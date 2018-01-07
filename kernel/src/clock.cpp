@@ -45,6 +45,11 @@ int Clock::getTime(struct timespec* result) {
     return 0;
 }
 
+int Clock::setTime(struct timespec* newValue) {
+    value = *newValue;
+    return 0;
+}
+
 void Clock::tick(unsigned long nanoseconds) {
     value.tv_nsec += nanoseconds;
 

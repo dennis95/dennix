@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,6 +28,7 @@
 #include <dennix/kernel/pit.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/ps2.h>
+#include <dennix/kernel/rtc.h>
 
 #ifndef DENNIX_VERSION
 #  define DENNIX_VERSION ""
@@ -72,10 +73,12 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
         Process::initProcess = newProcess;
     }
 
-    Log::printf("Enabling interrupts...\n");
     Interrupts::initPic();
+    Log::printf("Initializing RTC and PIT...\n");
+    Rtc::initialize();
     Pit::initialize();
-    Log::printf("Initialization completed.\n");
+
+    Log::printf("Enabling interrupts...\n");
     Interrupts::enable();
 
     while (true) {

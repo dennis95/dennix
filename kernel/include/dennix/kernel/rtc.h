@@ -13,26 +13,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/clock.h
- * System clocks.
+/* kernel/include/dennix/kernel/rtc.h
+ * Real time clock.
  */
 
-#ifndef KERNEL_CLOCK_H
-#define KERNEL_CLOCK_H
+#ifndef KERNEL_RTC_H
+#define KERNEL_RTC_H
 
-#include <time.h>
-
-class Clock {
-public:
-    Clock();
-    int setTime(struct timespec* newValue);
-    void tick(unsigned long nanoseconds);
-    int getTime(struct timespec* result);
-public:
-    static Clock* get(clockid_t clockid);
-    static void onTick(unsigned long nanoseconds);
-private:
-    struct timespec value;
-};
+namespace Rtc {
+void initialize();
+}
 
 #endif
