@@ -58,7 +58,6 @@ OBJ = \
 	symlink.o \
 	syscall.o \
 	terminal.o \
-	timer.o \
 	vgaterminal.o \
 	vnode.o
 

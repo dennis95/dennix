@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,26 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/timer.h
- * Timers.
+/* libc/src/time/clock_nanosleep.c
+ * Sleeps for a given time.
  */
 
-#ifndef KERNEL_TIMER_H
-#define KERNEL_TIMER_H
+#include <time.h>
+#include <sys/syscall.h>
 
-#include <dennix/timespec.h>
-#include <dennix/kernel/kernel.h>
-
-class Timer {
-public:
-    Timer(struct timespec time);
-    void advance(unsigned long nanoseconds);
-    void start();
-    void wait();
-public:
-    struct timespec remaining;
-private:
-    size_t index;
-};
-
-#endif
+DEFINE_SYSCALL_GLOBAL(SYSCALL_CLOCK_NANOSLEEP, int, clock_nanosleep,
+        (clockid_t, int, const struct timespec*, struct timespec*));

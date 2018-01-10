@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,12 +20,8 @@
 #ifndef KERNEL_PIT_H
 #define KERNEL_PIT_H
 
-#include <dennix/kernel/timer.h>
-
 namespace Pit {
 void initialize();
-void deregisterTimer(size_t index);
-size_t registerTimer(Timer* timer);
 }
 
 #endif

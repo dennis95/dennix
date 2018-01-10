@@ -25,9 +25,11 @@
 class Clock {
 public:
     Clock();
+    int getTime(struct timespec* result);
+    int nanosleep(int flags, const struct timespec* requested,
+            struct timespec* remaining);
     int setTime(struct timespec* newValue);
     void tick(unsigned long nanoseconds);
-    int getTime(struct timespec* result);
 public:
     static Clock* get(clockid_t clockid);
     static void onTick(unsigned long nanoseconds);

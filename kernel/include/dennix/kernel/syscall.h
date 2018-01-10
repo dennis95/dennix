@@ -33,6 +33,8 @@ namespace Syscall {
 
 NORETURN void abort();
 int clock_gettime(clockid_t clockid, struct timespec* result);
+int clock_nanosleep(clockid_t clockid, int flags,
+        const struct timespec* requested, struct timespec* remaining);
 int close(int fd);
 size_t confstr(int name, char* buffer, size_t size);
 int execve(const char* path, char* const argv[], char* const envp[]);
@@ -48,7 +50,6 @@ int linkat(int oldFd, const char* oldPath, int newFd, const char* newPath,
 int mkdirat(int fd, const char* path, mode_t mode);
 void* mmap(__mmapRequest* request);
 int munmap(void* addr, size_t size);
-int nanosleep(const struct timespec* requested, struct timespec* remaining);
 int openat(int fd, const char* path, int flags, mode_t mode);
 ssize_t read(int fd, void* buffer, size_t size);
 ssize_t readdir(int fd, unsigned long offset, void* buffer, size_t size);

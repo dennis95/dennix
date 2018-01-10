@@ -56,6 +56,7 @@ time_t time(time_t*);
 
 #if __USE_DENNIX || __USE_POSIX
 int clock_gettime(clockid_t, struct timespec*);
+int clock_nanosleep(clockid_t, int, const struct timespec*, struct timespec*);
 int nanosleep(const struct timespec*, struct timespec*);
 #endif
 

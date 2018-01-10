@@ -45,7 +45,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_WAITPID] =*/ (void*) Syscall::waitpid,
     /*[SYSCALL_FSTATAT] =*/ (void*) Syscall::fstatat,
     /*[SYSCALL_READDIR] =*/ (void*) Syscall::readdir,
-    /*[SYSCALL_NANOSLEEP] =*/ (void*) Syscall::nanosleep,
+    /*[SYSCALL_CLOCK_NANOSLEEP] =*/ (void*) Syscall::clock_nanosleep,
     /*[SYSCALL_TCGETATTR] =*/ (void*) Syscall::tcgetattr,
     /*[SYSCALL_TCSETATTR] =*/ (void*) Syscall::tcsetattr,
     /*[SYSCALL_FCHDIRAT] =*/ (void*) Syscall::fchdirat,
@@ -101,6 +101,20 @@ int Syscall::clock_gettime(clockid_t clockid, struct timespec* result) {
     if (!clock) return -1;
 
     return clock->getTime(result);
+}
+
+int Syscall::clock_nanosleep(clockid_t clockid, int flags,
+        const struct timespec* requested, struct timespec* remaining) {
+    if (clockid == CLOCK_PROCESS_CPUTIME_ID) return errno = EINVAL;
+
+    if (clockid == CLOCK_REALTIME && !(flags & TIMER_ABSTIME)) {
+        clockid = CLOCK_MONOTONIC;
+    }
+
+    Clock* clock = Clock::get(clockid);
+    if (!clock) return errno;
+
+    return clock->nanosleep(flags, requested, remaining);
 }
 
 int Syscall::close(int fd) {

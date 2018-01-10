@@ -19,7 +19,6 @@
 
 #include <dennix/kernel/clock.h>
 #include <dennix/kernel/interrupts.h>
-#include <dennix/kernel/log.h>
 #include <dennix/kernel/pit.h>
 #include <dennix/kernel/portio.h>
 
@@ -46,32 +45,6 @@ void Pit::initialize() {
     outb(PIT_PORT_CHANNEL0, (divider >> 8) & 0xFF);
 }
 
-#define NUM_TIMERS 20
-static Timer* timers[NUM_TIMERS] = {0};
-
-void Pit::deregisterTimer(size_t index) {
-    timers[index] = nullptr;
-}
-
-size_t Pit::registerTimer(Timer* timer) {
-    for (size_t i = 0; i < NUM_TIMERS; i++) {
-        if (!timers[i]) {
-            timers[i] = timer;
-            return i;
-        }
-    }
-
-    // TODO: Dynamically allocate enough space.
-    Log::printf("Error: Too many timers\n");
-    while (true) asm volatile ("cli; hlt");
-}
-
 static void irqHandler(int /*irq*/) {
     Clock::onTick(nanoseconds);
-
-    for (size_t i = 0; i < NUM_TIMERS; i++) {
-        if (timers[i]) {
-            timers[i]->advance(nanoseconds);
-        }
-    }
 }
