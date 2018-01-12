@@ -76,6 +76,8 @@ COMMON_OBJ = \
 	string/strsignal \
 	string/strspn \
 	string/strtok \
+	time/gmtime \
+	time/gmtime_r \
 	time/timegm
 
 LIBC_OBJ = \

@@ -52,11 +52,13 @@ struct tm {
     int tm_isdst;
 };
 
+struct tm* gmtime(const time_t*);
 time_t time(time_t*);
 
 #if __USE_DENNIX || __USE_POSIX
 int clock_gettime(clockid_t, struct timespec*);
 int clock_nanosleep(clockid_t, int, const struct timespec*, struct timespec*);
+struct tm* gmtime_r(const time_t* __restrict, struct tm* __restrict);
 int nanosleep(const struct timespec*, struct timespec*);
 #endif
 
