@@ -173,8 +173,11 @@ LIBC_OBJ = \
 	termios/tcsetattr \
 	time/clock_gettime \
 	time/clock_nanosleep \
+	time/localtime \
+	time/mktime \
 	time/nanosleep \
 	time/time \
+	time/tzset \
 	unistd/access \
 	unistd/chdir \
 	unistd/close \
