@@ -30,5 +30,5 @@ time_t mktime(struct tm* tm) {
     if (errno) return -1;
 
     errno = oldErrno;
-    return result - offset;
+    return result + offset;
 }

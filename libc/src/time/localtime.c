@@ -22,6 +22,6 @@
 struct tm* localtime(const time_t* time) {
     tzset();
     // TODO: Check whether daylight saving time is active.
-    time_t local = *time + timezone;
+    time_t local = *time - timezone;
     return gmtime(&local);
 }

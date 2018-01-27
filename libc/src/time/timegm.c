@@ -21,11 +21,11 @@
 #include <stdbool.h>
 #include <time.h>
 
-static bool isLeapYear(int year) {
+static bool isLeapYear(time_t year) {
     return !(year % 4) && ((year % 100) || !(year % 400));
 }
 
-static time_t daysPerYear(int year) {
+static time_t daysPerYear(time_t year) {
     return isLeapYear(year) ? 366 : 365;
 }
 
@@ -44,7 +44,7 @@ enum {
     DECEMBER
 };
 
-static time_t daysPerMonth(int month, int year) {
+static time_t daysPerMonth(int month, time_t year) {
     switch (month) {
     case JANUARY: return 31;
     case FEBRUARY: return isLeapYear(year) ? 29 : 28;
@@ -87,8 +87,9 @@ static bool normalizeEntries(struct tm* tm) {
     if (!normalize(&tm->tm_mon, &tm->tm_year, 12)) return false;
 
     // Now normalize tm_mday.
-    while (tm->tm_mday > daysPerMonth(tm->tm_mon, tm->tm_year + 1900)) {
-        tm->tm_mday -= daysPerMonth(tm->tm_mon, tm->tm_year + 1900);
+    while (tm->tm_mday > daysPerMonth(tm->tm_mon,
+            (time_t) tm->tm_year + 1900)) {
+        tm->tm_mday -= daysPerMonth(tm->tm_mon, (time_t) tm->tm_year + 1900);
         tm->tm_mon++;
         if (tm->tm_mon > DECEMBER) {
             if (__builtin_add_overflow(tm->tm_year, 1, &tm->tm_year)) {
@@ -105,7 +106,7 @@ static bool normalizeEntries(struct tm* tm) {
             }
             tm->tm_mon = DECEMBER;
         }
-        tm->tm_mday += daysPerMonth(tm->tm_mon, tm->tm_year + 1900);
+        tm->tm_mday += daysPerMonth(tm->tm_mon, (time_t) tm->tm_year + 1900);
     }
 
     return true;
@@ -119,15 +120,15 @@ time_t timegm(struct tm* tm) {
         return -1;
     }
 
-    int year = 1970;
+    time_t year = 1970;
     time_t daysSinceEpoch = 0;
 
-    while (year < 1900 + tm->tm_year) {
+    while (year < 1900 + (time_t) tm->tm_year) {
         daysSinceEpoch += daysPerYear(year);
         year++;
     }
 
-    while (year > 1900 + tm->tm_year) {
+    while (year > 1900 + (time_t) tm->tm_year) {
         year--;
         daysSinceEpoch -= daysPerYear(year);
     }
