@@ -55,6 +55,8 @@ struct tm {
 struct tm* gmtime(const time_t*);
 struct tm* localtime(const time_t*);
 time_t mktime(struct tm*);
+size_t strftime(char* __restrict, size_t, const char* __restrict,
+        const struct tm* __restrict);
 time_t time(time_t*);
 
 #if __USE_DENNIX || __USE_POSIX

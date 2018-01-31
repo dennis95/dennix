@@ -176,6 +176,7 @@ LIBC_OBJ = \
 	time/localtime \
 	time/mktime \
 	time/nanosleep \
+	time/strftime \
 	time/time \
 	time/tzset \
 	unistd/access \
