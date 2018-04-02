@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,11 +13,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/sh.c
+/* sh/sh.c
  * The shell.
  */
 
-#include "utils.h"
 #include <err.h>
 #include <getopt.h>
 #include <limits.h>
@@ -29,31 +28,35 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-static char* pwd;
-static size_t pwdSize;
+#include "builtins.h"
+
+#ifndef DENNIX_VERSION
+#  define DENNIX_VERSION ""
+#endif
 
 static int executeCommand(int argc, char* arguments[]);
 static const char* getExecutablePath(const char* command);
-static void updateLogicalPwd(const char* path);
-
-static int cd(int argc, char* argv[]);
 
 int main(int argc, char* argv[]) {
     struct option longopts[] = {
-        { "help", no_argument, 0, '?' },
+        { "help", no_argument, 0, 0 },
         { "version", no_argument, 0, 1 },
         { 0, 0, 0, 0 }
     };
 
     int c;
-    while ((c = getopt_long(argc, argv, "?", longopts, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch (c) {
-        case 1:
-            return version(argv[0]);
-        case '?':
-            return help(argv[0], "[OPTIONS]\n"
-                    "  -?, --help               display this help\n"
+        case 0:
+            printf("Usage: %s %s\n", argv[0], "[OPTIONS]\n"
+                    "      --help               display this help\n"
                     "      --version            display version info");
+            return 0;
+        case 1:
+            printf("%s (Dennix) %s\n", argv[0], DENNIX_VERSION);
+            return 0;
+        case '?':
+            return 1;
         }
     }
 
@@ -66,7 +69,6 @@ int main(int argc, char* argv[]) {
             setenv("PWD", pwd, 1);
         }
     }
-    pwdSize = pwd ? strlen(pwd) : 0;
 
     char* buffer = NULL;
     size_t bufferSize = 0;
@@ -195,82 +197,4 @@ static const char* getExecutablePath(const char* command) {
     }
 
     return NULL;
-}
-
-static void updateLogicalPwd(const char* path) {
-    if (!pwd) {
-        pwd = getcwd(NULL, 0);
-        pwdSize = pwd ? strlen(pwd) : 0;
-        return;
-    }
-
-    if (*path == '/') {
-        strcpy(pwd, "/");
-    }
-
-    // The resulting string cannot be longer than this.
-    size_t newSize = strlen(pwd) + strlen(path) + 2;
-    if (newSize > pwdSize) {
-        char* newPwd = realloc(pwd, newSize);
-        if (!newPwd) {
-            free(pwd);
-            pwd = NULL;
-            return;
-        }
-        pwd = newPwd;
-        pwdSize = newSize;
-    }
-
-    char* pwdEnd = pwd + strlen(pwd);
-    const char* component = path;
-    size_t componentLength = strcspn(component, "/");
-
-    while (*component) {
-        if (componentLength == 0 ||
-                (componentLength == 1 && strncmp(component, ".", 1) == 0)) {
-            // We can ignore this path component.
-        } else if (componentLength == 2 && strncmp(component, "..", 2) == 0) {
-            char* lastSlash = strrchr(pwd, '/');
-            if (lastSlash == pwd) {
-                pwdEnd = pwd + 1;
-            } else if (lastSlash) {
-                pwdEnd = lastSlash;
-            }
-        } else {
-            if (pwdEnd != pwd + 1) {
-                *pwdEnd++ = '/';
-            }
-            memcpy(pwdEnd, component, componentLength);
-            pwdEnd += componentLength;
-        }
-
-        component += componentLength + 1;
-        componentLength = strcspn(component, "/");
-    }
-
-    *pwdEnd = '\0';
-}
-
-static int cd(int argc, char* argv[]) {
-    const char* newCwd;
-    if (argc >= 2) {
-        newCwd = argv[1];
-    } else {
-        newCwd = getenv("HOME");
-        if (!newCwd) {
-            warnx("HOME not set");
-            return 1;
-        }
-    }
-
-    if (chdir(newCwd) == -1) {
-        warn("cd: '%s'", newCwd);
-        return 1;
-    }
-
-    updateLogicalPwd(newCwd);
-    if (!pwd || setenv("PWD", pwd, 1) < 0) {
-        unsetenv("PWD");
-    }
-    return 0;
 }

@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -23,7 +23,7 @@ KERNEL = $(BUILD_DIR)/kernel/kernel
 INITRD = $(BUILD_DIR)/initrd.tar
 ISO = dennix.iso
 
-all: libc kernel utils iso
+all: libc kernel sh utils iso
 
 kernel: $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C kernel
@@ -31,7 +31,7 @@ kernel: $(INCLUDE_DIR) $(LIB_DIR)
 libc: $(INCLUDE_DIR)
 	$(MAKE) -C libc
 
-install-all: install-headers install-libc install-utils
+install-all: install-headers install-libc install-sh install-utils
 
 install-headers:
 	$(MAKE) -C kernel install-headers
@@ -39,6 +39,9 @@ install-headers:
 
 install-libc:
 	$(MAKE) -C libc install-libs
+
+install-sh:
+	$(MAKE) -C sh install
 
 install-toolchain: install-headers
 	SYSROOT=$(SYSROOT) $(REPO_ROOT)/build-aux/install-toolchain.sh
@@ -64,12 +67,16 @@ $(INITRD): $(SYSROOT)
 qemu: $(ISO)
 	qemu-system-i386 -cdrom $^
 
+sh: $(INCLUDE_DIR)
+	$(MAKE) -C sh
+
 utils: $(INCLUDE_DIR)
 	$(MAKE) -C utils
 
 $(SYSROOT): $(INCLUDE_DIR) $(LIB_DIR) $(BIN_DIR) $(SYSROOT)/usr
 
 $(BIN_DIR):
+	$(MAKE) -C sh install
 	$(MAKE) -C utils install
 
 $(INCLUDE_DIR):
@@ -90,5 +97,5 @@ distclean:
 	rm -rf build sysroot
 	rm -f *.iso
 
-.PHONY: all kernel libc install-all install-headers install-libc
-.PHONY: install-toolchain install-utils iso qemu utils clean distclean
+.PHONY: all kernel libc install-all install-headers install-libc install-sh
+.PHONY: install-toolchain install-utils iso qemu sh utils clean distclean
