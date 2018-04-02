@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018 Dennis Wölfing
+/* Copyright (c) 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,26 +13,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/ctype.h
- * Character types.
+/* sh/sh.h
+ * Shell defintions.
  */
 
-#ifndef _CTYPE_H
-#define _CTYPE_H
+#ifndef SH_H
+#define SH_H
 
-#include <sys/cdefs.h>
-#define __need_locale_t
-#include <sys/libc-types.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int isblank(int);
-int isspace(int);
-
-#ifdef __cplusplus
-}
-#endif
+#define NO_DISCARD __attribute__((warn_unused_result))
 
 #endif

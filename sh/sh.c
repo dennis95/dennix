@@ -29,6 +29,8 @@
 #include <sys/wait.h>
 
 #include "builtins.h"
+#include "expand.h"
+#include "tokenizer.h"
 
 #ifndef DENNIX_VERSION
 #  define DENNIX_VERSION ""
@@ -86,42 +88,54 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "\e[32m%s@%s \e[1;36m%s $\e[22;39m ",
                 username, hostname, pwd ? pwd : ".");
 
-        ssize_t length = getline(&buffer, &bufferSize, stdin);
-        if (length < 0) {
-            putchar('\n');
-            if (feof(stdin)) exit(0);
-            err(1, NULL);
-        }
+        struct Tokenizer tokenizer;
+        enum TokenizerResult tokenResult;
+        if (!initTokenizer(&tokenizer)) err(1, "initTokenizer");
 
-        if (buffer[length - 1] == '\n') {
-            buffer[length - 1] = '\0';
-        }
-
-        // TODO: Counting the spaces gives us a number that might be higher
-        // than argc. We get the real argument number below using strtok.
-        size_t argumentCount = 1;
-        for (size_t i = 0; buffer[i]; i++) {
-            if (buffer[i] == ' ') {
-                argumentCount++;
+        do {
+            ssize_t length = getline(&buffer, &bufferSize, stdin);
+            if (length < 0) {
+                putchar('\n');
+                if (feof(stdin)) exit(0);
+                err(1, NULL);
             }
+
+            tokenResult = splitTokens(&tokenizer, buffer);
+            if (tokenResult == TOKENIZER_ERROR) {
+                err(1, "Tokenizer error");
+            } else if (tokenResult == TOKENIZER_NEED_INPUT) {
+                fputs("> ", stderr);
+            }
+        } while (tokenResult == TOKENIZER_NEED_INPUT);
+
+        if (tokenResult != TOKENIZER_DONE) {
+            freeTokenizer(&tokenizer);
+            continue;
         }
 
-        // Create the argument list
-        char** arguments = malloc((argumentCount + 1) * sizeof(char*));
-        if (!arguments) err(1, "malloc");
-        char* token = strtok(buffer, " ");
-        size_t argCount = 0;
+        // TODO: Parse into simple commands and compound commands
+        // For now just remove the newline operator at the end.
 
-        while (token) {
-            arguments[argCount++] = token;
-            token = strtok(NULL, " ");
-        }
-        arguments[argCount] = NULL;
+        size_t numTokens = tokenizer.numTokens - 1;
+        char** tokens = malloc((numTokens + 1) * sizeof(char*));
+        if (!tokens) err(1, "malloc");
+        tokens[numTokens] = NULL;
 
-        if (arguments[0]) {
-            executeCommand(argCount, arguments);
+        // Word expansion
+        for (size_t i = 0; i < numTokens; i++) {
+            tokens[i] = expandWord(tokenizer.tokens[i]);
+            if (!tokens[i]) err(1, "failed to expand");
         }
-        free(arguments);
+        freeTokenizer(&tokenizer);
+
+        if (numTokens > 0) {
+            executeCommand(numTokens, tokens);
+        }
+
+        for (size_t i = 0; i < numTokens; i++) {
+            free(tokens[i]);
+        }
+        free(tokens);
     }
 }
 

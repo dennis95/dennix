@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018 Dennis Wölfing
+/* Copyright (c) 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,26 +13,26 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/ctype.h
- * Character types.
+/* sh/stringbuffer.h
+ * String buffer.
  */
 
-#ifndef _CTYPE_H
-#define _CTYPE_H
+#ifndef STRINGBUFFER_H
+#define STRINGBUFFER_H
 
-#include <sys/cdefs.h>
-#define __need_locale_t
-#include <sys/libc-types.h>
+#include <stdbool.h>
+#include <stddef.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "sh.h"
 
-int isblank(int);
-int isspace(int);
+struct StringBuffer {
+    char* buffer;
+    size_t used;
+    size_t allocated;
+};
 
-#ifdef __cplusplus
-}
-#endif
+NO_DISCARD bool initStringBuffer(struct StringBuffer* buffer);
+NO_DISCARD bool appendToStringBuffer(struct StringBuffer* buffer, char c);
+char* finishStringBuffer(struct StringBuffer* buffer);
 
 #endif

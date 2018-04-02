@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018 Dennis Wölfing
+/* Copyright (c) 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,26 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/ctype.h
- * Character types.
+/* libc/src/ctype/isblank.c
+ * Checks whether a character is blank.
  */
 
-#ifndef _CTYPE_H
-#define _CTYPE_H
+#include <ctype.h>
 
-#include <sys/cdefs.h>
-#define __need_locale_t
-#include <sys/libc-types.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int isblank(int);
-int isspace(int);
-
-#ifdef __cplusplus
+int isblank(int c) {
+    return c == '\t' || c == ' ';
 }
-#endif
-
-#endif
