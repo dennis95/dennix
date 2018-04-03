@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <dennix/fcntl.h>
 #include <dennix/kernel/elf.h>
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/physicalmemory.h>
@@ -274,6 +275,13 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
         rootFd = processes[0]->rootFd;
         cwdFd = rootFd;
         fdInitialized = true;
+    }
+
+    // Close all file descriptors marked with FD_CLOEXEC.
+    for (int i = fdTable.next(-1); i >= 0; i = fdTable.next(i)) {
+        if (fdTable[i].flags & FD_CLOEXEC) {
+            fdTable[i] = { nullptr, 0 };
+        }
     }
 
     AddressSpace* oldAddressSpace = addressSpace;

@@ -269,7 +269,10 @@ int Syscall::openat(int fd, const char* path, int flags, mode_t mode) {
             mode & ~Process::current->umask);
     if (!result) return -1;
 
-    return Process::current->addFileDescriptor(result, 0);
+    int fdFlags = 0;
+    if (flags & O_CLOEXEC) fdFlags |= FD_CLOEXEC;
+
+    return Process::current->addFileDescriptor(result, fdFlags);
 }
 
 ssize_t Syscall::read(int fd, void* buffer, size_t size) {

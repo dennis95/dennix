@@ -61,7 +61,7 @@ public:
         assert(index >= 0);
         if (index >= allocatedSize) {
             TSize newSize;
-            if (__builtin_add_overflow(allocatedSize, 1, &newSize)) {
+            if (__builtin_add_overflow(index, 1, &newSize)) {
                 return (TSize) -1;
             }
             if (!resize(newSize)) return (TSize) -1;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,8 +25,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <stdio.h>
-
 static char* getEntryName(DIR* dir, dev_t dev, ino_t ino) {
     struct dirent* dirent = readdir(dir);
     while (dirent) {
@@ -50,9 +48,9 @@ char* canonicalize_file_name(const char* path) {
     if (stat(path, &st) < 0) return NULL;
     int fd;
     if (S_ISDIR(st.st_mode)) {
-        int currentFd = open(path, O_DIRECTORY | O_SEARCH);
+        int currentFd = open(path, O_SEARCH | O_CLOEXEC | O_DIRECTORY);
         if (currentFd < 0) return NULL;
-        fd = openat(currentFd, "..", O_DIRECTORY | O_SEARCH);
+        fd = openat(currentFd, "..", O_SEARCH | O_CLOEXEC | O_DIRECTORY);
         close(currentFd);
     } else {
         char* pathCopy = strdup(path);
@@ -65,9 +63,9 @@ char* canonicalize_file_name(const char* path) {
 
         if (slash) {
             slash[1] = '\0';
-            fd = open(pathCopy, O_DIRECTORY | O_SEARCH);
+            fd = open(pathCopy, O_SEARCH | O_CLOEXEC | O_DIRECTORY);
         } else {
-            fd = open(".", O_DIRECTORY | O_SEARCH);
+            fd = open(".", O_SEARCH | O_CLOEXEC | O_DIRECTORY);
         }
         free(pathCopy);
     }
@@ -121,7 +119,7 @@ char* canonicalize_file_name(const char* path) {
             return NULL;
         }
 
-        fd = openat(fd, "..", O_DIRECTORY | O_SEARCH);
+        fd = openat(fd, "..", O_SEARCH | O_CLOEXEC | O_DIRECTORY);
         closedir(dir);
         if (fd < 0) {
             free(name);
