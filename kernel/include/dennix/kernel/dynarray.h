@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -57,6 +57,20 @@ public:
         return i;
     }
 
+    TSize insert(TSize index, const T& obj) {
+        assert(index >= 0);
+        if (index >= allocatedSize) {
+            TSize newSize;
+            if (__builtin_add_overflow(allocatedSize, 1, &newSize)) {
+                return (TSize) -1;
+            }
+            if (!resize(newSize)) return (TSize) -1;
+        }
+
+        buffer[index] = obj;
+        return index;
+    }
+
     TSize next(TSize index) {
         for (TSize i = index + 1; i < allocatedSize; i++) {
             if (buffer[i]) return i;
@@ -85,8 +99,9 @@ public:
         return buffer[index];
     }
 
-private:
+public:
     TSize allocatedSize;
+private:
     T* buffer;
 };
 

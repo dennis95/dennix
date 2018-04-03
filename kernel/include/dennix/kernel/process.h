@@ -25,11 +25,17 @@
 #include <dennix/fork.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/clock.h>
+#include <dennix/kernel/dynarray.h>
 #include <dennix/kernel/filedescription.h>
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/kthread.h>
 
-#define OPEN_MAX 20
+struct FdTableEntry {
+    Reference<FileDescription> descr;
+    int flags;
+
+    operator bool() { return descr; }
+};
 
 struct PendingSignal {
     siginfo_t siginfo;
@@ -40,11 +46,13 @@ class Process {
 public:
     Process();
     ~Process();
+    int addFileDescriptor(const Reference<FileDescription>& descr, int flags);
+    int close(int fd);
     void exit(int status);
     int execute(const Reference<Vnode>& vnode, char* const argv[],
             char* const envp[]);
+    Reference<FileDescription> getFd(int fd);
     Process* regfork(int flags, struct regfork* registers);
-    int registerFileDescriptor(FileDescription* descr);
     Process* waitpid(pid_t pid, int flags);
 
     InterruptContext* handleSignal(InterruptContext* context);
@@ -67,11 +75,11 @@ private:
     PendingSignal* pendingSignals;
     kthread_mutex_t signalMutex;
     vaddr_t sigreturn;
+    DynamicArray<FdTableEntry, int> fdTable;
 public:
     AddressSpace* addressSpace;
-    FileDescription* fd[OPEN_MAX];
-    FileDescription* rootFd;
-    FileDescription* cwdFd;
+    Reference<FileDescription> rootFd;
+    Reference<FileDescription> cwdFd;
     pid_t pid;
     mode_t umask;
     siginfo_t terminationStatus;
@@ -80,7 +88,7 @@ public:
     Clock cpuClock;
 public:
     static bool addProcess(Process* process);
-    static void initialize(FileDescription* rootFd);
+    static void initialize(const Reference<FileDescription>& rootFd);
     static InterruptContext* schedule(InterruptContext* context);
     static Process* current;
     static Process* initProcess;

@@ -63,20 +63,21 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_CLOCK_GETTIME] =*/ (void*) Syscall::clock_gettime,
 };
 
-static FileDescription* getRootFd(int fd, const char* path) {
+static Reference<FileDescription> getRootFd(int fd, const char* path) {
     if (path[0] == '/') {
         return Process::current->rootFd;
     } else if (fd == AT_FDCWD) {
         return Process::current->cwdFd;
     } else {
-        return Process::current->fd[fd];
+        return Process::current->getFd(fd);
     }
 }
 
 static Reference<Vnode> resolvePathExceptLastComponent(int fd, char* path,
         char** lastComponent) {
-    Reference<Vnode> vnode = getRootFd(fd, path)->vnode;
-    return resolvePathExceptLastComponent(vnode, path, lastComponent);
+    Reference<FileDescription> descr = getRootFd(fd, path);
+    if (!descr) return nullptr;
+    return resolvePathExceptLastComponent(descr->vnode, path, lastComponent);
 }
 
 extern "C" const void* getSyscallHandler(unsigned interruptNumber) {
@@ -118,20 +119,11 @@ int Syscall::clock_nanosleep(clockid_t clockid, int flags,
 }
 
 int Syscall::close(int fd) {
-    FileDescription* descr = Process::current->fd[fd];
-
-    if (!descr) {
-        errno = EBADF;
-        return -1;
-    }
-
-    delete descr;
-    Process::current->fd[fd] = nullptr;
-    return 0;
+    return Process::current->close(fd);
 }
 
 int Syscall::execve(const char* path, char* const argv[], char* const envp[]) {
-    FileDescription* descr = getRootFd(AT_FDCWD, path);
+    Reference<FileDescription> descr = getRootFd(AT_FDCWD, path);
     Reference<Vnode> vnode = resolvePath(descr->vnode, path);
 
     if (!vnode || Process::current->execute(vnode, argv, envp) == -1) {
@@ -149,29 +141,32 @@ NORETURN void Syscall::exit(int status) {
 }
 
 int Syscall::fchdirat(int fd, const char* path) {
-    FileDescription* descr = getRootFd(fd, path);
-    FileDescription* newCwd = descr->openat(path, 0, 0);
+    Reference<FileDescription> descr = getRootFd(fd, path);
+    if (!descr) return -1;
+    Reference<FileDescription> newCwd = descr->openat(path, 0, 0);
     if (!newCwd) return -1;
     if (!S_ISDIR(newCwd->vnode->mode)) {
         errno = ENOTDIR;
         return -1;
     }
 
-    delete Process::current->cwdFd;
     Process::current->cwdFd = newCwd;
     return 0;
 }
 
 int Syscall::fstat(int fd, struct stat* result) {
-    FileDescription* descr = Process::current->fd[fd];
+    Reference<FileDescription> descr = Process::current->getFd(fd);
+    if (!descr) return -1;
     return descr->vnode->stat(result);
 }
 
 int Syscall::fstatat(int fd, const char* restrict path,
         struct stat* restrict result, int flags) {
     bool followFinalSymlink = !(flags & AT_SYMLINK_NOFOLLOW);
-    FileDescription* descr = getRootFd(fd, path);
-    Reference<Vnode> vnode = resolvePath(descr->vnode, path, followFinalSymlink);
+    Reference<FileDescription> descr = getRootFd(fd, path);
+    if (!descr) return -1;
+    Reference<Vnode> vnode = resolvePath(descr->vnode, path,
+            followFinalSymlink);
     if (!vnode) return -1;
 
     return vnode->stat(result);
@@ -184,8 +179,10 @@ pid_t Syscall::getpid() {
 int Syscall::linkat(int oldFd, const char* oldPath, int newFd,
         const char* newPath, int flags) {
     bool followFinalSymlink = flags & AT_SYMLINK_FOLLOW;
-    Reference<Vnode> vnode = resolvePath(getRootFd(oldFd, oldPath)->vnode,
-            oldPath, followFinalSymlink);
+    Reference<FileDescription> descr = getRootFd(oldFd, oldPath);
+    if (!descr) return -1;
+    Reference<Vnode> vnode = resolvePath(descr->vnode, oldPath,
+            followFinalSymlink);
     if (!vnode) return -1;
 
     if (S_ISDIR(vnode->mode)) {
@@ -265,24 +262,26 @@ int Syscall::munmap(void* addr, size_t size) {
 }
 
 int Syscall::openat(int fd, const char* path, int flags, mode_t mode) {
-    FileDescription* descr = getRootFd(fd, path);
+    Reference<FileDescription> descr = getRootFd(fd, path);
+    if (!descr) return -1;
 
-    FileDescription* result = descr->openat(path, flags,
+    Reference<FileDescription> result = descr->openat(path, flags,
             mode & ~Process::current->umask);
-    if (!result) {
-        return -1;
-    }
-    return Process::current->registerFileDescriptor(result);
+    if (!result) return -1;
+
+    return Process::current->addFileDescriptor(result, 0);
 }
 
 ssize_t Syscall::read(int fd, void* buffer, size_t size) {
-    FileDescription* descr = Process::current->fd[fd];
+    Reference<FileDescription> descr = Process::current->getFd(fd);
+    if (!descr) return -1;
     return descr->read(buffer, size);
 }
 
 ssize_t Syscall::readdir(int fd, unsigned long offset, void* buffer,
         size_t size) {
-    FileDescription* descr = Process::current->fd[fd];
+    Reference<FileDescription> descr = Process::current->getFd(fd);
+    if (!descr) return -1;
     return descr->readdir(offset, buffer, size);
 }
 
@@ -363,12 +362,14 @@ int Syscall::symlinkat(const char* targetPath, int fd, const char* linkPath) {
 }
 
 int Syscall::tcgetattr(int fd, struct termios* result) {
-    FileDescription* descr = Process::current->fd[fd];
+    Reference<FileDescription> descr = Process::current->getFd(fd);
+    if (!descr) return -1;
     return descr->tcgetattr(result);
 }
 
 int Syscall::tcsetattr(int fd, int flags, const struct termios* termio) {
-    FileDescription* descr = Process::current->fd[fd];
+    Reference<FileDescription> descr = Process::current->getFd(fd);
+    if (!descr) return -1;
     return descr->tcsetattr(flags, termio);
 }
 
@@ -423,7 +424,8 @@ pid_t Syscall::waitpid(pid_t pid, int* status, int flags) {
 }
 
 ssize_t Syscall::write(int fd, const void* buffer, size_t size) {
-    FileDescription* descr = Process::current->fd[fd];
+    Reference<FileDescription> descr = Process::current->getFd(fd);
+    if (!descr) return -1;
     return descr->write(buffer, size);
 }
 

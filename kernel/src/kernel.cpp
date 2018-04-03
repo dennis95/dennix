@@ -58,7 +58,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     // Load the initrd.
     Log::printf("Loading Initrd...\n");
     Reference<DirectoryVnode> rootDir = loadInitrd(&multiboot);
-    FileDescription* rootFd = new FileDescription(rootDir);
+    Reference<FileDescription> rootFd = new FileDescription(rootDir);
 
     Log::printf("Initializing processes...\n");
     Process::initialize(rootFd);

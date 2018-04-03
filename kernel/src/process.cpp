@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <dennix/kernel/dynarray.h>
 #include <dennix/kernel/elf.h>
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/physicalmemory.h>
@@ -46,7 +45,6 @@ Process::Process() {
     addressSpace = nullptr;
     interruptContext = nullptr;
     kernelStack = nullptr;
-    memset(fd, 0, sizeof(fd));
     rootFd = nullptr;
     cwdFd = nullptr;
     pid = -1;
@@ -72,7 +70,7 @@ Process::~Process() {
     kernelSpace->unmapMemory((vaddr_t) kernelStack, 0x1000);
 }
 
-void Process::initialize(FileDescription* rootFd) {
+void Process::initialize(const Reference<FileDescription>& rootFd) {
     Process* idleProcess = new Process();
     idleProcess->addressSpace = kernelSpace;
     idleProcess->interruptContext = new InterruptContext();
@@ -199,6 +197,27 @@ InterruptContext* Process::schedule(InterruptContext* context) {
     return current->interruptContext;
 }
 
+int Process::addFileDescriptor(const Reference<FileDescription>& descr,
+        int flags) {
+    int fd = fdTable.add({ descr, flags });
+
+    if (fd < 0) {
+        errno = EMFILE;
+    }
+
+    return fd;
+}
+
+int Process::close(int fd) {
+    if (fd < 0 || fd >= fdTable.allocatedSize || !fdTable[fd]) {
+        errno = EBADF;
+        return -1;
+    }
+
+    fdTable[fd] = { nullptr, 0 };
+    return 0;
+}
+
 int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
         char* const envp[]) {
     if (!S_ISREG(vnode->mode)) {
@@ -246,12 +265,14 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
 
     if (!fdInitialized) {
         // Initialize file descriptors
-        fd[0] = new FileDescription(terminal); // stdin
-        fd[1] = new FileDescription(terminal); // stdout
-        fd[2] = new FileDescription(terminal); // stderr
+        Reference<FileDescription> descr = new FileDescription(terminal);
 
-        rootFd = new FileDescription(*processes[0]->rootFd);
-        cwdFd = new FileDescription(*rootFd);
+        fdTable.insert(0, { descr, 0 }); // stdin
+        fdTable.insert(1, { descr, 0 }); // stdout
+        fdTable.insert(2, { descr, 0 }); // stderr
+
+        rootFd = processes[0]->rootFd;
+        cwdFd = rootFd;
         fdInitialized = true;
     }
 
@@ -285,6 +306,15 @@ void Process::exit(int status) {
     terminate();
 }
 
+Reference<FileDescription> Process::getFd(int fd) {
+    if (fd < 0 || fd >= fdTable.allocatedSize || !fdTable[fd]) {
+        errno = EBADF;
+        return nullptr;
+    }
+
+    return fdTable[fd].descr;
+}
+
 Process* Process::regfork(int /*flags*/, struct regfork* registers) {
     Process* process = new Process();
     process->parent = this;
@@ -312,15 +342,17 @@ Process* Process::regfork(int /*flags*/, struct regfork* registers) {
     // Fork the address space
     process->addressSpace = addressSpace->fork();
 
-    // Fork the file descriptor table
-    for (size_t i = 0; i < OPEN_MAX; i++) {
-        if (fd[i]) {
-            process->fd[i] = new FileDescription(*fd[i]);
+    // Copy the file descriptor table
+    for (int i = fdTable.next(-1); i >= 0; i = fdTable.next(i)) {
+        if (process->fdTable.insert(i, fdTable[i]) < 0) {
+            process->terminate();
+            delete process;
+            return nullptr;
         }
     }
 
-    process->rootFd = new FileDescription(*rootFd);
-    process->cwdFd = new FileDescription(*cwdFd);
+    process->rootFd = rootFd;
+    process->cwdFd = cwdFd;
     process->fdInitialized = true;
 
     kthread_mutex_lock(&childrenMutex);
@@ -339,23 +371,11 @@ Process* Process::regfork(int /*flags*/, struct regfork* registers) {
         }
         firstChild = process->nextChild;
         delete process;
+        return nullptr;
     }
     Interrupts::enable();
     kthread_mutex_unlock(&childrenMutex);
-
     return process;
-}
-
-int Process::registerFileDescriptor(FileDescription* descr) {
-    for (int i = 0; i < OPEN_MAX; i++) {
-        if (fd[i] == nullptr) {
-            fd[i] = descr;
-            return i;
-        }
-    }
-
-    errno = EMFILE;
-    return -1;
 }
 
 void Process::terminate() {
@@ -393,12 +413,6 @@ void Process::terminate() {
 
     // Clean up
     delete addressSpace;
-
-    for (size_t i = 0; i < OPEN_MAX; i++) {
-        if (fd[i]) delete fd[i];
-    }
-    delete rootFd;
-    delete cwdFd;
 
     terminated = true;
     Interrupts::enable();
