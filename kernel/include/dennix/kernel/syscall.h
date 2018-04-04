@@ -37,6 +37,7 @@ int clock_nanosleep(clockid_t clockid, int flags,
         const struct timespec* requested, struct timespec* remaining);
 int close(int fd);
 size_t confstr(int name, char* buffer, size_t size);
+int dup3(int fd1, int fd2, int flags);
 int execve(const char* path, char* const argv[], char* const envp[]);
 NORETURN void exit(int status);
 int fchdirat(int fd, const char* path);

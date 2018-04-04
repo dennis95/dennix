@@ -48,6 +48,7 @@ public:
     ~Process();
     int addFileDescriptor(const Reference<FileDescription>& descr, int flags);
     int close(int fd);
+    int dup3(int fd1, int fd2, int flags);
     void exit(int status);
     int execute(const Reference<Vnode>& vnode, char* const argv[],
             char* const envp[]);

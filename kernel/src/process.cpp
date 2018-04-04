@@ -219,6 +219,23 @@ int Process::close(int fd) {
     return 0;
 }
 
+int Process::dup3(int fd1, int fd2, int flags) {
+    if (fd1 == fd2) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (fd1 < 0 || fd1 >= fdTable.allocatedSize || !fdTable[fd1]) {
+        errno = EBADF;
+        return -1;
+    }
+
+    int fdFlags = 0;
+    if (flags & O_CLOEXEC) fdFlags |= FD_CLOEXEC;
+
+    return fdTable.insert(fd2, { fdTable[fd1].descr, fdFlags });
+}
+
 int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
         char* const envp[]) {
     if (!S_ISREG(vnode->mode)) {

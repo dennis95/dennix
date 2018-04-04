@@ -61,6 +61,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_SIGACTION] =*/ (void*) Syscall::sigaction,
     /*[SYSCALL_ABORT] =*/ (void*) Syscall::abort,
     /*[SYSCALL_CLOCK_GETTIME] =*/ (void*) Syscall::clock_gettime,
+    /*[SYSCALL_DUP3] =*/ (void*) Syscall::dup3,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -120,6 +121,10 @@ int Syscall::clock_nanosleep(clockid_t clockid, int flags,
 
 int Syscall::close(int fd) {
     return Process::current->close(fd);
+}
+
+int Syscall::dup3(int fd1, int fd2, int flags) {
+    return Process::current->dup3(fd1, fd2, flags);
 }
 
 int Syscall::execve(const char* path, char* const argv[], char* const envp[]) {

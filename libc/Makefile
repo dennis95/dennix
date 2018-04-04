@@ -184,6 +184,8 @@ LIBC_OBJ = \
 	unistd/chdir \
 	unistd/close \
 	unistd/confstr \
+	unistd/dup2 \
+	unistd/dup3 \
 	unistd/environ \
 	unistd/execl \
 	unistd/execv \
