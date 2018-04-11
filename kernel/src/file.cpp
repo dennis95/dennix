@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -53,7 +53,7 @@ int FileVnode::ftruncate(off_t length) {
         memset(data + fileSize, '\0', length - fileSize);
     }
 
-    fileSize = (size_t) length;
+    fileSize = length;
     return 0;
 }
 
@@ -93,7 +93,7 @@ ssize_t FileVnode::pwrite(const void* buffer, size_t size, off_t offset) {
             return -1;
         }
         data = (char*) newData;
-        fileSize = newSize;
+        fileSize = (off_t) newSize;
     }
 
     memcpy(data + offset, buffer, size);

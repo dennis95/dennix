@@ -74,7 +74,13 @@ Reference<FileDescription> FileDescription::openat(const char* path, int flags,
         node->ftruncate(0);
     }
 
-    return new FileDescription(node);
+    Reference<FileDescription> result = new FileDescription(node);
+
+    if (flags & O_APPEND) {
+        result->offset = node->fileSize;
+    }
+
+    return result;
 }
 
 ssize_t FileDescription::read(void* buffer, size_t size) {

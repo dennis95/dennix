@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,7 +34,6 @@ public:
     virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset);
 public:
     char* data;
-    size_t fileSize;
     kthread_mutex_t mutex;
 };
 
