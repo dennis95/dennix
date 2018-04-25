@@ -29,6 +29,7 @@ extern "C" {
 #endif
 
 int isblank(int);
+int isdigit(int);
 int isspace(int);
 
 #ifdef __cplusplus

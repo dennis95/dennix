@@ -23,10 +23,12 @@
 
 #include "tokenizer.h"
 
-NO_DISCARD static bool addToken(struct Tokenizer* tokenizer, char* token);
+NO_DISCARD static bool addToken(struct Tokenizer* tokenizer,
+        enum TokenType type, char* text);
 static bool canBeginOperator(char c);
 static bool canContinueOperator(const char* s, size_t opLength, char c);
-NO_DISCARD static bool delimit(struct Tokenizer* tokenizer);
+NO_DISCARD static bool delimit(struct Tokenizer* tokenizer,
+        enum TokenType type);
 NO_DISCARD static bool nest(struct Tokenizer* tokenizer,
         enum TokenStatus status);
 static void unnest(struct Tokenizer* tokenizer);
@@ -70,6 +72,17 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
             continue;
         }
 
+        if (!escaped && tokenizer->tokenStatus != TOKEN_SINGLE_QUOTED &&
+                c == '\\') {
+            tokenizer->backslash = true;
+            goto appendAndNext;
+        }
+
+        if (tokenizer->wordStatus == WORDSTATUS_NUMBER &&
+                ((!isdigit(c) && c != '<' && c != '>') || escaped)) {
+            tokenizer->wordStatus = WORDSTATUS_WORD;
+        }
+
         if (tokenizer->wordStatus == WORDSTATUS_OPERATOR) {
             if (!escaped && canContinueOperator(tokenizer->buffer.buffer,
                     tokenizer->buffer.used, c)) {
@@ -77,18 +90,13 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
             } else {
                 if (tokenizer->tokenStatus == TOKEN_TOPLEVEL ||
                         tokenizer->tokenStatus == TOKEN_SUBSHELL) {
-                    if (!delimit(tokenizer)) return TOKENIZER_ERROR;
+                    if (!delimit(tokenizer, OPERATOR)) return TOKENIZER_ERROR;
                 }
                 tokenizer->wordStatus = WORDSTATUS_NONE;
             }
         }
 
         if (!escaped) {
-            if (tokenizer->tokenStatus != TOKEN_SINGLE_QUOTED && c == '\\') {
-                tokenizer->backslash = true;
-                goto appendAndNext;
-            }
-
             if (tokenizer->tokenStatus != TOKEN_SINGLE_QUOTED && c == '\'') {
                 if (!nest(tokenizer, TOKEN_SINGLE_QUOTED)) {
                     return TOKENIZER_ERROR;
@@ -159,7 +167,7 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
             if (isShellOrCommandSubstitution(tokenizer) && c == '(') {
                 if (tokenizer->tokenStatus == TOKEN_TOPLEVEL ||
                         tokenizer->tokenStatus == TOKEN_SUBSHELL) {
-                    if (!delimit(tokenizer)) return TOKENIZER_ERROR;
+                    if (!delimit(tokenizer, OPERATOR)) return TOKENIZER_ERROR;
                     if (!nest(tokenizer, TOKEN_SUBSHELL)) {
                         return TOKENIZER_ERROR;
                     }
@@ -178,7 +186,7 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
                     tokenizer->tokenStatus == TOKEN_CMD_SUBSHELL)
                     && c == ')') {
                 if (tokenizer->tokenStatus == TOKEN_SUBSHELL) {
-                    if (!delimit(tokenizer)) return TOKENIZER_ERROR;
+                    if (!delimit(tokenizer, OPERATOR)) return TOKENIZER_ERROR;
                 }
                 unnest(tokenizer);
                 tokenizer->wordStatus = WORDSTATUS_OPERATOR;
@@ -189,7 +197,9 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
                     && canBeginOperator(c)) {
                 if (tokenizer->tokenStatus == TOKEN_TOPLEVEL ||
                         tokenizer->tokenStatus == TOKEN_SUBSHELL) {
-                    if (!delimit(tokenizer)) return TOKENIZER_ERROR;
+                    enum TokenType type = (tokenizer->wordStatus ==
+                            WORDSTATUS_NUMBER) ? IO_NUMBER : TOKEN;
+                    if (!delimit(tokenizer, type)) return TOKENIZER_ERROR;
                 }
 
                 tokenizer->wordStatus = WORDSTATUS_OPERATOR;
@@ -200,7 +210,7 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
                 tokenizer->wordStatus = WORDSTATUS_NONE;
                 if (tokenizer->tokenStatus == TOKEN_TOPLEVEL ||
                         tokenizer->tokenStatus == TOKEN_SUBSHELL) {
-                    if (!delimit(tokenizer)) return TOKENIZER_ERROR;
+                    if (!delimit(tokenizer, TOKEN)) return TOKENIZER_ERROR;
                     continue;
                 }
                 goto appendAndNext;
@@ -214,7 +224,11 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
         }
 
         if (tokenizer->wordStatus == WORDSTATUS_NONE) {
-            tokenizer->wordStatus = WORDSTATUS_WORD;
+            if (isdigit(c) && !escaped) {
+                tokenizer->wordStatus = WORDSTATUS_NUMBER;
+            } else {
+                tokenizer->wordStatus = WORDSTATUS_WORD;
+            }
         }
 
 appendAndNext:
@@ -230,7 +244,7 @@ appendAndNext:
     if (tokenizer->wordStatus == WORDSTATUS_OPERATOR &&
             tokenizer->buffer.used == 1 &&
             tokenizer->buffer.buffer[0] == '\n') {
-        if (!delimit(tokenizer)) return TOKENIZER_ERROR;
+        if (!delimit(tokenizer, OPERATOR)) return TOKENIZER_ERROR;
         return TOKENIZER_DONE;
     }
 
@@ -239,18 +253,16 @@ appendAndNext:
 
 void freeTokenizer(struct Tokenizer* tokenizer) {
     for (size_t i = 0; i < tokenizer->numTokens; i++) {
-        free(tokenizer->tokens[i]);
+        free(tokenizer->tokens[i].text);
     }
     free(tokenizer->buffer.buffer);
 }
 
-static bool addToken(struct Tokenizer* tokenizer, char* token) {
-    char** newBuffer = reallocarray(tokenizer->tokens,
-            tokenizer->numTokens + 1, sizeof(char*));
-    if (!newBuffer) return false;
-    tokenizer->tokens = newBuffer;
-    tokenizer->tokens[tokenizer->numTokens++] = token;
-    return true;
+static bool addToken(struct Tokenizer* tokenizer, enum TokenType type,
+        char* text) {
+    struct Token value = { .type = type, .text = text };
+    return addToArray((void**) &tokenizer->tokens, &tokenizer->numTokens,
+            &value, sizeof(struct Token));
 }
 
 static bool canBeginOperator(char c) {
@@ -278,13 +290,13 @@ static bool canContinueOperator(const char* s, size_t opLength, char c) {
     return false;
 }
 
-static bool delimit(struct Tokenizer* tokenizer) {
+static bool delimit(struct Tokenizer* tokenizer, enum TokenType type) {
     assert(tokenizer->tokenStatus == TOKEN_TOPLEVEL ||
             tokenizer->tokenStatus == TOKEN_SUBSHELL);
 
     if (tokenizer->buffer.used == 0) return true;
 
-    if (!addToken(tokenizer, finishStringBuffer(&tokenizer->buffer))) {
+    if (!addToken(tokenizer, type, finishStringBuffer(&tokenizer->buffer))) {
         return false;
     }
 

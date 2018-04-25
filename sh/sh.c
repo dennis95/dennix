@@ -20,24 +20,20 @@
 #include <err.h>
 #include <getopt.h>
 #include <limits.h>
-#include <signal.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/wait.h>
 
 #include "builtins.h"
+#include "execute.h"
 #include "expand.h"
+#include "parser.h"
 #include "tokenizer.h"
 
 #ifndef DENNIX_VERSION
 #  define DENNIX_VERSION ""
 #endif
-
-static int executeCommand(int argc, char* arguments[]);
-static const char* getExecutablePath(const char* command);
 
 int main(int argc, char* argv[]) {
     struct option longopts[] = {
@@ -113,102 +109,32 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
-        // TODO: Parse into simple commands and compound commands
-        // For now just remove the newline operator at the end.
-
-        size_t numTokens = tokenizer.numTokens - 1;
-        char** tokens = malloc((numTokens + 1) * sizeof(char*));
-        if (!tokens) err(1, "malloc");
-        tokens[numTokens] = NULL;
-
-        // Word expansion
-        for (size_t i = 0; i < numTokens; i++) {
-            tokens[i] = expandWord(tokenizer.tokens[i]);
-            if (!tokens[i]) err(1, "failed to expand");
+        if (tokenizer.numTokens == 1) {
+            // Only a newline token was found.
+            freeTokenizer(&tokenizer);
+            continue;
         }
+
+        struct Parser parser;
+        initParser(&parser, &tokenizer);
+
+        struct SimpleCommand command;
+        if (parseSimpleCommand(&parser, &command)) {
+            execute(&command);
+        }
+
+        freeSimpleCommand(&command);
         freeTokenizer(&tokenizer);
-
-        if (numTokens > 0) {
-            executeCommand(numTokens, tokens);
-        }
-
-        for (size_t i = 0; i < numTokens; i++) {
-            free(tokens[i]);
-        }
-        free(tokens);
     }
 }
 
-static int executeCommand(int argc, char* arguments[]) {
-    const char* command = arguments[0];
-    // Special built-ins
-    if (strcmp(command, "exit") == 0) {
-        exit(0);
-    }
+// Utility functions:
 
-    // Regular built-ins
-    if (strcmp(command, "cd") == 0) {
-        return cd(argc, arguments);
-    }
-
-    pid_t pid = fork();
-
-    if (pid < 0) {
-        warn("fork");
-        return -1;
-    } else if (pid == 0) {
-        if (!strchr(command, '/')) {
-            command = getExecutablePath(command);
-        }
-
-        if (command) {
-            execv(command, arguments);
-            warn("execv: '%s'", command);
-        } else {
-            warnx("'%s': Command not found", arguments[0]);
-        }
-        _Exit(127);
-    } else {
-        int status;
-        if (waitpid(pid, &status, 0) == -1) {
-            err(1, "waitpid");
-        }
-
-        if (WIFSIGNALED(status)) {
-            int signum = WTERMSIG(status);
-            if (signum == SIGINT) {
-                fputc('\n', stderr);
-            } else {
-                fprintf(stderr, "%s\n", strsignal(signum));
-            }
-            return 128 + signum;
-        }
-
-        return WEXITSTATUS(status);
-    }
-}
-
-static const char* getExecutablePath(const char* command) {
-    size_t commandLength = strlen(command);
-    const char* path = getenv("PATH");
-
-    while (*path) {
-        size_t length = strcspn(path, ":");
-        char* buffer = malloc(commandLength + length + 2);
-        if (!buffer) err(1, "malloc");
-
-        memcpy(buffer, path, length);
-        buffer[length] = '/';
-        memcpy(buffer + length + 1, command, commandLength);
-        buffer[commandLength + length + 1] = '\0';
-
-        if (access(buffer, X_OK) == 0) {
-            return buffer;
-        }
-
-        free(buffer);
-        path += length + 1;
-    }
-
-    return NULL;
+bool addToArray(void** array, size_t* used, void* value, size_t size) {
+    void* newArray = reallocarray(*array, size, *used + 1);
+    if (!newArray) return false;
+    *array = newArray;
+    memcpy((void*) ((uintptr_t) *array + size * *used), value, size);
+    (*used)++;
+    return true;
 }

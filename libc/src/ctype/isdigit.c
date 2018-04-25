@@ -13,18 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* sh/sh.h
- * Shell defintions.
+/* libc/src/ctype/isdigit.c
+ * Checks whether a character is a digit.
  */
 
-#ifndef SH_H
-#define SH_H
+#include <ctype.h>
 
-#include <stdbool.h>
-
-#define NO_DISCARD __attribute__((warn_unused_result))
-
-NO_DISCARD bool addToArray(void** array, size_t* used, void* value,
-        size_t size);
-
-#endif
+int isdigit(int c) {
+    return c >= '0' && c <= '9';
+}

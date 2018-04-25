@@ -13,18 +13,36 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* sh/sh.h
- * Shell defintions.
+/* sh/parser.h
+ * Shell parser.
  */
 
-#ifndef SH_H
-#define SH_H
+#ifndef PARSER_H
+#define PARSER_H
 
 #include <stdbool.h>
 
-#define NO_DISCARD __attribute__((warn_unused_result))
+struct Redirection {
+    int fd;
+    const char* filename;
+    bool filenameIsFd;
+    int flags;
+};
 
-NO_DISCARD bool addToArray(void** array, size_t* used, void* value,
-        size_t size);
+struct SimpleCommand {
+    struct Redirection* redirections;
+    size_t numRedirections;
+    char** words;
+    size_t numWords;
+};
+
+struct Parser {
+    const struct Tokenizer* tokenizer;
+    size_t offset;
+};
+
+void initParser(struct Parser* parser, const struct Tokenizer* tokenizer);
+bool parseSimpleCommand(struct Parser* parser, struct SimpleCommand* command);
+void freeSimpleCommand(struct SimpleCommand* command);
 
 #endif

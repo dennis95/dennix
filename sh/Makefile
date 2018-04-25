@@ -28,7 +28,9 @@ CPPFLAGS += -D_DENNIX_SOURCE -DDENNIX_VERSION=\"$(VERSION)\"
 
 OBJ = \
 	builtins.o \
+	execute.o \
 	expand.o \
+	parser.o \
 	sh.o \
 	stringbuffer.o \
 	tokenizer.o

@@ -22,6 +22,17 @@
 
 #include "stringbuffer.h"
 
+enum TokenType {
+    OPERATOR,
+    IO_NUMBER,
+    TOKEN,
+};
+
+struct Token {
+    enum TokenType type;
+    char* text;
+};
+
 enum TokenStatus {
     TOKEN_TOPLEVEL,
     TOKEN_DOUBLE_QUOTED,
@@ -41,6 +52,7 @@ enum WordStatus {
     WORDSTATUS_WORD,
     WORDSTATUS_OPERATOR,
     WORDSTATUS_DOLLAR_SIGN,
+    WORDSTATUS_NUMBER,
 };
 
 enum TokenizerResult {
@@ -59,7 +71,7 @@ struct Tokenizer {
     struct StringBuffer buffer;
     size_t numTokens;
     struct TokenizerContext* prev;
-    char** tokens;
+    struct Token* tokens;
     enum TokenStatus tokenStatus;
     enum WordStatus wordStatus;
 };

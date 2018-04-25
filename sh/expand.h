@@ -20,6 +20,6 @@
 #ifndef EXPAND_H
 #define EXPAND_H
 
-char* expandWord(char* token);
+char* expandWord(const char* token);
 
 #endif

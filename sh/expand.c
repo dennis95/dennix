@@ -22,7 +22,7 @@
 #include "expand.h"
 #include "stringbuffer.h"
 
-char* expandWord(char* token) {
+char* expandWord(const char* token) {
     struct StringBuffer buffer;
     if (!initStringBuffer(&buffer)) return NULL;
 
