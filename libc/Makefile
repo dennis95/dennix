@@ -53,6 +53,8 @@ COMMON_OBJ = \
 	stdlib/free \
 	stdlib/malloc \
 	stdlib/malloc-util \
+	stdlib/qsort \
+	stdlib/qsort_r \
 	stdlib/rand \
 	stdlib/realloc \
 	stdlib/reallocarray \

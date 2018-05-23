@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,6 +42,7 @@ __noreturn void exit(int);
 void free(void*);
 char* getenv(const char*);
 void* malloc(size_t);
+void qsort(void*, size_t, size_t, int (*)(const void*, const void*));
 int rand(void);
 void* realloc(void*, size_t);
 void srand(unsigned int);
@@ -55,6 +56,8 @@ int unsetenv(const char*);
 
 #if __USE_DENNIX
 char* canonicalize_file_name(const char*);
+void qsort_r(void*, size_t, size_t, int (*)(const void*, const void*, void*),
+        void*);
 void* reallocarray(void*, size_t, size_t);
 #endif
 
