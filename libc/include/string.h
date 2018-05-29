@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -35,6 +35,7 @@ void* memmove(void*, const void*, size_t);
 void* memset(void*, int, size_t);
 char* strchr(const char*, int);
 int strcmp(const char*, const char*);
+int strcoll(const char*, const char*);
 char* strcpy(char* __restrict, const char* __restrict);
 size_t strcspn(const char*, const char*);
 char* strerror(int);

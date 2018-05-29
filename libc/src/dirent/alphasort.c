@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,41 +13,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/dirent.h
- * Directory definitions.
+/* libc/src/dirent/alphasort.c
+ * Sort directory entries alphabetically.
  */
 
-#ifndef _DIRENT_H
-#define _DIRENT_H
+#include <dirent.h>
+#include <string.h>
 
-#include <sys/cdefs.h>
-#include <dennix/dirent.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef struct __DIR DIR;
-
-#ifdef __is_dennix_libc
-struct __DIR {
-    int fd;
-    struct dirent* dirent;
-    unsigned long offset;
-};
-#endif
-
-int alphasort(const struct dirent**, const struct dirent**);
-int closedir(DIR*);
-DIR* fdopendir(int);
-DIR* opendir(const char*);
-struct dirent* readdir(DIR*);
-void rewinddir(DIR*);
-int scandir(const char*, struct dirent***, int (*)(const struct dirent*),
-        int (*)(const struct dirent**, const struct dirent**));
-
-#ifdef __cplusplus
+int alphasort(const struct dirent** d1, const struct dirent** d2) {
+    return strcoll((*d1)->d_name, (*d2)->d_name);
 }
-#endif
-
-#endif

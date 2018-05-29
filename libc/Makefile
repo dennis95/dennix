@@ -87,11 +87,13 @@ COMMON_OBJ = \
 LIBC_OBJ = \
 	$(COMMON_OBJ) \
 	assert/assert \
+	dirent/alphasort \
 	dirent/closedir \
 	dirent/fdopendir \
 	dirent/opendir \
 	dirent/readdir \
 	dirent/rewinddir \
+	dirent/scandir \
 	err/err \
 	err/errc \
 	err/errx \
@@ -162,6 +164,7 @@ LIBC_OBJ = \
 	stdlib/getenv \
 	stdlib/setenv \
 	stdlib/unsetenv \
+	string/strcoll \
 	sys/mman/mmap \
 	sys/mman/munmap \
 	sys/stat/fstat \
