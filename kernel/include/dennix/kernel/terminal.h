@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -47,6 +47,7 @@ private:
 class Terminal : public Vnode, public KeyboardListener {
 public:
     Terminal();
+    virtual int isatty();
     virtual ssize_t read(void* buffer, size_t size);
     virtual int tcgetattr(struct termios* result);
     virtual int tcsetattr(int flags, const struct termios* termios);

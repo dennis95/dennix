@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -119,6 +119,10 @@ void Terminal::onKeyboardEvent(int key) {
         }
     }
     VgaTerminal::updateCursorPosition();
+}
+
+int Terminal::isatty() {
+    return 1;
 }
 
 ssize_t Terminal::read(void* buffer, size_t size) {

@@ -49,7 +49,8 @@
 #define SYSCALL_ABORT 26
 #define SYSCALL_CLOCK_GETTIME 27
 #define SYSCALL_DUP3 28
+#define SYSCALL_ISATTY 29
 
-#define NUM_SYSCALLS 29
+#define NUM_SYSCALLS 30
 
 #endif

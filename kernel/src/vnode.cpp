@@ -183,6 +183,11 @@ char* Vnode::getLinkTarget() {
     return nullptr;
 }
 
+int Vnode::isatty() {
+    errno = ENOTTY;
+    return 0;
+}
+
 bool Vnode::isSeekable() {
     return false;
 }

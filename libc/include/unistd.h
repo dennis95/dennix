@@ -67,6 +67,7 @@ int gethostname(char*, size_t);
 char* getlogin(void);
 int getopt(int, char* const[], const char*);
 pid_t getpid(void);
+int isatty(int);
 int link(const char*, const char*);
 int linkat(int, const char*, int, const char*, int);
 ssize_t read(int, void*, size_t);

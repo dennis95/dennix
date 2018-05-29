@@ -45,6 +45,7 @@ int fstat(int fd, struct stat* result);
 int fstatat(int fd, const char* restrict path, struct stat* restrict result,
         int flags);
 pid_t getpid();
+int isatty(int fd);
 int kill(pid_t pid, int signal);
 int linkat(int oldFd, const char* oldPath, int newFd, const char* newPath,
         int flags);

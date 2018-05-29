@@ -62,6 +62,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_ABORT] =*/ (void*) Syscall::abort,
     /*[SYSCALL_CLOCK_GETTIME] =*/ (void*) Syscall::clock_gettime,
     /*[SYSCALL_DUP3] =*/ (void*) Syscall::dup3,
+    /*[SYSCALL_ISATTY] =*/ (void*) Syscall::isatty,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -179,6 +180,12 @@ int Syscall::fstatat(int fd, const char* restrict path,
 
 pid_t Syscall::getpid() {
     return Process::current->pid;
+}
+
+int Syscall::isatty(int fd) {
+    Reference<FileDescription> descr = Process::current->getFd(fd);
+    if (!descr) return -1;
+    return descr->vnode->isatty();
 }
 
 int Syscall::linkat(int oldFd, const char* oldPath, int newFd,

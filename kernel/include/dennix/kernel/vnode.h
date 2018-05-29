@@ -29,6 +29,7 @@ public:
     virtual int ftruncate(off_t length);
     virtual Reference<Vnode> getChildNode(const char* path);
     virtual char* getLinkTarget();
+    virtual int isatty();
     virtual bool isSeekable();
     virtual int link(const char* name, const Reference<Vnode>& vnode);
     virtual int mkdir(const char* name, mode_t mode);
