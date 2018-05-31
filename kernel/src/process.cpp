@@ -404,6 +404,10 @@ Process* Process::regfork(int /*flags*/, struct regfork* registers) {
 }
 
 void Process::terminate() {
+    rootFd = nullptr;
+    cwdFd = nullptr;
+    fdTable.clear();
+
     kthread_mutex_lock(&childrenMutex);
     if (firstChild) {
         AutoLock lock(&initProcess->childrenMutex);

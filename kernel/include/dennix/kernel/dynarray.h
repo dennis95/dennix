@@ -57,6 +57,15 @@ public:
         return i;
     }
 
+    void clear() {
+        for (TSize i = 0; i < allocatedSize; i++) {
+            buffer[i].~T();
+        }
+        free(buffer);
+        allocatedSize = 0;
+        buffer = nullptr;
+    }
+
     TSize insert(TSize index, const T& obj) {
         assert(index >= 0);
         if (index >= allocatedSize) {
