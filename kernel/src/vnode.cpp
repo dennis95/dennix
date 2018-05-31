@@ -207,13 +207,13 @@ bool Vnode::onUnlink() {
 }
 
 ssize_t Vnode::pread(void* /*buffer*/, size_t /*size*/, off_t /*offset*/) {
-    errno = EBADF;
+    errno = ESPIPE;
     return -1;
 }
 
 ssize_t Vnode::pwrite(const void* /*buffer*/, size_t /*size*/,
         off_t /*offset*/) {
-    errno = EBADF;
+    errno = ESPIPE;
     return -1;
 }
 

@@ -50,7 +50,8 @@
 #define SYSCALL_CLOCK_GETTIME 27
 #define SYSCALL_DUP3 28
 #define SYSCALL_ISATTY 29
+#define SYSCALL_PIPE2 30
 
-#define NUM_SYSCALLS 30
+#define NUM_SYSCALLS 31
 
 #endif

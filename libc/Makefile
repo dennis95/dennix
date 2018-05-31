@@ -206,6 +206,8 @@ LIBC_OBJ = \
 	unistd/isatty \
 	unistd/link \
 	unistd/linkat \
+	unistd/pipe \
+	unistd/pipe2 \
 	unistd/read \
 	unistd/regfork \
 	unistd/rmdir \

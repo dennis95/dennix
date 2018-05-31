@@ -70,6 +70,7 @@ pid_t getpid(void);
 int isatty(int);
 int link(const char*, const char*);
 int linkat(int, const char*, int, const char*, int);
+int pipe(int[2]);
 ssize_t read(int, void*, size_t);
 int rmdir(const char*);
 unsigned int sleep(unsigned int);
@@ -82,6 +83,7 @@ ssize_t write(int, const void*, size_t);
 #if __USE_DENNIX
 int dup3(int, int, int);
 int fchdirat(int, const char*);
+int pipe2(int[2], int);
 pid_t rfork(int);
 pid_t regfork(int, struct regfork*);
 #endif

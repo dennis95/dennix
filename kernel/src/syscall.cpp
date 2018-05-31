@@ -28,6 +28,7 @@
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/clock.h>
 #include <dennix/kernel/log.h>
+#include <dennix/kernel/pipe.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/symlink.h>
 #include <dennix/kernel/syscall.h>
@@ -63,6 +64,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_CLOCK_GETTIME] =*/ (void*) Syscall::clock_gettime,
     /*[SYSCALL_DUP3] =*/ (void*) Syscall::dup3,
     /*[SYSCALL_ISATTY] =*/ (void*) Syscall::isatty,
+    /*[SYSCALL_PIPE2] =*/ (void*) Syscall::pipe2,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -285,6 +287,32 @@ int Syscall::openat(int fd, const char* path, int flags, mode_t mode) {
     if (flags & O_CLOEXEC) fdFlags |= FD_CLOEXEC;
 
     return Process::current->addFileDescriptor(result, fdFlags);
+}
+
+int Syscall::pipe2(int fd[2], int flags) {
+    Reference<Vnode> readPipe;
+    Reference<Vnode> writePipe;
+    new PipeVnode(readPipe, writePipe);
+
+    Reference<FileDescription> readDescr = new FileDescription(readPipe);
+    Reference<FileDescription> writeDescr = new FileDescription(writePipe);
+
+    int fdFlags = 0;
+    if (flags & O_CLOEXEC) fdFlags |= FD_CLOEXEC;
+
+    int fd0 = Process::current->addFileDescriptor(readDescr, fdFlags);
+    if (fd0 < 0) return -1;
+    int fd1 = Process::current->addFileDescriptor(writeDescr, fdFlags);
+    if (fd1 < 0) {
+        int oldErrno = errno;
+        Process::current->close(fd0);
+        errno = oldErrno;
+        return -1;
+    }
+
+    fd[0] = fd0;
+    fd[1] = fd1;
+    return 0;
 }
 
 ssize_t Syscall::read(int fd, void* buffer, size_t size) {

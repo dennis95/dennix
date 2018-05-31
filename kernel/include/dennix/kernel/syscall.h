@@ -53,6 +53,7 @@ int mkdirat(int fd, const char* path, mode_t mode);
 void* mmap(__mmapRequest* request);
 int munmap(void* addr, size_t size);
 int openat(int fd, const char* path, int flags, mode_t mode);
+int pipe2(int fd[2], int flags);
 ssize_t read(int fd, void* buffer, size_t size);
 ssize_t readdir(int fd, unsigned long offset, void* buffer, size_t size);
 int renameat(int oldFd, const char* oldPath, int newFd, const char* newPath);

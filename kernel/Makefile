@@ -48,6 +48,7 @@ OBJ = \
 	log.o \
 	memorysegment.o \
 	physicalmemory.o \
+	pipe.o \
 	pit.o \
 	process.o \
 	ps2.o \
