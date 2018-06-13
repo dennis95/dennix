@@ -20,6 +20,7 @@
 #include <err.h>
 #include <getopt.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -88,6 +89,7 @@ int main(int argc, char* argv[]) {
         enum TokenizerResult tokenResult;
         if (!initTokenizer(&tokenizer)) err(1, "initTokenizer");
 
+continue_tokenizing:
         do {
             ssize_t length = getline(&buffer, &bufferSize, stdin);
             if (length < 0) {
@@ -118,12 +120,19 @@ int main(int argc, char* argv[]) {
         struct Parser parser;
         initParser(&parser, &tokenizer);
 
-        struct SimpleCommand command;
-        if (parseSimpleCommand(&parser, &command)) {
+        struct CompleteCommand command;
+        enum ParserResult parserResult = parse(&parser, &command);
+
+        if (parserResult == PARSER_NEWLINE) {
+            fputs("> ", stderr);
+            goto continue_tokenizing;
+        } else if (parserResult == PARSER_ERROR) {
+            err(1, "Parser error");
+        } else if (parserResult == PARSER_MATCH) {
             execute(&command);
+            freeCompleteCommand(&command);
         }
 
-        freeSimpleCommand(&command);
         freeTokenizer(&tokenizer);
     }
 }
@@ -136,5 +145,13 @@ bool addToArray(void** array, size_t* used, void* value, size_t size) {
     *array = newArray;
     memcpy((void*) ((uintptr_t) *array + size * *used), value, size);
     (*used)++;
+    return true;
+}
+
+bool moveFd(int old, int new) {
+    if (dup2(old, new) < 0) return false;
+    if (old != new) {
+        close(old);
+    }
     return true;
 }

@@ -22,6 +22,6 @@
 
 #include "parser.h"
 
-int execute(struct SimpleCommand* simpleCommand);
+int execute(struct CompleteCommand* command);
 
 #endif

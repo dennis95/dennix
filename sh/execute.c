@@ -17,12 +17,14 @@
  * Shell command execution.
  */
 
-#include <fcntl.h>
+#include <assert.h>
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdnoreturn.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
@@ -30,88 +32,177 @@
 #include "builtins.h"
 #include "execute.h"
 #include "expand.h"
+#include "sh.h"
 
+static int executePipeline(struct Pipeline* pipeline);
+static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
+        bool subshell);
+static noreturn void executeUtility(char** arguments,
+        struct Redirection* redirections, size_t numRedirections);
+static int forkAndExecuteUtility(char** arguments,
+        struct Redirection* redirections, size_t numRedirections);
 static const char* getExecutablePath(const char* command);
 static bool performRedirections(struct Redirection* redirections,
         size_t numRedirections);
+static int waitForCommand(pid_t pid);
 
-int execute(struct SimpleCommand* simpleCommand) {
-    char** arguments = malloc((simpleCommand->numWords + 1) * sizeof(char*));
+int execute(struct CompleteCommand* command) {
+    return executePipeline(&command->pipeline);
+}
+
+static int executePipeline(struct Pipeline* pipeline) {
+    int inputFd;
+
+    for (size_t i = 0; i < pipeline->numCommands - 1; i++) {
+        int pipeFds[2];
+        if (pipe(pipeFds) < 0) err(1, "pipe");
+
+        pid_t pid = fork();
+
+        if (pid < 0) {
+            err(1, "fork");
+        } else if (pid == 0) {
+            close(pipeFds[0]);
+
+            if (i > 0) {
+                if (!moveFd(inputFd, 0)) {
+                    warn("cannot move file descriptor");
+                    _Exit(126);
+                }
+            }
+
+            if (!moveFd(pipeFds[1], 1)) {
+                warn("cannot move file descriptor");
+                _Exit(126);
+            }
+
+            executeSimpleCommand(&pipeline->commands[i], true);
+            assert(false); // This should be unreachable.
+        } else {
+            close(pipeFds[1]);
+            if (i > 0) {
+                close(inputFd);
+            }
+
+            inputFd = pipeFds[0];
+        }
+    }
+
+    if (pipeline->numCommands > 1) {
+        pid_t pid = fork();
+
+        if (pid < 0) {
+            err(1, "fork");
+        } else if (pid == 0) {
+            if (!moveFd(inputFd, 0)) {
+                warn("cannot move file descriptor");
+                _Exit(126);
+            }
+
+            executeSimpleCommand(
+                    &pipeline->commands[pipeline->numCommands - 1], true);
+            assert(false); // This should be unreachable.
+        } else {
+            assert(inputFd != 0);
+            close(inputFd);
+
+            int exitStatus = waitForCommand(pid);
+
+            for (size_t i = 0; i < pipeline->numCommands - 1; i++) {
+                // Wait for all other commands of the pipeline.
+                int status;
+                wait(&status);
+            }
+            if (pipeline->bang) return !exitStatus;
+            return exitStatus;
+        }
+    }
+
+    return executeSimpleCommand(&pipeline->commands[0], false);
+}
+
+static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
+        bool subshell) {
+    int argc = simpleCommand->numWords;
+
+    char** arguments = malloc((argc + 1) * sizeof(char*));
     if (!arguments) err(1, "malloc");
-    for (size_t i = 0; i < simpleCommand->numWords; i++) {
+    for (int i = 0; i < argc; i++) {
         arguments[i] = expandWord(simpleCommand->words[i]);
     }
 
-    int argc = simpleCommand->numWords;
     arguments[argc] = NULL;
 
-    struct Redirection* redirections = malloc(simpleCommand->numRedirections *
+    size_t numRedirections = simpleCommand->numRedirections;
+    struct Redirection* redirections = malloc(numRedirections *
             sizeof(struct Redirection));
     if (!redirections) err(1, "malloc");
-    for (size_t i = 0; i < simpleCommand->numRedirections; i++) {
+    for (size_t i = 0; i < numRedirections; i++) {
         redirections[i] = simpleCommand->redirections[i];
         redirections[i].filename = expandWord(redirections[i].filename);
     }
 
     const char* command = arguments[0];
+    if (!command) {
+        assert(numRedirections > 0);
     // Special built-ins
-    if (strcmp(command, "exit") == 0) {
+    } else if (strcmp(command, "exit") == 0) {
         exit(0);
+    // Regular built-ins
+    } else if (strcmp(command, "cd") == 0) {
+        int result = cd(argc, arguments);
+        free(arguments);
+        free(redirections);
+        if (subshell) {
+            exit(result);
+        }
+        return result;
     }
 
-    // Regular built-ins
-    if (strcmp(command, "cd") == 0) {
-        int result = cd(argc, arguments);
+    if (subshell) {
+        executeUtility(arguments, redirections, numRedirections);
+    } else {
+        int result = forkAndExecuteUtility(arguments, redirections,
+                numRedirections);
         free(arguments);
         free(redirections);
         return result;
     }
+}
 
+static noreturn void executeUtility(char** arguments,
+        struct Redirection* redirections, size_t numRedirections) {
+    const char* command = arguments[0];
+    if (!performRedirections(redirections, numRedirections)) {
+        _Exit(126);
+    }
+
+    if (!command) _Exit(0);
+
+    if (!strchr(command, '/')) {
+        command = getExecutablePath(command);
+    }
+
+    if (command) {
+        execv(command, arguments);
+        warn("execv: '%s'", command);
+        _Exit(126);
+    } else {
+        warnx("'%s': Command not found", arguments[0]);
+        _Exit(127);
+    }
+}
+
+static int forkAndExecuteUtility(char** arguments,
+        struct Redirection* redirections, size_t numRedirections) {
     pid_t pid = fork();
 
     if (pid < 0) {
-        warn("fork");
-        free(arguments);
-        free(redirections);
-        return 126;
+        err(1, "fork");
     } else if (pid == 0) {
-        if (!performRedirections(redirections,
-                simpleCommand->numRedirections)) {
-            _Exit(126);
-        }
-
-        if (!strchr(command, '/')) {
-            command = getExecutablePath(command);
-        }
-
-        if (command) {
-            execv(command, arguments);
-            warn("execv: '%s'", command);
-            _Exit(126);
-        } else {
-            warnx("'%s': Command not found", arguments[0]);
-            _Exit(127);
-        }
+        executeUtility(arguments, redirections, numRedirections);
     } else {
-        free(arguments);
-        free(redirections);
-
-        int status;
-        if (waitpid(pid, &status, 0) < 0) {
-            err(1, "waitpid");
-        }
-
-        if (WIFSIGNALED(status)) {
-            int signum = WTERMSIG(status);
-            if (signum == SIGINT) {
-                fputc('\n', stderr);
-            } else {
-                fprintf(stderr, "%s\n", strsignal(signum));
-            }
-            return 128 + signum;
-        }
-
-        return WEXITSTATUS(status);
+        return waitForCommand(pid);
     }
 }
 
@@ -169,10 +260,29 @@ static bool performRedirections(struct Redirection* redirections,
             warn("dup2: '%s'", redirection.filename);
             return false;
         }
-        if (!redirection.filenameIsFd) {
+        if (!redirection.filenameIsFd && fd != redirection.fd) {
             close(fd);
         }
     }
 
     return true;
+}
+
+static int waitForCommand(pid_t pid) {
+    int status;
+    if (waitpid(pid, &status, 0) < 0) {
+        err(1, "waitpid");
+    }
+
+    if (WIFSIGNALED(status)) {
+        int signum = WTERMSIG(status);
+        if (signum == SIGINT) {
+            fputc('\n', stderr);
+        } else {
+            fprintf(stderr, "%s\n", strsignal(signum));
+        }
+        return 128 + signum;
+    }
+
+    return WEXITSTATUS(status);
 }

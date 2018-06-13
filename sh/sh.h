@@ -26,5 +26,6 @@
 
 NO_DISCARD bool addToArray(void** array, size_t* used, void* value,
         size_t size);
+NO_DISCARD bool moveFd(int old, int new);
 
 #endif

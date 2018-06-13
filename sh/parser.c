@@ -27,69 +27,174 @@
 #include "tokenizer.h"
 #include "parser.h"
 
-static bool parseIoRedirect(struct Parser* parser, int fd,
-        struct Redirection* result);
-static void syntaxError(const char* token);
+#define BACKTRACKING // specify that a function might return PARSER_BACKTRACK.
+
+static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
+        int fd, struct Redirection* result);
+static enum ParserResult parsePipeline(struct Parser* parser,
+        struct Pipeline* pipeline);
+static enum ParserResult parseSimpleCommand(struct Parser* parser,
+        struct SimpleCommand* command);
+static void syntaxError(struct Token* token);
+
+static void freePipeline(struct Pipeline* pipeline);
+static void freeSimpleCommand(struct SimpleCommand* command);
+
+static inline struct Token* getToken(struct Parser* parser) {
+    if (parser->offset >= parser->tokenizer->numTokens) {
+        return NULL;
+    }
+    return &parser->tokenizer->tokens[parser->offset];
+}
 
 void initParser(struct Parser* parser, const struct Tokenizer* tokenizer) {
     parser->tokenizer = tokenizer;
     parser->offset = 0;
 }
 
-bool parseSimpleCommand(struct Parser* parser, struct SimpleCommand* command) {
+enum ParserResult parse(struct Parser* parser,
+        struct CompleteCommand* command) {
+    enum ParserResult result = parsePipeline(parser, &command->pipeline);
+
+    assert(result != PARSER_BACKTRACK);
+
+    if (result == PARSER_MATCH &&
+            parser->offset < parser->tokenizer->numTokens - 1) {
+        syntaxError(getToken(parser));
+        return PARSER_SYNTAX;
+    }
+
+    if (result == PARSER_SYNTAX) {
+        syntaxError(getToken(parser));
+    }
+    return result;
+}
+
+static enum ParserResult parsePipeline(struct Parser* parser,
+        struct Pipeline* pipeline) {
+    pipeline->commands = NULL;
+    pipeline->numCommands = 0;
+    pipeline->bang = false;
+
+    enum ParserResult result;
+
+    struct Token* token = getToken(parser);
+    if (!token) return PARSER_SYNTAX;
+
+    while (token->type == TOKEN && strcmp(token->text, "!") == 0) {
+        pipeline->bang = !pipeline->bang;
+        parser->offset++;
+        token = getToken(parser);
+        if (!token) return PARSER_SYNTAX;
+    }
+
+    while (true) {
+        struct SimpleCommand command;
+        result = parseSimpleCommand(parser, &command);
+        if (result != PARSER_MATCH) goto fail;
+
+        if (!addToArray((void**) &pipeline->commands, &pipeline->numCommands,
+                &command, sizeof(command))) {
+            result = PARSER_ERROR;
+            goto fail;
+        }
+
+        token = getToken(parser);
+        if (!token) return PARSER_MATCH;
+        if (token->type != OPERATOR || strcmp(token->text, "|") != 0) {
+            return PARSER_MATCH;
+        }
+
+        parser->offset++;
+
+        token = getToken(parser);
+        if (!token) {
+            result = PARSER_SYNTAX;
+            goto fail;
+        }
+
+        while (token->type == OPERATOR && strcmp(token->text, "\n") == 0) {
+            parser->offset++;
+            token = getToken(parser);
+            if (!token) {
+                result = PARSER_NEWLINE;
+                goto fail;
+            }
+        }
+    }
+
+    return PARSER_MATCH;
+
+fail:
+    freePipeline(pipeline);
+    return result;
+}
+
+static enum ParserResult parseSimpleCommand(struct Parser* parser,
+        struct SimpleCommand* command) {
     command->redirections = NULL;
     command->numRedirections = 0;
     command->words = NULL;
     command->numWords = 0;
 
-    struct Token* tokens = parser->tokenizer->tokens;
+    enum ParserResult result;
 
-    while (tokens[parser->offset].text[0] != '\n') {
-        struct Token token = tokens[parser->offset];
+    struct Token* token = getToken(parser);
+    assert(token);
 
-        if (token.type == IO_NUMBER) {
-            assert(parser->tokenizer->numTokens > parser->offset + 1 &&
-                    tokens[parser->offset + 1].type == OPERATOR);
-
-            int fd = strtol(token.text, NULL, 10);
-            parser->offset++;
-
-            struct Redirection redirection;
-            if (!parseIoRedirect(parser, fd, &redirection)) return false;
-            if (!addToArray((void**) &command->redirections,
-                    &command->numRedirections, &redirection,
-                    sizeof(redirection))) {
-                return false;
+    while (true) {
+        if (token->type == IO_NUMBER || token->type == OPERATOR) {
+            int fd = -1;
+            if (token->type == IO_NUMBER) {
+                fd = strtol(token->text, NULL, 10);
+                parser->offset++;
             }
-        } else if (token.type == OPERATOR) {
+
             struct Redirection redirection;
-            if (!parseIoRedirect(parser, -1, &redirection)) return false;
+            result = parseIoRedirect(parser, fd, &redirection);
+
+            if (result == PARSER_BACKTRACK) {
+                if (command->numWords > 0 || command->numRedirections > 0) {
+                    return PARSER_MATCH;
+                }
+                result = PARSER_SYNTAX;
+                goto fail;
+            }
+
+            if (result != PARSER_MATCH) goto fail;
+
             if (!addToArray((void**) &command->redirections,
                     &command->numRedirections, &redirection,
                     sizeof(redirection))) {
-                return false;
+                result = PARSER_ERROR;
+                goto fail;
             }
         } else {
-            assert(token.type == TOKEN);
+            assert(token->type == TOKEN);
             if (!addToArray((void**) &command->words, &command->numWords,
-                    &token.text, sizeof(char*))) {
-                return false;
+                    &token->text, sizeof(char*))) {
+                result = PARSER_ERROR;
+                goto fail;
             }
             parser->offset++;
         }
+
+        token = getToken(parser);
+        if (!token) return PARSER_MATCH;
     }
 
-    return true;
+    return PARSER_MATCH;
+
+fail:
+    freeSimpleCommand(command);
+    return result;
 }
 
-void freeSimpleCommand(struct SimpleCommand* command) {
-    free(command->redirections);
-    free(command->words);
-}
-
-static bool parseIoRedirect(struct Parser* parser, int fd,
-        struct Redirection* result) {
-    const char* operator = parser->tokenizer->tokens[parser->offset].text;
+static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
+        int fd, struct Redirection* result) {
+    struct Token* token = getToken(parser);
+    assert(token && token->type == OPERATOR);
+    const char* operator = token->text;
 
     result->filenameIsFd = false;
     result->flags = 0;
@@ -109,8 +214,7 @@ static bool parseIoRedirect(struct Parser* parser, int fd,
     } else if (strcmp(operator, "<>") == 0) {
         result->flags = O_RDWR | O_CREAT;
     } else {
-        syntaxError(operator);
-        return false;
+        return PARSER_BACKTRACK;
     }
 
     if (fd == -1) {
@@ -119,21 +223,38 @@ static bool parseIoRedirect(struct Parser* parser, int fd,
     result->fd = fd;
 
     parser->offset++;
-    struct Token filename = parser->tokenizer->tokens[parser->offset];
-    if (filename.type != TOKEN) {
-        syntaxError(filename.text);
-        return false;
+    struct Token* filename = getToken(parser);
+    if (!filename || filename->type != TOKEN) {
+        return PARSER_SYNTAX;
     }
-    result->filename = filename.text;
+    result->filename = filename->text;
 
     parser->offset++;
-    return true;
+    return PARSER_MATCH;
 }
 
-static void syntaxError(const char* token) {
-    if (strcmp(token, "\n") == 0) {
+static void syntaxError(struct Token* token) {
+    if (!token) {
+        warnx("syntax error: unexpected end of file");
+    } else if (strcmp(token->text, "\n") == 0) {
         warnx("syntax error: unexpected newline");
     } else {
-        warnx("syntax error: unexpected '%s'", token);
+        warnx("syntax error: unexpected '%s'", token->text);
     }
+}
+
+void freeCompleteCommand(struct CompleteCommand* command) {
+    freePipeline(&command->pipeline);
+}
+
+static void freePipeline(struct Pipeline* pipeline) {
+    for (size_t i = 0; i < pipeline->numCommands; i++) {
+        freeSimpleCommand(&pipeline->commands[i]);
+    }
+    free(pipeline->commands);
+}
+
+static void freeSimpleCommand(struct SimpleCommand* command) {
+    free(command->redirections);
+    free(command->words);
 }

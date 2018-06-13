@@ -21,6 +21,7 @@
 #define PARSER_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 struct Redirection {
     int fd;
@@ -36,13 +37,32 @@ struct SimpleCommand {
     size_t numWords;
 };
 
+struct Pipeline {
+    struct SimpleCommand* commands;
+    size_t numCommands;
+    bool bang;
+};
+
+struct CompleteCommand {
+    struct Pipeline pipeline;
+};
+
 struct Parser {
     const struct Tokenizer* tokenizer;
     size_t offset;
 };
 
+enum ParserResult {
+    PARSER_MATCH,
+    PARSER_BACKTRACK,
+    PARSER_SYNTAX,
+    PARSER_ERROR,
+    PARSER_NEWLINE,
+};
+
 void initParser(struct Parser* parser, const struct Tokenizer* tokenizer);
-bool parseSimpleCommand(struct Parser* parser, struct SimpleCommand* command);
-void freeSimpleCommand(struct SimpleCommand* command);
+enum ParserResult parse(struct Parser* parser,
+        struct CompleteCommand* command);
+void freeCompleteCommand(struct CompleteCommand* command);
 
 #endif
