@@ -25,6 +25,7 @@
 class FileDescription : public ReferenceCounted {
 public:
     FileDescription(const Reference<Vnode>& vnode);
+    off_t lseek(off_t offset, int whence);
     Reference<FileDescription> openat(const char* path, int flags,
             mode_t mode);
     ssize_t read(void* buffer, size_t size);

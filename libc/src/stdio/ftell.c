@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018 Dennis Wölfing
+/* Copyright (c) 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,31 +13,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/fcntl.h
- * File control.
+/* libc/src/stdio/ftell.c
+ * Get file position.
  */
 
-#ifndef _FCNTL_H
-#define _FCNTL_H
+#include <errno.h>
+#include <limits.h>
+#include <stdio.h>
 
-#include <sys/cdefs.h>
-#define __need_mode_t
-#define __need_off_t
-#define __need_pid_t
-#include <sys/libc-types.h>
-#include <sys/stat.h>
-#include <dennix/fcntl.h>
-#include <dennix/seek.h>
+long ftell(FILE* file) {
+    off_t offset = ftello(file);
+    if (offset > LONG_MAX) {
+        errno = EOVERFLOW;
+        return -1;
+    }
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int open(const char*, int, ...);
-int openat(int, const char*, int, ...);
-
-#ifdef __cplusplus
+    return (long) offset;
 }
-#endif
-
-#endif

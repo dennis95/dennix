@@ -30,6 +30,7 @@ public:
     ~FileVnode();
     virtual int ftruncate(off_t length);
     virtual bool isSeekable();
+    virtual off_t lseek(off_t offset, int whence);
     virtual ssize_t pread(void* buffer, size_t size, off_t offset);
     virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset);
 public:

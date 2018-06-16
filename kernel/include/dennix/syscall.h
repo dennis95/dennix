@@ -51,7 +51,8 @@
 #define SYSCALL_DUP3 28
 #define SYSCALL_ISATTY 29
 #define SYSCALL_PIPE2 30
+#define SYSCALL_LSEEK 31
 
-#define NUM_SYSCALLS 31
+#define NUM_SYSCALLS 32
 
 #endif

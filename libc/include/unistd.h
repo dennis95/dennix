@@ -30,6 +30,7 @@
 #define __need_uid_t
 #include <sys/libc-types.h>
 #include <dennix/conf.h>
+#include <dennix/seek.h>
 #if __USE_DENNIX
 #  include <dennix/fork.h>
 #endif
@@ -70,6 +71,7 @@ pid_t getpid(void);
 int isatty(int);
 int link(const char*, const char*);
 int linkat(int, const char*, int, const char*, int);
+off_t lseek(int, off_t, int);
 int pipe(int[2]);
 ssize_t read(int, void*, size_t);
 int rmdir(const char*);

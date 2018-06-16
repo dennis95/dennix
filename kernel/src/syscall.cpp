@@ -65,6 +65,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_DUP3] =*/ (void*) Syscall::dup3,
     /*[SYSCALL_ISATTY] =*/ (void*) Syscall::isatty,
     /*[SYSCALL_PIPE2] =*/ (void*) Syscall::pipe2,
+    /*[SYSCALL_LSEEK] =*/ (void*) Syscall::lseek,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -216,6 +217,12 @@ int Syscall::linkat(int oldFd, const char* oldPath, int newFd,
     int result = directory->link(name, vnode);
     free(path2Copy);
     return result;
+}
+
+off_t Syscall::lseek(int fd, off_t offset, int whence) {
+    Reference<FileDescription> descr = Process::current->getFd(fd);
+    if (!descr) return -1;
+    return descr->lseek(offset, whence);
 }
 
 static void* mmapImplementation(void* /*addr*/, size_t size,

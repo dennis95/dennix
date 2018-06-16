@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018 Dennis Wölfing
+/* Copyright (c) 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,31 +13,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/fcntl.h
- * File control.
+/* libc/src/stdio/ftello_unlocked.c
+ * Get file position.
  */
 
-#ifndef _FCNTL_H
-#define _FCNTL_H
+#include "FILE.h"
+#include <unistd.h>
 
-#include <sys/cdefs.h>
-#define __need_mode_t
-#define __need_off_t
-#define __need_pid_t
-#include <sys/libc-types.h>
-#include <sys/stat.h>
-#include <dennix/fcntl.h>
-#include <dennix/seek.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int open(const char*, int, ...);
-int openat(int, const char*, int, ...);
-
-#ifdef __cplusplus
+off_t ftello_unlocked(FILE* file) {
+    return lseek(file->fd, 0, SEEK_CUR);
 }
-#endif
-
-#endif

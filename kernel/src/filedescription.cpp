@@ -22,6 +22,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <dennix/fcntl.h>
+#include <dennix/seek.h>
 #include <dennix/kernel/directory.h>
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/filedescription.h>
@@ -29,6 +30,22 @@
 FileDescription::FileDescription(const Reference<Vnode>& vnode)
         : vnode(vnode) {
     offset = 0;
+}
+
+off_t FileDescription::lseek(off_t offset, int whence) {
+    if (whence == SEEK_CUR) {
+        if (__builtin_add_overflow(offset, this->offset, &offset)) {
+            errno = EOVERFLOW;
+            return -1;
+        }
+    }
+
+    off_t result = vnode->lseek(offset, whence);
+
+    if (result < 0) return -1;
+
+    this->offset = result;
+    return result;
 }
 
 Reference<FileDescription> FileDescription::openat(const char* path, int flags,

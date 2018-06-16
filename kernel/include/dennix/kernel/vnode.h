@@ -32,6 +32,7 @@ public:
     virtual int isatty();
     virtual bool isSeekable();
     virtual int link(const char* name, const Reference<Vnode>& vnode);
+    virtual off_t lseek(off_t offset, int whence);
     virtual int mkdir(const char* name, mode_t mode);
     virtual bool onUnlink();
     virtual ssize_t pread(void* buffer, size_t size, off_t offset);

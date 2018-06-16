@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018 Dennis Wölfing
+/* Copyright (c) 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,31 +13,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/fcntl.h
- * File control.
+/* libc/src/stdio/fseeko_unlocked.c
+ * Set file position.
  */
 
-#ifndef _FCNTL_H
-#define _FCNTL_H
+#include "FILE.h"
+#include <unistd.h>
 
-#include <sys/cdefs.h>
-#define __need_mode_t
-#define __need_off_t
-#define __need_pid_t
-#include <sys/libc-types.h>
-#include <sys/stat.h>
-#include <dennix/fcntl.h>
-#include <dennix/seek.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int open(const char*, int, ...);
-int openat(int, const char*, int, ...);
-
-#ifdef __cplusplus
+int fseeko_unlocked(FILE* file, off_t offset, int whence) {
+    if (lseek(file->fd, offset, whence) < 0) {
+        file->flags |= FILE_FLAG_ERROR;
+        return -1;
+    }
+    file->flags &= ~FILE_FLAG_EOF;
+    return 0;
 }
-#endif
-
-#endif

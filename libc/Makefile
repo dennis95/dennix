@@ -133,6 +133,12 @@ LIBC_OBJ = \
 	stdio/fputc \
 	stdio/fputs_unlocked \
 	stdio/fputs \
+	stdio/fseek \
+	stdio/fseeko_unlocked \
+	stdio/fseeko \
+	stdio/ftell \
+	stdio/ftello_unlocked \
+	stdio/ftello \
 	stdio/funlockfile \
 	stdio/fwrite_unlocked \
 	stdio/fwrite \
@@ -151,6 +157,7 @@ LIBC_OBJ = \
 	stdio/remove \
 	stdio/rename \
 	stdio/renameat \
+	stdio/rewind \
 	stdio/stderr \
 	stdio/stdin \
 	stdio/stdout \
@@ -206,6 +213,7 @@ LIBC_OBJ = \
 	unistd/isatty \
 	unistd/link \
 	unistd/linkat \
+	unistd/lseek \
 	unistd/pipe \
 	unistd/pipe2 \
 	unistd/read \

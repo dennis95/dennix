@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dennix/seek.h>
 #include <dennix/stat.h>
 #include <dennix/kernel/file.h>
 
@@ -61,6 +62,28 @@ bool FileVnode::isSeekable() {
     return true;
 }
 
+off_t FileVnode::lseek(off_t offset, int whence) {
+    AutoLock lock(&mutex);
+    off_t base;
+
+    if (whence == SEEK_SET || whence == SEEK_CUR) {
+        base = 0;
+    } else if (whence == SEEK_END) {
+        base = fileSize;
+    } else {
+        errno = EINVAL;
+        return -1;
+    }
+
+    off_t result;
+    if (__builtin_add_overflow(base, offset, &result) || result < 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return result;
+}
+
 ssize_t FileVnode::pread(void* buffer, size_t size, off_t offset) {
     AutoLock lock(&mutex);
     char* buf = (char*) buffer;
@@ -79,6 +102,8 @@ ssize_t FileVnode::pwrite(const void* buffer, size_t size, off_t offset) {
         return -1;
     }
 
+    if (size == 0) return 0;
+
     AutoLock lock(&mutex);
     size_t newSize;
     if (__builtin_add_overflow(offset, size, &newSize)) {
@@ -93,6 +118,12 @@ ssize_t FileVnode::pwrite(const void* buffer, size_t size, off_t offset) {
             return -1;
         }
         data = (char*) newData;
+
+        if (offset > fileSize) {
+            // When writing after the old EOF, fill the gap with zeros.
+            memset(data + fileSize, '\0', offset - fileSize);
+        }
+
         fileSize = (off_t) newSize;
     }
 

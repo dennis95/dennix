@@ -197,6 +197,11 @@ int Vnode::link(const char* /*name*/, const Reference<Vnode>& /*vnode*/) {
     return -1;
 }
 
+off_t Vnode::lseek(off_t /*offset*/, int /*whence*/) {
+    errno = ESPIPE;
+    return -1;
+}
+
 int Vnode::mkdir(const char* /*name*/, mode_t /*mode*/) {
     errno = ENOTDIR;
     return -1;
