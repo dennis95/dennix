@@ -47,7 +47,9 @@ int rand(void);
 void* realloc(void*, size_t);
 void srand(unsigned int);
 long strtol(const char* __restrict, char** __restrict, int);
+long long strtoll(const char* __restrict, char** __restrict, int);
 unsigned long strtoul(const char* __restrict, char** __restrict, int);
+unsigned long long strtoull(const char* __restrict, char** __restrict, int);
 
 #if __USE_DENNIX || __USE_POSIX
 int setenv(const char*, const char*, int);

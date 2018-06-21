@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,10 +20,10 @@
 #ifndef _INTTYPES_H
 #define _INTTYPES_H
 
-#include <stdint.h>
 #include <sys/cdefs.h>
 #define __need_wchar_t
 #include <sys/libc-types.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -193,6 +193,9 @@ extern "C" {
 #define SCNxFAST64 PRIxFAST64
 #define SCNxMAX PRIxMAX
 #define SCNxPTR PRIxPTR
+
+intmax_t strtoimax(const char* __restrict, char** __restrict, int);
+uintmax_t strtoumax(const char* __restrict, char** __restrict, int);
 
 #ifdef __cplusplus
 }

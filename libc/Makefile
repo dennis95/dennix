@@ -40,6 +40,8 @@ COMMON_OBJ = \
 	errno/errno \
 	getopt/getopt \
 	getopt/getopt_long \
+	inttypes/strtoimax \
+	inttypes/strtoumax \
 	libgen/basename \
 	libgen/dirname \
 	sched/sched_yield \
@@ -59,7 +61,9 @@ COMMON_OBJ = \
 	stdlib/realloc \
 	stdlib/reallocarray \
 	stdlib/strtol \
+	stdlib/strtoll \
 	stdlib/strtoul \
+	stdlib/strtoull \
 	string/memcmp \
 	string/memcpy \
 	string/memmove \

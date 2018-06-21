@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,8 +28,9 @@
 #  define STRTOL_RESULT long
 #  define STRTOL_RESULT_MAX LONG_MAX
 #  define STRTOL_RESULT_MIN LONG_MIN
-#  define STRTOL_UNSIGNED false
 #endif
+
+#define STRTOL_UNSIGNED (STRTOL_RESULT_MIN == 0)
 
 static STRTOL_RESULT getDigitValue(unsigned char c) {
     if (c >= '0' && c <= '9') {

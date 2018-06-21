@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018 Dennis Wölfing
+/* Copyright (c) 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,13 +13,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/stdlib/strtoul.c
- * Converts a string into a number.
+/* libc/src/stdlib/strtoll.c
+ * Convert a string to a number.
  */
 
-#define STRTOL_NAME strtoul
-#define STRTOL_RESULT unsigned long
-#define STRTOL_RESULT_MAX ULONG_MAX
-#define STRTOL_RESULT_MIN 0
+#define STRTOL_NAME strtoll
+#define STRTOL_RESULT long long
+#define STRTOL_RESULT_MAX LLONG_MAX
+#define STRTOL_RESULT_MIN LLONG_MIN
 
 #include "strtol.c"
