@@ -34,6 +34,7 @@ BIN_PROGRAMS = \
 	echo \
 	editor \
 	false \
+	head \
 	ln \
 	ls \
 	mkdir \
@@ -42,6 +43,7 @@ BIN_PROGRAMS = \
 	rm \
 	sleep \
 	snake \
+	tail \
 	true \
 	uname
 
@@ -66,7 +68,9 @@ install-sbin: $(addprefix $(BUILD)/, $(SBIN_PROGRAMS))
 
 $(BUILD)/%: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $<
+
+$(BUILD)/tail: head.c
 
 clean:
 	rm -rf $(BUILD)
