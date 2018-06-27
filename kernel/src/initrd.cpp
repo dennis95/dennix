@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -47,8 +47,7 @@ struct TarHeader {
 };
 
 Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
-    Reference<DirectoryVnode> root(
-            new DirectoryVnode(Reference<DirectoryVnode>(), 0755, 0, 0));
+    Reference<DirectoryVnode> root = new DirectoryVnode(nullptr, 0755, 0);
     TarHeader* header = (TarHeader*) initrd;
 
     while (strcmp(header->magic, TMAGIC) == 0) {
@@ -81,16 +80,16 @@ Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
         mode_t mode = (mode_t) strtol(header->mode, nullptr, 8);
 
         if (header->typeflag == REGTYPE || header->typeflag == AREGTYPE) {
-            newFile = Reference<Vnode>(new FileVnode(header + 1, size, mode,
-                    directory->dev, 0));
+            newFile = new FileVnode(header + 1, size, mode,
+                    directory->stats.st_dev);
             header += 1 + ALIGNUP(size, 512) / 512;
         } else if (header->typeflag == DIRTYPE) {
-            newFile = Reference<Vnode>(new DirectoryVnode(directory, mode,
-                    directory->dev, 0));
+            newFile = new DirectoryVnode(directory, mode,
+                    directory->stats.st_dev);
             header++;
         } else if (header->typeflag == SYMTYPE) {
-            newFile = Reference<Vnode>(new SymlinkVnode(header->linkname,
-                    sizeof(header->linkname), directory->dev, 0));
+            newFile = new SymlinkVnode(header->linkname,
+                    sizeof(header->linkname), directory->stats.st_dev);
             header++;
         } else {
             Log::printf("Unknown typeflag '%c'\n", header->typeflag);

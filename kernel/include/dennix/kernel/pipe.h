@@ -20,7 +20,6 @@
 #ifndef KERNEL_PIPE_H
 #define KERNEL_PIPE_H
 
-#include <dennix/kernel/kthread.h>
 #include <dennix/kernel/vnode.h>
 
 #define PIPE_BUF 4096
@@ -41,7 +40,6 @@ public:
 private:
     Vnode* readEnd;
     Vnode* writeEnd;
-    kthread_mutex_t mutex;
     char pipeBuffer[PIPE_BUF];
     size_t bufferIndex;
     size_t bytesAvailable;

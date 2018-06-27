@@ -20,10 +20,14 @@
 #ifndef _DENNIX_TYPES_H
 #define _DENNIX_TYPES_H
 
+typedef __INTMAX_TYPE__ __blkcnt_t;
+typedef long __blksize_t;
 typedef unsigned int __clockid_t;
 typedef unsigned long __dev_t;
+typedef __UINT64_TYPE__ __gid_t;
 typedef __UINTMAX_TYPE__ __ino_t;
 typedef int __mode_t;
+typedef unsigned int __nlink_t;
 typedef __INTMAX_TYPE__ __off_t;
 typedef int __pid_t;
 typedef __INT64_TYPE__ __time_t;

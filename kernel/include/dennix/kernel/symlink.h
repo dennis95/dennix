@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,9 +24,8 @@
 
 class SymlinkVnode : public Vnode {
 public:
-    SymlinkVnode(const char* target, dev_t dev, ino_t ino);
-    SymlinkVnode(const char* target, size_t targetLength, dev_t dev,
-            ino_t ino);
+    SymlinkVnode(const char* target, dev_t dev);
+    SymlinkVnode(const char* target, size_t targetLength, dev_t dev);
     ~SymlinkVnode();
     virtual char* getLinkTarget();
 private:

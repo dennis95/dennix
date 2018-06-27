@@ -18,18 +18,18 @@
  */
 
 #include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dennix/seek.h>
 #include <dennix/stat.h>
 #include <dennix/kernel/file.h>
 
-FileVnode::FileVnode(const void* data, size_t size, mode_t mode, dev_t dev,
-        ino_t ino) : Vnode(S_IFREG | mode, dev, ino) {
+FileVnode::FileVnode(const void* data, size_t size, mode_t mode, dev_t dev)
+        : Vnode(S_IFREG | mode, dev) {
     this->data = (char*) malloc(size);
     memcpy(this->data, data, size);
-    fileSize = size;
-    mutex = KTHREAD_MUTEX_INITIALIZER;
+    stats.st_size = size;
 }
 
 FileVnode::~FileVnode() {
@@ -37,8 +37,12 @@ FileVnode::~FileVnode() {
 }
 
 int FileVnode::ftruncate(off_t length) {
-    if (length < 0 || length > __SIZE_MAX__) {
+    if (length < 0) {
         errno = EINVAL;
+        return -1;
+    }
+    if (length > SIZE_MAX) {
+        errno = EFBIG;
         return -1;
     }
 
@@ -50,11 +54,12 @@ int FileVnode::ftruncate(off_t length) {
     }
     data = (char*) newData;
 
-    if (length > fileSize) {
-        memset(data + fileSize, '\0', length - fileSize);
+    if (length > stats.st_size) {
+        memset(data + stats.st_size, '\0', length - stats.st_size);
     }
 
-    fileSize = length;
+    stats.st_size = length;
+    updateTimestamps(false, true, true);
     return 0;
 }
 
@@ -69,7 +74,7 @@ off_t FileVnode::lseek(off_t offset, int whence) {
     if (whence == SEEK_SET || whence == SEEK_CUR) {
         base = 0;
     } else if (whence == SEEK_END) {
-        base = fileSize;
+        base = stats.st_size;
     } else {
         errno = EINVAL;
         return -1;
@@ -85,14 +90,21 @@ off_t FileVnode::lseek(off_t offset, int whence) {
 }
 
 ssize_t FileVnode::pread(void* buffer, size_t size, off_t offset) {
+    if (offset < 0) {
+        errno = EINVAL;
+        return -1;
+    }
+    if (size == 0) return 0;
+
     AutoLock lock(&mutex);
     char* buf = (char*) buffer;
 
     for (size_t i = 0; i < size; i++) {
-        if (offset + i >= fileSize) return i;
+        if (offset + i >= stats.st_size) return i;
         buf[i] = data[offset + i];
     }
 
+    updateTimestamps(true, false, false);
     return size;
 }
 
@@ -105,28 +117,34 @@ ssize_t FileVnode::pwrite(const void* buffer, size_t size, off_t offset) {
     if (size == 0) return 0;
 
     AutoLock lock(&mutex);
-    size_t newSize;
+    off_t newSize;
     if (__builtin_add_overflow(offset, size, &newSize)) {
         errno = ENOSPC;
         return -1;
     }
 
-    if (newSize > fileSize) {
-        void* newData = realloc(data, newSize);
+    if (newSize > SIZE_MAX) {
+        errno = EFBIG;
+        return -1;
+    }
+
+    if (newSize > stats.st_size) {
+        void* newData = realloc(data, (size_t) newSize);
         if (!newData) {
             errno = ENOSPC;
             return -1;
         }
         data = (char*) newData;
 
-        if (offset > fileSize) {
+        if (offset > stats.st_size) {
             // When writing after the old EOF, fill the gap with zeros.
-            memset(data + fileSize, '\0', offset - fileSize);
+            memset(data + stats.st_size, '\0', offset - stats.st_size);
         }
 
-        fileSize = (off_t) newSize;
+        stats.st_size = newSize;
     }
 
     memcpy(data + offset, buffer, size);
+    updateTimestamps(false, true, true);
     return size;
 }

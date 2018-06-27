@@ -28,7 +28,7 @@
 class PipeVnode::Endpoint : public Vnode {
 public:
     Endpoint(const Reference<PipeVnode>& pipe)
-            : Vnode(S_IFIFO | S_IRUSR | S_IWUSR, 0, 1), pipe(pipe) {}
+            : Vnode(S_IFIFO | S_IRUSR | S_IWUSR, 0), pipe(pipe) {}
     virtual int stat(struct stat* result);
 protected:
     Reference<PipeVnode> pipe;
@@ -49,10 +49,9 @@ public:
 };
 
 PipeVnode::PipeVnode(Reference<Vnode>& readPipe, Reference<Vnode>& writePipe)
-        : Vnode(S_IFIFO | S_IRUSR | S_IWUSR, 0, 0) {
+        : Vnode(S_IFIFO | S_IRUSR | S_IWUSR, 0) {
     readEnd = new ReadEnd(this);
     writeEnd = new WriteEnd(this);
-    mutex = KTHREAD_MUTEX_INITIALIZER;
     bufferIndex = 0;
     bytesAvailable = 0;
 
@@ -88,6 +87,7 @@ PipeVnode::WriteEnd::~WriteEnd() {
 }
 
 ssize_t PipeVnode::read(void* buffer, size_t size) {
+    if (size == 0) return 0;
     AutoLock lock(&mutex);
 
     while (bytesAvailable == 0) {
@@ -113,10 +113,12 @@ ssize_t PipeVnode::read(void* buffer, size_t size) {
         bytesRead++;
     }
 
+    updateTimestamps(true, false, false);
     return bytesRead;
 }
 
 ssize_t PipeVnode::write(const void* buffer, size_t size) {
+    if (size == 0) return 0;
     AutoLock lock(&mutex);
 
     if (size <= PIPE_BUF) {
@@ -138,7 +140,10 @@ ssize_t PipeVnode::write(const void* buffer, size_t size) {
     while (written < size) {
         while (PIPE_BUF - bytesAvailable == 0 && readEnd) {
             if (Signal::isPending()) {
-                if (written) return written;
+                if (written) {
+                    updateTimestamps(false, true, true);
+                    return written;
+                }
                 errno = EINTR;
                 return -1;
             }
@@ -165,5 +170,6 @@ ssize_t PipeVnode::write(const void* buffer, size_t size) {
         }
     }
 
+    updateTimestamps(false, true, true);
     return written;
 }

@@ -22,6 +22,7 @@
 
 #include <sys/types.h>
 #include <dennix/stat.h>
+#include <dennix/kernel/kthread.h>
 #include <dennix/kernel/refcount.h>
 
 class Vnode : public ReferenceCounted {
@@ -34,6 +35,7 @@ public:
     virtual int link(const char* name, const Reference<Vnode>& vnode);
     virtual off_t lseek(off_t offset, int whence);
     virtual int mkdir(const char* name, mode_t mode);
+    virtual void onLink();
     virtual bool onUnlink();
     virtual ssize_t pread(void* buffer, size_t size, off_t offset);
     virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset);
@@ -42,18 +44,18 @@ public:
     virtual int rename(Reference<Vnode>& oldDirectory, const char* oldName,
             const char* newName);
     virtual int stat(struct stat* result);
+    struct stat stat();
     virtual int tcgetattr(struct termios* result);
     virtual int tcsetattr(int flags, const struct termios* termio);
     virtual int unlink(const char* name, int flags);
     virtual ssize_t write(const void* buffer, size_t size);
-    virtual ~Vnode() {}
+    virtual ~Vnode();
 protected:
-    Vnode(mode_t mode, dev_t dev, ino_t ino);
+    Vnode(mode_t mode, dev_t dev);
+    void updateTimestamps(bool access, bool status, bool modification);
 public:
-    dev_t dev;
-    off_t fileSize;
-    ino_t ino;
-    mode_t mode;
+    kthread_mutex_t mutex;
+    struct stat stats;
 };
 
 Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,

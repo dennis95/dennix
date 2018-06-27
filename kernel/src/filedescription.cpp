@@ -70,14 +70,14 @@ Reference<FileDescription> FileDescription::openat(const char* path, int flags,
             }
         }
 
-        if (!S_ISDIR(node->mode)) {
+        if (!S_ISDIR(node->stat().st_mode)) {
             free(pathCopy);
             errno = ENOTDIR;
             return nullptr;
         }
 
-        Reference<FileVnode> file(new FileVnode(nullptr, 0, mode & 07777,
-                vnode->dev, 0));
+        Reference<FileVnode> file = new FileVnode(nullptr, 0, mode & 07777,
+                vnode->stat().st_dev);
         if (node->link(newFileName, file) < 0) {
             free(pathCopy);
             return nullptr;
@@ -94,7 +94,7 @@ Reference<FileDescription> FileDescription::openat(const char* path, int flags,
     Reference<FileDescription> result = new FileDescription(node);
 
     if (flags & O_APPEND) {
-        result->offset = node->fileSize;
+        result->offset = node->stat().st_size;
     }
 
     return result;

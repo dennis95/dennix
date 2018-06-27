@@ -55,15 +55,24 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     Log::printf("Initializing PS/2 Controller...\n");
     PS2::initialize();
 
+    Process::initializeIdleProcess();
+    Interrupts::initPic();
+    Log::printf("Initializing RTC and PIT...\n");
+    Rtc::initialize();
+    Pit::initialize();
+
+    Log::printf("Enabling interrupts...\n");
+    Interrupts::enable();
+
     // Load the initrd.
     Log::printf("Loading Initrd...\n");
     Reference<DirectoryVnode> rootDir = loadInitrd(&multiboot);
     Reference<FileDescription> rootFd = new FileDescription(rootDir);
+    Process::current->rootFd = rootFd;
 
-    Log::printf("Initializing processes...\n");
-    Process::initialize(rootFd);
     Reference<Vnode> program = resolvePath(rootDir, "/sbin/init");
     if (program) {
+        Log::printf("Starting init process...\n");
         Process* newProcess = new Process();
         const char* argv[] = { "init", nullptr };
         const char* envp[] = { nullptr };
@@ -72,14 +81,6 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
         assert(newProcess->pid == 1);
         Process::initProcess = newProcess;
     }
-
-    Interrupts::initPic();
-    Log::printf("Initializing RTC and PIT...\n");
-    Rtc::initialize();
-    Pit::initialize();
-
-    Log::printf("Enabling interrupts...\n");
-    Interrupts::enable();
 
     while (true) {
         asm volatile ("hlt");

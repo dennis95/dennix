@@ -154,7 +154,7 @@ int Syscall::fchdirat(int fd, const char* path) {
     if (!descr) return -1;
     Reference<FileDescription> newCwd = descr->openat(path, 0, 0);
     if (!newCwd) return -1;
-    if (!S_ISDIR(newCwd->vnode->mode)) {
+    if (!S_ISDIR(newCwd->vnode->stat().st_mode)) {
         errno = ENOTDIR;
         return -1;
     }
@@ -200,7 +200,7 @@ int Syscall::linkat(int oldFd, const char* oldPath, int newFd,
             followFinalSymlink);
     if (!vnode) return -1;
 
-    if (S_ISDIR(vnode->mode)) {
+    if (S_ISDIR(vnode->stat().st_mode)) {
         errno = EPERM;
         return -1;
     }
@@ -405,7 +405,8 @@ int Syscall::symlinkat(const char* targetPath, int fd, const char* linkPath) {
         return -1;
     }
 
-    Reference<Vnode> symlink(new SymlinkVnode(targetPath, vnode->dev, 0));
+    Reference<Vnode> symlink = new SymlinkVnode(targetPath,
+            vnode->stat().st_dev);
     int result = vnode->link(name, symlink);
     free(pathCopy);
     return result;

@@ -89,7 +89,7 @@ public:
     Clock cpuClock;
 public:
     static bool addProcess(Process* process);
-    static void initialize(const Reference<FileDescription>& rootFd);
+    static void initializeIdleProcess();
     static InterruptContext* schedule(InterruptContext* context);
     static Process* current;
     static Process* initProcess;

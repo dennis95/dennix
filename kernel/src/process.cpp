@@ -71,11 +71,10 @@ Process::~Process() {
     kernelSpace->unmapMemory((vaddr_t) kernelStack, 0x1000);
 }
 
-void Process::initialize(const Reference<FileDescription>& rootFd) {
+void Process::initializeIdleProcess() {
     Process* idleProcess = new Process();
     idleProcess->addressSpace = kernelSpace;
     idleProcess->interruptContext = new InterruptContext();
-    idleProcess->rootFd = rootFd;
     idleProcess->pid = processes.add(idleProcess);
     assert(idleProcess->pid == 0);
     current = idleProcess;
@@ -238,10 +237,12 @@ int Process::dup3(int fd1, int fd2, int flags) {
 
 int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
         char* const envp[]) {
-    if (!S_ISREG(vnode->mode)) {
+    if (!S_ISREG(vnode->stat().st_mode)) {
         errno = EACCES;
         return -1;
     }
+
+    // TODO: This should update the last access timestamp of the file.
 
     // Load the program
     Reference<FileVnode> file = (Reference<FileVnode>) vnode;
@@ -318,7 +319,7 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
 
     kernelStack = newKernelStack;
     interruptContext = newInterruptContext;
-    if (this == current) Interrupts::enable();
+    Interrupts::enable();
     return 0;
 }
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,6 +20,7 @@
 #ifndef _DENNIX_STAT_H
 #define _DENNIX_STAT_H
 
+#include <dennix/timespec.h>
 #include <dennix/types.h>
 
 #define S_IFBLK 010000
@@ -33,10 +34,19 @@
 #define S_IFMT 070000
 
 struct stat {
-    /* TODO: Add the other members of struct stat */
     __dev_t st_dev;
     __ino_t st_ino;
     __mode_t st_mode;
+    __nlink_t st_nlink;
+    __uid_t st_uid;
+    __gid_t st_gid;
+    __dev_t st_rdev;
+    __off_t st_size;
+    struct timespec st_atim;
+    struct timespec st_mtim;
+    struct timespec st_ctim;
+    __blksize_t st_blksize;
+    __blkcnt_t st_blocks;
 };
 
 #endif

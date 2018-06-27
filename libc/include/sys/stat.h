@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,14 +21,16 @@
 #define _SYS_STAT_H
 
 #include <sys/cdefs.h>
+#define __need_blkcnt_t
+#define __need_blksize_t
 #define __need_dev_t
+#define __need_gid_t
 #define __need_ino_t
 #define __need_mode_t
 #define __need_nlink_t
-#define __need_uid_t
-#define __need_gid_t
 #define __need_off_t
 #define __need_time_t
+#define __need_uid_t
 #include <sys/libc-types.h>
 #include <dennix/stat.h>
 
@@ -58,6 +60,10 @@ extern "C" {
 #define S_ISREG(mode) (((mode) & S_IFMT) == S_IFREG)
 #define S_ISLNK(mode) (((mode) & S_IFMT) == S_IFLNK)
 #define S_ISSOCK(mode) (((mode) & S_IFMT) == S_IFSOCK)
+
+#define st_atime st_atim.tv_sec
+#define st_ctime st_ctim.tv_sec
+#define st_mtime st_mtim.tv_sec
 
 int fstat(int, struct stat*);
 int fstatat(int, const char* __restrict, struct stat* __restrict, int);

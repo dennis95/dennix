@@ -17,10 +17,12 @@
  * Vnode class.
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <dennix/kernel/clock.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/vnode.h>
 
@@ -28,16 +30,23 @@
 
 static ino_t nextIno = 0;
 
-Vnode::Vnode(mode_t mode, dev_t dev, ino_t ino) {
-    this->mode = mode;
-    this->dev = dev;
-    this->ino = ino;
+Vnode::Vnode(mode_t mode, dev_t dev) {
+    stats.st_dev = dev;
+    stats.st_ino = nextIno++;
+    stats.st_mode = mode;
+    stats.st_nlink = 0;
+    stats.st_uid = 0;
+    stats.st_gid = 0;
+    stats.st_rdev = 0;
+    stats.st_size = 0;
+    updateTimestamps(true, true, true);
+    stats.st_blksize = 0x1000;
 
-    if (!ino) {
-        this->ino = nextIno++;
-    }
+    mutex = KTHREAD_MUTEX_INITIALIZER;
+}
 
-    fileSize = 0;
+Vnode::~Vnode() {
+    assert(stats.st_nlink == 0);
 }
 
 static Reference<Vnode> resolvePathExceptLastComponent(
@@ -50,7 +59,7 @@ static Reference<Vnode> followPath(Reference<Vnode>& vnode, char* name,
     Reference<Vnode> nextVnode = currentVnode->getChildNode(name);
     if (!nextVnode) return nullptr;
 
-    while (S_ISLNK(nextVnode->mode) && followSymlink) {
+    while (S_ISLNK(nextVnode->stat().st_mode) && followSymlink) {
         if (++symlinksFollowed > SYMLOOP_MAX) {
             errno = ELOOP;
             return nullptr;
@@ -108,7 +117,7 @@ static Reference<Vnode> resolvePathExceptLastComponent(
                 symlinksFollowed, true);
         if (!currentVnode) return nullptr;
 
-        if (!S_ISDIR(currentVnode->mode)) {
+        if (!S_ISDIR(currentVnode->stat().st_mode)) {
             errno = ENOTDIR;
             return nullptr;
         }
@@ -158,13 +167,27 @@ Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
     currentVnode = followPath(currentVnode, lastComponent, symlinksFollowed,
             followFinalSymlink);
 
-    if (endsWithSlash && !S_ISDIR(currentVnode->mode)) {
+    if (endsWithSlash && !S_ISDIR(currentVnode->stat().st_mode)) {
         errno = ENOTDIR;
         return nullptr;
     }
 
     free(pathCopy);
     return currentVnode;
+}
+
+void Vnode::updateTimestamps(bool access, bool status, bool modification) {
+    struct timespec now;
+    Clock::get(CLOCK_REALTIME)->getTime(&now);
+    if (access) {
+        stats.st_atim = now;
+    }
+    if (status) {
+        stats.st_ctim = now;
+    }
+    if (modification) {
+        stats.st_mtim = now;
+    }
 }
 
 // Default implementation. Inheriting classes will override these functions.
@@ -207,7 +230,16 @@ int Vnode::mkdir(const char* /*name*/, mode_t /*mode*/) {
     return -1;
 }
 
+void Vnode::onLink() {
+    AutoLock lock(&mutex);
+    updateTimestamps(false, true, false);
+    stats.st_nlink++;
+}
+
 bool Vnode::onUnlink() {
+    AutoLock lock(&mutex);
+    updateTimestamps(false, true, false);
+    stats.st_nlink--;
     return true;
 }
 
@@ -240,10 +272,16 @@ int Vnode::rename(Reference<Vnode>& /*oldDirectory*/, const char* /*oldName*/,
 }
 
 int Vnode::stat(struct stat* result) {
-    result->st_dev = dev;
-    result->st_ino = ino;
-    result->st_mode = mode;
+    AutoLock lock(&mutex);
+    *result = stats;
+    result->st_blocks = (stats.st_size + 511) / 512;
     return 0;
+}
+
+struct stat Vnode::stat() {
+    struct stat result;
+    stat(&result);
+    return result;
 }
 
 int Vnode::tcgetattr(struct termios* /*result*/) {

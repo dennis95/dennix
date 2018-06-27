@@ -29,7 +29,7 @@
 static Terminal _terminal;
 Reference<Terminal> terminal(&_terminal);
 
-Terminal::Terminal() : Vnode(S_IFCHR, 0, 0) {
+Terminal::Terminal() : Vnode(S_IFCHR, 0) {
     termio.c_iflag = 0;
     termio.c_oflag = 0;
     termio.c_cflag = 0;
@@ -48,7 +48,6 @@ Terminal::Terminal() : Vnode(S_IFCHR, 0, 0) {
     termio.c_cc[VTIME] = 0;
 
     numEof = 0;
-    mutex = KTHREAD_MUTEX_INITIALIZER;
 }
 
 void Terminal::handleCharacter(char c) {
@@ -126,29 +125,40 @@ int Terminal::isatty() {
 }
 
 ssize_t Terminal::read(void* buffer, size_t size) {
+    if (size == 0) return 0;
     char* buf = (char*) buffer;
     size_t readSize = 0;
 
     while (readSize < size) {
         while (!terminalBuffer.available() && !numEof) {
             if (termio.c_lflag & ICANON) {
-                if (readSize) return readSize;
+                if (readSize) {
+                    updateTimestamps(true, false, false);
+                    return readSize;
+                }
             } else {
                 if (readSize >= termio.c_cc[VMIN]) {
+                    updateTimestamps(true, false, false);
                     return readSize;
                 }
             }
             sched_yield();
 
             if (Signal::isPending()) {
-                if (readSize) return readSize;
+                if (readSize) {
+                    updateTimestamps(true, false, false);
+                    return readSize;
+                }
                 errno = EINTR;
                 return -1;
             }
         }
 
         if (numEof) {
-            if (readSize) return readSize;
+            if (readSize) {
+                updateTimestamps(true, false, false);
+                return readSize;
+            }
             numEof--;
             return 0;
         }
@@ -158,6 +168,7 @@ ssize_t Terminal::read(void* buffer, size_t size) {
         if ((termio.c_lflag & ICANON) && c == '\n') break;
     }
 
+    updateTimestamps(true, false, false);
     return (ssize_t) readSize;
 }
 
@@ -177,6 +188,7 @@ int Terminal::tcsetattr(int flags, const struct termios* termio) {
 }
 
 ssize_t Terminal::write(const void* buffer, size_t size) {
+    if (size == 0) return 0;
     AutoLock lock(&mutex);
     const char* buf = (const char*) buffer;
 
@@ -185,6 +197,7 @@ ssize_t Terminal::write(const void* buffer, size_t size) {
     }
     VgaTerminal::updateCursorPosition();
 
+    updateTimestamps(false, true, true);
     return (ssize_t) size;
 }
 

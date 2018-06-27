@@ -19,6 +19,16 @@
 
 #include <dennix/types.h>
 
+#if defined(__need_blkcnt_t) && !defined(__blkcnt_t_defined)
+typedef __blkcnt_t blkcnt_t;
+#  define __blkcnt_t_defined
+#endif
+
+#if defined(__need_blksize_t) && !defined(__blksize_t_defined)
+typedef __blksize_t blksize_t;
+#  define __blksize_t_defined
+#endif
+
 #if defined(__need_clockid_t) && !defined(__clockid_t_defined)
 typedef __clockid_t clockid_t;
 #  define __clockid_t_defined
@@ -34,6 +44,11 @@ typedef struct __FILE FILE;
 #  define __FILE_defined
 #endif
 
+#if defined(__need_gid_t) && !defined(__gid_t_defined)
+typedef __gid_t gid_t;
+#  define __gid_t_defined
+#endif
+
 #if defined(__need_ino_t) && !defined(__ino_t_defined)
 typedef __ino_t ino_t;
 #  define __ino_t_defined
@@ -42,6 +57,11 @@ typedef __ino_t ino_t;
 #if defined(__need_mode_t) && !defined(__mode_t_defined)
 typedef __mode_t mode_t;
 #  define __mode_t_defined
+#endif
+
+#if defined(__need_nlink_t) && !defined(__nlink_t_defined)
+typedef __nlink_t nlink_t;
+#  define __nlink_t_defined
 #endif
 
 #if defined(__need_off_t) && !defined(__off_t_defined)
@@ -69,11 +89,15 @@ typedef __time_t time_t;
 #  define __time_t_defined
 #endif
 
+#undef __need_blkcnt_t
+#undef __need_blksize_t
 #undef __need_clockid_t
 #undef __need_dev_t
 #undef __need_FILE
+#undef __need_gid_t
 #undef __need_ino_t
 #undef __need_mode_t
+#undef __need_nlink_t
 #undef __need_off_t
 #undef __need_pid_t
 #undef __need_ssize_t

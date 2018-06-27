@@ -22,7 +22,6 @@
 
 #include <dennix/termios.h>
 #include <dennix/kernel/keyboard.h>
-#include <dennix/kernel/kthread.h>
 #include <dennix/kernel/vnode.h>
 
 #define TERMINAL_BUFFER_SIZE 4096
@@ -60,7 +59,6 @@ private:
     TerminalBuffer terminalBuffer;
     struct termios termio;
     unsigned int numEof;
-    kthread_mutex_t mutex;
 };
 
 extern Reference<Terminal> terminal;
