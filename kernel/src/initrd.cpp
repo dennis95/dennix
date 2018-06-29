@@ -51,9 +51,7 @@ Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
     TarHeader* header = (TarHeader*) initrd;
 
     while (strcmp(header->magic, TMAGIC) == 0) {
-        size_t size = (size_t) strtoul(header->size, nullptr, 8);
         char* path;
-
         if (header->prefix[0]) {
             path = (char*) malloc(strlen(header->name) +
                     strlen(header->prefix) + 2);
@@ -78,6 +76,10 @@ Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
 
         Reference<Vnode> newFile;
         mode_t mode = (mode_t) strtol(header->mode, nullptr, 8);
+        size_t size = (size_t) strtoul(header->size, nullptr, 8);
+        struct timespec mtime;
+        mtime.tv_sec = (time_t) strtoll(header->mtime, nullptr, 8);
+        mtime.tv_nsec = 0;
 
         if (header->typeflag == REGTYPE || header->typeflag == AREGTYPE) {
             newFile = new FileVnode(header + 1, size, mode,
@@ -95,6 +97,9 @@ Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
             Log::printf("Unknown typeflag '%c'\n", header->typeflag);
             return root;
         }
+
+        newFile->stats.st_atim = mtime;
+        newFile->stats.st_mtim = mtime;
 
         directory->link(fileName, newFile);
         free(path);
