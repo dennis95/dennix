@@ -50,7 +50,13 @@ COMMON_OBJ = \
 	signal/sigemptyset \
 	signal/sigfillset \
 	signal/sigismember \
+	stdio/asprintf \
+	stdio/snprintf \
+	stdio/sprintf \
+	stdio/vasprintf \
 	stdio/vcbprintf \
+	stdio/vsnprintf \
+	stdio/vsprintf \
 	stdlib/calloc \
 	stdlib/free \
 	stdlib/malloc \
@@ -119,6 +125,7 @@ LIBC_OBJ = \
 	signal/signal \
 	stdio/clearerr_unlocked \
 	stdio/clearerr \
+	stdio/dprintf \
 	stdio/fclose \
 	stdio/fdopen \
 	stdio/feof_unlocked \
@@ -165,8 +172,10 @@ LIBC_OBJ = \
 	stdio/stderr \
 	stdio/stdin \
 	stdio/stdout \
+	stdio/vdprintf \
 	stdio/vfprintf_unlocked \
 	stdio/vfprintf \
+	stdio/vprintf \
 	stdlib/abort \
 	stdlib/atexit \
 	stdlib/canonicalize_file_name \

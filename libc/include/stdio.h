@@ -34,6 +34,15 @@
 #include <sys/libc-types.h>
 #include <dennix/seek.h>
 
+#if __USE_POSIX || __USE_DENNIX
+/* POSIX requires us to define va_list but <stdarg.h> does not allow us to
+   request only va_list. */
+#  ifndef _VA_LIST_DEFINED
+typedef __gnuc_va_list va_list;
+#    define _VA_LIST_DEFINED
+#  endif
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -70,10 +79,19 @@ int puts(const char*);
 int remove(const char*);
 int rename(const char*, const char*);
 void rewind(FILE*);
+int snprintf(char* __restrict, size_t, const char* __restrict, ...)
+        __printf_like(3, 4);
+int sprintf(char* __restrict, const char* __restrict, ...) __printf_like(2, 3);
 int vfprintf(FILE* __restrict, const char* __restrict, __gnuc_va_list)
-    __printf_like(2, 0);
+        __printf_like(2, 0);
+int vprintf(const char* __restrict, __gnuc_va_list) __printf_like(1, 0);
+int vsnprintf(char* __restrict, size_t, const char* __restrict, __gnuc_va_list)
+        __printf_like(3, 0);
+int vsprintf(char* __restrict, const char* __restrict, __gnuc_va_list)
+        __printf_like(2, 0);
 
 #if __USE_DENNIX || __USE_POSIX
+int dprintf(int, const char* __restrict, ...) __printf_like(2, 3);
 FILE* fdopen(int, const char*);
 void flockfile(FILE*);
 int fseeko(FILE*, off_t, int);
@@ -86,9 +104,12 @@ ssize_t getline(char** __restrict, size_t* __restrict, FILE* __restrict);
 int putc_unlocked(int, FILE*);
 int putchar_unlocked(int);
 int renameat(int, const char*, int, const char*);
+int vdprintf(int, const char* __restrict, __gnuc_va_list) __printf_like(2, 0);
 #endif
 
 #if __USE_DENNIX
+int asprintf(char** __restrict, const char* __restrict, ...)
+        __printf_like(2, 3);
 void clearerr_unlocked(FILE*);
 int feof_unlocked(FILE*);
 int ferror_unlocked(FILE*);
@@ -100,6 +121,8 @@ int fseeko_unlocked(FILE*, off_t, int);
 off_t ftello_unlocked(FILE*);
 size_t fwrite_unlocked(const void* __restrict, size_t, size_t,
         FILE* __restrict);
+int vasprintf(char** __restrict, const char* __restrict, __gnuc_va_list)
+        __printf_like(2, 0);
 int vcbprintf(void*, size_t (*)(void*, const char*, size_t), const char*,
         __gnuc_va_list) __printf_like(3, 0);
 int vfprintf_unlocked(FILE* __restrict, const char* __restrict,
