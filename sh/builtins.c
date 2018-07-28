@@ -18,11 +18,23 @@
  */
 
 #include <err.h>
+#include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "builtins.h"
+
+static int cd(int argc, char* argv[]);
+static int sh_umask(int argc, char* argv[]);
+
+struct builtin builtins[] = {
+    { "cd", cd },
+    { "umask", sh_umask },
+    { NULL, NULL }
+};
 
 char* pwd;
 static size_t pwdSize;
@@ -86,7 +98,7 @@ static void updateLogicalPwd(const char* path) {
     *pwdEnd = '\0';
 }
 
-int cd(int argc, char* argv[]) {
+static int cd(int argc, char* argv[]) {
     const char* newCwd;
     if (argc >= 2) {
         newCwd = argv[1];
@@ -106,6 +118,25 @@ int cd(int argc, char* argv[]) {
     updateLogicalPwd(newCwd);
     if (!pwd || setenv("PWD", pwd, 1) < 0) {
         unsetenv("PWD");
+    }
+    return 0;
+}
+
+static int sh_umask(int argc, char* argv[]) {
+    // TODO: Implement the -S option.
+    if (argc > 1) {
+        char* end;
+        unsigned long value = strtoul(argv[1], &end, 8);
+        if (value > 0777 || *end) {
+            errno = EINVAL;
+            warn("umask: '%s'", argv[1]);
+            return 1;
+        }
+        umask((mode_t) value);
+    } else {
+        mode_t mask = umask(0);
+        umask(mask);
+        printf("%.4o\n", (unsigned int) mask);
     }
     return 0;
 }

@@ -149,14 +149,18 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
     } else if (strcmp(command, "exit") == 0) {
         exit(0);
     // Regular built-ins
-    } else if (strcmp(command, "cd") == 0) {
-        int result = cd(argc, arguments);
-        free(arguments);
-        free(redirections);
-        if (subshell) {
-            exit(result);
+    } else {
+        for (struct builtin* builtin = builtins; builtin->name; builtin++) {
+            if (strcmp(command, builtin->name) == 0) {
+                int result = builtin->func(argc, arguments);
+                free(arguments);
+                free(redirections);
+                if (subshell) {
+                    exit(result);
+                }
+                return result;
+            }
         }
-        return result;
     }
 
     if (subshell) {

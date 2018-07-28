@@ -22,6 +22,10 @@
 
 extern char* pwd;
 
-int cd(int argc, char* argv[]);
+struct builtin {
+    const char* name;
+    int (*func)(int, char* argv[]);
+};
+extern struct builtin builtins[];
 
 #endif
