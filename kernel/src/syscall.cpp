@@ -66,6 +66,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_ISATTY] =*/ (void*) Syscall::isatty,
     /*[SYSCALL_PIPE2] =*/ (void*) Syscall::pipe2,
     /*[SYSCALL_LSEEK] =*/ (void*) Syscall::lseek,
+    /*[SYSCALL_UMASK] =*/ (void*) Syscall::umask,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -422,6 +423,12 @@ int Syscall::tcsetattr(int fd, int flags, const struct termios* termio) {
     Reference<FileDescription> descr = Process::current->getFd(fd);
     if (!descr) return -1;
     return descr->tcsetattr(flags, termio);
+}
+
+mode_t Syscall::umask(mode_t newMask) {
+    mode_t oldMask = Process::current->umask;
+    Process::current->umask = newMask & 0777;
+    return oldMask;
 }
 
 int Syscall::unlinkat(int fd, const char* path, int flags) {

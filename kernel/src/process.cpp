@@ -380,6 +380,7 @@ Process* Process::regfork(int /*flags*/, struct regfork* registers) {
     process->rootFd = rootFd;
     process->cwdFd = cwdFd;
     process->fdInitialized = true;
+    process->umask = umask;
 
     kthread_mutex_lock(&childrenMutex);
 
