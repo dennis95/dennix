@@ -53,7 +53,8 @@
 #define SYSCALL_PIPE2 30
 #define SYSCALL_LSEEK 31
 #define SYSCALL_UMASK 32
+#define SYSCALL_FCHMODAT 33
 
-#define NUM_SYSCALLS 33
+#define NUM_SYSCALLS 34
 
 #endif

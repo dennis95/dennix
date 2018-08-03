@@ -65,6 +65,8 @@ extern "C" {
 #define st_ctime st_ctim.tv_sec
 #define st_mtime st_mtim.tv_sec
 
+int chmod(const char*, mode_t);
+int fchmodat(int, const char*, mode_t, int);
 int fstat(int, struct stat*);
 int fstatat(int, const char* __restrict, struct stat* __restrict, int);
 int lstat(const char* __restrict, struct stat* __restrict);

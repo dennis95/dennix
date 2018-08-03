@@ -67,6 +67,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_PIPE2] =*/ (void*) Syscall::pipe2,
     /*[SYSCALL_LSEEK] =*/ (void*) Syscall::lseek,
     /*[SYSCALL_UMASK] =*/ (void*) Syscall::umask,
+    /*[SYSCALL_FCHMODAT] =*/ (void*) Syscall::fchmodat,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -162,6 +163,22 @@ int Syscall::fchdirat(int fd, const char* path) {
 
     Process::current->cwdFd = newCwd;
     return 0;
+}
+
+int Syscall::fchmodat(int fd, const char* path, mode_t mode, int flags) {
+    if (mode & ~07777) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    bool followFinalSymlink = !(flags & AT_SYMLINK_NOFOLLOW);
+    Reference<FileDescription> descr = getRootFd(fd, path);
+    if (!descr) return -1;
+    Reference<Vnode> vnode = resolvePath(descr->vnode, path,
+            followFinalSymlink);
+    if (!vnode) return -1;
+
+    return vnode->chmod(mode);
 }
 
 int Syscall::fstat(int fd, struct stat* result) {

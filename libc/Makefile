@@ -187,6 +187,8 @@ LIBC_OBJ = \
 	string/strcoll \
 	sys/mman/mmap \
 	sys/mman/munmap \
+	sys/stat/chmod \
+	sys/stat/fchmodat \
 	sys/stat/fstat \
 	sys/stat/fstatat \
 	sys/stat/lstat \

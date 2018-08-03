@@ -41,6 +41,7 @@ int dup3(int fd1, int fd2, int flags);
 int execve(const char* path, char* const argv[], char* const envp[]);
 NORETURN void exit(int status);
 int fchdirat(int fd, const char* path);
+int fchmodat(int fd, const char* path, mode_t mode, int flags);
 int fstat(int fd, struct stat* result);
 int fstatat(int fd, const char* restrict path, struct stat* restrict result,
         int flags);

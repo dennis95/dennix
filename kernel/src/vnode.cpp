@@ -191,6 +191,13 @@ void Vnode::updateTimestamps(bool access, bool status, bool modification) {
 }
 
 // Default implementation. Inheriting classes will override these functions.
+int Vnode::chmod(mode_t mode) {
+    AutoLock lock(&mutex);
+    stats.st_mode = (stats.st_mode & ~07777) | mode;
+    updateTimestamps(false, true, false);
+    return 0;
+}
+
 int Vnode::ftruncate(off_t /*length*/) {
     errno = EBADF;
     return -1;
