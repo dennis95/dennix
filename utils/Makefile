@@ -28,6 +28,7 @@ CPPFLAGS += -D_DENNIX_SOURCE -DDENNIX_VERSION=\"$(VERSION)\"
 
 BIN_PROGRAMS = \
 	cat \
+	chmod \
 	clear \
 	cp \
 	date \
