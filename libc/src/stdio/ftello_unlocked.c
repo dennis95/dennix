@@ -21,5 +21,9 @@
 #include <unistd.h>
 
 off_t ftello_unlocked(FILE* file) {
-    return lseek(file->fd, 0, SEEK_CUR);
+    off_t offset = lseek(file->fd, 0, SEEK_CUR);
+    if (file->flags & FILE_FLAG_UNGETC) {
+        return offset > 0 ? offset - 1 : offset;
+    }
+    return offset;
 }

@@ -25,6 +25,6 @@ int fseeko_unlocked(FILE* file, off_t offset, int whence) {
         file->flags |= FILE_FLAG_ERROR;
         return -1;
     }
-    file->flags &= ~FILE_FLAG_EOF;
+    file->flags &= ~(FILE_FLAG_EOF | FILE_FLAG_UNGETC);
     return 0;
 }

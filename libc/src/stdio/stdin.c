@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,6 +22,7 @@
 static FILE __stdin = {
     .fd = 0,
     .flags = 0,
+    .ungetcBuffer = '\0',
 };
 
 FILE* stdin = &__stdin;

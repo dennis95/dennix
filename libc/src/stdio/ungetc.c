@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,30 +13,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/stdio/fgetc_unlocked.c
- * Gets a character from a file without locking.
+/* libc/src/stdio/ungetc.c
+ * Push back byte to file stream.
  */
 
-#include <unistd.h>
-#include "FILE.h"
+#include <stdio.h>
 
-int fgetc_unlocked(FILE* file) {
-    if (file->flags & FILE_FLAG_EOF) return EOF;
-
-    if (file->flags & FILE_FLAG_UNGETC) {
-        file->flags &= ~FILE_FLAG_UNGETC;
-        return file->ungetcBuffer;
-    }
-
-    unsigned char result;
-    ssize_t bytesRead = read(file->fd, &result, 1);
-    if (bytesRead == 0) {
-        file->flags |= FILE_FLAG_EOF;
-        return EOF;
-    } else if (bytesRead < 0) {
-        file->flags |= FILE_FLAG_ERROR;
-        return EOF;
-    }
-
+int ungetc(int c, FILE* file) {
+    flockfile(file);
+    int result = ungetc_unlocked(c, file);
+    funlockfile(file);
     return result;
 }

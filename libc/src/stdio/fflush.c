@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,13 +14,16 @@
  */
 
 /* libc/src/stdio/fflush.c
- * Flushes all buffered output to a file.
+ * Flush a file stream.
  */
 
 #include <stdio.h>
 
 int fflush(FILE* file) {
-    (void) file;
-    // Buffering is not yet implemented so there is nothing to do.
-    return 0;
+    if (!file) return 0;
+
+    flockfile(file);
+    int result = fflush_unlocked(file);
+    funlockfile(file);
+    return result;
 }

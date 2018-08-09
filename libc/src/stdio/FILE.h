@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,9 +25,11 @@
 struct __FILE {
     int fd;
     int flags;
+    unsigned char ungetcBuffer;
 };
 
 #define FILE_FLAG_EOF (1 << 0)
 #define FILE_FLAG_ERROR (1 << 1)
+#define FILE_FLAG_UNGETC (1 << 2)
 
 #endif

@@ -82,6 +82,7 @@ void rewind(FILE*);
 int snprintf(char* __restrict, size_t, const char* __restrict, ...)
         __printf_like(3, 4);
 int sprintf(char* __restrict, const char* __restrict, ...) __printf_like(2, 3);
+int ungetc(int, FILE*);
 int vfprintf(FILE* __restrict, const char* __restrict, __gnuc_va_list)
         __printf_like(2, 0);
 int vprintf(const char* __restrict, __gnuc_va_list) __printf_like(1, 0);
@@ -113,6 +114,7 @@ int asprintf(char** __restrict, const char* __restrict, ...)
 void clearerr_unlocked(FILE*);
 int feof_unlocked(FILE*);
 int ferror_unlocked(FILE*);
+int fflush_unlocked(FILE*);
 int fgetc_unlocked(FILE*);
 char* fgets_unlocked(char* __restrict, int, FILE* __restrict);
 int fputc_unlocked(int, FILE*);
@@ -121,6 +123,7 @@ int fseeko_unlocked(FILE*, off_t, int);
 off_t ftello_unlocked(FILE*);
 size_t fwrite_unlocked(const void* __restrict, size_t, size_t,
         FILE* __restrict);
+int ungetc_unlocked(int, FILE*);
 int vasprintf(char** __restrict, const char* __restrict, __gnuc_va_list)
         __printf_like(2, 0);
 int vcbprintf(void*, size_t (*)(void*, const char*, size_t), const char*,

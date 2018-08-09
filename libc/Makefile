@@ -132,6 +132,7 @@ LIBC_OBJ = \
 	stdio/feof \
 	stdio/ferror_unlocked \
 	stdio/ferror \
+	stdio/fflush_unlocked \
 	stdio/fflush \
 	stdio/fgetc_unlocked \
 	stdio/fgetc \
@@ -172,6 +173,8 @@ LIBC_OBJ = \
 	stdio/stderr \
 	stdio/stdin \
 	stdio/stdout \
+	stdio/ungetc_unlocked \
+	stdio/ungetc \
 	stdio/vdprintf \
 	stdio/vfprintf_unlocked \
 	stdio/vfprintf \
