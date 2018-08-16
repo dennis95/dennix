@@ -53,10 +53,13 @@ COMMON_OBJ = \
 	stdio/asprintf \
 	stdio/snprintf \
 	stdio/sprintf \
+	stdio/sscanf \
 	stdio/vasprintf \
 	stdio/vcbprintf \
+	stdio/vcbscanf \
 	stdio/vsnprintf \
 	stdio/vsprintf \
+	stdio/vsscanf\
 	stdlib/calloc \
 	stdlib/free \
 	stdlib/malloc \
@@ -145,6 +148,7 @@ LIBC_OBJ = \
 	stdio/fputc \
 	stdio/fputs_unlocked \
 	stdio/fputs \
+	stdio/fscanf \
 	stdio/fseek \
 	stdio/fseeko_unlocked \
 	stdio/fseeko \
@@ -170,6 +174,7 @@ LIBC_OBJ = \
 	stdio/rename \
 	stdio/renameat \
 	stdio/rewind \
+	stdio/scanf \
 	stdio/stderr \
 	stdio/stdin \
 	stdio/stdout \
@@ -178,7 +183,9 @@ LIBC_OBJ = \
 	stdio/vdprintf \
 	stdio/vfprintf_unlocked \
 	stdio/vfprintf \
+	stdio/vfscanf \
 	stdio/vprintf \
+	stdio/vscanf \
 	stdlib/abort \
 	stdlib/atexit \
 	stdlib/canonicalize_file_name \

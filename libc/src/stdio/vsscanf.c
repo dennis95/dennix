@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,24 +13,27 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/sys/cdefs.h
- * Internal definitions for the standard library.
+/* libc/src/stdio/vsscanf.c
+ * Scan formatted input.
  */
 
-#ifndef _SYS_CDEFS_H
-#define _SYS_CDEFS_H
+#include <stdio.h>
 
-#include <features.h>
+static int get(void* arg) {
+    const unsigned char** s = arg;
+    unsigned char c = **s;
+    if (!c) return EOF;
+    (*s)++;
+    return c;
+}
 
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
-#  define __noreturn _Noreturn
-#else
-# define __noreturn __attribute__((__noreturn__))
-#endif
+static int unget(int c, void* arg) {
+    if (c == EOF) return EOF;
+    const unsigned char** s = arg;
+    (*s)--;
+    return c;
+}
 
-#define __printf_like(format, firstArg) \
-    __attribute__((__format__(__printf__, format, firstArg)))
-#define __scanf_like(format, firstArg) \
-    __attribute__((__format__(__scanf__, format, firstArg)))
-
-#endif
+int vsscanf(const char* restrict s, const char* restrict format, va_list ap) {
+    return vcbscanf((void*) &s, get, unget, format, ap);
+}

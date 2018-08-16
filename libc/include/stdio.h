@@ -67,6 +67,7 @@ FILE* fopen(const char* __restrict, const char* __restrict);
 int fprintf(FILE* __restrict, const char* __restrict, ...) __printf_like(2, 3);
 int fputc(int, FILE*);
 int fputs(const char* __restrict, FILE* __restrict);
+int fscanf(FILE* __restrict, const char* __restrict, ...) __scanf_like(2, 3);
 int fseek(FILE*, long, int);
 long ftell(FILE*);
 size_t fwrite(const void* __restrict, size_t, size_t, FILE* __restrict);
@@ -79,17 +80,25 @@ int puts(const char*);
 int remove(const char*);
 int rename(const char*, const char*);
 void rewind(FILE*);
+int scanf(const char* __restrict, ...) __scanf_like(1, 2);
 int snprintf(char* __restrict, size_t, const char* __restrict, ...)
         __printf_like(3, 4);
 int sprintf(char* __restrict, const char* __restrict, ...) __printf_like(2, 3);
+int sscanf(const char* __restrict, const char* __restrict, ...)
+        __scanf_like(2, 3);
 int ungetc(int, FILE*);
 int vfprintf(FILE* __restrict, const char* __restrict, __gnuc_va_list)
         __printf_like(2, 0);
+int vfscanf(FILE* __restrict, const char* __restrict, __gnuc_va_list)
+        __scanf_like(2, 0);
 int vprintf(const char* __restrict, __gnuc_va_list) __printf_like(1, 0);
+int vscanf(const char* __restrict, __gnuc_va_list) __scanf_like(1, 0);
 int vsnprintf(char* __restrict, size_t, const char* __restrict, __gnuc_va_list)
         __printf_like(3, 0);
 int vsprintf(char* __restrict, const char* __restrict, __gnuc_va_list)
         __printf_like(2, 0);
+int vsscanf(const char* __restrict, const char* __restrict, __gnuc_va_list)
+        __scanf_like(2, 0);
 
 #if __USE_DENNIX || __USE_POSIX
 int dprintf(int, const char* __restrict, ...) __printf_like(2, 3);
@@ -128,6 +137,8 @@ int vasprintf(char** __restrict, const char* __restrict, __gnuc_va_list)
         __printf_like(2, 0);
 int vcbprintf(void*, size_t (*)(void*, const char*, size_t), const char*,
         __gnuc_va_list) __printf_like(3, 0);
+int vcbscanf(void*, int (*)(void*), int (*)(int, void*), const char* __restrict,
+        __gnuc_va_list) __scanf_like(4, 0);
 int vfprintf_unlocked(FILE* __restrict, const char* __restrict,
         __gnuc_va_list) __printf_like(2, 0);
 #endif
