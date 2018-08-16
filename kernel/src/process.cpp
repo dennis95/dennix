@@ -255,7 +255,7 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
     assert(sigreturnSize <= 0x1000);
     sigreturn = newAddressSpace->mapMemory(0x1000, PROT_EXEC);
     vaddr_t sigreturnMapped = kernelSpace->mapFromOtherAddressSpace(
-            newAddressSpace, sigreturn, 0x100, PROT_WRITE);
+            newAddressSpace, sigreturn, 0x1000, PROT_WRITE);
     memcpy((void*) sigreturnMapped, &beginSigreturn, sigreturnSize);
     kernelSpace->unmapPhysical(sigreturnMapped, 0x1000);
 

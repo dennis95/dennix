@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -75,6 +75,8 @@ void MemorySegment::addSegment(MemorySegment* firstSegment, vaddr_t address,
 
 MemorySegment* MemorySegment::allocateSegment(vaddr_t address, size_t size,
         int flags) {
+    assert(!(address & 0xFFF));
+    assert(!(size & 0xFFF));
     MemorySegment* current = (MemorySegment*) segmentsPage;
 
     while (current->address != 0 && current->size != 0) {
