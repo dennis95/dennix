@@ -284,7 +284,8 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
 
     if (!fdInitialized) {
         // Initialize file descriptors
-        Reference<FileDescription> descr = new FileDescription(terminal);
+        Reference<FileDescription> descr = new FileDescription(terminal,
+                O_RDWR);
 
         fdTable.insert(0, { descr, 0 }); // stdin
         fdTable.insert(1, { descr, 0 }); // stdout
@@ -330,6 +331,29 @@ void Process::exit(int status) {
     terminationStatus.si_status = status;
 
     terminate();
+}
+
+int Process::fcntl(int fd, int cmd, int param) {
+    if (fd < 0 || fd >= fdTable.allocatedSize || !fdTable[fd]) {
+        errno = EBADF;
+        return -1;
+    }
+
+    FdTableEntry& entry = fdTable[fd];
+
+    switch (cmd) {
+        case F_DUPFD:
+            return fdTable.addAt(param, { entry.descr, 0 });
+        case F_DUPFD_CLOEXEC:
+            return fdTable.addAt(param, { entry.descr, FD_CLOEXEC });
+        case F_GETFD:
+            return entry.flags;
+        case F_SETFD:
+            entry.flags = param;
+            return 0;
+        default:
+            return entry.descr->fcntl(cmd, param);
+    }
 }
 
 Reference<FileDescription> Process::getFd(int fd) {

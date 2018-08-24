@@ -39,6 +39,8 @@
 #define O_RDWR (O_RDONLY | O_WRONLY)
 #define O_SEARCH O_EXEC
 
+#define O_ACCMODE (O_EXEC | O_RDONLY | O_WRONLY)
+
 #define O_APPEND (1 << 3)
 #define O_CLOEXEC (1 << 4)
 #define O_CREAT (1 << 5)
@@ -50,6 +52,13 @@
 #define O_SYNC (1 << 11)
 #define O_TRUNC (1 << 12)
 #define O_TTY_INIT (1 << 13)
+
+#define F_DUPFD 0
+#define F_DUPFD_CLOEXEC 1
+#define F_GETFD 2
+#define F_SETFD 3
+#define F_GETFL 4
+#define F_SETFL 5
 
 #define FD_CLOEXEC (1 << 0)
 

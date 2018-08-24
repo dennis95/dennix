@@ -27,9 +27,25 @@
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/filedescription.h>
 
-FileDescription::FileDescription(const Reference<Vnode>& vnode)
+#define FILE_STATUS_FLAGS (O_APPEND | O_NONBLOCK | O_SYNC)
+
+FileDescription::FileDescription(const Reference<Vnode>& vnode, int flags)
         : vnode(vnode) {
     offset = 0;
+    this->flags = flags & (O_ACCMODE | FILE_STATUS_FLAGS);
+}
+
+int FileDescription::fcntl(int cmd, int param) {
+    switch (cmd) {
+    case F_GETFL:
+        return flags;
+    case F_SETFL:
+        flags = (param & FILE_STATUS_FLAGS) | (flags & O_ACCMODE);
+        return 0;
+    default:
+        errno = EINVAL;
+        return -1;
+    }
 }
 
 off_t FileDescription::lseek(off_t offset, int whence) {
@@ -91,13 +107,7 @@ Reference<FileDescription> FileDescription::openat(const char* path, int flags,
         node->ftruncate(0);
     }
 
-    Reference<FileDescription> result = new FileDescription(node);
-
-    if (flags & O_APPEND) {
-        result->offset = node->stat().st_size;
-    }
-
-    return result;
+    return new FileDescription(node, flags);
 }
 
 ssize_t FileDescription::read(void* buffer, size_t size) {
@@ -127,10 +137,10 @@ int FileDescription::tcsetattr(int flags, const struct termios* termio) {
 
 ssize_t FileDescription::write(const void* buffer, size_t size) {
     if (vnode->isSeekable()) {
-        ssize_t result = vnode->pwrite(buffer, size, offset);
-
+        bool append = flags & O_APPEND;
+        ssize_t result = vnode->pwrite(buffer, size, append ? -1 : offset);
         if (result != -1) {
-            offset += result;
+            offset = append ? vnode->stat().st_size : offset + result;
         }
         return result;
     }

@@ -68,6 +68,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_LSEEK] =*/ (void*) Syscall::lseek,
     /*[SYSCALL_UMASK] =*/ (void*) Syscall::umask,
     /*[SYSCALL_FCHMODAT] =*/ (void*) Syscall::fchmodat,
+    /*[SYSCALL_FCNTL] =*/ (void*) Syscall::fcntl,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -179,6 +180,10 @@ int Syscall::fchmodat(int fd, const char* path, mode_t mode, int flags) {
     if (!vnode) return -1;
 
     return vnode->chmod(mode);
+}
+
+int Syscall::fcntl(int fd, int cmd, int param) {
+    return Process::current->fcntl(fd, cmd, param);
 }
 
 int Syscall::fstat(int fd, struct stat* result) {
@@ -319,8 +324,10 @@ int Syscall::pipe2(int fd[2], int flags) {
     Reference<Vnode> writePipe;
     new PipeVnode(readPipe, writePipe);
 
-    Reference<FileDescription> readDescr = new FileDescription(readPipe);
-    Reference<FileDescription> writeDescr = new FileDescription(writePipe);
+    Reference<FileDescription> readDescr = new FileDescription(readPipe,
+            O_RDONLY);
+    Reference<FileDescription> writeDescr = new FileDescription(writePipe,
+            O_WRONLY);
 
     int fdFlags = 0;
     if (flags & O_CLOEXEC) fdFlags |= FD_CLOEXEC;

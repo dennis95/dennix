@@ -40,8 +40,12 @@ public:
     }
 
     TSize add(const T& obj) {
+        return addAt(0, obj);
+    }
+
+    TSize addAt(TSize index, const T& obj) {
         TSize i;
-        for (i = 0; i < allocatedSize; i++) {
+        for (i = index; i < allocatedSize; i++) {
             if (!buffer[i]) {
                 buffer[i] = obj;
                 return i;
@@ -49,7 +53,7 @@ public:
         }
 
         TSize newSize;
-        if (__builtin_add_overflow(allocatedSize, 1, &newSize)) {
+        if (__builtin_add_overflow(i, 1, &newSize)) {
             return (TSize) -1;
         }
         if (!resize(newSize)) return (TSize) -1;

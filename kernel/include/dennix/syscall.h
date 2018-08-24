@@ -54,7 +54,8 @@
 #define SYSCALL_LSEEK 31
 #define SYSCALL_UMASK 32
 #define SYSCALL_FCHMODAT 33
+#define SYSCALL_FCNTL 34
 
-#define NUM_SYSCALLS 34
+#define NUM_SYSCALLS 35
 
 #endif

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018 Dennis Wölfing
+/* Copyright (c) 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,32 +13,28 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/fcntl.h
+/* libc/src/fcntl/fcntl.c
  * File control.
  */
 
-#ifndef _FCNTL_H
-#define _FCNTL_H
+#include <fcntl.h>
+#include <stdarg.h>
+#include <sys/syscall.h>
 
-#include <sys/cdefs.h>
-#define __need_mode_t
-#define __need_off_t
-#define __need_pid_t
-#include <sys/libc-types.h>
-#include <sys/stat.h>
-#include <dennix/fcntl.h>
-#include <dennix/seek.h>
+DEFINE_SYSCALL(SYSCALL_FCNTL, int, sys_fcntl, (int, int, int));
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+int fcntl(int fd, int cmd, ...) {
+    va_list ap;
+    va_start(ap, cmd);
+    int param = 0;
+    switch (cmd) {
+        case F_DUPFD:
+        case F_DUPFD_CLOEXEC:
+        case F_SETFD:
+        case F_SETFL:
+            param = va_arg(ap, int);
+    }
+    va_end(ap);
 
-int fcntl(int, int, ...);
-int open(const char*, int, ...);
-int openat(int, const char*, int, ...);
-
-#ifdef __cplusplus
+    return sys_fcntl(fd, cmd, param);
 }
-#endif
-
-#endif

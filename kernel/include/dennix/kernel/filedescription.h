@@ -24,7 +24,8 @@
 
 class FileDescription : public ReferenceCounted {
 public:
-    FileDescription(const Reference<Vnode>& vnode);
+    FileDescription(const Reference<Vnode>& vnode, int flags);
+    int fcntl(int cmd, int param);
     off_t lseek(off_t offset, int whence);
     Reference<FileDescription> openat(const char* path, int flags,
             mode_t mode);
@@ -37,6 +38,7 @@ public:
     Reference<Vnode> vnode;
 private:
     off_t offset;
+    int flags;
 };
 
 #endif

@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <dennix/fcntl.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/directory.h>
 #include <dennix/kernel/file.h>
@@ -67,7 +68,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     // Load the initrd.
     Log::printf("Loading Initrd...\n");
     Reference<DirectoryVnode> rootDir = loadInitrd(&multiboot);
-    Reference<FileDescription> rootFd = new FileDescription(rootDir);
+    Reference<FileDescription> rootFd = new FileDescription(rootDir, O_SEARCH);
     Process::current->rootFd = rootFd;
 
     Reference<Vnode> program = resolvePath(rootDir, "/sbin/init");

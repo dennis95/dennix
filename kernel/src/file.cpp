@@ -17,6 +17,7 @@
  * File Vnode.
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -109,14 +110,15 @@ ssize_t FileVnode::pread(void* buffer, size_t size, off_t offset) {
 }
 
 ssize_t FileVnode::pwrite(const void* buffer, size_t size, off_t offset) {
-    if (offset < 0) {
-        errno = EINVAL;
-        return -1;
-    }
-
     if (size == 0) return 0;
 
     AutoLock lock(&mutex);
+    if (offset == -1) {
+        // Offset -1 is used by the kernel for O_APPEND.
+        offset = stats.st_size;
+    }
+    assert(offset >= 0);
+
     off_t newSize;
     if (__builtin_add_overflow(offset, size, &newSize)) {
         errno = ENOSPC;

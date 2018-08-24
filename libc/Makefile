@@ -120,6 +120,7 @@ LIBC_OBJ = \
 	err/warnc \
 	err/warnx \
 	errno/initProgname \
+	fcntl/fcntl \
 	fcntl/open \
 	fcntl/openat \
 	signal/kill \

@@ -52,6 +52,7 @@ public:
     void exit(int status);
     int execute(const Reference<Vnode>& vnode, char* const argv[],
             char* const envp[]);
+    int fcntl(int fd, int cmd, int param);
     Reference<FileDescription> getFd(int fd);
     Process* regfork(int flags, struct regfork* registers);
     Process* waitpid(pid_t pid, int flags);
