@@ -68,6 +68,7 @@ int tcgetattr(int fd, struct termios* result);
 int tcsetattr(int fd, int flags, const struct termios* termio);
 mode_t umask(mode_t newMask);
 int unlinkat(int fd, const char* path, int flags);
+int utimensat(int fd, const char* path, const struct timespec ts[2], int flags);
 pid_t waitpid(pid_t pid, int* status, int flags);
 ssize_t write(int fd, const void* buffer, size_t size);
 

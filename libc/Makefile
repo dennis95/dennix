@@ -207,6 +207,8 @@ LIBC_OBJ = \
 	sys/stat/mkdirat \
 	sys/stat/stat \
 	sys/stat/umask \
+	sys/stat/utimensat \
+	sys/time/utimes \
 	sys/utsname/uname \
 	sys/wait/wait \
 	sys/wait/waitpid \

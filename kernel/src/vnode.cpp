@@ -306,6 +306,31 @@ int Vnode::unlink(const char* /*name*/, int /*flags*/) {
     return -1;
 }
 
+int Vnode::utimens(struct timespec atime, struct timespec mtime) {
+    AutoLock lock(&mutex);
+
+    struct timespec now;
+    Clock::get(CLOCK_REALTIME)->getTime(&now);
+
+    if (atime.tv_nsec == UTIME_NOW) {
+        stats.st_atim = now;
+    } else if (atime.tv_nsec != UTIME_OMIT) {
+        stats.st_atim = atime;
+    }
+
+    if (mtime.tv_nsec == UTIME_NOW) {
+        stats.st_mtim = now;
+    } else if (mtime.tv_nsec != UTIME_OMIT) {
+        stats.st_mtim = mtime;
+    }
+
+    if (atime.tv_nsec != UTIME_OMIT || mtime.tv_nsec != UTIME_OMIT) {
+        stats.st_ctim = now;
+    }
+
+    return 0;
+}
+
 ssize_t Vnode::write(const void* /*buffer*/, size_t /*size*/) {
     errno = EBADF;
     return -1;

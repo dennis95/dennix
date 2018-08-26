@@ -33,6 +33,9 @@
 
 #define S_IFMT 070000
 
+#define UTIME_NOW (-1)
+#define UTIME_OMIT (-2)
+
 struct stat {
     __dev_t st_dev;
     __ino_t st_ino;

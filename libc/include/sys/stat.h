@@ -74,6 +74,7 @@ int mkdir(const char*, mode_t);
 int mkdirat(int, const char*, mode_t);
 int stat(const char* __restrict, struct stat* __restrict);
 mode_t umask(mode_t);
+int utimensat(int, const char*, const struct timespec[2], int);
 
 #ifdef __cplusplus
 }

@@ -69,6 +69,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_UMASK] =*/ (void*) Syscall::umask,
     /*[SYSCALL_FCHMODAT] =*/ (void*) Syscall::fchmodat,
     /*[SYSCALL_FCNTL] =*/ (void*) Syscall::fcntl,
+    /*[SYSCALL_UTIMENSAT] =*/ (void*) Syscall::utimensat,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -488,6 +489,31 @@ int Syscall::unlinkat(int fd, const char* path, int flags) {
     int result = vnode->unlink(name, flags);
     free(pathCopy);
     return result;
+}
+
+int Syscall::utimensat(int fd, const char* path, const struct timespec ts[2],
+        int flags) {
+    static struct timespec nullTs[2] = {{ 0, UTIME_NOW }, { 0, UTIME_NOW }};
+    if (!ts) {
+        ts = nullTs;
+    }
+
+    if (((ts[0].tv_nsec < 0 || ts[0].tv_nsec >= 1000000000) &&
+            ts[0].tv_nsec != UTIME_NOW && ts[0].tv_nsec != UTIME_OMIT) ||
+            ((ts[1].tv_nsec < 0 || ts[1].tv_nsec >= 1000000000) &&
+            ts[1].tv_nsec != UTIME_NOW && ts[1].tv_nsec != UTIME_OMIT)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    bool followFinalSymlink = !(flags & AT_SYMLINK_NOFOLLOW);
+    Reference<FileDescription> descr = getRootFd(fd, path);
+    if (!descr) return -1;
+    Reference<Vnode> vnode = resolvePath(descr->vnode, path,
+            followFinalSymlink);
+    if (!vnode) return -1;
+
+    return vnode->utimens(ts[0], ts[1]);
 }
 
 pid_t Syscall::waitpid(pid_t pid, int* status, int flags) {

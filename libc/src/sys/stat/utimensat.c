@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018 Dennis Wölfing
+/* Copyright (c) 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,36 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/sys/types.h
- * Data types.
+/* libc/src/sys/stat/utimensat.c
+ * Update file timestamps.
  */
 
-#ifndef _SYS_TYPES_H
-#define _SYS_TYPES_H
+#include <sys/stat.h>
+#include <sys/syscall.h>
 
-#include <sys/cdefs.h>
-
-#define __need_blkcnt_t
-#define __need_blksize_t
-#define __need_clock_t
-#define __need_clockid_t
-#define __need_dev_t
-#define __need_fsblkcnt_t
-#define __need_fsfilcnt_t
-#define __need_gid_t
-#define __need_id_t
-#define __need_ino_t
-#define __need_mode_t
-#define __need_nlink_t
-#define __need_off_t
-#define __need_pid_t
-/* pthreads ... */
-#define __need_size_t
-#define __need_ssize_t
-#define __need_suseconds_t
-#define __need_time_t
-#define __need_timer_t
-#define __need_uid_t
-#include <sys/libc-types.h>
-
-#endif
+DEFINE_SYSCALL_GLOBAL(SYSCALL_UTIMENSAT, int, utimensat,
+        (int, const char*, const struct timespec[2], int));

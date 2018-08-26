@@ -49,6 +49,7 @@ public:
     virtual int tcgetattr(struct termios* result);
     virtual int tcsetattr(int flags, const struct termios* termio);
     virtual int unlink(const char* name, int flags);
+    virtual int utimens(struct timespec atime, struct timespec mtime);
     virtual ssize_t write(const void* buffer, size_t size);
     virtual ~Vnode();
 protected:
