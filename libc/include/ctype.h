@@ -28,9 +28,65 @@
 extern "C" {
 #endif
 
-int isblank(int);
-int isdigit(int);
-int isspace(int);
+extern __gnu_inline int isblank(int _c) {
+    return _c == '\t' || _c == ' ';
+}
+
+extern __gnu_inline int isctrl(int _c) {
+    return (_c >= '\0' && _c <= '\x1F') || _c == '\x7F';
+}
+
+extern __gnu_inline int isdigit(int _c) {
+    return _c >= '0' && _c <= '9';
+}
+
+extern __gnu_inline int islower(int _c) {
+    return _c >= 'a' && _c <= 'z';
+}
+
+extern __gnu_inline int ispunct(int _c) {
+    return (_c >= '!' && _c <= '/') || (_c >= ':' && _c <= '@') ||
+            (_c >= '[' && _c <= '`') || (_c >= '{' && _c <= '~');
+}
+
+extern __gnu_inline int isspace(int _c) {
+    return _c == '\t' || _c == '\n' || _c == '\v' || _c == '\f' ||
+            _c == '\r' || _c == ' ';
+}
+
+extern __gnu_inline int isupper(int _c) {
+    return _c >= 'A' && _c <= 'Z';
+}
+
+extern __gnu_inline int isalpha(int _c) {
+    return isupper(_c) || islower(_c);
+}
+
+extern __gnu_inline int isalnum(int _c) {
+    return isalpha(_c) || isdigit(_c);
+}
+
+extern __gnu_inline int isgraph(int _c) {
+    return isalnum(_c) || ispunct(_c);
+}
+
+extern __gnu_inline int isprint(int _c) {
+    return isgraph(_c) || _c == ' ';
+}
+
+extern __gnu_inline int isxdigit(int _c) {
+    return isdigit(_c) || (_c >= 'A' && _c <= 'F') || (_c >= 'a' && _c <= 'f');
+}
+
+extern __gnu_inline int tolower(int _c) {
+    if (isupper(_c)) return _c + 0x20;
+    return _c;
+}
+
+extern __gnu_inline int toupper(int _c) {
+    if (islower(_c)) return _c - 0x20;
+    return _c;
+}
 
 #ifdef __cplusplus
 }

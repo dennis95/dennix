@@ -33,4 +33,9 @@
 #define __scanf_like(format, firstArg) \
     __attribute__((__format__(__scanf__, format, firstArg)))
 
+/* We use the GNU inline semantics instead of the ISO C inline semantics for
+   inline functions in libc, so that applications can redeclare a function
+   without accidentally emitting code for it. */
+#define __gnu_inline __inline__ __attribute__((__gnu_inline__))
+
 #endif

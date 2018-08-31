@@ -13,12 +13,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/ctype/isdigit.c
- * Checks whether a character is a digit.
+/* libc/src/ctype/ctype.c
+ * Character types.
  */
 
 #include <ctype.h>
 
-int isdigit(int c) {
-    return c >= '0' && c <= '9';
-}
+__gnu_inline int isalnum(int);
+__gnu_inline int isalpha(int);
+__gnu_inline int isblank(int);
+__gnu_inline int iscntrl(int);
+__gnu_inline int isdigit(int);
+__gnu_inline int isgraph(int);
+__gnu_inline int islower(int);
+__gnu_inline int isprint(int);
+__gnu_inline int ispunct(int);
+__gnu_inline int isspace(int);
+__gnu_inline int isupper(int);
+__gnu_inline int isxdigit(int);
+__gnu_inline int tolower(int);
+__gnu_inline int toupper(int);

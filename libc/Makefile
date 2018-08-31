@@ -32,9 +32,7 @@ LIBC_FLAGS += -D__is_dennix_libc
 LIBK_FLAGS += -D__is_dennix_libk
 
 COMMON_OBJ = \
-	ctype/isblank \
-	ctype/isdigit \
-	ctype/isspace \
+	ctype/ctype \
 	cxx/new \
 	cxx/purevirtual \
 	errno/errno \
