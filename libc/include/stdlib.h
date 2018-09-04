@@ -52,6 +52,7 @@ unsigned long strtoul(const char* __restrict, char** __restrict, int);
 unsigned long long strtoull(const char* __restrict, char** __restrict, int);
 
 #if __USE_DENNIX || __USE_POSIX
+char* mkdtemp(char*);
 int mkstemp(char*);
 int setenv(const char*, const char*, int);
 int unsetenv(const char*);

@@ -191,6 +191,7 @@ LIBC_OBJ = \
 	stdlib/_Exit \
 	stdlib/exit \
 	stdlib/getenv \
+	stdlib/mkdtemp \
 	stdlib/mkostemp \
 	stdlib/mkostemps \
 	stdlib/mkstemp \
