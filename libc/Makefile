@@ -191,6 +191,10 @@ LIBC_OBJ = \
 	stdlib/_Exit \
 	stdlib/exit \
 	stdlib/getenv \
+	stdlib/mkostemp \
+	stdlib/mkostemps \
+	stdlib/mkstemp \
+	stdlib/mkstemps \
 	stdlib/setenv \
 	stdlib/unsetenv \
 	string/strcoll \

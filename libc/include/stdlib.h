@@ -52,12 +52,16 @@ unsigned long strtoul(const char* __restrict, char** __restrict, int);
 unsigned long long strtoull(const char* __restrict, char** __restrict, int);
 
 #if __USE_DENNIX || __USE_POSIX
+int mkstemp(char*);
 int setenv(const char*, const char*, int);
 int unsetenv(const char*);
 #endif
 
 #if __USE_DENNIX
 char* canonicalize_file_name(const char*);
+int mkostemp(char*, int);
+int mkostemps(char*, int, int);
+int mkstemps(char*, int);
 void qsort_r(void*, size_t, size_t, int (*)(const void*, const void*, void*),
         void*);
 void* reallocarray(void*, size_t, size_t);
