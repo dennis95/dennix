@@ -47,7 +47,12 @@ typedef __gnuc_va_list va_list;
 extern "C" {
 #endif
 
+#define BUFSIZ 4096
 #define EOF (-1)
+
+#define _IOFBF 0
+#define _IOLBF 1
+#define _IONBF 2
 
 extern FILE* stdin;
 extern FILE* stdout;
@@ -81,6 +86,8 @@ int remove(const char*);
 int rename(const char*, const char*);
 void rewind(FILE*);
 int scanf(const char* __restrict, ...) __scanf_like(1, 2);
+void setbuf(FILE* __restrict, char* __restrict);
+int setvbuf(FILE* __restrict, char* __restrict, int, size_t);
 int snprintf(char* __restrict, size_t, const char* __restrict, ...)
         __printf_like(3, 4);
 int sprintf(char* __restrict, const char* __restrict, ...) __printf_like(2, 3);
@@ -146,7 +153,6 @@ int vfprintf_unlocked(FILE* __restrict, const char* __restrict,
 /* These are just declared to make libgcov compile, which is compiled with
    libgcc, and are not implemented. */
 size_t fread(void* __restrict, size_t, size_t, FILE* __restrict);
-void setbuf(FILE* __restrict, char* __restrict);
 
 #ifdef __cplusplus
 }

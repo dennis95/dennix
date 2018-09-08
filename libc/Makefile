@@ -174,6 +174,8 @@ LIBC_OBJ = \
 	stdio/renameat \
 	stdio/rewind \
 	stdio/scanf \
+	stdio/setbuf \
+	stdio/setvbuf \
 	stdio/stderr \
 	stdio/stdin \
 	stdio/stdout \
