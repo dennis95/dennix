@@ -72,6 +72,7 @@ FILE* fopen(const char* __restrict, const char* __restrict);
 int fprintf(FILE* __restrict, const char* __restrict, ...) __printf_like(2, 3);
 int fputc(int, FILE*);
 int fputs(const char* __restrict, FILE* __restrict);
+size_t fread(void* __restrict, size_t, size_t, FILE* __restrict);
 int fscanf(FILE* __restrict, const char* __restrict, ...) __scanf_like(2, 3);
 int fseek(FILE*, long, int);
 long ftell(FILE*);
@@ -135,6 +136,7 @@ int fgetc_unlocked(FILE*);
 char* fgets_unlocked(char* __restrict, int, FILE* __restrict);
 int fputc_unlocked(int, FILE*);
 int fputs_unlocked(const char* __restrict, FILE* __restrict);
+size_t fread_unlocked(void* __restrict, size_t, size_t, FILE* __restrict);
 int fseeko_unlocked(FILE*, off_t, int);
 off_t ftello_unlocked(FILE*);
 size_t fwrite_unlocked(const void* __restrict, size_t, size_t,
@@ -149,10 +151,6 @@ int vcbscanf(void*, int (*)(void*), int (*)(int, void*), const char* __restrict,
 int vfprintf_unlocked(FILE* __restrict, const char* __restrict,
         __gnuc_va_list) __printf_like(2, 0);
 #endif
-
-/* These are just declared to make libgcov compile, which is compiled with
-   libgcc, and are not implemented. */
-size_t fread(void* __restrict, size_t, size_t, FILE* __restrict);
 
 #ifdef __cplusplus
 }

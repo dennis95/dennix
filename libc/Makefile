@@ -147,6 +147,8 @@ LIBC_OBJ = \
 	stdio/fputc \
 	stdio/fputs_unlocked \
 	stdio/fputs \
+	stdio/fread_unlocked \
+	stdio/fread \
 	stdio/fscanf \
 	stdio/fseek \
 	stdio/fseeko_unlocked \
