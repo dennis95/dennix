@@ -140,13 +140,13 @@ Reference<Vnode> resolvePathExceptLastComponent(const Reference<Vnode>& vnode,
 }
 
 Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
-        bool followFinalSymlink /*= true*/) {
+        size_t pathSize, bool followFinalSymlink /*= true*/) {
     if (!*path) {
         errno = ENOENT;
         return nullptr;
     }
 
-    char* pathCopy = strdup(path);
+    char* pathCopy = strndup(path, pathSize);
     if (!pathCopy) return nullptr;
 
     char* lastComponent;
@@ -174,6 +174,11 @@ Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
 
     free(pathCopy);
     return currentVnode;
+}
+
+Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
+        bool followFinalSymlink /*= true*/) {
+    return resolvePath(vnode, path, SIZE_MAX, followFinalSymlink);
 }
 
 void Vnode::updateTimestamps(bool access, bool status, bool modification) {

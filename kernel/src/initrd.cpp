@@ -53,12 +53,12 @@ Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
     while (strcmp(header->magic, TMAGIC) == 0) {
         char* path;
         if (header->prefix[0]) {
-            path = (char*) malloc(strlen(header->name) +
-                    strlen(header->prefix) + 2);
+            path = (char*) malloc(strnlen(header->name, sizeof(header->name)) +
+                    strnlen(header->prefix, sizeof(header->prefix)) + 2);
 
             stpcpy(stpcpy(stpcpy(path, header->prefix), "/"), header->name);
         } else {
-            path = strdup(header->name);
+            path = strndup(header->name, sizeof(header->name));
         }
 
         char* path2 = strdup(path);
@@ -92,6 +92,10 @@ Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
         } else if (header->typeflag == SYMTYPE) {
             newFile = new SymlinkVnode(header->linkname,
                     sizeof(header->linkname), directory->stats.st_dev);
+            header++;
+        } else if (header->typeflag == LNKTYPE) {
+            newFile = resolvePath(root, header->linkname,
+                    sizeof(header->linkname));
             header++;
         } else {
             Log::printf("Unknown typeflag '%c'\n", header->typeflag);

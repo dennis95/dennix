@@ -61,6 +61,8 @@ public:
 };
 
 Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
+        size_t pathSize, bool followFinalSymlink = true);
+Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
         bool followFinalSymlink = true);
 Reference<Vnode> resolvePathExceptLastComponent(const Reference<Vnode>& vnode,
         char* path, char** lastComponent);
