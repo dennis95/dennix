@@ -62,6 +62,7 @@ COMMON_OBJ = \
 	stdlib/free \
 	stdlib/malloc \
 	stdlib/malloc-util \
+	stdlib/mbstowcs \
 	stdlib/qsort \
 	stdlib/qsort_r \
 	stdlib/rand \
@@ -93,7 +94,9 @@ COMMON_OBJ = \
 	string/strtok \
 	time/gmtime \
 	time/gmtime_r \
-	time/timegm
+	time/timegm \
+	wchar/mbrtowc \
+	wchar/mbsrtowcs
 
 LIBC_OBJ = \
 	$(COMMON_OBJ) \

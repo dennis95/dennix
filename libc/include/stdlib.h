@@ -23,6 +23,7 @@
 #include <sys/cdefs.h>
 #define __need_NULL
 #define __need_size_t
+#define __need_wchar_t
 #include <sys/libc-types.h>
 
 #ifdef __cplusplus
@@ -42,6 +43,7 @@ __noreturn void exit(int);
 void free(void*);
 char* getenv(const char*);
 void* malloc(size_t);
+size_t mbstowcs(wchar_t* __restrict, const char* __restrict, size_t);
 void qsort(void*, size_t, size_t, int (*)(const void*, const void*));
 int rand(void);
 void* realloc(void*, size_t);
