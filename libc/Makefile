@@ -58,6 +58,7 @@ COMMON_OBJ = \
 	stdio/vsnprintf \
 	stdio/vsprintf \
 	stdio/vsscanf\
+	stdlib/bsearch \
 	stdlib/calloc \
 	stdlib/free \
 	stdlib/malloc \

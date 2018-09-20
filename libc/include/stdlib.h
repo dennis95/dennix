@@ -37,6 +37,8 @@ extern "C" {
 
 __noreturn void abort(void);
 int atexit(void (*)(void));
+void* bsearch(const void*, const void*, size_t, size_t,
+        int (*)(const void*, const void*));
 void* calloc(size_t, size_t);
 __noreturn void _Exit(int);
 __noreturn void exit(int);
