@@ -73,11 +73,13 @@ COMMON_OBJ = \
 	stdlib/strtoll \
 	stdlib/strtoul \
 	stdlib/strtoull \
+	string/memchr \
 	string/memcmp \
 	string/memcpy \
 	string/memmove \
 	string/memset \
 	string/stpcpy \
+	string/strcat \
 	string/strchr \
 	string/strcmp \
 	string/strcpy \
@@ -86,12 +88,16 @@ COMMON_OBJ = \
 	string/strerror \
 	string/strlcpy \
 	string/strlen \
+	string/strncat \
 	string/strncmp \
+	string/strncpy \
 	string/strndup \
 	string/strnlen \
+	string/strpbrk \
 	string/strrchr \
 	string/strsignal \
 	string/strspn \
+	string/strstr \
 	string/strtok \
 	time/gmtime \
 	time/gmtime_r \
