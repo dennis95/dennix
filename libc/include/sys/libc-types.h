@@ -29,6 +29,11 @@ typedef __blksize_t blksize_t;
 #  define __blksize_t_defined
 #endif
 
+#if defined(__need_clock_t) && !defined(__clock_t_defined)
+typedef __time_t clock_t;
+#  define __clock_t_defined
+#endif
+
 #if defined(__need_clockid_t) && !defined(__clockid_t_defined)
 typedef __clockid_t clockid_t;
 #  define __clockid_t_defined
@@ -96,6 +101,7 @@ typedef __time_t time_t;
 
 #undef __need_blkcnt_t
 #undef __need_blksize_t
+#undef __need_clock_t
 #undef __need_clockid_t
 #undef __need_dev_t
 #undef __need_FILE

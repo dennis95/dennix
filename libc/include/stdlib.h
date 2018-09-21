@@ -33,10 +33,14 @@ extern "C" {
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
 
+#define MB_CUR_MAX 4
 #define RAND_MAX 32767
 
 __noreturn void abort(void);
+int abs(int);
 int atexit(void (*)(void));
+int atoi(const char*);
+long atol(const char*);
 void* bsearch(const void*, const void*, size_t, size_t,
         int (*)(const void*, const void*));
 void* calloc(size_t, size_t);
@@ -71,10 +75,6 @@ void qsort_r(void*, size_t, size_t, int (*)(const void*, const void*, void*),
         void*);
 void* reallocarray(void*, size_t, size_t);
 #endif
-
-/* These are just declared to make libgcov compile, which is compiled with
-   libgcc, and are not implemented. */
-int atoi(const char*);
 
 #ifdef __cplusplus
 }

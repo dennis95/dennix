@@ -32,7 +32,7 @@ extern __gnu_inline int isblank(int _c) {
     return _c == '\t' || _c == ' ';
 }
 
-extern __gnu_inline int isctrl(int _c) {
+extern __gnu_inline int iscntrl(int _c) {
     return (_c >= '\0' && _c <= '\x1F') || _c == '\x7F';
 }
 

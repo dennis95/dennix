@@ -79,6 +79,7 @@ long ftell(FILE*);
 size_t fwrite(const void* __restrict, size_t, size_t, FILE* __restrict);
 int getc(FILE*);
 int getchar(void);
+void perror(const char*);
 int printf(const char* __restrict, ...) __printf_like(1, 2);
 int putc(int, FILE*);
 int putchar(int);
@@ -111,6 +112,7 @@ int vsscanf(const char* __restrict, const char* __restrict, __gnuc_va_list)
 #if __USE_DENNIX || __USE_POSIX
 int dprintf(int, const char* __restrict, ...) __printf_like(2, 3);
 FILE* fdopen(int, const char*);
+int fileno(FILE*);
 void flockfile(FILE*);
 int fseeko(FILE*, off_t, int);
 off_t ftello(FILE*);

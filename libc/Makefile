@@ -58,6 +58,9 @@ COMMON_OBJ = \
 	stdio/vsnprintf \
 	stdio/vsprintf \
 	stdio/vsscanf\
+	stdlib/abs \
+	stdlib/atoi \
+	stdlib/atol \
 	stdlib/bsearch \
 	stdlib/calloc \
 	stdlib/free \
@@ -150,6 +153,7 @@ LIBC_OBJ = \
 	stdio/fgetc \
 	stdio/fgets_unlocked \
 	stdio/fgets \
+	stdio/fileno \
 	stdio/flockfile \
 	stdio/fopen \
 	stdio/fprintf \
@@ -175,6 +179,7 @@ LIBC_OBJ = \
 	stdio/getchar \
 	stdio/getdelim \
 	stdio/getline \
+	stdio/perror \
 	stdio/printf \
 	stdio/putc_unlocked \
 	stdio/putc \
@@ -231,8 +236,11 @@ LIBC_OBJ = \
 	sys/wait/waitpid \
 	termios/tcgetattr \
 	termios/tcsetattr \
+	time/asctime \
 	time/clock_gettime \
 	time/clock_nanosleep \
+	time/clock \
+	time/ctime \
 	time/localtime \
 	time/mktime \
 	time/nanosleep \

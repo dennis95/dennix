@@ -40,6 +40,8 @@
 extern "C" {
 #endif
 
+#define CLOCKS_PER_SEC ((clock_t) 1000000)
+
 struct tm {
     int tm_sec;
     int tm_min;
@@ -52,6 +54,9 @@ struct tm {
     int tm_isdst;
 };
 
+char* asctime(const struct tm*);
+clock_t clock(void);
+char* ctime(const time_t*);
 struct tm* gmtime(const time_t*);
 struct tm* localtime(const time_t*);
 time_t mktime(struct tm*);
