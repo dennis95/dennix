@@ -31,6 +31,8 @@
 #include <dennix/kernel/signal.h>
 #include <dennix/kernel/terminal.h>
 
+#define USER_STACK_SIZE (32 * 1024) // 32 KiB
+
 Process* Process::current;
 Process* Process::initProcess;
 
@@ -259,7 +261,8 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
     memcpy((void*) sigreturnMapped, &beginSigreturn, sigreturnSize);
     kernelSpace->unmapPhysical(sigreturnMapped, 0x1000);
 
-    vaddr_t stack = newAddressSpace->mapMemory(0x1000, PROT_READ | PROT_WRITE);
+    vaddr_t userStack = newAddressSpace->mapMemory(USER_STACK_SIZE,
+            PROT_READ | PROT_WRITE);
     void* newKernelStack = (void*) kernelSpace->mapMemory(0x1000,
             PROT_READ | PROT_WRITE);
 
@@ -279,7 +282,7 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
     newInterruptContext->eip = (uint32_t) entry;
     newInterruptContext->cs = 0x1B;
     newInterruptContext->eflags = 0x200; // Interrupt enable
-    newInterruptContext->esp = (uint32_t) stack + 0x1000;
+    newInterruptContext->esp = (uint32_t) userStack + USER_STACK_SIZE;
     newInterruptContext->ss = 0x23;
 
     if (!fdInitialized) {
