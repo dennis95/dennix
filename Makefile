@@ -20,7 +20,7 @@ include $(REPO_ROOT)/build-aux/paths.mk
 include $(REPO_ROOT)/build-aux/toolchain.mk
 
 KERNEL = $(BUILD_DIR)/kernel/kernel
-INITRD = $(BUILD_DIR)/initrd.tar
+INITRD = $(BUILD_DIR)/initrd.tar.xz
 ISO = dennix.iso
 LICENSE = $(LICENSES_DIR)/dennix/LICENSE
 
@@ -63,7 +63,7 @@ $(KERNEL): $(INCLUDE_DIR)
 	$(MAKE) -C kernel
 
 $(INITRD): $(SYSROOT)
-	cd $(SYSROOT) && tar cvf ../$(INITRD) --format=ustar *
+	cd $(SYSROOT) && tar cJf ../$(INITRD) --format=ustar *
 
 qemu: $(ISO)
 	qemu-system-i386 -cdrom $^
