@@ -22,6 +22,7 @@ include $(REPO_ROOT)/build-aux/toolchain.mk
 KERNEL = $(BUILD_DIR)/kernel/kernel
 INITRD = $(BUILD_DIR)/initrd.tar
 ISO = dennix.iso
+LICENSE = $(LICENSES_DIR)/dennix/LICENSE
 
 all: libc kernel sh utils iso
 
@@ -73,7 +74,7 @@ sh: $(INCLUDE_DIR)
 utils: $(INCLUDE_DIR)
 	$(MAKE) -C utils
 
-$(SYSROOT): $(INCLUDE_DIR) $(LIB_DIR) $(BIN_DIR) $(SYSROOT)/usr
+$(SYSROOT): $(INCLUDE_DIR) $(LIB_DIR) $(BIN_DIR) $(SYSROOT)/usr $(LICENSE)
 
 $(BIN_DIR):
 	$(MAKE) -C sh install
@@ -85,6 +86,10 @@ $(INCLUDE_DIR):
 
 $(LIB_DIR):
 	$(MAKE) -C libc install-libs
+
+$(LICENSE): LICENSE
+	@mkdir -p $(LICENSES_DIR)/dennix
+	cp -f LICENSE $@
 
 $(SYSROOT)/usr:
 	ln -s . $@
