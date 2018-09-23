@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -350,6 +350,15 @@ vaddr_t AddressSpace::mapMemory(size_t size, int protection) {
         physicalAddress = PhysicalMemory::popPageFrame();
         if (!physicalAddress ||
                 !mapAt(virtualAddress + i, physicalAddress, protection)) {
+            if (physicalAddress) {
+                PhysicalMemory::pushPageFrame(physicalAddress);
+            }
+            for (i = i - 0x1000; i < size; i -= 0x1000) {
+                physicalAddress = getPhysicalAddress(virtualAddress + i);
+                unmap(virtualAddress + i);
+                PhysicalMemory::pushPageFrame(physicalAddress);
+            }
+            MemorySegment::removeSegment(firstSegment, virtualAddress, size);
             return 0;
         }
     }
@@ -368,6 +377,15 @@ vaddr_t AddressSpace::mapMemory(vaddr_t virtualAddress, size_t size,
         physicalAddress = PhysicalMemory::popPageFrame();
         if (!physicalAddress ||
                 !mapAt(virtualAddress + i, physicalAddress, protection)) {
+            if (physicalAddress) {
+                PhysicalMemory::pushPageFrame(physicalAddress);
+            }
+            for (i = i - 0x1000; i < size; i -= 0x1000) {
+                physicalAddress = getPhysicalAddress(virtualAddress + i);
+                unmap(virtualAddress + i);
+                PhysicalMemory::pushPageFrame(physicalAddress);
+            }
+            MemorySegment::removeSegment(firstSegment, virtualAddress, size);
             return 0;
         }
     }
