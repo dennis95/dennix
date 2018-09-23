@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -66,16 +66,10 @@ int main(int argc, char* argv[]) {
         unsigned int seed = strtoul(argv[1], NULL, 10);
         srand(seed);
     } else {
-#ifndef __dennix__
         srand(time(NULL));
-#else
-        srand(2);
-#endif
     }
 
-#ifndef __dennix__
     setbuf(stdout, NULL);
-#endif
 
     // Set terminal attributes.
     tcgetattr(0, &oldTermios);

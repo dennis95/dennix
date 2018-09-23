@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -89,9 +89,7 @@ int main(int argc, char* argv[]) {
     newTermios.c_cc[VMIN] = 0;
     tcsetattr(0, TCSAFLUSH, &newTermios);
 
-#ifndef __dennix__
     setbuf(stdout, NULL);
-#endif
 
     readFile(filename);
     fputs("\e[2J", stdout);
