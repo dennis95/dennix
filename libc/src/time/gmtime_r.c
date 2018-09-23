@@ -94,6 +94,7 @@ struct tm* gmtime_r(const time_t* restrict time, struct tm* restrict tm) {
     while (secondsLeft >= daysPerMonth(tm->tm_mon, year) * SECONDS_PER_DAY) {
         secondsLeft -= daysPerMonth(tm->tm_mon, year) * SECONDS_PER_DAY;
         tm->tm_yday += daysPerMonth(tm->tm_mon, year);
+        daysSinceEpoch += daysPerMonth(tm->tm_mon, year);
         tm->tm_mon++;
     }
 
