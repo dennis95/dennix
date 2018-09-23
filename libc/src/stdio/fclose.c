@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,8 +22,13 @@
 #include "FILE.h"
 
 int fclose(FILE* file) {
-    if (fflush(file) == EOF) return EOF;
-    if (close(file->fd) == -1) return EOF;
-    free(file);
-    return 0;
+    int result = 0;
+    if (fflush(file) == EOF) result = EOF;
+    if (close(file->fd) < 0) result = EOF;
+
+    if (file != stdin && file != stdout && file != stderr) {
+        free(file);
+    }
+
+    return result;
 }
