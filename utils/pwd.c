@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,15 +29,21 @@ static bool isAbsolutePath(const char* path);
 
 int main(int argc, char* argv[]) {
     struct option longopts[] = {
-        { "help", no_argument, 0, '?' },
+        { "help", no_argument, 0, 0 },
         { "version", no_argument, 0, 1 },
         { 0, 0, 0, 0 }
     };
 
     bool logical = true;
     int c;
-    while ((c = getopt_long(argc, argv, "LP?", longopts, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "LP", longopts, NULL)) != -1) {
         switch (c) {
+        case 0:
+            return help(argv[0], "[OPTIONS]\n"
+                    "  -L                       print logical path\n"
+                    "  -P                       print physical path\n"
+                    "      --help               display this help\n"
+                    "      --version            display version info");
         case 1:
             return version(argv[0]);
         case 'L':
@@ -47,11 +53,7 @@ int main(int argc, char* argv[]) {
             logical = false;
             break;
         case '?':
-            return help(argv[0], "[OPTIONS]\n"
-                    "  -L                       print logical path\n"
-                    "  -P                       print physical path\n"
-                    "  -?, --help               display this help\n"
-                    "      --version            display version info");
+            return 1;
         }
     }
 

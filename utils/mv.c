@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -37,15 +37,21 @@ int main(int argc, char* argv[]) {
     struct option longopts[] = {
         { "force", no_argument, 0, 'f' },
         { "interactive", no_argument, 0, 'i' },
-        { "help", no_argument, 0, '?' },
+        { "help", no_argument, 0, 0 },
         { "version", no_argument, 0, 1 },
         { 0, 0, 0, 0 }
     };
 
     bool prompt = false;
     int c;
-    while ((c = getopt_long(argc, argv, "fi?", longopts, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "fi", longopts, NULL)) != -1) {
         switch (c) {
+        case 0:
+            return help(argv[0], "[OPTIONS] SOURCE... DESTINATION\n"
+                    "  -f, --force              do not prompt\n"
+                    "  -i, --interactive        prompt before overwrite\n"
+                    "      --help               display this help\n"
+                    "      --version            display version info");
         case 1:
             return version(argv[0]);
         case 'f':
@@ -55,11 +61,7 @@ int main(int argc, char* argv[]) {
             prompt = true;
             break;
         case '?':
-            return help(argv[0], "[OPTIONS] SOURCE... DESTINATION\n"
-                    "  -f, --force              do not prompt\n"
-                    "  -i, --interactive        prompt before overwrite\n"
-                    "  -?, --help               display this help\n"
-                    "      --version            display version info");
+            return 1;
         }
     }
 

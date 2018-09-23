@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -52,15 +52,25 @@ int main(int argc, char* argv[]) {
         { "kernel-release", no_argument, 0, 'r' },
         { "kernel-version", no_argument, 0, 'v' },
         { "machine", no_argument, 0, 'm' },
-        { "help", no_argument, 0, '?' },
+        { "help", no_argument, 0, 0 },
         { "version", no_argument, 0, 1 },
         { 0, 0, 0, 0 }
     };
 
     int flags = 0;
     int c;
-    while ((c = getopt_long(argc, argv, "amnrsv?", longopts, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "amnrsv", longopts, NULL)) != -1) {
         switch (c) {
+        case 0:
+            return help(argv[0], "[OPTIONS]\n"
+                    "  -a, --all                print all information\n"
+                    "  -s, --kernel-name        print operating system name\n"
+                    "  -n, --nodename           print node name\n"
+                    "  -r, --kernel-release     print kernel release\n"
+                    "  -v, --kernel-version     print kernel version\n"
+                    "  -m, --machine            print hardware architecture\n"
+                    "      --help               display this help\n"
+                    "      --version            display version info");
         case 1:
             return version(argv[0]);
         case 'a':
@@ -82,15 +92,7 @@ int main(int argc, char* argv[]) {
             flags |= PRINT_MACHINE;
             break;
         case '?':
-            return help(argv[0], "[OPTIONS]\n"
-                    "  -a, --all                print all information\n"
-                    "  -s, --kernel-name        print operating system name\n"
-                    "  -n, --nodename           print node name\n"
-                    "  -r, --kernel-release     print kernel release\n"
-                    "  -v, --kernel-version     print kernel version\n"
-                    "  -m, --machine            print hardware architecture\n"
-                    "  -?, --help               display this help\n"
-                    "      --version            display version info");
+            return 1;
         }
     }
 

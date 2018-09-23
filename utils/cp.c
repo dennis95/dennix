@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
         { "force", no_argument, 0, 'f' },
         { "interactive", no_argument, 0, 'i' },
         { "recursive", no_argument, 0, 'R' },
-        { "help", no_argument, 0, '?' },
+        { "help", no_argument, 0, 0 },
         { "version", no_argument, 0, 1 },
         { 0, 0, 0, 0 }
     };
@@ -53,8 +53,15 @@ int main(int argc, char* argv[]) {
     bool prompt = false;
     bool recursive = false;
     int c;
-    while ((c = getopt_long(argc, argv, "fiRr?", longopts, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "fiRr", longopts, NULL)) != -1) {
         switch (c) {
+        case 0:
+            return help(argv[0], "[OPTIONS] SOURCE... DESTINATION\n"
+                    "  -f, --force              force copy\n"
+                    "  -i, --interactive        prompt before overwrite\n"
+                    "  -R, -r, --recursive      recursively copy directories\n"
+                    "      --help               display this help\n"
+                    "      --version            display version info");
         case 1:
             return version(argv[0]);
         case 'f':
@@ -70,12 +77,7 @@ int main(int argc, char* argv[]) {
             recursive = true;
             break;
         case '?':
-            return help(argv[0], "[OPTIONS] SOURCE... DESTINATION\n"
-                    "  -f, --force              force copy\n"
-                    "  -i, --interactive        prompt before overwrite\n"
-                    "  -R, -r, --recursive      recursively copy directories\n"
-                    "  -?, --help               display this help\n"
-                    "      --version            display version info");
+            return 1;
         }
     }
 

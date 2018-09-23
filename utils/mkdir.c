@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -35,7 +35,7 @@ static void createDirectory(const char* path, bool parents);
 int main(int argc, char* argv[]) {
     struct option longopts[] = {
         { "parents", no_argument, 0, 'p' },
-        { "help", no_argument, 0, '?' },
+        { "help", no_argument, 0, 0 },
         { "version", no_argument, 0, 1 },
         { 0, 0, 0, 0 }
     };
@@ -43,18 +43,20 @@ int main(int argc, char* argv[]) {
     bool parents = false;
 
     int c;
-    while ((c = getopt_long(argc, argv, "p?", longopts, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "p", longopts, NULL)) != -1) {
         switch (c) {
+        case 0:
+            return help(argv[0], "[OPTIONS] DIR...\n"
+                    "  -p, --parents            create parent directories\n"
+                    "      --help               display this help\n"
+                    "      --version            display version info");
         case 1:
             return version(argv[0]);
         case 'p':
             parents = true;
             break;
         case '?':
-            return help(argv[0], "[OPTIONS] DIR...\n"
-                    "  -p, --parents            create parent directories\n"
-                    "  -?, --help               display this help\n"
-                    "      --version            display version info");
+            return 1;
         }
     }
 

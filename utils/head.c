@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
         { "quiet", no_argument, 0, 'q' },
         { "silent", no_argument, 0, 'q' },
         { "verbose", no_argument, 0, 'v' },
-        { "help", no_argument, 0, '?' },
+        { "help", no_argument, 0, 0 },
         { "version", no_argument, 0, 1 },
         { 0, 0, 0, 0 }
     };
@@ -57,8 +57,16 @@ int main(int argc, char* argv[]) {
     bool verbose = false;
 
     int c;
-    while ((c = getopt_long(argc, argv, "c:n:qv?", longopts, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "c:n:qv", longopts, NULL)) != -1) {
         switch (c) {
+        case 0:
+            return help(argv[0], "[OPTIONS] [FILE...]\n"
+                    "  -c, --bytes=NUMBER       count bytes\n"
+                    "  -n, --lines=NUMBER       count lines\n"
+                    "  -q, --quiet, --silent    never print file name\n"
+                    "  -v, --verbose            always print file name\n"
+                    "      --help               display this help\n"
+                    "      --version            display version info");
         case 1:
             return version(argv[0]);
         case 'c':
@@ -78,13 +86,7 @@ int main(int argc, char* argv[]) {
             quiet = false;
             break;
         case '?':
-            return help(argv[0], "[OPTIONS] [FILE...]\n"
-                    "  -c, --bytes=NUMBER       count bytes\n"
-                    "  -n, --lines=NUMBER       count lines\n"
-                    "  -q, --quiet, --silent    never print file name\n"
-                    "  -v, --verbose            always print file name\n"
-                    "  -?, --help               display this help\n"
-                    "      --version            display version info");
+            return 1;
         }
     }
 

@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
         { "rfc-email", no_argument, 0, 'R' },
         { "utc", no_argument, 0, 'u' },
         { "universal", no_argument, 0, 'u' },
-        { "help", no_argument, 0, '?' },
+        { "help", no_argument, 0, 0 },
         { "version", no_argument, 0, 1 },
         { 0, 0, 0, 0 }
     };
@@ -44,22 +44,24 @@ int main(int argc, char* argv[]) {
     bool utc = false;
 
     int c;
-    while ((c = getopt_long(argc, argv, "Ru?", longopts, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "Ru", longopts, NULL)) != -1) {
         switch (c) {
+        case 0:
+            return help(argv[0], "[OPTIONS] [+FORMAT]\n"
+                    "  -R, --rfc-email          RFC 5322 format\n"
+                    "  -u, --utc, --universal   print UTC\n"
+                    "      --help               display this help\n"
+                    "      --version            display version info");
+        case 1:
+            return version(argv[0]);
         case 'R':
             rfc5322 = true;
             break;
         case 'u':
             utc = true;
             break;
-        case 1:
-            return version(argv[0]);
         case '?':
-            return help(argv[0], "[OPTIONS] [+FORMAT]\n"
-                    "  -R, --rfc-email          RFC 5322 format\n"
-                    "  -u, --utc, --universal   print UTC\n"
-                    "  -?, --help               display this help\n"
-                    "      --version            display version info");
+            return 1;
         }
     }
 
