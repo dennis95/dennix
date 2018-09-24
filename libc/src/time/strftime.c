@@ -309,7 +309,7 @@ size_t strftime(char* restrict buffer, size_t size,
             goto putFormat;
         case 'y':
             minLength = 2;
-            number = time_abs(tm->tm_year % 100);
+            number = time_abs(((time_t) tm->tm_year + 1900) % 100);
             goto putNumber;
         case 'Y':
             if (!fieldLength) {
