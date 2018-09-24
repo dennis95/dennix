@@ -476,6 +476,7 @@ int Syscall::unlinkat(int fd, const char* path, int flags) {
     }
 
     if (unlikely(!*name && vnode == Process::current->rootFd->vnode)) {
+        free(pathCopy);
         errno = EBUSY;
         return -1;
     }
