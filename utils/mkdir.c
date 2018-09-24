@@ -80,7 +80,7 @@ static void createDirectory(const char* path, bool parents) {
             }
         } else if (parents && errno == ENOENT) {
             char* parentName = strdup(path);
-            if (!path) err(1, "strdup");
+            if (!parentName) err(1, "strdup");
             parentName = dirname(parentName);
             createDirectory(parentName, parents);
             free(parentName);
