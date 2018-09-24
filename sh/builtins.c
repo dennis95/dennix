@@ -37,38 +37,19 @@ struct builtin builtins[] = {
 };
 
 char* pwd;
-static size_t pwdSize;
 
-static void updateLogicalPwd(const char* path) {
-    if (pwd && !pwdSize) {
-        pwdSize = strlen(pwd);
-    }
-
-    if (!pwd) {
-        pwd = getcwd(NULL, 0);
-        pwdSize = pwd ? strlen(pwd) : 0;
-        return;
-    }
-
-    if (*path == '/') {
-        strcpy(pwd, "/");
+static char* getNewLogicalPwd(const char* oldPwd, const char* dir) {
+    if (*dir == '/') {
+        oldPwd = "/";
     }
 
     // The resulting string cannot be longer than this.
-    size_t newSize = strlen(pwd) + strlen(path) + 2;
-    if (newSize > pwdSize) {
-        char* newPwd = realloc(pwd, newSize);
-        if (!newPwd) {
-            free(pwd);
-            pwd = NULL;
-            return;
-        }
-        pwd = newPwd;
-        pwdSize = newSize;
-    }
+    size_t newSize = strlen(oldPwd) + strlen(dir) + 2;
+    char* newPwd = malloc(newSize);
+    if (!newPwd) return NULL;
 
-    char* pwdEnd = pwd + strlen(pwd);
-    const char* component = path;
+    char* pwdEnd = stpcpy(newPwd, oldPwd);
+    const char* component = dir;
     size_t componentLength = strcspn(component, "/");
 
     while (*component) {
@@ -76,14 +57,14 @@ static void updateLogicalPwd(const char* path) {
                 (componentLength == 1 && strncmp(component, ".", 1) == 0)) {
             // We can ignore this path component.
         } else if (componentLength == 2 && strncmp(component, "..", 2) == 0) {
-            char* lastSlash = strrchr(pwd, '/');
-            if (lastSlash == pwd) {
-                pwdEnd = pwd + 1;
+            char* lastSlash = strrchr(newPwd, '/');
+            if (lastSlash == newPwd) {
+                pwdEnd = newPwd + 1;
             } else if (lastSlash) {
                 pwdEnd = lastSlash;
             }
         } else {
-            if (pwdEnd != pwd + 1) {
+            if (pwdEnd != newPwd + 1) {
                 *pwdEnd++ = '/';
             }
             memcpy(pwdEnd, component, componentLength);
@@ -93,9 +74,10 @@ static void updateLogicalPwd(const char* path) {
         component += componentLength;
         if (*component) component++;
         componentLength = strcspn(component, "/");
+        *pwdEnd = '\0';
     }
 
-    *pwdEnd = '\0';
+    return newPwd;
 }
 
 static int cd(int argc, char* argv[]) {
@@ -110,12 +92,25 @@ static int cd(int argc, char* argv[]) {
         }
     }
 
-    if (chdir(newCwd) == -1) {
-        warn("cd: '%s'", newCwd);
-        return 1;
+    if (!pwd) {
+        if (chdir(newCwd) < 0) {
+            warn("cd: '%s'", newCwd);
+            return 1;
+        }
+
+        pwd = getcwd(NULL, 0);
+    } else {
+        char* newPwd = getNewLogicalPwd(pwd, newCwd);
+        if (!newPwd || chdir(newPwd) < 0) {
+            warn("cd: '%s'", newCwd);
+            free(newPwd);
+            return 1;
+        }
+
+        free(pwd);
+        pwd = newPwd;
     }
 
-    updateLogicalPwd(newCwd);
     if (!pwd || setenv("PWD", pwd, 1) < 0) {
         unsetenv("PWD");
     }
