@@ -74,11 +74,11 @@ static const void* syscallList[NUM_SYSCALLS] = {
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
     if (path[0] == '/') {
-        return Process::current->rootFd;
+        return Process::current()->rootFd;
     } else if (fd == AT_FDCWD) {
-        return Process::current->cwdFd;
+        return Process::current()->cwdFd;
     } else {
-        return Process::current->getFd(fd);
+        return Process::current()->getFd(fd);
     }
 }
 
@@ -100,7 +100,7 @@ extern "C" const void* getSyscallHandler(unsigned interruptNumber) {
 NORETURN void Syscall::abort() {
     siginfo_t siginfo = {};
     siginfo.si_signo = SIGABRT;
-    Process::current->terminateBySignal(siginfo);
+    Process::current()->terminateBySignal(siginfo);
 
     sched_yield();
     __builtin_unreachable();
@@ -128,18 +128,18 @@ int Syscall::clock_nanosleep(clockid_t clockid, int flags,
 }
 
 int Syscall::close(int fd) {
-    return Process::current->close(fd);
+    return Process::current()->close(fd);
 }
 
 int Syscall::dup3(int fd1, int fd2, int flags) {
-    return Process::current->dup3(fd1, fd2, flags);
+    return Process::current()->dup3(fd1, fd2, flags);
 }
 
 int Syscall::execve(const char* path, char* const argv[], char* const envp[]) {
     Reference<FileDescription> descr = getRootFd(AT_FDCWD, path);
     Reference<Vnode> vnode = resolvePath(descr->vnode, path);
 
-    if (!vnode || Process::current->execute(vnode, argv, envp) == -1) {
+    if (!vnode || Process::current()->execute(vnode, argv, envp) == -1) {
         return -1;
     }
 
@@ -148,7 +148,7 @@ int Syscall::execve(const char* path, char* const argv[], char* const envp[]) {
 }
 
 NORETURN void Syscall::exit(int status) {
-    Process::current->exit(status);
+    Process::current()->exit(status);
     sched_yield();
     __builtin_unreachable();
 }
@@ -163,7 +163,7 @@ int Syscall::fchdirat(int fd, const char* path) {
         return -1;
     }
 
-    Process::current->cwdFd = newCwd;
+    Process::current()->cwdFd = newCwd;
     return 0;
 }
 
@@ -184,11 +184,11 @@ int Syscall::fchmodat(int fd, const char* path, mode_t mode, int flags) {
 }
 
 int Syscall::fcntl(int fd, int cmd, int param) {
-    return Process::current->fcntl(fd, cmd, param);
+    return Process::current()->fcntl(fd, cmd, param);
 }
 
 int Syscall::fstat(int fd, struct stat* result) {
-    Reference<FileDescription> descr = Process::current->getFd(fd);
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
     return descr->vnode->stat(result);
 }
@@ -206,11 +206,11 @@ int Syscall::fstatat(int fd, const char* restrict path,
 }
 
 pid_t Syscall::getpid() {
-    return Process::current->pid;
+    return Process::current()->pid;
 }
 
 int Syscall::isatty(int fd) {
-    Reference<FileDescription> descr = Process::current->getFd(fd);
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
     return descr->vnode->isatty();
 }
@@ -244,7 +244,7 @@ int Syscall::linkat(int oldFd, const char* oldPath, int newFd,
 }
 
 off_t Syscall::lseek(int fd, off_t offset, int whence) {
-    Reference<FileDescription> descr = Process::current->getFd(fd);
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
     return descr->lseek(offset, whence);
 }
@@ -257,7 +257,7 @@ static void* mmapImplementation(void* /*addr*/, size_t size,
     }
 
     if (flags & MAP_ANONYMOUS) {
-        AddressSpace* addressSpace = Process::current->addressSpace;
+        AddressSpace* addressSpace = Process::current()->addressSpace;
         return (void*) addressSpace->mapMemory(size, protection);
     }
 
@@ -283,7 +283,7 @@ int Syscall::mkdirat(int fd, const char* path, mode_t mode) {
         return -1;
     }
 
-    int result = vnode->mkdir(name, mode & ~Process::current->umask);
+    int result = vnode->mkdir(name, mode & ~Process::current()->umask);
     free(pathCopy);
     return result;
 }
@@ -300,7 +300,7 @@ int Syscall::munmap(void* addr, size_t size) {
         return -1;
     }
 
-    AddressSpace* addressSpace = Process::current->addressSpace;
+    AddressSpace* addressSpace = Process::current()->addressSpace;
     //TODO: The userspace process could unmap kernel pages!
     addressSpace->unmapMemory((vaddr_t) addr, size);
     return 0;
@@ -311,13 +311,13 @@ int Syscall::openat(int fd, const char* path, int flags, mode_t mode) {
     if (!descr) return -1;
 
     Reference<FileDescription> result = descr->openat(path, flags,
-            mode & ~Process::current->umask);
+            mode & ~Process::current()->umask);
     if (!result) return -1;
 
     int fdFlags = 0;
     if (flags & O_CLOEXEC) fdFlags |= FD_CLOEXEC;
 
-    return Process::current->addFileDescriptor(result, fdFlags);
+    return Process::current()->addFileDescriptor(result, fdFlags);
 }
 
 int Syscall::pipe2(int fd[2], int flags) {
@@ -333,12 +333,12 @@ int Syscall::pipe2(int fd[2], int flags) {
     int fdFlags = 0;
     if (flags & O_CLOEXEC) fdFlags |= FD_CLOEXEC;
 
-    int fd0 = Process::current->addFileDescriptor(readDescr, fdFlags);
+    int fd0 = Process::current()->addFileDescriptor(readDescr, fdFlags);
     if (fd0 < 0) return -1;
-    int fd1 = Process::current->addFileDescriptor(writeDescr, fdFlags);
+    int fd1 = Process::current()->addFileDescriptor(writeDescr, fdFlags);
     if (fd1 < 0) {
         int oldErrno = errno;
-        Process::current->close(fd0);
+        Process::current()->close(fd0);
         errno = oldErrno;
         return -1;
     }
@@ -349,14 +349,14 @@ int Syscall::pipe2(int fd[2], int flags) {
 }
 
 ssize_t Syscall::read(int fd, void* buffer, size_t size) {
-    Reference<FileDescription> descr = Process::current->getFd(fd);
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
     return descr->read(buffer, size);
 }
 
 ssize_t Syscall::readdir(int fd, unsigned long offset, void* buffer,
         size_t size) {
-    Reference<FileDescription> descr = Process::current->getFd(fd);
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
     return descr->readdir(offset, buffer, size);
 }
@@ -367,7 +367,7 @@ pid_t Syscall::regfork(int flags, struct regfork* registers) {
         return -1;
     }
 
-    Process* newProcess = Process::current->regfork(flags, registers);
+    Process* newProcess = Process::current()->regfork(flags, registers);
 
     return newProcess->pid;
 }
@@ -439,20 +439,20 @@ int Syscall::symlinkat(const char* targetPath, int fd, const char* linkPath) {
 }
 
 int Syscall::tcgetattr(int fd, struct termios* result) {
-    Reference<FileDescription> descr = Process::current->getFd(fd);
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
     return descr->tcgetattr(result);
 }
 
 int Syscall::tcsetattr(int fd, int flags, const struct termios* termio) {
-    Reference<FileDescription> descr = Process::current->getFd(fd);
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
     return descr->tcsetattr(flags, termio);
 }
 
 mode_t Syscall::umask(mode_t newMask) {
-    mode_t oldMask = Process::current->umask;
-    Process::current->umask = newMask & 0777;
+    mode_t oldMask = Process::current()->umask;
+    Process::current()->umask = newMask & 0777;
     return oldMask;
 }
 
@@ -475,7 +475,7 @@ int Syscall::unlinkat(int fd, const char* path, int flags) {
         return -1;
     }
 
-    if (unlikely(!*name && vnode == Process::current->rootFd->vnode)) {
+    if (unlikely(!*name && vnode == Process::current()->rootFd->vnode)) {
         free(pathCopy);
         errno = EBUSY;
         return -1;
@@ -518,7 +518,7 @@ int Syscall::utimensat(int fd, const char* path, const struct timespec ts[2],
 }
 
 pid_t Syscall::waitpid(pid_t pid, int* status, int flags) {
-    Process* process = Process::current->waitpid(pid, flags);
+    Process* process = Process::current()->waitpid(pid, flags);
 
     if (!process) {
         return -1;
@@ -533,7 +533,7 @@ pid_t Syscall::waitpid(pid_t pid, int* status, int flags) {
 }
 
 ssize_t Syscall::write(int fd, const void* buffer, size_t size) {
-    Reference<FileDescription> descr = Process::current->getFd(fd);
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
     return descr->write(buffer, size);
 }
@@ -542,5 +542,5 @@ void Syscall::badSyscall() {
     siginfo_t siginfo = {};
     siginfo.si_signo = SIGSYS;
     siginfo.si_code = SI_KERNEL;
-    Process::current->raiseSignal(siginfo);
+    Thread::current()->raiseSignal(siginfo);
 }

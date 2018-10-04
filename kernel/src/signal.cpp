@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -53,10 +53,10 @@ static inline bool isMoreImportantSignalThan(int signal1, int signal2) {
 }
 
 extern "C" InterruptContext* handleSignal(InterruptContext* context) {
-    return Process::current->handleSignal(context);
+    return Thread::current()->handleSignal(context);
 }
 
-InterruptContext* Process::handleSignal(InterruptContext* context) {
+InterruptContext* Thread::handleSignal(InterruptContext* context) {
     kthread_mutex_lock(&signalMutex);
     assert(pendingSignals);
     assert(signalPending);
@@ -85,12 +85,12 @@ InterruptContext* Process::handleSignal(InterruptContext* context) {
     updatePendingSignals();
     kthread_mutex_unlock(&signalMutex);
 
-    struct sigaction action = sigactions[siginfo.si_signo];
+    struct sigaction action = process->sigactions[siginfo.si_signo];
     assert(!(action.sa_handler == SIG_IGN || (action.sa_handler == SIG_DFL &&
             sigismember(&defaultIgnoredSignals, siginfo.si_signo))));
 
     if (action.sa_handler == SIG_DFL) {
-        terminateBySignal(siginfo);
+        process->terminateBySignal(siginfo);
         sched_yield();
         __builtin_unreachable();
     }
@@ -123,7 +123,7 @@ InterruptContext* Process::handleSignal(InterruptContext* context) {
     frame->ucontext = ucontext;
 
     uintptr_t* sigreturnPointer = (uintptr_t*) frameAddress - 1;
-    *sigreturnPointer = sigreturn;
+    *sigreturnPointer = process->sigreturn;
 
     context->eip = (uintptr_t) action.sa_sigaction;
     context->esp = (uintptr_t) sigreturnPointer;
@@ -138,9 +138,13 @@ InterruptContext* Process::handleSignal(InterruptContext* context) {
 }
 
 void Process::raiseSignal(siginfo_t siginfo) {
+    mainThread.raiseSignal(siginfo);
+}
+
+void Thread::raiseSignal(siginfo_t siginfo) {
     AutoLock lock(&signalMutex);
 
-    struct sigaction action = sigactions[siginfo.si_signo];
+    struct sigaction action = process->sigactions[siginfo.si_signo];
 
     if (action.sa_handler == SIG_IGN || (action.sa_handler == SIG_DFL &&
             sigismember(&defaultIgnoredSignals, siginfo.si_signo))) {
@@ -182,7 +186,7 @@ void Process::raiseSignal(siginfo_t siginfo) {
     updatePendingSignals();
 }
 
-void Process::updatePendingSignals() {
+void Thread::updatePendingSignals() {
     PendingSignal* pending = pendingSignals;
     while (pending) {
         if (!sigismember(&signalMask, pending->siginfo.si_signo)) {
@@ -215,7 +219,7 @@ InterruptContext* Signal::sigreturn(InterruptContext* context) {
 #  error "Signal::sigreturn is unimplemented for this architecture."
 #endif
 
-    Process::current->signalMask = frame->ucontext.uc_sigmask;
+    Thread::current()->signalMask = frame->ucontext.uc_sigmask;
 
     return context;
 }
@@ -227,8 +231,8 @@ int Syscall::kill(pid_t pid, int signal) {
     }
 
     Process* process;
-    if (pid == Process::current->pid) {
-        process = Process::current;
+    if (pid == Process::current()->pid) {
+        process = Process::current();
     } else {
         // TODO: Allow sending signals to other processes.
         errno = EPERM;
@@ -240,7 +244,7 @@ int Syscall::kill(pid_t pid, int signal) {
     siginfo_t siginfo = {};
     siginfo.si_signo = signal;
     siginfo.si_code = SI_USER;
-    siginfo.si_pid = Process::current->pid;
+    siginfo.si_pid = Process::current()->pid;
     process->raiseSignal(siginfo);
 
     return 0;
@@ -260,11 +264,11 @@ int Syscall::sigaction(int signal, const struct sigaction* restrict action,
     }
 
     if (old) {
-        *old = Process::current->sigactions[signal];
+        *old = Process::current()->sigactions[signal];
     }
 
     if (action) {
-        Process::current->sigactions[signal] = *action;
+        Process::current()->sigactions[signal] = *action;
     }
 
     return 0;

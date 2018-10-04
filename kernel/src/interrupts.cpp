@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,8 +22,8 @@
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/portio.h>
-#include <dennix/kernel/process.h>
 #include <dennix/kernel/signal.h>
+#include <dennix/kernel/thread.h>
 
 #define PIC1_COMMAND 0x20
 #define PIC1_DATA 0x21
@@ -119,7 +119,7 @@ static bool handleUserspaceException(const InterruptContext* context) {
         return false;
     }
 
-    Process::current->raiseSignal(siginfo);
+    Thread::current()->raiseSignal(siginfo);
     return true;
 }
 
@@ -148,7 +148,7 @@ handleKernelException:
     } else if (context->interrupt <= 47) { // IRQ
         int irq = context->interrupt - 32;
         if (irq == 0) {
-            newContext = Process::schedule(context);
+            newContext = Thread::schedule(context);
         }
 
         if (Interrupts::irqHandlers[irq]) {
@@ -161,7 +161,7 @@ handleKernelException:
         }
         outb(PIC1_COMMAND, PIC_EOI);
     } else if (context->interrupt == 0x31) {
-        newContext = Process::schedule(context);
+        newContext = Thread::schedule(context);
     } else if (context->interrupt == 0x32) {
         newContext = Signal::sigreturn(context);
     } else {

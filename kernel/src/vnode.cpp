@@ -96,7 +96,7 @@ static Reference<Vnode> resolvePathExceptLastComponent(
     Reference<Vnode> currentVnode = vnode;
 
     if (*path == '/') {
-        currentVnode = Process::current->rootFd->vnode;
+        currentVnode = Process::current()->rootFd->vnode;
     }
 
     lastComponent = path;

@@ -65,7 +65,8 @@ Clock* Clock::get(clockid_t clockid) {
     switch (clockid) {
     case CLOCK_MONOTONIC: return &monotonicClock;
     case CLOCK_REALTIME: return &realtimeClock;
-    case CLOCK_PROCESS_CPUTIME_ID: return &Process::current->cpuClock;
+    case CLOCK_PROCESS_CPUTIME_ID: return &Process::current()->cpuClock;
+    case CLOCK_THREAD_CPUTIME_ID: return &Thread::current()->cpuClock;
     default:
         errno = EINVAL;
         return nullptr;
@@ -120,5 +121,6 @@ void Clock::tick(unsigned long nanoseconds) {
 void Clock::onTick(unsigned long nanoseconds) {
     monotonicClock.tick(nanoseconds);
     realtimeClock.tick(nanoseconds);
-    Process::current->cpuClock.tick(nanoseconds);
+    Process::current()->cpuClock.tick(nanoseconds);
+    Thread::current()->cpuClock.tick(nanoseconds);
 }

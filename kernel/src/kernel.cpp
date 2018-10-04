@@ -30,6 +30,7 @@
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/ps2.h>
 #include <dennix/kernel/rtc.h>
+#include <dennix/kernel/terminal.h>
 
 #ifndef DENNIX_VERSION
 #  define DENNIX_VERSION ""
@@ -56,7 +57,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     Log::printf("Initializing PS/2 Controller...\n");
     PS2::initialize();
 
-    Process::initializeIdleProcess();
+    Thread::initializeIdleThread();
     Interrupts::initPic();
     Log::printf("Initializing RTC and PIT...\n");
     Rtc::initialize();
@@ -69,19 +70,28 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     Log::printf("Loading Initrd...\n");
     Reference<DirectoryVnode> rootDir = loadInitrd(&multiboot);
     Reference<FileDescription> rootFd = new FileDescription(rootDir, O_SEARCH);
-    Process::current->rootFd = rootFd;
+    Process::current()->rootFd = rootFd;
 
+    Log::printf("Starting init process...\n");
     Reference<Vnode> program = resolvePath(rootDir, "/sbin/init");
-    if (program) {
-        Log::printf("Starting init process...\n");
-        Process* newProcess = new Process();
-        const char* argv[] = { "init", nullptr };
-        const char* envp[] = { nullptr };
-        newProcess->execute(program, (char**) argv, (char**) envp);
-        Process::addProcess(newProcess);
-        assert(newProcess->pid == 1);
-        Process::initProcess = newProcess;
-    }
+    assert(program);
+    Process* initProcess = new Process();
+    const char* argv[] = { "init", nullptr };
+    const char* envp[] = { nullptr };
+    initProcess->execute(program, (char**) argv, (char**) envp);
+    program = nullptr;
+    Process::addProcess(initProcess);
+    assert(initProcess->pid == 1);
+    Process::initProcess = initProcess;
+
+    Reference<FileDescription> descr = new FileDescription(terminal, O_RDWR);
+    initProcess->addFileDescriptor(descr, 0); // stdin
+    initProcess->addFileDescriptor(descr, 0); // stdout
+    initProcess->addFileDescriptor(descr, 0); // stderr
+
+    initProcess->rootFd = rootFd;
+    initProcess->cwdFd = rootFd;
+    Thread::addThread(&initProcess->mainThread);
 
     while (true) {
         asm volatile ("hlt");

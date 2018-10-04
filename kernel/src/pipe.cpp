@@ -22,8 +22,8 @@
 #include <sched.h>
 #include <sys/stat.h>
 #include <dennix/kernel/pipe.h>
-#include <dennix/kernel/process.h>
 #include <dennix/kernel/signal.h>
+#include <dennix/kernel/thread.h>
 
 class PipeVnode::Endpoint : public Vnode {
 public:
@@ -157,7 +157,7 @@ ssize_t PipeVnode::write(const void* buffer, size_t size) {
             siginfo_t siginfo = {};
             siginfo.si_signo = SIGPIPE;
             siginfo.si_code = SI_KERNEL;
-            Process::current->raiseSignal(siginfo);
+            Thread::current()->raiseSignal(siginfo);
             errno = EPIPE;
             return -1;
         }

@@ -20,26 +20,18 @@
 #ifndef KERNEL_PROCESS_H
 #define KERNEL_PROCESS_H
 
-#include <signal.h>
 #include <sys/types.h>
 #include <dennix/fork.h>
 #include <dennix/kernel/addressspace.h>
-#include <dennix/kernel/clock.h>
 #include <dennix/kernel/dynarray.h>
 #include <dennix/kernel/filedescription.h>
-#include <dennix/kernel/interrupts.h>
-#include <dennix/kernel/kthread.h>
+#include <dennix/kernel/thread.h>
 
 struct FdTableEntry {
     Reference<FileDescription> descr;
     int flags;
 
     operator bool() { return descr; }
-};
-
-struct PendingSignal {
-    siginfo_t siginfo;
-    PendingSignal* next;
 };
 
 class Process {
@@ -54,52 +46,39 @@ public:
             char* const envp[]);
     int fcntl(int fd, int cmd, int param);
     Reference<FileDescription> getFd(int fd);
-    Process* regfork(int flags, struct regfork* registers);
-    Process* waitpid(pid_t pid, int flags);
-
-    InterruptContext* handleSignal(InterruptContext* context);
     void raiseSignal(siginfo_t siginfo);
+    Process* regfork(int flags, struct regfork* registers);
     void terminateBySignal(siginfo_t siginfo);
-    void updatePendingSignals();
+    Process* waitpid(pid_t pid, int flags);
 private:
     void terminate();
-private:
-    InterruptContext* interruptContext;
-    void* kernelStack;
-    bool contextChanged;
-    bool fdInitialized;
-    bool terminated;
-    Process* parent;
-    Process* firstChild;
-    Process* prevChild;
-    Process* nextChild;
-    kthread_mutex_t childrenMutex;
-    PendingSignal* pendingSignals;
-    kthread_mutex_t signalMutex;
-    vaddr_t sigreturn;
-    DynamicArray<FdTableEntry, int> fdTable;
 public:
     AddressSpace* addressSpace;
-    Reference<FileDescription> rootFd;
-    Reference<FileDescription> cwdFd;
-    pid_t pid;
-    mode_t umask;
-    siginfo_t terminationStatus;
-    struct sigaction sigactions[NSIG];
-    sigset_t signalMask;
     Clock cpuClock;
+    Reference<FileDescription> cwdFd;
+    Thread mainThread;
+    pid_t pid;
+    Reference<FileDescription> rootFd;
+    struct sigaction sigactions[NSIG];
+    vaddr_t sigreturn;
+    siginfo_t terminationStatus;
+    mode_t umask;
+private:
+    kthread_mutex_t childrenMutex;
+    DynamicArray<FdTableEntry, int> fdTable;
+    Process* firstChild;
+    Process* nextChild;
+    Process* parent;
+    Process* prevChild;
+    bool terminated;
 public:
     static bool addProcess(Process* process);
-    static void initializeIdleProcess();
-    static InterruptContext* schedule(InterruptContext* context);
-    static Process* current;
+    static Process* current() { return Thread::current()->process; }
     static Process* initProcess;
 private:
     static int copyArguments(char* const argv[], char* const envp[],
             char**& newArgv, char**& newEnvp, AddressSpace* newAddressSpace);
     static uintptr_t loadELF(uintptr_t elf, AddressSpace* newAddressSpace);
 };
-
-void setKernelStack(uintptr_t stack);
 
 #endif

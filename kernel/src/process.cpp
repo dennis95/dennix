@@ -20,69 +20,49 @@
 #include <assert.h>
 #include <errno.h>
 #include <sched.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <dennix/fcntl.h>
 #include <dennix/kernel/elf.h>
 #include <dennix/kernel/file.h>
-#include <dennix/kernel/physicalmemory.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/signal.h>
-#include <dennix/kernel/terminal.h>
 
 #define USER_STACK_SIZE (32 * 1024) // 32 KiB
 
-Process* Process::current;
 Process* Process::initProcess;
 
+kthread_mutex_t processesMutex = KTHREAD_MUTEX_INITIALIZER;
 static DynamicArray<Process*, pid_t> processes;
 
 extern "C" {
-extern symbol_t sigreturnPhysical;
 extern symbol_t beginSigreturn;
 extern symbol_t endSigreturn;
 }
 
-Process::Process() {
+Process::Process() : mainThread(this) {
     addressSpace = nullptr;
-    interruptContext = nullptr;
-    kernelStack = nullptr;
-    rootFd = nullptr;
-    cwdFd = nullptr;
-    pid = -1;
-    contextChanged = false;
-    fdInitialized = false;
-    terminated = false;
-    parent = nullptr;
-    firstChild = nullptr;
-    prevChild = nullptr;
-    nextChild = nullptr;
     childrenMutex = KTHREAD_MUTEX_INITIALIZER;
-    umask = S_IWGRP | S_IWOTH;
-    pendingSignals = nullptr;
-    signalMutex = KTHREAD_MUTEX_INITIALIZER;
-    terminationStatus = {};
+    cwdFd = nullptr;
+    firstChild = nullptr;
+    nextChild = nullptr;
+    parent = nullptr;
+    prevChild = nullptr;
+    pid = -1;
+    rootFd = nullptr;
     memset(sigactions, '\0', sizeof(sigactions));
-    signalMask = 0;
     sigreturn = 0;
+    terminated = false;
+    terminationStatus = {};
+    umask = S_IWGRP | S_IWOTH;
 }
 
 Process::~Process() {
     assert(terminated);
-    kernelSpace->unmapMemory((vaddr_t) kernelStack, 0x1000);
-}
-
-void Process::initializeIdleProcess() {
-    Process* idleProcess = new Process();
-    idleProcess->addressSpace = kernelSpace;
-    idleProcess->interruptContext = new InterruptContext();
-    idleProcess->pid = processes.add(idleProcess);
-    assert(idleProcess->pid == 0);
-    current = idleProcess;
 }
 
 bool Process::addProcess(Process* process) {
+    AutoLock lock(&processesMutex);
     process->pid = processes.add(process);
     return process->pid != -1;
 }
@@ -162,43 +142,6 @@ uintptr_t Process::loadELF(uintptr_t elf, AddressSpace* newAddressSpace) {
     return (uintptr_t) header->e_entry;
 }
 
-InterruptContext* Process::schedule(InterruptContext* context) {
-    if (likely(!current->contextChanged)) {
-        current->interruptContext = context;
-    } else {
-        current->contextChanged = false;
-    }
-
-    pid_t currentPid = current->pid;
-    pid_t pid = processes.next(currentPid);
-
-    while (true) {
-        if (pid == -1) {
-            if (currentPid == 0) {
-                pid = 0;
-                break;
-            }
-            pid = 1;
-        }
-
-        if (!processes[pid]->terminated) break;
-        if (pid == currentPid) {
-            pid = 0;
-            break;
-        }
-
-        pid = processes.next(pid);
-    }
-
-    current = processes[pid];
-
-    setKernelStack((uintptr_t) current->kernelStack + 0x1000);
-
-    current->addressSpace->activate();
-    current->updatePendingSignals();
-    return current->interruptContext;
-}
-
 int Process::addFileDescriptor(const Reference<FileDescription>& descr,
         int flags) {
     int fd = fdTable.add({ descr, flags });
@@ -263,11 +206,11 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
 
     vaddr_t userStack = newAddressSpace->mapMemory(USER_STACK_SIZE,
             PROT_READ | PROT_WRITE);
-    void* newKernelStack = (void*) kernelSpace->mapMemory(0x1000,
+    vaddr_t newKernelStack = kernelSpace->mapMemory(0x1000,
             PROT_READ | PROT_WRITE);
 
     InterruptContext* newInterruptContext = (InterruptContext*)
-            ((uintptr_t) newKernelStack + 0x1000 - sizeof(InterruptContext));
+            (newKernelStack + 0x1000 - sizeof(InterruptContext));
 
     memset(newInterruptContext, 0, sizeof(InterruptContext));
 
@@ -285,20 +228,6 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
     newInterruptContext->esp = (uint32_t) userStack + USER_STACK_SIZE;
     newInterruptContext->ss = 0x23;
 
-    if (!fdInitialized) {
-        // Initialize file descriptors
-        Reference<FileDescription> descr = new FileDescription(terminal,
-                O_RDWR);
-
-        fdTable.insert(0, { descr, 0 }); // stdin
-        fdTable.insert(1, { descr, 0 }); // stdout
-        fdTable.insert(2, { descr, 0 }); // stderr
-
-        rootFd = processes[0]->rootFd;
-        cwdFd = rootFd;
-        fdInitialized = true;
-    }
-
     // Close all file descriptors marked with FD_CLOEXEC.
     for (int i = fdTable.next(-1); i >= 0; i = fdTable.next(i)) {
         if (fdTable[i].flags & FD_CLOEXEC) {
@@ -308,22 +237,15 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
 
     AddressSpace* oldAddressSpace = addressSpace;
     addressSpace = newAddressSpace;
-    if (this == current) {
+    if (this == current()) {
         addressSpace->activate();
     }
     delete oldAddressSpace;
 
     memset(sigactions, '\0', sizeof(sigactions));
-    signalMask = 0;
 
-    Interrupts::disable();
-    if (this == current) {
-        contextChanged = true;
-    }
+    mainThread.switchStack(newKernelStack, newInterruptContext);
 
-    kernelStack = newKernelStack;
-    interruptContext = newInterruptContext;
-    Interrupts::enable();
     return 0;
 }
 
@@ -372,25 +294,27 @@ Process* Process::regfork(int /*flags*/, struct regfork* registers) {
     Process* process = new Process();
     process->parent = this;
 
-    process->kernelStack = (void*) kernelSpace->mapMemory(0x1000,
+    vaddr_t newKernelStack = kernelSpace->mapMemory(0x1000,
             PROT_READ | PROT_WRITE);
-    process->interruptContext = (InterruptContext*) ((uintptr_t)
-            process->kernelStack + 0x1000 - sizeof(InterruptContext));
-    process->interruptContext->eax = registers->rf_eax;
-    process->interruptContext->ebx = registers->rf_ebx;
-    process->interruptContext->ecx = registers->rf_ecx;
-    process->interruptContext->edx = registers->rf_edx;
-    process->interruptContext->esi = registers->rf_esi;
-    process->interruptContext->edi = registers->rf_edi;
-    process->interruptContext->ebp = registers->rf_ebp;
-    process->interruptContext->eip = registers->rf_eip;
-    process->interruptContext->esp = registers->rf_esp;
+    InterruptContext* newInterruptContext = (InterruptContext*)
+            (newKernelStack + 0x1000 - sizeof(InterruptContext));
+    newInterruptContext->eax = registers->rf_eax;
+    newInterruptContext->ebx = registers->rf_ebx;
+    newInterruptContext->ecx = registers->rf_ecx;
+    newInterruptContext->edx = registers->rf_edx;
+    newInterruptContext->esi = registers->rf_esi;
+    newInterruptContext->edi = registers->rf_edi;
+    newInterruptContext->ebp = registers->rf_ebp;
+    newInterruptContext->eip = registers->rf_eip;
+    newInterruptContext->esp = registers->rf_esp;
     // Register that are not controlled by the user
-    process->interruptContext->interrupt = 0;
-    process->interruptContext->error = 0;
-    process->interruptContext->cs = 0x1B;
-    process->interruptContext->eflags = 0x200; // Interrupt enable
-    process->interruptContext->ss = 0x23;
+    newInterruptContext->interrupt = 0;
+    newInterruptContext->error = 0;
+    newInterruptContext->cs = 0x1B;
+    newInterruptContext->eflags = 0x200; // Interrupt enable
+    newInterruptContext->ss = 0x23;
+
+    process->mainThread.switchStack(newKernelStack, newInterruptContext);
 
     // Fork the address space
     process->addressSpace = addressSpace->fork();
@@ -406,7 +330,6 @@ Process* Process::regfork(int /*flags*/, struct regfork* registers) {
 
     process->rootFd = rootFd;
     process->cwdFd = cwdFd;
-    process->fdInitialized = true;
     process->umask = umask;
 
     kthread_mutex_lock(&childrenMutex);
@@ -417,7 +340,6 @@ Process* Process::regfork(int /*flags*/, struct regfork* registers) {
     }
     firstChild = process;
 
-    Interrupts::disable();
     if (!addProcess(process)) {
         process->terminate();
         if (process->nextChild) {
@@ -427,8 +349,8 @@ Process* Process::regfork(int /*flags*/, struct regfork* registers) {
         delete process;
         return nullptr;
     }
-    Interrupts::enable();
     kthread_mutex_unlock(&childrenMutex);
+    Thread::addThread(&process->mainThread);
     return process;
 }
 
@@ -465,13 +387,13 @@ void Process::terminate() {
 
     Interrupts::disable();
 
-    if (this == Process::current) {
+    if (this == current()) {
         kernelSpace->activate();
     }
 
     // Clean up
+    Thread::removeThread(&mainThread);
     delete addressSpace;
-
     terminated = true;
     Interrupts::enable();
 }
@@ -550,9 +472,8 @@ Process* Process::waitpid(pid_t pid, int flags) {
     }
     kthread_mutex_unlock(&childrenMutex);
 
-    Interrupts::disable();
+    AutoLock lock(&processesMutex);
     processes.remove(process->pid);
-    Interrupts::enable();
 
     return process;
 }
