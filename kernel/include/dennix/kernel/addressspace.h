@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,6 +42,7 @@ public:
     void unmapMemory(vaddr_t virtualAddress, size_t size);
     void unmapPhysical(vaddr_t firstVirtualAddress, size_t size);
 private:
+    bool isActive();
     vaddr_t mapAt(size_t pdIndex, size_t ptIndex, paddr_t physicalAddress,
             int protection);
     vaddr_t mapAtWithFlags(size_t pdIndex, size_t ptIndex,
@@ -50,10 +51,10 @@ public:
     MemorySegment* firstSegment;
 private:
     paddr_t pageDir;
-    vaddr_t pageDirMapped;
     AddressSpace* prev;
     AddressSpace* next;
     kthread_mutex_t mutex;
+    vaddr_t mappingArea;
 public:
     static void initialize();
 private:

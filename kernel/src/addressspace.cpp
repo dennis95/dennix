@@ -18,15 +18,12 @@
  */
 
 #include <assert.h>
-#include <errno.h>
 #include <string.h>
 #include <dennix/kernel/addressspace.h>
-#include <dennix/kernel/log.h>
 #include <dennix/kernel/physicalmemory.h>
-#include <dennix/kernel/process.h>
-#include <dennix/kernel/syscall.h>
 
 #define RECURSIVE_MAPPING 0xFFC00000
+#define CURRENT_PAGE_DIR_MAPPING (RECURSIVE_MAPPING + 0x3FF000)
 
 #define PAGE_PRESENT (1 << 0)
 #define PAGE_WRITABLE (1 << 1)
@@ -43,7 +40,7 @@ extern symbol_t kernelVirtualEnd;
 
 AddressSpace AddressSpace::_kernelSpace;
 AddressSpace* kernelSpace;
-static AddressSpace* firstAddressSpace = nullptr;
+static AddressSpace* activeAddressSpace;
 static kthread_mutex_t listMutex = KTHREAD_MUTEX_INITIALIZER;
 
 static inline vaddr_t indexToAddress(size_t pdIndex, size_t ptIndex) {
@@ -65,38 +62,39 @@ static inline int protectionToFlags(int protection) {
     return flags;
 }
 
-static vaddr_t mapTemporarily(paddr_t physicalAddress, int protection) {
-    return kernelSpace->mapAt(0xFF7FF000, physicalAddress, protection);
-}
-
 AddressSpace::AddressSpace() {
     if (this == &_kernelSpace) {
         pageDir = 0;
-        pageDirMapped = RECURSIVE_MAPPING + 0x3FF000;
+        mappingArea = 0;
         firstSegment = nullptr;
         prev = nullptr;
         next = nullptr;
     } else {
         pageDir = PhysicalMemory::popPageFrame();
 
-        // Copy the page directory to the new address space
-        vaddr_t kernelPageDir = kernelSpace->pageDirMapped;
-        pageDirMapped = kernelSpace->mapPhysical(pageDir, 0x1000,
-                PROT_READ | PROT_WRITE);
-
         firstSegment = new MemorySegment(0, 0x1000, PROT_NONE | SEG_NOUNMAP,
                 nullptr, nullptr);
         MemorySegment::addSegment(firstSegment, 0xC0000000, -0xC0000000,
                 PROT_NONE | SEG_NOUNMAP);
+        mappingArea = MemorySegment::findAndAddNewSegment(
+                kernelSpace->firstSegment, 0x1000, PROT_NONE);
 
-        prev = nullptr;
         AutoLock lock(&listMutex);
-        memcpy((void*) pageDirMapped, (const void*) kernelPageDir, 0x1000);
-        next = firstAddressSpace;
+        next = kernelSpace->next;
         if (next) {
             next->prev = this;
         }
-        firstAddressSpace = this;
+        prev = kernelSpace;
+        kernelSpace->next = this;
+
+        // Copy the kernel page directory into the new address space.
+        kernelSpace->mapAt(kernelSpace->mappingArea, pageDir, PROT_WRITE);
+        memset((void*) kernelSpace->mappingArea, 0, 0xC00);
+        memcpy((void*) (kernelSpace->mappingArea + 0xC00),
+                (const void*) (CURRENT_PAGE_DIR_MAPPING + 0xC00), 0x3FC);
+        *((paddr_t*) (kernelSpace->mappingArea + 0xFFC)) = pageDir |
+                PAGE_PRESENT | PAGE_WRITABLE;
+        kernelSpace->unmap(kernelSpace->mappingArea);
     }
 
     mutex = KTHREAD_MUTEX_INITIALIZER;
@@ -104,16 +102,14 @@ AddressSpace::AddressSpace() {
 
 AddressSpace::~AddressSpace() {
     kthread_mutex_lock(&listMutex);
-    if (prev) {
-        prev->next = next;
-    }
+    prev->next = next;
     if (next) {
         next->prev = prev;
     }
-    if (this == firstAddressSpace) {
-        firstAddressSpace = next;
-    }
     kthread_mutex_unlock(&listMutex);
+
+    MemorySegment::removeSegment(kernelSpace->firstSegment, mappingArea,
+            0x1000);
 
     MemorySegment* currentSegment = firstSegment;
 
@@ -140,10 +136,8 @@ static MemorySegment readOnlySegment((vaddr_t) &kernelVirtualBegin,
 static MemorySegment writableSegment((vaddr_t) &kernelReadOnlyEnd,
         (vaddr_t) &kernelVirtualEnd - (vaddr_t) &kernelReadOnlyEnd,
         PROT_READ | PROT_WRITE, &readOnlySegment, nullptr);
-static MemorySegment temporarySegment(0xFF7FF000, 0x1000,
-        PROT_NONE, &writableSegment, nullptr);
 static MemorySegment physicalMemorySegment(RECURSIVE_MAPPING - 0x400000,
-        0x400000, PROT_READ | PROT_WRITE, &temporarySegment, nullptr);
+        0x400000, PROT_READ | PROT_WRITE, &writableSegment, nullptr);
 static MemorySegment recursiveMappingSegment(RECURSIVE_MAPPING,
         -RECURSIVE_MAPPING, PROT_READ | PROT_WRITE, &physicalMemorySegment,
         nullptr);
@@ -169,13 +163,20 @@ void AddressSpace::initialize() {
     userSegment.next = &videoSegment;
     videoSegment.next = &readOnlySegment;
     readOnlySegment.next = &writableSegment;
-    writableSegment.next = &temporarySegment;
-    temporarySegment.next = &physicalMemorySegment;
+    writableSegment.next = &physicalMemorySegment;
     physicalMemorySegment.next = &recursiveMappingSegment;
+
+    kernelSpace->mappingArea = MemorySegment::findAndAddNewSegment(
+            kernelSpace->firstSegment, 0x1000, PROT_NONE);
 }
 
 void AddressSpace::activate() {
+    activeAddressSpace = this;
     asm volatile ("mov %0, %%cr3" :: "r"(pageDir));
+}
+
+bool AddressSpace::isActive() {
+    return this == kernelSpace || this == activeAddressSpace;
 }
 
 static kthread_mutex_t forkMutex = KTHREAD_MUTEX_INITIALIZER;
@@ -205,33 +206,31 @@ AddressSpace* AddressSpace::fork() {
 }
 
 paddr_t AddressSpace::getPhysicalAddress(vaddr_t virtualAddress) {
+    if (this == kernelSpace && virtualAddress < 0xC0000000) return 0;
+
     size_t pdIndex;
     size_t ptIndex;
     addressToIndex(virtualAddress, pdIndex, ptIndex);
 
-    uintptr_t* pageDirectory = (uintptr_t*) pageDirMapped;
-
-    if (!pageDirectory[pdIndex]) {
-        return 0;
-    }
-
-    uintptr_t* pageTable;
-    if (this == kernelSpace) {
-        pageTable = (uintptr_t*) (RECURSIVE_MAPPING + 0x1000 * pdIndex);
+    if (isActive()) {
+        uintptr_t* pageDirectory = (uintptr_t*) CURRENT_PAGE_DIR_MAPPING;
+        if (!pageDirectory[pdIndex]) return 0;
+        uintptr_t* pageTable =
+                (uintptr_t*) (RECURSIVE_MAPPING + 0x1000 * pdIndex);
+        return pageTable[ptIndex] & ~0xFFF;
     } else {
-        kthread_mutex_lock(&kernelSpace->mutex);
-        pageTable = (uintptr_t*)
-                mapTemporarily(pageDirectory[pdIndex] & ~0xFFF, PROT_READ);
+        uintptr_t* pageDirectory = (uintptr_t*) kernelSpace->mapAt(mappingArea,
+                pageDir, PROT_READ);
+        uintptr_t pdEntry = pageDirectory[pdIndex];
+        kernelSpace->unmap(mappingArea);
+        if (!pdEntry) return 0;
+
+        uintptr_t* pageTable = (uintptr_t*) kernelSpace->mapAt(mappingArea,
+                pdEntry & ~0xFFF, PROT_READ);
+        paddr_t result = pageTable[ptIndex] & ~0xFFF;
+        kernelSpace->unmap(mappingArea);
+        return result;
     }
-
-    paddr_t result = pageTable[ptIndex] & ~0xFFF;
-
-    if (this != kernelSpace) {
-        kernelSpace->unmap((vaddr_t) pageTable);
-        kthread_mutex_unlock(&kernelSpace->mutex);
-    }
-
-    return result;
 }
 
 vaddr_t AddressSpace::mapAt(
@@ -262,11 +261,15 @@ vaddr_t AddressSpace::mapAtWithFlags(size_t pdIndex, size_t ptIndex,
     assert(!(flags & ~0xFFF));
     assert(!(physicalAddress & 0xFFF));
 
-    uintptr_t* pageDirectory = (uintptr_t*) pageDirMapped;
+    uintptr_t* pageDirectory;
     uintptr_t* pageTable = nullptr;
 
-    if (this == kernelSpace) {
+    if (isActive()) {
+        pageDirectory = (uintptr_t*) CURRENT_PAGE_DIR_MAPPING;
         pageTable = (uintptr_t*) (RECURSIVE_MAPPING + 0x1000 * pdIndex);
+    } else {
+        pageDirectory = (uintptr_t*) kernelSpace->mapAt(mappingArea, pageDir,
+                PROT_READ | PROT_WRITE);
     }
 
     if (!pageDirectory[pdIndex]) {
@@ -275,39 +278,42 @@ vaddr_t AddressSpace::mapAtWithFlags(size_t pdIndex, size_t ptIndex,
         int pdFlags = PAGE_PRESENT | PAGE_WRITABLE;
         if (this != kernelSpace) pdFlags |= PAGE_USER;
 
-        pageDirectory[pdIndex] = pageTablePhys | pdFlags;
-
-        if (this != kernelSpace) {
-            kthread_mutex_lock(&kernelSpace->mutex);
-            pageTable = (uintptr_t*)
-                    mapTemporarily(pageTablePhys, PROT_READ | PROT_WRITE);
-        }
-
-        memset(pageTable, 0, 0x1000);
-
         if (this == kernelSpace) {
             // We need to map that page table in all address spaces
             AutoLock lock(&listMutex);
 
-            AddressSpace* addressSpace = firstAddressSpace;
+            AddressSpace* addressSpace = kernelSpace;
             while (addressSpace) {
-                uintptr_t* pd = (uintptr_t*) addressSpace->pageDirMapped;
-                pd[pdIndex] = pageTablePhys | PAGE_PRESENT | PAGE_WRITABLE;
+                uintptr_t* pd = (uintptr_t*)
+                        kernelSpace->mapAt(kernelSpace->mappingArea,
+                        addressSpace->pageDir, PROT_WRITE);
+                pd[pdIndex] = pageTablePhys | pdFlags;
+                kernelSpace->unmap(kernelSpace->mappingArea);
                 addressSpace = addressSpace->next;
             }
+        } else if (isActive()) {
+            pageDirectory[pdIndex] = pageTablePhys | pdFlags;
+            asm volatile ("invlpg (%0)" :: "r"(pageTable));
+        } else {
+            pageDirectory[pdIndex] = pageTablePhys | pdFlags;
+            kernelSpace->unmap(mappingArea);
+            pageTable = (uintptr_t*) kernelSpace->mapAt(mappingArea,
+                    pageTablePhys, PROT_READ | PROT_WRITE);
         }
 
-    } else if (this != kernelSpace) {
-        kthread_mutex_lock(&kernelSpace->mutex);
-        pageTable = (uintptr_t*) mapTemporarily(pageDirectory[pdIndex] &
-                ~0xFFF, PROT_READ| PROT_WRITE);
+        memset(pageTable, 0, 0x1000);
+
+    } else if (!isActive()) {
+        paddr_t pageTablePhys = pageDirectory[pdIndex] & ~0xFFF;
+        kernelSpace->unmap(mappingArea);
+        pageTable = (uintptr_t*) kernelSpace->mapAt(mappingArea, pageTablePhys,
+                PROT_READ | PROT_WRITE);
     }
 
     pageTable[ptIndex] = physicalAddress | flags;
 
-    if (this != kernelSpace) {
-        kernelSpace->unmap((vaddr_t) pageTable);
-        kthread_mutex_unlock(&kernelSpace->mutex);
+    if (!isActive()) {
+        kernelSpace->unmap(mappingArea);
     }
 
     vaddr_t virtualAddress = indexToAddress(pdIndex, ptIndex);
