@@ -52,6 +52,7 @@ typedef struct {
 
 size_t mbrtowc(wchar_t* __restrict, const char* __restrict, size_t,
         mbstate_t* __restrict);
+int mbsinit(const mbstate_t*);
 size_t mbsrtowcs(wchar_t* __restrict, const char** __restrict, size_t,
         mbstate_t* __restrict);
 
