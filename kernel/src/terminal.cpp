@@ -22,7 +22,7 @@
 #include <dennix/kernel/kernel.h>
 #include <dennix/kernel/signal.h>
 #include <dennix/kernel/terminal.h>
-#include <dennix/kernel/vgaterminal.h>
+#include <dennix/kernel/terminaldisplay.h>
 
 #define CTRL(c) ((c) & 0x1F)
 
@@ -63,7 +63,7 @@ void Terminal::handleCharacter(char c) {
 
         } else if (c == termio.c_cc[VERASE]) {
             if (terminalBuffer.backspace() && (termio.c_lflag & ECHO)) {
-                VgaTerminal::backspace();
+                TerminalDisplay::backspace();
             }
         } else if (c == termio.c_cc[VINTR]) {
 
@@ -79,7 +79,7 @@ void Terminal::handleCharacter(char c) {
 
         } else {
             if (termio.c_lflag & ECHO) {
-                VgaTerminal::printCharacterRaw(c);
+                TerminalDisplay::printCharacterRaw(c);
             }
             terminalBuffer.write(c);
             if (c == '\n') {
@@ -88,7 +88,7 @@ void Terminal::handleCharacter(char c) {
         }
     } else {
         if (termio.c_lflag & ECHO) {
-            VgaTerminal::printCharacterRaw(c);
+            TerminalDisplay::printCharacterRaw(c);
         }
         terminalBuffer.write(c);
         terminalBuffer.endLine();
@@ -99,7 +99,7 @@ void Terminal::handleSequence(const char* sequence) {
     if (!(termio.c_lflag & ICANON)) {
         while (*sequence) {
             if (termio.c_lflag & ECHO) {
-                VgaTerminal::printCharacterRaw(*sequence);
+                TerminalDisplay::printCharacterRaw(*sequence);
             }
             terminalBuffer.write(*sequence++);
         }
@@ -117,7 +117,7 @@ void Terminal::onKeyboardEvent(int key) {
             handleSequence(sequence);
         }
     }
-    VgaTerminal::updateCursorPosition();
+    TerminalDisplay::updateCursorPosition();
 }
 
 int Terminal::isatty() {
@@ -193,9 +193,9 @@ ssize_t Terminal::write(const void* buffer, size_t size) {
     const char* buf = (const char*) buffer;
 
     for (size_t i = 0; i < size; i++) {
-        VgaTerminal::printCharacter(buf[i]);
+        TerminalDisplay::printCharacter(buf[i]);
     }
-    VgaTerminal::updateCursorPosition();
+    TerminalDisplay::updateCursorPosition();
 
     updateTimestamps(false, true, true);
     return (ssize_t) size;

@@ -59,8 +59,9 @@ OBJ = \
 	symlink.o \
 	syscall.o \
 	terminal.o \
+	terminaldisplay.o \
 	thread.o \
-	vgaterminal.o \
+	vgatextdisplay.o \
 	vnode.o
 
 include $(ARCH).mk
