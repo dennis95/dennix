@@ -22,8 +22,11 @@
 #include <dennix/kernel/display.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/multiboot.h>
+#include <dennix/kernel/portio.h>
 #include <dennix/kernel/terminal.h>
 #include <dennix/kernel/terminaldisplay.h>
+
+#define COM1 0x3F8
 
 static size_t callback(void*, const char* s, size_t nBytes);
 
@@ -32,6 +35,12 @@ static size_t callback(void*, const char* s, size_t nBytes);
 char displayBuf[sizeof(Display)];
 
 void Log::earlyInitialize(multiboot_info* multiboot) {
+    outb(COM1 + 1, 0x00); // Disable interrupts
+    outb(COM1 + 3, 0x80); // Enable DLAB
+    outb(COM1 + 0, 0x03); // 38400 baud
+    outb(COM1 + 1, 0x00);
+    outb(COM1 + 3, 0x03); // Disable DLAB, line protocol 8N1
+
     if (!(multiboot->flags & MULTIBOOT_FRAMEBUFFER_INFO) ||
             multiboot->framebuffer_type == MULTIBOOT_EGA_TEXT) {
         vaddr_t videoMapped = kernelSpace->mapPhysical(0xB8000, PAGESIZE,
@@ -84,6 +93,23 @@ void Log::vprintf(const char* format, va_list ap) {
     vcbprintf(nullptr, callback, format, ap);
 }
 
+static void writeSerial(char c) {
+    if (c == '\n') {
+        // Write a carriage return so that lines are printed correctly on the
+        // serial console.
+        writeSerial('\r');
+    }
+    while (!(inb(COM1 + 5) & 0x20));
+    outb(COM1, c);
+}
+
+static void writeSerial(const char* s, size_t size) {
+    for (size_t i = 0; i < size; i++) {
+        writeSerial(s[i]);
+    }
+}
+
 static size_t callback(void*, const char* s, size_t nBytes) {
+    writeSerial(s, nBytes);
     return (size_t) terminal->write(s, nBytes);
 }
