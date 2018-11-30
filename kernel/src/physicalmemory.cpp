@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -114,8 +114,6 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
 
     kernelSpace->unmapPhysical(mmapMapped, mmapSize);
     kernelSpace->unmapPhysical(modulesMapped, modulesSize);
-
-    Log::printf("Free Memory: %zu KiB\n", stackUsed * 4);
 }
 
 void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {

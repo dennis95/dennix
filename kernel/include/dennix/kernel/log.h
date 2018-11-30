@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,10 @@
 #ifndef KERNEL_LOG_H
 #define KERNEL_LOG_H
 
+struct multiboot_info;
+
 namespace Log {
+void initialize(multiboot_info* multiboot);
 void printf(const char* format, ...) __attribute__((__format__(printf, 1, 2)));
 }
 

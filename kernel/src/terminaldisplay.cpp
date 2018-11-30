@@ -20,10 +20,8 @@
 #include <string.h>
 #include <wchar.h>
 #include <dennix/kernel/terminaldisplay.h>
-#include <dennix/kernel/vgatextdisplay.h>
 
-static VgaTextDisplay vgaTextDisplay;
-TextDisplay* TerminalDisplay::display = &vgaTextDisplay;
+TextDisplay* TerminalDisplay::display;
 
 #define MAX_PARAMS 16
 
@@ -294,20 +292,22 @@ void TerminalDisplay::printCharacterRaw(char c) {
         wc = L'�';
     }
 
-    if (wc == L'\n' || cursorPos.x > display->width() - 1) {
-        cursorPos.x = 0;
-        cursorPos.y++;
-
-        if (cursorPos.y > display->height() - 1) {
-            display->scroll(1, color);
-            cursorPos.y = display->height() - 1;
-        }
-
-        if (wc == L'\n') return;
+    if (wc != L'\n') {
+        display->putCharacter(cursorPos, wc, color);
     }
 
-    display->putCharacter(cursorPos, wc, color);
-    cursorPos.x++;
+    if (wc == L'\n' || cursorPos.x + 1 >= display->width()) {
+        cursorPos.x = 0;
+
+        if (cursorPos.y + 1 >= display->height()) {
+            display->scroll(1, color);
+            cursorPos.y = display->height() - 1;
+        } else {
+            cursorPos.y++;
+        }
+    } else {
+        cursorPos.x++;
+    }
 }
 
 void TerminalDisplay::updateCursorPosition() {

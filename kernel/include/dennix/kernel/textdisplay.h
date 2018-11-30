@@ -25,6 +25,8 @@
 struct CharPos {
     unsigned int x;
     unsigned int y;
+
+    bool operator==(const CharPos& p) { return p.x == x && p.y == y; }
 };
 
 class TextDisplay {
@@ -40,5 +42,7 @@ protected:
     unsigned int _height;
     unsigned int _width;
 };
+
+uint8_t unicodeToCp437(wchar_t wc);
 
 #endif

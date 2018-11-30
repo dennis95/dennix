@@ -41,8 +41,6 @@ static Reference<DirectoryVnode> loadInitrd(multiboot_info* multiboot);
 static multiboot_info multiboot;
 
 extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
-    Log::printf("Welcome to Dennix " DENNIX_VERSION "\n");
-    Log::printf("Initializing Address space...\n");
     AddressSpace::initialize();
 
     // Copy the multiboot structure.
@@ -51,9 +49,10 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     memcpy(&multiboot, multibootMapped, sizeof(multiboot_info));
     kernelSpace->unmapPhysical((vaddr_t) multibootMapped, 0x1000);
 
-    Log::printf("Initializing Physical Memory...\n");
     PhysicalMemory::initialize(&multiboot);
 
+    Log::initialize(&multiboot);
+    Log::printf("Welcome to Dennix " DENNIX_VERSION "\n");
     Log::printf("Initializing PS/2 Controller...\n");
     PS2::initialize();
 

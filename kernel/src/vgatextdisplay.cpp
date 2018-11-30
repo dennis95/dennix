@@ -23,7 +23,6 @@
 
 // In _start the video memory is mapped at this address.
 static char* const video = (char*) 0xC0000000;
-static uint8_t unicodeToCp437(wchar_t wc);
 
 static inline char* videoOffset(CharPos position) {
     return video + 2 * position.y * 80 + 2 * position.x;
@@ -77,7 +76,7 @@ void VgaTextDisplay::setCursorPos(CharPos position) {
     outb(0x3D5, value & 0xFF);
 }
 
-static uint8_t unicodeToCp437(wchar_t wc) {
+uint8_t unicodeToCp437(wchar_t wc) {
     // Translate Unicode characters into the code page 437 character set.
     // Note that some cp437 characters are used to represent multiple different
     // characters.

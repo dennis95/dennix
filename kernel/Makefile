@@ -45,6 +45,7 @@ OBJ = \
 	keyboard.o \
 	kthread.o \
 	libk.o \
+	lfbtextdisplay.o \
 	log.o \
 	memorysegment.o \
 	physicalmemory.o \

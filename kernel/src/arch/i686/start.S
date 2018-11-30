@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,17 +21,31 @@
 #define CR0_PAGING_ENABLE (1 << 31)
 
 #define MULTIBOOT_MAGIC 0x1BADB002
-#define MULTIBOOT_FLAGS 0x3
+#define MULTIBOOT_FLAGS 0x7
 #define MULTIBOOT_CHECKSUM -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
 
 #define PAGE_READONLY 0x1
 #define PAGE_WRITE 0x3
+
+#define GRAPHICS 0
+#define TEXT 1
+
+# Choose preferred video settings. The bootloader is still allowed to choose a
+# different video mode.
+#define VIDEO_MODE GRAPHICS
+#define PREFERRED_WIDTH 800
+#define PREFERRED_HEIGHT 600
 
 .section multiboot
 .align 4
 .long MULTIBOOT_MAGIC
 .long MULTIBOOT_FLAGS
 .long MULTIBOOT_CHECKSUM
+.skip 20
+.long VIDEO_MODE
+.long PREFERRED_WIDTH
+.long PREFERRED_HEIGHT
+.long 32 # bpp
 
 .section bootstrap_text, "ax"
 .global _start

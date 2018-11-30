@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -47,10 +47,16 @@ struct multiboot_info {
     uint32_t apm_table;
     uint32_t vbe_control_info;
     uint32_t vbe_mode_info;
-    uint32_t vbe_mode;
-    uint32_t vbe_interface_seg;
-    uint32_t vbe_interface_off;
-    uint32_t vbe_interface_len;
+    uint16_t vbe_mode;
+    uint16_t vbe_interface_seg;
+    uint16_t vbe_interface_off;
+    uint16_t vbe_interface_len;
+    uint64_t framebuffer_addr;
+    uint32_t framebuffer_pitch;
+    uint32_t framebuffer_width;
+    uint32_t framebuffer_height;
+    uint8_t framebuffer_bpp;
+    uint8_t framebuffer_type;
 };
 
 struct multiboot_mmap_entry {
@@ -68,5 +74,8 @@ struct multiboot_mod_list {
 };
 
 #define MULTIBOOT_MEMORY_AVAILABLE 1
+#define MULTIBOOT_FRAMEBUFFER_INFO 0x1000
+#define MULTIBOOT_RGB 1
+#define MULTIBOOT_EGA_TEXT 2
 
 #endif

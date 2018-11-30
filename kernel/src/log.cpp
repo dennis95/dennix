@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,10 +19,37 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/lfbtextdisplay.h>
 #include <dennix/kernel/log.h>
+#include <dennix/kernel/multiboot.h>
 #include <dennix/kernel/terminal.h>
+#include <dennix/kernel/terminaldisplay.h>
+#include <dennix/kernel/vgatextdisplay.h>
 
 static size_t callback(void*, const char* s, size_t nBytes);
+
+void Log::initialize(multiboot_info* multiboot) {
+    if (!(multiboot->flags & MULTIBOOT_FRAMEBUFFER_INFO) ||
+            multiboot->framebuffer_type == MULTIBOOT_EGA_TEXT) {
+        TerminalDisplay::display = new VgaTextDisplay();
+    } else if (multiboot->framebuffer_type == MULTIBOOT_RGB &&
+            (multiboot->framebuffer_bpp == 24 ||
+            multiboot->framebuffer_bpp == 32)) {
+        paddr_t lfbAligned = multiboot->framebuffer_addr & ~0xFFF;
+        size_t lfbOffset = multiboot->framebuffer_addr - lfbAligned;
+        size_t lfbSize = ALIGNUP(multiboot->framebuffer_height *
+                multiboot->framebuffer_pitch + lfbOffset, 0x1000);
+        vaddr_t lfb = kernelSpace->mapPhysical(lfbAligned, lfbSize,
+                PROT_READ | PROT_WRITE) + lfbOffset;
+        TerminalDisplay::display = new LfbTextDisplay((char*) lfb,
+                multiboot->framebuffer_width, multiboot->framebuffer_height,
+                multiboot->framebuffer_pitch, multiboot->framebuffer_bpp);
+    } else {
+        // Without any usable display we cannot do anything.
+        while (true) asm volatile ("cli; hlt");
+    }
+}
 
 void Log::printf(const char* format, ...) {
     va_list ap;
