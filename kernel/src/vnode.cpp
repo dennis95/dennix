@@ -203,6 +203,12 @@ int Vnode::chmod(mode_t mode) {
     return 0;
 }
 
+int Vnode::devctl(int /*command*/, void* restrict /*data*/, size_t /*size*/,
+        int* restrict info) {
+    *info = -1;
+    return ENOTTY;
+}
+
 int Vnode::ftruncate(off_t /*length*/) {
     errno = EBADF;
     return -1;

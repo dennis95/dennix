@@ -112,6 +112,7 @@ COMMON_OBJ = \
 LIBC_OBJ = \
 	$(COMMON_OBJ) \
 	assert/assert \
+	devctl/posix_devctl \
 	dirent/alphasort \
 	dirent/closedir \
 	dirent/fdopendir \
@@ -219,6 +220,7 @@ LIBC_OBJ = \
 	stdlib/setenv \
 	stdlib/unsetenv \
 	string/strcoll \
+	sys/ioctl/ioctl \
 	sys/mman/mmap \
 	sys/mman/munmap \
 	sys/stat/chmod \

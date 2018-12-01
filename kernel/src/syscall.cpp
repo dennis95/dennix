@@ -70,6 +70,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_FCHMODAT] =*/ (void*) Syscall::fchmodat,
     /*[SYSCALL_FCNTL] =*/ (void*) Syscall::fcntl,
     /*[SYSCALL_UTIMENSAT] =*/ (void*) Syscall::utimensat,
+    /*[SYSCALL_DEVCTL] =*/ (void*) Syscall::devctl,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -129,6 +130,23 @@ int Syscall::clock_nanosleep(clockid_t clockid, int flags,
 
 int Syscall::close(int fd) {
     return Process::current()->close(fd);
+}
+
+int Syscall::devctl(int fd, int command, void* restrict data, size_t size,
+        int* restrict info) {
+    int dummy;
+    if (!info) {
+        // Set info so that drivers can assign info unconditionally.
+        info = &dummy;
+    }
+
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) {
+        *info = -1;
+        return errno;
+    }
+
+    return descr->vnode->devctl(command, data, size, info);
 }
 
 int Syscall::dup3(int fd1, int fd2, int flags) {

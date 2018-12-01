@@ -56,7 +56,8 @@
 #define SYSCALL_FCHMODAT 33
 #define SYSCALL_FCNTL 34
 #define SYSCALL_UTIMENSAT 35
+#define SYSCALL_DEVCTL 36
 
-#define NUM_SYSCALLS 36
+#define NUM_SYSCALLS 37
 
 #endif

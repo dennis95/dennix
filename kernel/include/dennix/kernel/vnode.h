@@ -28,6 +28,8 @@
 class Vnode : public ReferenceCounted {
 public:
     virtual int chmod(mode_t mode);
+    virtual int devctl(int command, void* restrict data, size_t size,
+            int* restrict info);
     virtual int ftruncate(off_t length);
     virtual Reference<Vnode> getChildNode(const char* path);
     virtual char* getLinkTarget();
