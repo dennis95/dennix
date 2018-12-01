@@ -13,21 +13,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/devctls.h
- * Device Control.
+/* libc/src/termios/tcgetwinsize.c
+ * Get terminal window size.
  */
 
-#ifndef _DENNIX_DEVCTLS_H
-#define _DENNIX_DEVCTLS_H
+#include <devctl.h>
+#include <errno.h>
+#include <termios.h>
 
-#include <dennix/devctl.h>
-#include <dennix/winsize.h>
-
-/* Devctl numbers that are defined by default in <devctl.h> and <sys/ioctl.h>
-   are defined here. Note that it is not required that devctls for different
-   devices have different numbers. It is however useful to use different numbers
-   to allow error detection. */
-
-#define TIOCGWINSZ _DEVCTL(_IOCTL_PTR, 0) /* (struct winsize*) */
-
-#endif
+int tcgetwinsize(int fd, struct winsize* ws) {
+    int info;
+    errno = posix_devctl(fd, TIOCGWINSZ, ws, sizeof(struct winsize), &info);
+    if (errno == EINVAL) errno = ENOTTY;
+    return info;
+}

@@ -13,21 +13,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/devctls.h
- * Device Control.
+/* kernel/include/dennix/winsize.h
+ * Terminal window size.
  */
 
-#ifndef _DENNIX_DEVCTLS_H
-#define _DENNIX_DEVCTLS_H
+#ifndef _DENNIX_WINSIZE_H
+#define _DENNIX_WINSIZE_H
 
-#include <dennix/devctl.h>
-#include <dennix/winsize.h>
-
-/* Devctl numbers that are defined by default in <devctl.h> and <sys/ioctl.h>
-   are defined here. Note that it is not required that devctls for different
-   devices have different numbers. It is however useful to use different numbers
-   to allow error detection. */
-
-#define TIOCGWINSZ _DEVCTL(_IOCTL_PTR, 0) /* (struct winsize*) */
+struct winsize {
+    unsigned short ws_row;
+    unsigned short ws_col;
+};
 
 #endif

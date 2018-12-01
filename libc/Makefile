@@ -238,6 +238,7 @@ LIBC_OBJ = \
 	sys/wait/wait \
 	sys/wait/waitpid \
 	termios/tcgetattr \
+	termios/tcgetwinsize \
 	termios/tcsetattr \
 	time/asctime \
 	time/clock_gettime \

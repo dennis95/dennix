@@ -19,6 +19,7 @@
 
 #include <errno.h>
 #include <sched.h>
+#include <dennix/devctls.h>
 #include <dennix/kernel/kernel.h>
 #include <dennix/kernel/signal.h>
 #include <dennix/kernel/terminal.h>
@@ -118,6 +119,27 @@ void Terminal::onKeyboardEvent(int key) {
         }
     }
     TerminalDisplay::updateCursorPosition();
+}
+
+int Terminal::devctl(int command, void* restrict data, size_t size,
+        int* restrict info) {
+    switch (command) {
+    case TIOCGWINSZ: {
+        if (size != 0 && size != sizeof(struct winsize)) {
+            *info = -1;
+            return EINVAL;
+        }
+
+        struct winsize* ws = (struct winsize*) data;
+        ws->ws_col = TerminalDisplay::display->width();
+        ws->ws_row = TerminalDisplay::display->height();
+        *info = 0;
+        return 0;
+    } break;
+    default:
+        *info = -1;
+        return EINVAL;
+    }
 }
 
 int Terminal::isatty() {

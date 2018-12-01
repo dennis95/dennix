@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2018 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,6 +24,9 @@
 #define __need_pid_t
 #include <sys/libc-types.h>
 #include <dennix/termios.h>
+#if __USE_DENNIX
+#  include <dennix/winsize.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,6 +34,10 @@ extern "C" {
 
 int tcgetattr(int, struct termios*);
 int tcsetattr(int, int, const struct termios*);
+
+#if __USE_DENNIX
+int tcgetwinsize(int, struct winsize*);
+#endif
 
 #ifdef __cplusplus
 }
