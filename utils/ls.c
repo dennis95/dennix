@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -357,7 +358,15 @@ static struct timespec getMTime(struct DirEntry* entry) {
 }
 
 static void outputColumns(struct DirEntry** entries, size_t numEntries) {
-    static const size_t lineWidth = 80;
+    size_t lineWidth;
+
+    struct winsize ws;
+    if (tcgetwinsize(1, &ws) < 0) {
+        lineWidth = 80;
+    } else {
+        lineWidth = ws.ws_col;
+    }
+
     int inodeFieldLength = 0;
     size_t nameFieldLength = 0;
 

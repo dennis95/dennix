@@ -17,8 +17,6 @@
  * Text editor.
  */
 
-#define _GNU_SOURCE // Required to build with glibc
-
 #include <err.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -37,8 +35,8 @@ struct line {
 #undef CTRL
 #define CTRL(c) ((c) & 0x1F)
 
-static const size_t height = 25;
-static const size_t width = 80;
+static size_t height = 25;
+static size_t width = 80;
 
 static size_t cursorX;
 static size_t cursorY;
@@ -88,6 +86,12 @@ int main(int argc, char* argv[]) {
     newTermios.c_lflag &= ~(ECHO | ICANON);
     newTermios.c_cc[VMIN] = 0;
     tcsetattr(0, TCSAFLUSH, &newTermios);
+
+    struct winsize ws;
+    if (tcgetwinsize(1, &ws) == 0) {
+        height = ws.ws_row;
+        width = ws.ws_col;
+    }
 
     setbuf(stdout, NULL);
 

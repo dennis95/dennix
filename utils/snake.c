@@ -24,9 +24,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#define HEIGHT 25
-#define WIDTH 80
-
 enum Direction {
     UP,
     LEFT,
@@ -51,6 +48,7 @@ struct SnakeSegment* snakeHead;
 struct SnakeSegment* snakeTail;
 struct Food food;
 struct termios oldTermios;
+struct winsize winsize;
 unsigned int score;
 
 static bool checkCollision(void);
@@ -79,6 +77,8 @@ int main(int argc, char* argv[]) {
     new_termios.c_cc[VMIN] = 0;
     tcsetattr(0, TCSAFLUSH ,&new_termios);
 
+    tcgetwinsize(1, &winsize);
+
     initializeWorld();
 
     while (true) {
@@ -101,8 +101,8 @@ int main(int argc, char* argv[]) {
 static bool checkCollision(void) {
     struct SnakeSegment* current = snakeHead;
     while (current) {
-        if (current->row < 0 || current->row >= HEIGHT ||
-                current->col < 0 || current->col >= WIDTH) {
+        if (current->row < 0 || current->row >= winsize.ws_row ||
+                current->col < 0 || current->col >= winsize.ws_col) {
             return true;
         }
 
@@ -134,8 +134,8 @@ static void checkFood(void) {
         score++;
 
         // Create some new food at a random location.
-        food.row = rand() % HEIGHT;
-        food.col = rand() % WIDTH;
+        food.row = rand() % winsize.ws_row;
+        food.col = rand() % winsize.ws_col;
     }
 }
 
@@ -144,8 +144,8 @@ static void drawScreen(void) {
 
     struct SnakeSegment* current = snakeHead;
     while (current) {
-        if (current->row >= 0 && current->row < HEIGHT &&
-                current->col >= 0 && current->col < WIDTH) {
+        if (current->row >= 0 && current->row < winsize.ws_row &&
+                current->col >= 0 && current->col < winsize.ws_col) {
             printf("\e[%d;%dH ", current->row + 1, current->col + 1);
         }
         current = current->next;
@@ -195,8 +195,8 @@ static void initializeWorld(void) {
         snakeTail = next;
     }
 
-    food.row = rand() % HEIGHT;
-    food.col = rand() % WIDTH;
+    food.row = rand() % winsize.ws_row;
+    food.col = rand() % winsize.ws_col;
 }
 
 static void move(struct SnakeSegment* snake) {
