@@ -33,6 +33,7 @@ static unsigned int params[MAX_PARAMS];
 static bool paramSpecified[MAX_PARAMS];
 static size_t paramIndex;
 static mbstate_t ps;
+static bool skipNewline;
 
 static enum {
     NORMAL,
@@ -294,6 +295,9 @@ void TerminalDisplay::printCharacterRaw(char c) {
 
     if (wc != L'\n') {
         display->putCharacter(cursorPos, wc, color);
+    } else if (skipNewline) {
+        skipNewline = false;
+        return;
     }
 
     if (wc == L'\n' || cursorPos.x + 1 >= display->width()) {
@@ -305,8 +309,11 @@ void TerminalDisplay::printCharacterRaw(char c) {
         } else {
             cursorPos.y++;
         }
+
+        skipNewline = wc != L'\n';
     } else {
         cursorPos.x++;
+        skipNewline = false;
     }
 }
 
