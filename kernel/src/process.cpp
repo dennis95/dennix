@@ -244,7 +244,7 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
 
     memset(sigactions, '\0', sizeof(sigactions));
 
-    mainThread.switchStack(newKernelStack, newInterruptContext);
+    mainThread.updateContext(newKernelStack, newInterruptContext, &initFpu);
 
     return 0;
 }
@@ -314,7 +314,8 @@ Process* Process::regfork(int /*flags*/, struct regfork* registers) {
     newInterruptContext->eflags = 0x200; // Interrupt enable
     newInterruptContext->ss = 0x23;
 
-    process->mainThread.switchStack(newKernelStack, newInterruptContext);
+    process->mainThread.updateContext(newKernelStack, newInterruptContext,
+            &mainThread.fpuEnv);
 
     // Fork the address space
     process->addressSpace = addressSpace->fork();

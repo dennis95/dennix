@@ -113,6 +113,7 @@ InterruptContext* Thread::handleSignal(InterruptContext* context) {
     ucontext.uc_mcontext.__eip = context->eip;
     ucontext.uc_mcontext.__eflags = context->eflags;
     ucontext.uc_mcontext.__esp = context->esp;
+    asm("fnsave (%0)" :: "r"(ucontext.uc_mcontext.__fpuEnv));
 
     uintptr_t frameAddress = (context->esp - sizeof(SignalStackFrame)) & ~0xF;
     SignalStackFrame* frame = (SignalStackFrame*) frameAddress;
@@ -214,7 +215,7 @@ InterruptContext* Signal::sigreturn(InterruptContext* context) {
     context->eip = mcontext->__eip;
     context->eflags = (mcontext->__eflags & 0xCD5) | 0x200;
     context->esp = mcontext->__esp;
-
+    asm("frstor (%0)" :: "r"(mcontext->__fpuEnv));
 #else
 #  error "Signal::sigreturn is unimplemented for this architecture."
 #endif

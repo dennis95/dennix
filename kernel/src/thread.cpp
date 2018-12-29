@@ -18,11 +18,14 @@
  */
 
 #include <assert.h>
+#include <string.h>
 #include <dennix/kernel/process.h>
 
 Thread* Thread::_current;
 Thread* Thread::idleThread;
 static Thread* firstThread;
+
+FpuEnvironment initFpu;
 
 Thread::Thread(Process* process) {
     contextChanged = false;
@@ -74,6 +77,9 @@ void Thread::removeThread(Thread* thread) {
 InterruptContext* Thread::schedule(InterruptContext* context) {
     if (likely(!_current->contextChanged)) {
         _current->interruptContext = context;
+#ifdef __i386__
+        asm volatile("fnsave (%0)" :: "r"(_current->fpuEnv));
+#endif
     } else {
         _current->contextChanged = false;
     }
@@ -89,13 +95,17 @@ InterruptContext* Thread::schedule(InterruptContext* context) {
     }
 
     setKernelStack(_current->kernelStack + 0x1000);
+#ifdef __i386__
+    asm("frstor (%0)" :: "r"(_current->fpuEnv));
+#endif
 
     _current->process->addressSpace->activate();
     _current->updatePendingSignals();
     return _current->interruptContext;
 }
 
-void Thread::switchStack(vaddr_t newKernelStack, InterruptContext* newContext) {
+void Thread::updateContext(vaddr_t newKernelStack, InterruptContext* newContext,
+            const FpuEnvironment* newFpuEnv) {
     Interrupts::disable();
     if (this == _current) {
         contextChanged = true;
@@ -107,5 +117,6 @@ void Thread::switchStack(vaddr_t newKernelStack, InterruptContext* newContext) {
     }
     kernelStack = newKernelStack;
     interruptContext = newContext;
+    memcpy(fpuEnv, newFpuEnv, sizeof(FpuEnvironment));
     Interrupts::enable();
 }

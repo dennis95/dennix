@@ -17,6 +17,8 @@
  * Contains the multiboot header and the entry point.
  */
 
+#define CR0_FPU_EMULATION (1 << 2)
+#define CR0_FPU_EXCEPTIONS (1 << 5)
 #define CR0_WRITE_PROTECT (1 << 16)
 #define CR0_PAGING_ENABLE (1 << 31)
 
@@ -150,6 +152,16 @@ _start2:
     pushw idt_size
 
     lidt (%esp)
+
+    # Initialize the x87 FPU.
+    mov %cr0, %ecx
+    and $(~CR0_FPU_EMULATION), %ecx
+    or $CR0_FPU_EXCEPTIONS, %ecx
+    mov %ecx, %cr0
+    fninit
+    pushw $0x37A
+    fldcw (%esp)
+    fnsave initFpu
 
     mov $kernel_stack, %esp
 

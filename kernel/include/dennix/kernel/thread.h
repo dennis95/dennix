@@ -30,17 +30,23 @@ struct PendingSignal {
     PendingSignal* next;
 };
 
+#ifdef __i386__
+typedef char FpuEnvironment[108];
+#endif
+
 class Thread {
 public:
     Thread(Process* process);
     ~Thread();
     InterruptContext* handleSignal(InterruptContext* context);
     void raiseSignal(siginfo_t siginfo);
-    void switchStack(vaddr_t newKernelStack, InterruptContext* newContext);
+    void updateContext(vaddr_t newKernelStack, InterruptContext* newContext,
+            const FpuEnvironment* newFpuEnv);
 private:
     void updatePendingSignals();
 public:
     Clock cpuClock;
+    FpuEnvironment fpuEnv;
     Process* process;
     sigset_t signalMask;
 private:
@@ -63,3 +69,6 @@ private:
 };
 
 void setKernelStack(uintptr_t stack);
+extern "C" {
+extern FpuEnvironment initFpu;
+}
