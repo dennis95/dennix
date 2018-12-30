@@ -43,10 +43,15 @@ static unsigned int getDigitValue(int c);
 static void storeInt(va_list* ap, int length, bool sign, uintmax_t value);
 
 int vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
-        const char* restrict format, va_list ap) {
+        const char* restrict format, va_list list) {
     size_t bytesRead = 0;
     int conversions = 0;
     int c;
+
+    // Create a copy to work around va_list being an array type on some
+    // architectures.
+    va_list ap;
+    va_copy(ap, list);
 
 #define GET() ({ int _c = get(arg); if (_c != EOF) bytesRead++; _c; })
 #define UNGET(c) ((c) == EOF ? EOF : (bytesRead--, unget((c), arg)))
@@ -152,6 +157,7 @@ int vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
 
                 if (!fieldWidth) {
                     UNGET(c);
+                    va_end(ap);
                     return conversions;
                 }
 
@@ -167,7 +173,10 @@ int vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
                         c = GET();
                         if (fieldWidth > 1 && (c == 'x' || c == 'X')) {
                             fieldWidth -= 2;
-                            if (!fieldWidth) return conversions;
+                            if (!fieldWidth) {
+                                va_end(ap);
+                                return conversions;
+                            }
                             base = 16;
                             c = GET();
                         } else {
@@ -182,7 +191,10 @@ int vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
                     c = GET();
                     if (fieldWidth > 1 && (c == 'x' || c == 'X')) {
                         fieldWidth -= 2;
-                        if (!fieldWidth) return conversions;
+                        if (!fieldWidth) {
+                            va_end(ap);
+                            return conversions;
+                        }
                         c = GET();
                     } else {
                         UNGET(c);
@@ -192,6 +204,7 @@ int vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
 
                 if (getDigitValue(c) >= base) {
                     UNGET(c);
+                    va_end(ap);
                     return conversions;
                 }
 
@@ -251,6 +264,7 @@ int vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
                             if (allocate) {
                                 free(s);
                             }
+                            va_end(ap);
                             return conversions;
                         }
                         break;
@@ -293,6 +307,7 @@ int vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
                 // TODO: Implement %[
             default:
                 // Unsupported conversion.
+                va_end(ap);
                 return conversions;
             }
         }
@@ -300,10 +315,12 @@ int vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
         format++;
     }
 
+    va_end(ap);
     return conversions;
 conversion_error:
     c = EOF;
 fail:
+    va_end(ap);
     if (!conversions && c == EOF) return EOF;
     return conversions;
 }
