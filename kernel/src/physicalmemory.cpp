@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,15 +18,13 @@
  */
 
 #include <assert.h>
-#include <stdint.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/kthread.h>
-#include <dennix/kernel/log.h>
 #include <dennix/kernel/physicalmemory.h>
 
-static paddr_t* const stack = (paddr_t*) 0xFFC00000;
-static size_t stackUsed = 0;
-static size_t stackUnused = 0;
+static char firstStackPage[0x1000] ALIGNED(0x1000);
+static paddr_t* stack = (paddr_t*) firstStackPage + 1;
+static vaddr_t lastStackPage = (vaddr_t) firstStackPage;
 
 static kthread_mutex_t mutex = KTHREAD_MUTEX_INITIALIZER;
 
@@ -94,7 +92,6 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
     while (mmap < mmapEnd) {
         multiboot_mmap_entry* mmapEntry = (multiboot_mmap_entry*) mmap;
 
-        // Only use addresses marked as available that fit into 32bit
         if (mmapEntry->type == MULTIBOOT_MEMORY_AVAILABLE &&
             mmapEntry->addr + mmapEntry->len <= UINTPTR_MAX) {
             paddr_t addr = (paddr_t) mmapEntry->addr;
@@ -117,37 +114,54 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
 }
 
 void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
+    assert(physicalAddress);
     assert(!(physicalAddress & 0xFFF));
     AutoLock lock(&mutex);
 
-    if (unlikely(stackUnused == 0)) {
-        // Use the page frame to extend the stack
-        kernelSpace->mapAt((vaddr_t) stack - 0x1000 - stackUsed * 4,
-                physicalAddress, PROT_READ | PROT_WRITE);
-        stackUnused += 1024;
-    } else {
-        stack[-++stackUsed] = physicalAddress;
-        stackUnused--;
+    if (((vaddr_t) (stack + 1) & 0xFFF) == 0) {
+        paddr_t* stackPage = (paddr_t*) ((vaddr_t) stack & ~0xFFF);
+
+        if (*(stackPage + 1) == 0) {
+            // We need to unlock the mutex because AddressSpace::mapPhysical
+            // might need to pop page frames from the stack.
+            kthread_mutex_unlock(&mutex);
+            vaddr_t nextStackPage = kernelSpace->mapPhysical(physicalAddress,
+                    0x1000, PROT_READ | PROT_WRITE);
+            kthread_mutex_lock(&mutex);
+
+            if (unlikely(nextStackPage == 0)) {
+                // If we cannot save the address, we have to leak it.
+                return;
+            }
+
+            stackPage = (paddr_t*) ((vaddr_t) stack & ~0xFFF);
+            *((paddr_t*) lastStackPage + 1) = nextStackPage;
+            *(vaddr_t*) nextStackPage = lastStackPage;
+            *((paddr_t*) nextStackPage + 1) = 0;
+            lastStackPage = nextStackPage;
+            return;
+        } else {
+            stack = (paddr_t*) *(stackPage + 1) + 1;
+        }
     }
+
+    *++stack = physicalAddress;
 }
 
 paddr_t PhysicalMemory::popPageFrame() {
     AutoLock lock(&mutex);
 
-    if (unlikely(stackUsed == 0)) {
-        if (likely(stackUnused > 0)) {
-            vaddr_t virt = (vaddr_t) stack - stackUnused * 4;
-            paddr_t result = kernelSpace->getPhysicalAddress(virt);
-            kernelSpace->unmap(virt);
-            stackUnused -= 1024;
-            return result;
-        } else {
-            // We are out of physical memory.
-            Log::printf("Out of memory\n");
+    paddr_t* stackPage = (paddr_t*) ((vaddr_t) stack & ~0xFFF);
+
+    if (((vaddr_t) stack & 0xFFF) < 2 * sizeof(paddr_t)) {
+        if (unlikely(*stackPage == 0)) {
+            // We cannot unmap the pages of the stack anymore because
+            // kernelSpace might be locked at this point.
             return 0;
         }
-    } else {
-        stackUnused++;
-        return stack[-stackUsed--];
+
+        stack = (paddr_t*) (*stackPage + 0x1000 - sizeof(paddr_t));
     }
+
+    return *stack--;
 }

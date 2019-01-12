@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -58,7 +58,6 @@ _start:
     # Add the page tables to the page directory
     movl $(pageTableBootstrap + PAGE_WRITE), kernelPageDirectory
     movl $(pageTableKernel + PAGE_WRITE), kernelPageDirectory + 0xC00
-    movl $(pageTablePhysicalMemory + PAGE_WRITE), kernelPageDirectory + 0xFF8
 
     # Recursively map the page directory at 0xFFC00000
     movl $(kernelPageDirectory + PAGE_WRITE), kernelPageDirectory + 0xFFC
@@ -116,8 +115,6 @@ pageTableBootstrap:
     .skip 4096
 pageTableKernel:
     .skip 4096
-pageTablePhysicalMemory:
-    .skip 4096 # The physical memory manager needs this page table.
 
 .section .text
 .type _start2, @function

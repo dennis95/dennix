@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -136,10 +136,8 @@ static MemorySegment readOnlySegment((vaddr_t) &kernelVirtualBegin,
 static MemorySegment writableSegment((vaddr_t) &kernelReadOnlyEnd,
         (vaddr_t) &kernelVirtualEnd - (vaddr_t) &kernelReadOnlyEnd,
         PROT_READ | PROT_WRITE, &readOnlySegment, nullptr);
-static MemorySegment physicalMemorySegment(RECURSIVE_MAPPING - 0x400000,
-        0x400000, PROT_READ | PROT_WRITE, &writableSegment, nullptr);
 static MemorySegment recursiveMappingSegment(RECURSIVE_MAPPING,
-        -RECURSIVE_MAPPING, PROT_READ | PROT_WRITE, &physicalMemorySegment,
+        -RECURSIVE_MAPPING, PROT_READ | PROT_WRITE, &writableSegment,
         nullptr);
 
 void AddressSpace::initialize() {
@@ -163,8 +161,7 @@ void AddressSpace::initialize() {
     userSegment.next = &videoSegment;
     videoSegment.next = &readOnlySegment;
     readOnlySegment.next = &writableSegment;
-    writableSegment.next = &physicalMemorySegment;
-    physicalMemorySegment.next = &recursiveMappingSegment;
+    writableSegment.next = &recursiveMappingSegment;
 
     kernelSpace->mappingArea = MemorySegment::findAndAddNewSegment(
             kernelSpace->firstSegment, 0x1000, PROT_NONE);
