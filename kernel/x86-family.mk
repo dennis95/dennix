@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2019 Dennis Wölfing
+# Copyright (c) 2019 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -12,17 +12,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-include x86-family.mk
-
-CRTI_O = $(shell $(CXX) $(CXXFLAGS) -print-file-name=crti.o)
-CRTBEGIN_O = $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtbegin.o)
-CRTEND_O = $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtend.o)
-CRTN_O = $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtn.o)
-
-START_OBJ = $(CRTI_O) $(CRTBEGIN_O)
-END_OBJ = $(CRTEND_O) $(CRTN_O)
-
 OBJ += \
-	arch/i686/interrupts.o \
-	arch/i686/start.o \
-	arch/i686/syscall.o
+	arch/x86-family/gdt.o \
+	arch/x86-family/idt.o \
+	arch/x86-family/interrupts.o

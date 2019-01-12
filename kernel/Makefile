@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -37,10 +37,7 @@ OBJ = \
 	directory.o \
 	file.o \
 	filedescription.o \
-	gdt.o \
-	idt.o \
 	initrd.o \
-	interrupts.o \
 	kernel.o \
 	keyboard.o \
 	kthread.o \
