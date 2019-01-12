@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,11 +13,36 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/unistd/regfork.c
- * Creates a new process.
+/* kernel/include/dennix/registers.h
+ * CPU registers.
  */
 
-#include <unistd.h>
-#include <sys/syscall.h>
+#ifndef _DENNIX_REGISTERS_H
+#define _DENNIX_REGISTERS_H
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_REGFORK, pid_t, regfork, (int, regfork_t*));
+typedef unsigned long __reg_t;
+
+typedef struct {
+#ifdef __i386__
+    __reg_t __eax;
+    __reg_t __ebx;
+    __reg_t __ecx;
+    __reg_t __edx;
+    __reg_t __esi;
+    __reg_t __edi;
+    __reg_t __ebp;
+    __reg_t __eip;
+    __reg_t __eflags;
+    __reg_t __esp;
+#else
+#  error "__registers_t is undefined for this architecture."
+#endif
+} __registers_t;
+
+#ifdef __i386__
+typedef char __fpu_t[108];
+#else
+#  error "__fpu_t is undefined for this architecture."
+#endif
+
+#endif

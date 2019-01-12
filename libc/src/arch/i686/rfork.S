@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,26 +22,23 @@
 rfork:
     push %ebp
     mov %esp, %ebp
-    sub $12, %esp
+    sub $8, %esp
 
-    # Push struct regfork
+    push $0 # esp
+    pushf # eflags
+    push $1f # eip
     push %ebp
     push %edi
     push %esi
     push %edx
     push %ecx
     push %ebx
-    # In the child process this returns 0
-    push $0
-    push $afterFork
-    # The value for %esp does not matter because leave will modify %esp anyway
-    push $0
+    push $0 # eax
 
     push %esp
     push 8(%ebp)
 
     call regfork
-afterFork:
-    leave
+1:  leave
     ret
 .size rfork, . - rfork

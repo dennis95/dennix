@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -62,7 +62,7 @@ int pipe2(int fd[2], int flags);
 ssize_t read(int fd, void* buffer, size_t size);
 ssize_t readdir(int fd, unsigned long offset, void* buffer, size_t size);
 int renameat(int oldFd, const char* oldPath, int newFd, const char* newPath);
-pid_t regfork(int flags, struct regfork* registers);
+pid_t regfork(int flags, regfork_t* registers);
 int sigaction(int signal, const struct sigaction* restrict action,
         struct sigaction* restrict old);
 int symlinkat(const char* targetPath, int fd, const char* linkPath);

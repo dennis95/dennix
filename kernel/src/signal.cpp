@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,6 +23,7 @@
 #include <signal.h>
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/process.h>
+#include <dennix/kernel/registers.h>
 #include <dennix/kernel/signal.h>
 #include <dennix/kernel/syscall.h>
 
@@ -102,19 +103,10 @@ InterruptContext* Thread::handleSignal(InterruptContext* context) {
     ucontext.uc_stack.ss_size = 0;
     ucontext.uc_stack.ss_flags = SS_DISABLE;
 
-#ifdef __i386__
-    ucontext.uc_mcontext.__eax = context->eax;
-    ucontext.uc_mcontext.__ebx = context->ebx;
-    ucontext.uc_mcontext.__ecx = context->ecx;
-    ucontext.uc_mcontext.__edx = context->edx;
-    ucontext.uc_mcontext.__esi = context->esi;
-    ucontext.uc_mcontext.__edi = context->edi;
-    ucontext.uc_mcontext.__ebp = context->ebp;
-    ucontext.uc_mcontext.__eip = context->eip;
-    ucontext.uc_mcontext.__eflags = context->eflags;
-    ucontext.uc_mcontext.__esp = context->esp;
-    asm("fnsave (%0)" :: "r"(ucontext.uc_mcontext.__fpuEnv));
+    Registers::save(context, &ucontext.uc_mcontext.__regs);
+    Registers::saveFpu(&ucontext.uc_mcontext.__fpuEnv);
 
+#ifdef __i386__
     uintptr_t frameAddress = (context->esp - sizeof(SignalStackFrame)) & ~0xF;
     SignalStackFrame* frame = (SignalStackFrame*) frameAddress;
     frame->signoParam = siginfo.si_signo;
@@ -205,17 +197,8 @@ InterruptContext* Signal::sigreturn(InterruptContext* context) {
     SignalStackFrame* frame = (SignalStackFrame*) context->esp;
     mcontext_t* mcontext = &frame->ucontext.uc_mcontext;
 
-    context->eax = mcontext->__eax;
-    context->ebx = mcontext->__ebx;
-    context->ecx = mcontext->__ecx;
-    context->edx = mcontext->__edx;
-    context->esi = mcontext->__esi;
-    context->edi = mcontext->__edi;
-    context->ebp = mcontext->__ebp;
-    context->eip = mcontext->__eip;
-    context->eflags = (mcontext->__eflags & 0xCD5) | 0x200;
-    context->esp = mcontext->__esp;
-    asm("frstor (%0)" :: "r"(mcontext->__fpuEnv));
+    Registers::restore(context, &mcontext->__regs);
+    Registers::restoreFpu(&mcontext->__fpuEnv);
 #else
 #  error "Signal::sigreturn is unimplemented for this architecture."
 #endif

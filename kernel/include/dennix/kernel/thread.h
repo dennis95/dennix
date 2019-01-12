@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -30,10 +30,6 @@ struct PendingSignal {
     PendingSignal* next;
 };
 
-#ifdef __i386__
-typedef char FpuEnvironment[108];
-#endif
-
 class Thread {
 public:
     Thread(Process* process);
@@ -41,12 +37,12 @@ public:
     InterruptContext* handleSignal(InterruptContext* context);
     void raiseSignal(siginfo_t siginfo);
     void updateContext(vaddr_t newKernelStack, InterruptContext* newContext,
-            const FpuEnvironment* newFpuEnv);
+            const __fpu_t* newFpuEnv);
 private:
     void updatePendingSignals();
 public:
     Clock cpuClock;
-    FpuEnvironment fpuEnv;
+    __fpu_t fpuEnv;
     Process* process;
     sigset_t signalMask;
 private:
@@ -70,5 +66,5 @@ private:
 
 void setKernelStack(uintptr_t stack);
 extern "C" {
-extern FpuEnvironment initFpu;
+extern __fpu_t initFpu;
 }

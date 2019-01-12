@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,6 +26,7 @@
 #include <dennix/kernel/elf.h>
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/process.h>
+#include <dennix/kernel/registers.h>
 #include <dennix/kernel/signal.h>
 
 #define USER_STACK_SIZE (32 * 1024) // 32 KiB
@@ -290,7 +291,7 @@ Reference<FileDescription> Process::getFd(int fd) {
     return fdTable[fd].descr;
 }
 
-Process* Process::regfork(int /*flags*/, struct regfork* registers) {
+Process* Process::regfork(int /*flags*/, regfork_t* registers) {
     Process* process = new Process();
     process->parent = this;
 
@@ -298,21 +299,7 @@ Process* Process::regfork(int /*flags*/, struct regfork* registers) {
             PROT_READ | PROT_WRITE);
     InterruptContext* newInterruptContext = (InterruptContext*)
             (newKernelStack + 0x1000 - sizeof(InterruptContext));
-    newInterruptContext->eax = registers->rf_eax;
-    newInterruptContext->ebx = registers->rf_ebx;
-    newInterruptContext->ecx = registers->rf_ecx;
-    newInterruptContext->edx = registers->rf_edx;
-    newInterruptContext->esi = registers->rf_esi;
-    newInterruptContext->edi = registers->rf_edi;
-    newInterruptContext->ebp = registers->rf_ebp;
-    newInterruptContext->eip = registers->rf_eip;
-    newInterruptContext->esp = registers->rf_esp;
-    // Register that are not controlled by the user
-    newInterruptContext->interrupt = 0;
-    newInterruptContext->error = 0;
-    newInterruptContext->cs = 0x1B;
-    newInterruptContext->eflags = 0x200; // Interrupt enable
-    newInterruptContext->ss = 0x23;
+    Registers::restore(newInterruptContext, registers);
 
     process->mainThread.updateContext(newKernelStack, newInterruptContext,
             &mainThread.fpuEnv);

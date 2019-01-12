@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,11 +13,21 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/unistd/regfork.c
- * Creates a new process.
+/* kernel/include/dennix/kernel/registers.h
+ * CPU registers.
  */
 
-#include <unistd.h>
-#include <sys/syscall.h>
+#ifndef KERNEL_REGISTERS_H
+#define KERNEL_REGISTERS_H
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_REGFORK, pid_t, regfork, (int, regfork_t*));
+#include <dennix/kernel/interrupts.h>
+
+namespace Registers {
+void dumpInterruptContext(const InterruptContext* context);
+void restore(InterruptContext* context, const __registers_t* registers);
+void restoreFpu(const __fpu_t* fpu);
+void save(const InterruptContext* context, __registers_t* registers);
+void saveFpu(__fpu_t* fpu);
+}
+
+#endif

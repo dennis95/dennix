@@ -17,11 +17,10 @@
  * Interrupt handling.
  */
 
-#include <inttypes.h>
 #include <signal.h>
-#include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/portio.h>
+#include <dennix/kernel/registers.h>
 #include <dennix/kernel/signal.h>
 #include <dennix/kernel/thread.h>
 
@@ -130,19 +129,7 @@ extern "C" InterruptContext* handleInterrupt(InterruptContext* context) {
         if (!handleUserspaceException(context)) goto handleKernelException;
     } else if (context->interrupt <= 31) { // CPU Exception
 handleKernelException:
-        Log::printf("Exception %" PRIu32 " occurred!\n", context->interrupt);
-        Log::printf("eax: 0x%" PRIX32 ", ebx: 0x%" PRIX32 ", ecx: 0x%" PRIX32
-                ", edx: 0x%" PRIX32 "\n",
-                context->eax, context->ebx, context->ecx, context->edx);
-        Log::printf("edi: 0x%" PRIX32 ", esi: 0x%" PRIX32 ", ebp: 0x%" PRIX32
-                ", error: 0x%" PRIX32 "\n",
-                context->edi, context->esi, context->ebp, context->error);
-        Log::printf("eip: 0x%" PRIX32 ", cs: 0x%" PRIX32 ", eflags: 0x%" PRIX32
-                "\n", context->eip, context->cs, context->eflags);
-        if (context->cs != 0x8) {
-            Log::printf("ss: 0x%" PRIX32 ", esp: 0x%" PRIX32 "\n",
-                    context->ss, context->esp);
-        }
+        Registers::dumpInterruptContext(context);
         // Halt the cpu
         while (true) asm volatile ("cli; hlt");
     } else if (context->interrupt <= 47) { // IRQ
@@ -165,7 +152,7 @@ handleKernelException:
     } else if (context->interrupt == 0x32) {
         newContext = Signal::sigreturn(context);
     } else {
-        Log::printf("Unknown interrupt %u!\n", context->interrupt);
+        Log::printf("Unknown interrupt %lu!\n", context->interrupt);
     }
     return newContext;
 }

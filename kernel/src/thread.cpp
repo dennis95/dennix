@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,12 +20,13 @@
 #include <assert.h>
 #include <string.h>
 #include <dennix/kernel/process.h>
+#include <dennix/kernel/registers.h>
 
 Thread* Thread::_current;
 Thread* Thread::idleThread;
 static Thread* firstThread;
 
-FpuEnvironment initFpu;
+__fpu_t initFpu;
 
 Thread::Thread(Process* process) {
     contextChanged = false;
@@ -77,9 +78,7 @@ void Thread::removeThread(Thread* thread) {
 InterruptContext* Thread::schedule(InterruptContext* context) {
     if (likely(!_current->contextChanged)) {
         _current->interruptContext = context;
-#ifdef __i386__
-        asm volatile("fnsave (%0)" :: "r"(_current->fpuEnv));
-#endif
+        Registers::saveFpu(&_current->fpuEnv);
     } else {
         _current->contextChanged = false;
     }
@@ -95,9 +94,7 @@ InterruptContext* Thread::schedule(InterruptContext* context) {
     }
 
     setKernelStack(_current->kernelStack + 0x1000);
-#ifdef __i386__
-    asm("frstor (%0)" :: "r"(_current->fpuEnv));
-#endif
+    Registers::restoreFpu(&_current->fpuEnv);
 
     _current->process->addressSpace->activate();
     _current->updatePendingSignals();
@@ -105,7 +102,7 @@ InterruptContext* Thread::schedule(InterruptContext* context) {
 }
 
 void Thread::updateContext(vaddr_t newKernelStack, InterruptContext* newContext,
-            const FpuEnvironment* newFpuEnv) {
+            const __fpu_t* newFpuEnv) {
     Interrupts::disable();
     if (this == _current) {
         contextChanged = true;
@@ -117,6 +114,6 @@ void Thread::updateContext(vaddr_t newKernelStack, InterruptContext* newContext,
     }
     kernelStack = newKernelStack;
     interruptContext = newContext;
-    memcpy(fpuEnv, newFpuEnv, sizeof(FpuEnvironment));
+    memcpy(fpuEnv, newFpuEnv, sizeof(__fpu_t));
     Interrupts::enable();
 }

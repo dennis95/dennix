@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,23 +20,13 @@
 #ifndef _DENNIX_FORK_H
 #define _DENNIX_FORK_H
 
-#include <stdint.h>
+#include <dennix/registers.h>
 
 #define RFPROC (1 << 0)
 #define RFFDG (1 << 1)
 
 #define _RFFORK (RFPROC | RFFDG)
 
-struct regfork {
-    uint32_t rf_esp;
-    uint32_t rf_eip;
-    uint32_t rf_eax;
-    uint32_t rf_ebx;
-    uint32_t rf_ecx;
-    uint32_t rf_edx;
-    uint32_t rf_esi;
-    uint32_t rf_edi;
-    uint32_t rf_ebp;
-};
+typedef __registers_t regfork_t;
 
 #endif

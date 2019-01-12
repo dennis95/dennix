@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,6 +20,7 @@
 #ifndef _DENNIX_UCONTEXT_H
 #define _DENNIX_UCONTEXT_H
 
+#include <dennix/registers.h>
 #include <dennix/sigset.h>
 
 typedef struct {
@@ -31,21 +32,8 @@ typedef struct {
 #define SS_DISABLE (1 << 0)
 
 typedef struct {
-#ifdef __i386__
-    unsigned long __eax;
-    unsigned long __ebx;
-    unsigned long __ecx;
-    unsigned long __edx;
-    unsigned long __esi;
-    unsigned long __edi;
-    unsigned long __ebp;
-    unsigned long __eip;
-    unsigned long __eflags;
-    unsigned long __esp;
-    char __fpuEnv[108];
-#else
-#  error "mcontext_t is undefined for this architecture."
-#endif
+    __registers_t __regs;
+    __fpu_t __fpuEnv;
 } mcontext_t;
 
 typedef struct ucontext_t {

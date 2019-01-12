@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -379,7 +379,7 @@ ssize_t Syscall::readdir(int fd, unsigned long offset, void* buffer,
     return descr->readdir(offset, buffer, size);
 }
 
-pid_t Syscall::regfork(int flags, struct regfork* registers) {
+pid_t Syscall::regfork(int flags, regfork_t* registers) {
     if (!((flags & RFPROC) && (flags & RFFDG))) {
         errno = EINVAL;
         return -1;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -47,7 +47,7 @@ public:
     int fcntl(int fd, int cmd, int param);
     Reference<FileDescription> getFd(int fd);
     void raiseSignal(siginfo_t siginfo);
-    Process* regfork(int flags, struct regfork* registers);
+    Process* regfork(int flags, regfork_t* registers);
     void terminateBySignal(siginfo_t siginfo);
     Process* waitpid(pid_t pid, int flags);
 private:
