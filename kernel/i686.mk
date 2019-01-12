@@ -23,6 +23,7 @@ START_OBJ = $(CRTI_O) $(CRTBEGIN_O)
 END_OBJ = $(CRTEND_O) $(CRTN_O)
 
 OBJ += \
+	arch/i686/addressspace.o \
 	arch/i686/interrupts.o \
 	arch/i686/registers.o \
 	arch/i686/start.o \

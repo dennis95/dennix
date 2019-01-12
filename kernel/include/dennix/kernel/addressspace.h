@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -38,15 +38,11 @@ public:
     vaddr_t mapMemory(size_t size, int protection);
     vaddr_t mapMemory(vaddr_t virtualAddress, size_t size, int protection);
     vaddr_t mapPhysical(paddr_t physicalAddress, size_t size, int protection);
-    void unmap(vaddr_t virtualAddress);
     void unmapMemory(vaddr_t virtualAddress, size_t size);
     void unmapPhysical(vaddr_t firstVirtualAddress, size_t size);
 private:
     bool isActive();
-    vaddr_t mapAt(size_t pdIndex, size_t ptIndex, paddr_t physicalAddress,
-            int protection);
-    vaddr_t mapAtWithFlags(size_t pdIndex, size_t ptIndex,
-            paddr_t physicalAddress, int flags);
+    void unmap(vaddr_t virtualAddress);
 public:
     MemorySegment* firstSegment;
 private:
@@ -59,6 +55,7 @@ public:
     static void initialize();
 private:
     static AddressSpace _kernelSpace;
+    static AddressSpace* activeAddressSpace;
 };
 
 // Global variable for the kernel's address space
