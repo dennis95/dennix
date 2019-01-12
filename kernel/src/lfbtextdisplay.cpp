@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -144,8 +144,8 @@ void LfbTextDisplay::redraw(CharPos position) {
 }
 
 void LfbTextDisplay::redrawAll() {
-    for (size_t y = 0; y < height(); y++) {
-        for (size_t x = 0; x < width(); x++) {
+    for (unsigned int y = 0; y < height(); y++) {
+        for (unsigned int x = 0; x < width(); x++) {
             redraw({x, y});
         }
     }

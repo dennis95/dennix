@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -253,13 +253,13 @@ static void headOrTailBackwardNoSeek(FILE* file) {
             int c = fgetc(file);
             if (c == EOF) break;
 #if HEAD
-            if (length == amount) {
+            if (length == (size_t) amount) {
                 putchar(buffer[index]);
             }
 #endif
             buffer[index] = (unsigned char) c;
             index = (index + 1) % amount;
-            if (length < amount) {
+            if (length < (size_t) amount) {
                 length++;
             }
         }

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,7 +42,7 @@ int FileVnode::ftruncate(off_t length) {
         errno = EINVAL;
         return -1;
     }
-    if (length > SIZE_MAX) {
+    if (sizeof(off_t) > sizeof(size_t) && length > (off_t) SIZE_MAX) {
         errno = EFBIG;
         return -1;
     }
@@ -101,8 +101,11 @@ ssize_t FileVnode::pread(void* buffer, size_t size, off_t offset) {
     char* buf = (char*) buffer;
 
     for (size_t i = 0; i < size; i++) {
-        if (offset + i >= stats.st_size) return i;
-        buf[i] = data[offset + i];
+        off_t j;
+        if (__builtin_add_overflow(offset, i, &j) || j >= stats.st_size) {
+            return i;
+        }
+        buf[i] = data[j];
     }
 
     updateTimestamps(true, false, false);
@@ -125,7 +128,7 @@ ssize_t FileVnode::pwrite(const void* buffer, size_t size, off_t offset) {
         return -1;
     }
 
-    if (newSize > SIZE_MAX) {
+    if (sizeof(off_t) > sizeof(size_t) && newSize > (off_t) SIZE_MAX) {
         errno = EFBIG;
         return -1;
     }
