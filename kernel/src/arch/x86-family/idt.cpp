@@ -68,11 +68,16 @@ extern void isr_50(void);
 struct idt_entry {
     uint16_t offset_low;
     uint16_t selector;
-    uint8_t unused;
+    uint8_t ist;
     uint8_t flags;
-    uint16_t offset_high;
+    uint16_t offset_mid;
+#ifdef __x86_64__
+    uint32_t offset_high;
+    uint32_t reserved;
+#endif
 };
 
+#ifdef __i386__
 #define IDT_ENTRY(offset, selector, flags) { \
     (uint16_t)((uintptr_t)(offset) & 0xFFFF), \
     (selector), \
@@ -80,6 +85,17 @@ struct idt_entry {
     (flags), \
     (uint16_t)(((uintptr_t)(offset) >> 16) & 0xFFFF) \
 }
+#elif defined(__x86_64__)
+#define IDT_ENTRY(offset, selector, flags) { \
+    (uint16_t)((uintptr_t)(offset) & 0xFFFF), \
+    (selector), \
+    0, \
+    (flags), \
+    (uint16_t)(((uintptr_t)(offset) >> 16) & 0xFFFF), \
+    (uint32_t)(((uintptr_t)(offset) >> 32) & 0xFFFFFFFF), \
+    0 \
+}
+#endif
 
 #define IDT_INTERRUPT_GATE 0xE
 #define IDT_TRAP_GATE 0xF

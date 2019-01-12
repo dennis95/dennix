@@ -125,8 +125,8 @@ uintptr_t Process::loadELF(uintptr_t elf, AddressSpace* newAddressSpace) {
     for (size_t i = 0; i < header->e_phnum; i++) {
         if (programHeader[i].p_type != PT_LOAD) continue;
 
-        vaddr_t loadAddressAligned = programHeader[i].p_paddr & ~0xFFF;
-        ptrdiff_t offset = programHeader[i].p_paddr - loadAddressAligned;
+        vaddr_t loadAddressAligned = programHeader[i].p_vaddr & ~0xFFF;
+        ptrdiff_t offset = programHeader[i].p_vaddr - loadAddressAligned;
 
         const void* src = (void*) (elf + programHeader[i].p_offset);
         size_t size = ALIGNUP(programHeader[i].p_memsz + offset, 0x1000);
@@ -218,7 +218,7 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
     char** newArgv;
     char** newEnvp;
     int argc = copyArguments(argv, envp, newArgv, newEnvp, newAddressSpace);
-
+#ifdef __i386__
     // Pass argc, argv and envp to the process.
     newInterruptContext->eax = argc;
     newInterruptContext->ebx = (uint32_t) newArgv;
@@ -228,7 +228,16 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
     newInterruptContext->eflags = 0x200; // Interrupt enable
     newInterruptContext->esp = (uint32_t) userStack + USER_STACK_SIZE;
     newInterruptContext->ss = 0x23;
-
+#elif defined(__x86_64__)
+    newInterruptContext->rdi = argc;
+    newInterruptContext->rsi = (vaddr_t) newArgv;
+    newInterruptContext->rdx = (vaddr_t) newEnvp;
+    newInterruptContext->rip = entry;
+    newInterruptContext->cs = 0x1B;
+    newInterruptContext->rflags = 0x200; // Interrupt enable
+    newInterruptContext->rsp = userStack + USER_STACK_SIZE;
+    newInterruptContext->ss = 0x23;
+#endif
     // Close all file descriptors marked with FD_CLOEXEC.
     for (int i = fdTable.next(-1); i >= 0; i = fdTable.next(i)) {
         if (fdTable[i].flags & FD_CLOEXEC) {

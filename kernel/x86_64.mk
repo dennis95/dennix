@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2019 Dennis Wölfing
+# Copyright (c) 2019 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -12,18 +12,21 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-# Don't use the default values from make.
-ifneq ($(filter default undefined, $(origin AR)),)
-  AR = $(ARCH)-dennix-ar
-endif
+include x86-family.mk
 
-ifneq ($(filter default undefined, $(origin CC)),)
-  CC = $(ARCH)-dennix-gcc
-endif
+CXXFLAGS += -mcmodel=kernel -mno-red-zone -mno-mmx -mno-sse -mno-sse2
 
-ifneq ($(filter default undefined, $(origin CXX)),)
-  CXX = $(ARCH)-dennix-g++
-endif
+CRTI_O = $(shell $(CXX) $(CXXFLAGS) -print-file-name=crti.o)
+CRTBEGIN_O = $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtbegin.o)
+CRTEND_O = $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtend.o)
+CRTN_O = $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtn.o)
 
-CPP = $(CC) -E
-MKRESCUE ?= grub-mkrescue
+START_OBJ = $(CRTI_O) $(CRTBEGIN_O)
+END_OBJ = $(CRTEND_O) $(CRTN_O)
+
+OBJ += \
+	arch/x86_64/addressspace.o \
+	arch/x86_64/interrupts.o \
+	arch/x86_64/registers.o \
+	arch/x86_64/start.o \
+	arch/x86_64/syscall.o

@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2019 Dennis Wölfing
+# Copyright (c) 2019 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -12,18 +12,10 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-# Don't use the default values from make.
-ifneq ($(filter default undefined, $(origin AR)),)
-  AR = $(ARCH)-dennix-ar
-endif
+export ARCH ?= i686
 
-ifneq ($(filter default undefined, $(origin CC)),)
-  CC = $(ARCH)-dennix-gcc
+ifeq ($(ARCH), i686)
+  BASE_ARCH = i386
+else
+  BASE_ARCH = $(ARCH)
 endif
-
-ifneq ($(filter default undefined, $(origin CXX)),)
-  CXX = $(ARCH)-dennix-g++
-endif
-
-CPP = $(CC) -E
-MKRESCUE ?= grub-mkrescue

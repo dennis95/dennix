@@ -37,12 +37,41 @@ struct InterruptContext {
     __reg_t error;
 
     // These are pushed by the cpu when an interrupt happens.
+#  define INSTRUCTION_POINTER eip
     __reg_t eip;
     __reg_t cs;
     __reg_t eflags;
 
     // These are only valid if the interrupt came from Ring 3
+#  define STACK_POINTER esp
     __reg_t esp;
+    __reg_t ss;
+#elif defined(__x86_64__)
+    __reg_t rax;
+    __reg_t rbx;
+    __reg_t rcx;
+    __reg_t rdx;
+    __reg_t rsi;
+    __reg_t rdi;
+    __reg_t rbp;
+    __reg_t r8;
+    __reg_t r9;
+    __reg_t r10;
+    __reg_t r11;
+    __reg_t r12;
+    __reg_t r13;
+    __reg_t r14;
+    __reg_t r15;
+
+    __reg_t interrupt;
+    __reg_t error;
+
+#  define INSTRUCTION_POINTER rip
+    __reg_t rip;
+    __reg_t cs;
+    __reg_t rflags;
+#  define STACK_POINTER rsp
+    __reg_t rsp;
     __reg_t ss;
 #else
 #  error "InterruptContext is undefined for this architecture."

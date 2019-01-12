@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2019 Dennis Wölfing
+# Copyright (c) 2019 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -12,18 +12,14 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-# Don't use the default values from make.
-ifneq ($(filter default undefined, $(origin AR)),)
-  AR = $(ARCH)-dennix-ar
-endif
+LIBK_FLAGS += -mcmodel=kernel -mno-red-zone -mno-mmx -mno-sse -mno-sse2
 
-ifneq ($(filter default undefined, $(origin CC)),)
-  CC = $(ARCH)-dennix-gcc
-endif
+CRT_OBJ = \
+	$(BUILD)/arch/x86_64/crt0.o \
+	$(BUILD)/arch/x86_64/crti.o \
+	$(BUILD)/arch/x86_64/crtn.o
 
-ifneq ($(filter default undefined, $(origin CXX)),)
-  CXX = $(ARCH)-dennix-g++
-endif
-
-CPP = $(CC) -E
-MKRESCUE ?= grub-mkrescue
+LIBC_OBJ += \
+	arch/x86_64/rfork \
+	arch/x86_64/setjmp \
+	arch/x86_64/syscall

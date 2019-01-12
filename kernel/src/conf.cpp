@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,6 +28,8 @@
 #endif
 #ifdef __i386__
 #  define MACHINE "i686"
+#elif defined(__x86_64__)
+#  define MACHINE "x86_64"
 #else
 #  error "Unknown architecture."
 #endif

@@ -46,11 +46,15 @@ private:
 public:
     MemorySegment* firstSegment;
 private:
-    paddr_t pageDir;
     AddressSpace* prev;
     AddressSpace* next;
     kthread_mutex_t mutex;
     vaddr_t mappingArea;
+#ifdef __i386__
+    paddr_t pageDir;
+#elif defined(__x86_64__)
+    paddr_t pml4;
+#endif
 public:
     static void initialize();
 private:

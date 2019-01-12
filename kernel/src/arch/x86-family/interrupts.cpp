@@ -82,13 +82,13 @@ static bool handleUserspaceException(const InterruptContext* context) {
     case EX_DEVIDE_BY_ZERO:
         siginfo.si_signo = SIGFPE;
         siginfo.si_code = FPE_INTDIV;
-        siginfo.si_addr = (void*) context->eip;
+        siginfo.si_addr = (void*) context->INSTRUCTION_POINTER;
         break;
     case EX_DEBUG:
     case EX_BREAKPOINT:
         siginfo.si_signo = SIGTRAP;
         siginfo.si_code = TRAP_BRKPT;
-        siginfo.si_addr = (void*) context->eip;
+        siginfo.si_addr = (void*) context->INSTRUCTION_POINTER;
         break;
     case EX_OVERFLOW:
     case EX_BOUND_RANGE_EXCEEDED:
@@ -96,12 +96,12 @@ static bool handleUserspaceException(const InterruptContext* context) {
     case EX_GENERAL_PROTECTION_FAULT:
         siginfo.si_signo = SIGSEGV;
         siginfo.si_code = SI_KERNEL;
-        siginfo.si_addr = (void*) context->eip;
+        siginfo.si_addr = (void*) context->INSTRUCTION_POINTER;
         break;
     case EX_INVALID_OPCODE:
         siginfo.si_signo = SIGILL;
         siginfo.si_code = ILL_ILLOPC;
-        siginfo.si_addr = (void*) context->eip;
+        siginfo.si_addr = (void*) context->INSTRUCTION_POINTER;
         break;
     case EX_PAGE_FAULT:
         siginfo.si_signo = SIGSEGV;
@@ -112,7 +112,7 @@ static bool handleUserspaceException(const InterruptContext* context) {
     case EX_SIMD_FLOATING_POINT_EXCEPTION:
         siginfo.si_signo = SIGFPE;
         siginfo.si_code = FPE_FLTINV;
-        siginfo.si_addr = (void*) context->eip;
+        siginfo.si_addr = (void*) context->INSTRUCTION_POINTER;
         break;
     default:
         return false;
@@ -124,7 +124,6 @@ static bool handleUserspaceException(const InterruptContext* context) {
 
 extern "C" InterruptContext* handleInterrupt(InterruptContext* context) {
     InterruptContext* newContext = context;
-
     if (context->interrupt <= 31 && context->cs != 0x8) {
         if (!handleUserspaceException(context)) goto handleKernelException;
     } else if (context->interrupt <= 31) { // CPU Exception

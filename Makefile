@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -14,8 +14,7 @@
 
 REPO_ROOT = .
 
-export ARCH ?= i686
-
+include $(REPO_ROOT)/build-aux/arch.mk
 include $(REPO_ROOT)/build-aux/paths.mk
 include $(REPO_ROOT)/build-aux/toolchain.mk
 
@@ -66,7 +65,7 @@ $(INITRD): $(SYSROOT)
 	cd $(SYSROOT) && tar cJf ../$(INITRD) --format=ustar *
 
 qemu: $(ISO)
-	qemu-system-i386 -cdrom $^
+	qemu-system-$(BASE_ARCH) -cdrom $^
 
 sh: $(INCLUDE_DIR)
 	$(MAKE) -C sh

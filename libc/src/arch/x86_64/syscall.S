@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,17 +13,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/sched/sched_yield.c
- * Yields the processor.
+/* libc/src/arch/x86_64/syscall.S
+ * Syscall caller.
  */
 
-#include <sched.h>
+.section .text
+.global __syscall
+.type __syscall, @function
+__syscall:
+    push %rbp
+    mov %rsp, %rbp
 
-int sched_yield(void) {
-#if defined(__i386__) || defined(__x86_64__)
-    asm volatile("int $0x31");
-#else
-#  error "sched_yield is unimplemented for this architecture."
-#endif
-    return 0;
-}
+    int $0x30
+
+    test %edi, %edi
+    jz 1f
+    mov %edi, errno
+
+1:  pop %rbp
+    ret
+.size __syscall, . - __syscall

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,17 +13,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/sched/sched_yield.c
- * Yields the processor.
+/* libc/src/arch/i686/crti.S
+ * Provides _init and _fini symbols to call global ctors/dtors.
  */
 
-#include <sched.h>
+.section .init
+.global _init
+_init:
+    push %rbp
+    mov %rsp, %rbp
+    # GCC will call global constructors here
 
-int sched_yield(void) {
-#if defined(__i386__) || defined(__x86_64__)
-    asm volatile("int $0x31");
-#else
-#  error "sched_yield is unimplemented for this architecture."
-#endif
-    return 0;
-}
+.section .fini
+.global _fini
+_fini:
+    push %rbp
+    mov %rsp, %rbp
+    # GCC will call global destructors here

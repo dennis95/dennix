@@ -32,11 +32,14 @@ struct SignalStackFrame {
     int signoParam;
     siginfo_t* infoParam;
     void* contextParam;
+#elif defined(__x86_64__)
+    // We don't push parameters on the stack on this architecture.
+#else
+#  warning "SignalStackFrame may not be complete for this architecture."
+#endif
+    // These must always be saved on the stack.
     siginfo_t siginfo;
     ucontext_t ucontext;
-#else
-#  error "SignalStackFrame is undefined for this architecture."
-#endif
 };
 
 static sigset_t defaultIgnoredSignals = _SIGSET(SIGCHLD) | _SIGSET(SIGURG);
@@ -96,37 +99,40 @@ InterruptContext* Thread::handleSignal(InterruptContext* context) {
         __builtin_unreachable();
     }
 
-    ucontext_t ucontext;
-    ucontext.uc_link = nullptr;
-    ucontext.uc_sigmask = signalMask;
-    ucontext.uc_stack.ss_sp = nullptr;
-    ucontext.uc_stack.ss_size = 0;
-    ucontext.uc_stack.ss_flags = SS_DISABLE;
+    uintptr_t frameAddress = (context->STACK_POINTER - sizeof(SignalStackFrame))
+            & ~0xF;
+    SignalStackFrame* frame = (SignalStackFrame*) frameAddress;
+    frame->siginfo = siginfo;
 
-    Registers::save(context, &ucontext.uc_mcontext.__regs);
-    Registers::saveFpu(&ucontext.uc_mcontext.__fpuEnv);
+    frame->ucontext.uc_link = nullptr;
+    frame->ucontext.uc_sigmask = signalMask;
+    frame->ucontext.uc_stack.ss_sp = nullptr;
+    frame->ucontext.uc_stack.ss_size = 0;
+    frame->ucontext.uc_stack.ss_flags = SS_DISABLE;
+
+    Registers::save(context, &frame->ucontext.uc_mcontext.__regs);
+    Registers::saveFpu(&frame->ucontext.uc_mcontext.__fpuEnv);
 
 #ifdef __i386__
-    uintptr_t frameAddress = (context->esp - sizeof(SignalStackFrame)) & ~0xF;
-    SignalStackFrame* frame = (SignalStackFrame*) frameAddress;
     frame->signoParam = siginfo.si_signo;
     frame->infoParam = &frame->siginfo;
     frame->contextParam = &frame->ucontext;
-    frame->siginfo = siginfo;
-    frame->ucontext = ucontext;
+    context->eflags &= ~0x400; // Direction Flag
+#elif defined(__x86_64__)
+    context->rdi = siginfo.si_signo;
+    context->rsi = (uintptr_t) &frame->siginfo;
+    context->rdx = (uintptr_t) &frame->ucontext;
+    context->rflags &= ~0x400; // Direction Flag
+#else
+#  error "Signal handler parameters are unimplemented for this architecture."
+#endif
 
     uintptr_t* sigreturnPointer = (uintptr_t*) frameAddress - 1;
     *sigreturnPointer = process->sigreturn;
-
-    context->eip = (uintptr_t) action.sa_sigaction;
-    context->esp = (uintptr_t) sigreturnPointer;
-    context->eflags &= ~0x400; // Direction Flag
-#else
-#  error "Creation of SignalStackFrame is unimplemented for this architecture."
-#endif
+    context->INSTRUCTION_POINTER = (uintptr_t) action.sa_sigaction;
+    context->STACK_POINTER = (uintptr_t) sigreturnPointer;
 
     signalMask |= action.sa_mask | _SIGSET(siginfo.si_signo);
-
     return context;
 }
 
@@ -193,15 +199,11 @@ void Thread::updatePendingSignals() {
 }
 
 InterruptContext* Signal::sigreturn(InterruptContext* context) {
-#ifdef __i386__
-    SignalStackFrame* frame = (SignalStackFrame*) context->esp;
+    SignalStackFrame* frame = (SignalStackFrame*) context->STACK_POINTER;
     mcontext_t* mcontext = &frame->ucontext.uc_mcontext;
 
     Registers::restore(context, &mcontext->__regs);
     Registers::restoreFpu(&mcontext->__fpuEnv);
-#else
-#  error "Signal::sigreturn is unimplemented for this architecture."
-#endif
 
     Thread::current()->signalMask = frame->ucontext.uc_sigmask;
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,14 +22,21 @@
 
 #include <stdint.h>
 
+typedef uintptr_t Elf_Addr;
+#ifdef __i386__
+typedef uint32_t Elf_Off;
+#elif defined(__x86_64__)
+typedef uint64_t Elf_Off;
+#endif
+
 struct ElfHeader {
     unsigned char e_ident[16];
     uint16_t e_type;
     uint16_t e_machine;
     uint32_t e_version;
-    uint32_t e_entry;
-    uint32_t e_phoff;
-    uint32_t e_shoff;
+    Elf_Addr e_entry;
+    Elf_Off e_phoff;
+    Elf_Off e_shoff;
     uint32_t e_flags;
     uint16_t e_ehsize;
     uint16_t e_phentsize;
@@ -39,16 +46,33 @@ struct ElfHeader {
     uint16_t e_shstrndx;
 };
 
-struct ProgramHeader {
+struct ProgramHeader32 {
     uint32_t p_type;
-    uint32_t p_offset;
-    uint32_t p_vaddr;
-    uint32_t p_paddr;
+    Elf_Off p_offset;
+    Elf_Addr p_vaddr;
+    Elf_Addr p_paddr;
     uint32_t p_filesz;
     uint32_t p_memsz;
     uint32_t p_flags;
     uint32_t p_align;
 };
+
+struct ProgramHeader64 {
+    uint32_t p_type;
+    uint32_t p_flags;
+    Elf_Off p_offset;
+    Elf_Addr p_vaddr;
+    Elf_Addr p_paddr;
+    uint64_t p_filesz;
+    uint64_t p_memsz;
+    uint64_t p_align;
+};
+
+#ifdef __i386__
+typedef ProgramHeader32 ProgramHeader;
+#elif defined(__x86_64__)
+typedef ProgramHeader64 ProgramHeader;
+#endif
 
 #define PT_LOAD 1
 

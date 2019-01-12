@@ -12,22 +12,22 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-ARCH ?= i686
-
 REPO_ROOT = ..
 
+include $(REPO_ROOT)/build-aux/arch.mk
 include $(REPO_ROOT)/build-aux/paths.mk
 include $(REPO_ROOT)/build-aux/toolchain.mk
 include $(REPO_ROOT)/build-aux/version.mk
 
 BUILD = $(BUILD_DIR)/kernel
+LDSCRIPT = $(BUILD)/linker.ld
 
 CXXFLAGS ?= -O2 -g
 CXXFLAGS += --sysroot=$(SYSROOT) -std=gnu++14 -ffreestanding -fno-exceptions
-CXXFLAGS += -fno-rtti -Wall -Wextra
+CXXFLAGS += -fno-rtti -Wall -Wextra -Wno-missing-field-initializers
 CPPFLAGS += -I include -DDENNIX_VERSION=\"$(VERSION)\"
 CPPFLAGS += -D__is_dennix_kernel -D_DENNIX_SOURCE
-LDFLAGS += --sysroot=$(SYSROOT) -T linker.ld -ffreestanding -nostdlib
+LDFLAGS += --sysroot=$(SYSROOT) -T $(LDSCRIPT) -ffreestanding -nostdlib
 LIBS += -lk -lgcc
 
 OBJ = \
@@ -76,8 +76,12 @@ install-headers:
 	cp -rf --preserve=timestamp include/. $(INCLUDE_DIR)
 	touch $(SYSROOT)
 
-$(BUILD)/kernel: $(OBJ)
-	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
+$(BUILD)/kernel: $(OBJ) $(LDSCRIPT)
+	$(CXX) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
+
+$(LDSCRIPT): linker.ld.in
+	@mkdir -p $(dir $@)
+	$(CPP) $(CPPFLAGS) -P -xc -o $@ $<
 
 $(BUILD)/%.o: src/%.cpp
 	@mkdir -p $(dir $@)

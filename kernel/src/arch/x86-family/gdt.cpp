@@ -30,6 +30,7 @@ struct gdt_entry {
 };
 
 struct tss_entry {
+#ifdef __i386__
     uint32_t prev;
     uint32_t esp0;
     uint32_t ss0;
@@ -57,6 +58,35 @@ struct tss_entry {
     uint32_t ldtr;
     uint16_t reserved;
     uint16_t iomapBase;
+#elif defined(__x86_64__)
+    uint32_t reserved1;
+    uint32_t rsp0_low;
+    uint32_t rsp0_high;
+    uint32_t rsp1_low;
+    uint32_t rsp1_high;
+    uint32_t rsp2_low;
+    uint32_t rsp2_high;
+    uint32_t reserved2;
+    uint32_t reserved3;
+    uint32_t ist1_low;
+    uint32_t ist1_high;
+    uint32_t ist2_low;
+    uint32_t ist2_high;
+    uint32_t ist3_low;
+    uint32_t ist3_high;
+    uint32_t ist4_low;
+    uint32_t ist4_high;
+    uint32_t ist5_low;
+    uint32_t ist5_high;
+    uint32_t ist6_low;
+    uint32_t ist6_high;
+    uint32_t ist7_low;
+    uint32_t ist7_high;
+    uint32_t reserved4;
+    uint32_t reserved5;
+    uint16_t iomapBase;
+    uint16_t reserved6;
+#endif
 };
 
 #define GDT_ENTRY(base, limit, access, flags) { \
@@ -68,6 +98,15 @@ struct tss_entry {
     ((base) >> 24) & 0xFF \
 }
 
+#ifdef __i386__
+#  define GDT_ENTRY_TSS(base, limit) \
+    GDT_ENTRY((base) & 0xFFFFFFFF, (limit), 0x89, 0)
+#elif defined(__x86_64__)
+#  define GDT_ENTRY_TSS(base, limit) \
+    GDT_ENTRY((base) & 0xFFFFFFFF, (limit), 0x89, 0), \
+    GDT_ENTRY(((base) >> 48) & 0xFFFF, ((base) >> 32) & 0xFFFF, 0, 0)
+#endif
+
 #define GDT_ACCESSED (1 << 0)
 #define GDT_READ_WRITE (1 << 1)
 #define GDT_EXECUTABLE (1 << 3)
@@ -78,37 +117,23 @@ struct tss_entry {
 
 #define GDT_GRANULARITY_4K (1 << 7)
 #define GDT_PROTECTED_MODE (1 << 6)
+#define GDT_LONG_MODE (1 << 5)
+
+#ifdef __i386__
+#  define GDT_MODE GDT_PROTECTED_MODE
+#elif defined(__x86_64__)
+#  define GDT_MODE GDT_LONG_MODE
+#endif
 
 extern "C" {
 
 tss_entry tss = {
+#ifdef __i386__
     /*.prev =*/ 0,
     /*.esp0 =*/ 0,
     /*.ss0 =*/ 0x10,
-    /*.esp1 =*/ 0,
-    /*.ss1 =*/ 0,
-    /*.esp2 =*/ 0,
-    /*.ss2 =*/ 0,
-    /*.cr3 =*/ 0,
-    /*.eip =*/ 0,
-    /*.eflags =*/ 0,
-    /*.eax =*/ 0,
-    /*.ecx =*/ 0,
-    /*.edx =*/ 0,
-    /*.ebx =*/ 0,
-    /*.esp =*/ 0,
-    /*.ebp =*/ 0,
-    /*.esi =*/ 0,
-    /*.edi =*/ 0,
-    /*.es; =*/ 0,
-    /*.cs; =*/ 0,
-    /*.ss; =*/ 0,
-    /*.ds; =*/ 0,
-    /*.fs; =*/ 0,
-    /*.gs; =*/ 0,
-    /*.ldtr =*/ 0,
-    /*.reserved =*/ 0,
-    /*.iomapBase =*/ 0,
+#endif
+    0
 };
 
 gdt_entry gdt[] = {
@@ -119,32 +144,36 @@ gdt_entry gdt[] = {
     GDT_ENTRY(0, 0xFFFFFFF,
             GDT_PRESENT | GDT_SEGMENT | GDT_RING0 | GDT_EXECUTABLE |
             GDT_READ_WRITE,
-            GDT_GRANULARITY_4K | GDT_PROTECTED_MODE),
+            GDT_GRANULARITY_4K | GDT_MODE),
 
     // Kernel Data Segment
     GDT_ENTRY(0, 0xFFFFFFF,
             GDT_PRESENT | GDT_SEGMENT | GDT_RING0 | GDT_READ_WRITE,
-            GDT_GRANULARITY_4K | GDT_PROTECTED_MODE),
+            GDT_GRANULARITY_4K | GDT_MODE),
 
     // User Code Segment
     GDT_ENTRY(0, 0xFFFFFFF,
             GDT_PRESENT | GDT_SEGMENT | GDT_RING3 | GDT_EXECUTABLE |
             GDT_READ_WRITE,
-            GDT_GRANULARITY_4K | GDT_PROTECTED_MODE),
+            GDT_GRANULARITY_4K | GDT_MODE),
 
     // User Data Segment
     GDT_ENTRY(0, 0xFFFFFFF,
             GDT_PRESENT | GDT_SEGMENT | GDT_RING3 | GDT_READ_WRITE,
-            GDT_GRANULARITY_4K | GDT_PROTECTED_MODE),
+            GDT_GRANULARITY_4K | GDT_MODE),
 
     // Task State Segment
-    GDT_ENTRY(/*(uintptr_t) &tss*/ 0, sizeof(tss) - 1,
-            GDT_PRESENT | /*GDT_RING3 |*/ GDT_EXECUTABLE | GDT_ACCESSED, 0),
+    GDT_ENTRY_TSS(/*(uintptr_t) &tss*/ 0L, sizeof(tss) - 1),
 };
 
 uint16_t gdt_size = sizeof(gdt) - 1;
 }
 
 void setKernelStack(uintptr_t stack) {
+#ifdef __i386__
     tss.esp0 = stack;
+#elif __x86_64__
+    tss.rsp0_low = stack & 0xFFFFFFFF;
+    tss.rsp0_high = stack >> 32;
+#endif
 }

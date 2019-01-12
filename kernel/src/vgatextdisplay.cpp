@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,7 +22,13 @@
 #include <dennix/kernel/vgatextdisplay.h>
 
 // In _start the video memory is mapped at this address.
-static char* const video = (char*) 0xC0000000;
+static char* const video = (char*)
+#ifdef __i386__
+        0xC0000000
+#elif defined(__x86_64__)
+        0xFFFFFFFF80000000
+#endif
+;
 
 static inline char* videoOffset(CharPos position) {
     return video + 2 * position.y * 80 + 2 * position.x;

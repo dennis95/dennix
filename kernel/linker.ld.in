@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,23 +13,31 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/linker.ld
+/* kernel/linker.ld.in
  * Linker script that tells how the kernel will be loaded into memory.
  */
 
+#define KERNEL_PHYSICAL 0x100000
+
+#ifdef __i386__
+#  define KERNEL_VIRTUAL 0xC0000000
+#elif defined(__x86_64__)
+#  define KERNEL_VIRTUAL 0xFFFFFFFF80000000
+#endif
+
 ENTRY(_start);
 
-/* This is the address where the kernel space starts. */
-KERNEL_VIRTUAL = 0xC0000000;
-
 SECTIONS {
-    . = 0x100000;
+    . = KERNEL_PHYSICAL;
 
     bootstrapBegin = .;
 
     bootstrap_text : {
         *(multiboot)
         *(bootstrap_text)
+    }
+    bootstrap_rodata : {
+        *(bootstrap_rodata)
     }
 
     bootstrap_bss ALIGN(4096) : {
@@ -44,12 +52,26 @@ SECTIONS {
     kernelVirtualBegin = ALIGN(4096);
     kernelPhysicalBegin = kernelVirtualBegin - KERNEL_VIRTUAL;
 
-    .text ALIGN(4096) : AT(ADDR(.text) - KERNEL_VIRTUAL) {
-        *(.text)
+    .init ALIGN(4096) : AT(ADDR(.init) - KERNEL_VIRTUAL) {
+        *(.init)
     }
 
+    .text : AT(ADDR(.text) - KERNEL_VIRTUAL) {
+        *(.text.unlikely)
+        *(.text.exit)
+        *(.text.startup)
+        *(.text*)
+    }
+
+    .fini : AT(ADDR(.fini) - KERNEL_VIRTUAL) {
+        *(.fini)
+    }
+
+    kernelExecEnd = ALIGN(4096);
+    numExecPages = (kernelExecEnd - kernelVirtualBegin) / 0x1000;
+
     .rodata ALIGN(4096) : AT(ADDR(.rodata) - KERNEL_VIRTUAL) {
-        *(.rodata)
+        *(.rodata*)
     }
 
     kernelReadOnlyEnd = ALIGN(4096);
@@ -57,6 +79,14 @@ SECTIONS {
 
     .data ALIGN(4096) : AT(ADDR(.data) - KERNEL_VIRTUAL) {
         *(.data)
+    }
+
+    .ctors : AT(ADDR(.ctors) - KERNEL_VIRTUAL) {
+        *(.ctors)
+    }
+
+    .dtors : AT(ADDR(.dtors) - KERNEL_VIRTUAL) {
+        *(.dtors)
     }
 
     .bss ALIGN(4096) : AT(ADDR(.bss) - KERNEL_VIRTUAL) {

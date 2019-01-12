@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,17 +13,38 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/sched/sched_yield.c
- * Yields the processor.
+/* libc/src/arch/x86_64/rfork.S
+ * Create a new process.
  */
 
-#include <sched.h>
+.global rfork
+.type rfork, @function
+rfork:
+    push %rbp
+    mov %rsp, %rbp
 
-int sched_yield(void) {
-#if defined(__i386__) || defined(__x86_64__)
-    asm volatile("int $0x31");
-#else
-#  error "sched_yield is unimplemented for this architecture."
-#endif
-    return 0;
-}
+    push $0 # rsp
+    pushf
+    push $1f
+    push %r15
+    push %r14
+    push %r13
+    push %r12
+    push %r11
+    push %r10
+    push %r9
+    push %r8
+    push %rbp
+    push %rdi
+    push %rsi
+    push %rdx
+    push %rcx
+    push %rbx
+    push $0
+
+    mov %rsp, %rsi
+
+    call regfork
+1:  leave
+    ret
+.size rfork, . - rfork
