@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# Copyright (c) 2016, Dennis Wölfing
+# Copyright (c) 2016, 2019 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -21,7 +21,7 @@ PREFIX: The directory the toolchain will be installed.
 SRCDIR: The directory where the sources will be put into. (default: $HOME/src)
 BUILDDIR: The directory where the build files will be put into.
           (default: $SRCDIR)
-ARCH: The architecture the toolchain is built for. (default: i686)
+ARCH: The architecture the toolchain is built for. (default: x86_64)
       This variable is ignored if $TARGET is set.
 TARGET: The target of the toolchain. (default: $ARCH-dennix)
 SYSROOT: The system root containing the system headers.
@@ -39,7 +39,7 @@ gcc_repo=https://github.com/dennis95/dennix-gcc.git
 [ -z "${PREFIX+x}" ] && PREFIX="$HOME/dennix-toolchain"
 [ -z "$SRCDIR" ] && SRCDIR="$HOME/src"
 [ -z "$BUILDDIR" ] && BUILDDIR="$SRCDIR"
-[ -z "$ARCH" ] && ARCH=i686
+[ -z "$ARCH" ] && ARCH=x86_64
 [ -z "$TARGET" ] && TARGET=$ARCH-dennix
 
 [ -z "$SYSROOT" ] && echo "Error: \$SYSROOT not set" && exit 1

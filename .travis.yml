@@ -1,5 +1,4 @@
 language: c
-sudo: false
 
 addons:
   apt:
@@ -16,6 +15,10 @@ addons:
 cache:
   directories:
   - $HOME/dennix-toolchain
+
+env:
+  - ARCH=i686
+  - ARCH=x86_64
 
 before_install:
 - unset CC CXX
