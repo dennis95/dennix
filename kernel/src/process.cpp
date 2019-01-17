@@ -131,8 +131,12 @@ uintptr_t Process::loadELF(uintptr_t elf, AddressSpace* newAddressSpace) {
         const void* src = (void*) (elf + programHeader[i].p_offset);
         size_t size = ALIGNUP(programHeader[i].p_memsz + offset, 0x1000);
 
-        newAddressSpace->mapMemory(loadAddressAligned, size,
-                PROT_READ | PROT_WRITE | PROT_EXEC);
+        int protection = 0;
+        if (programHeader[i].p_flags & PF_X) protection |= PROT_EXEC;
+        if (programHeader[i].p_flags & PF_W) protection |= PROT_WRITE;
+        if (programHeader[i].p_flags & PF_R) protection |= PROT_READ;
+
+        newAddressSpace->mapMemory(loadAddressAligned, size, protection);
         vaddr_t dest = kernelSpace->mapFromOtherAddressSpace(newAddressSpace,
                 loadAddressAligned, size, PROT_WRITE);
         memset((void*) (dest + offset), 0, programHeader[i].p_memsz);
