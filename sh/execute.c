@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,11 +21,13 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sched.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdnoreturn.h>
 #include <string.h>
+#include <termios.h>
 #include <unistd.h>
 #include <sys/wait.h>
 
@@ -33,6 +35,13 @@
 #include "execute.h"
 #include "expand.h"
 #include "sh.h"
+
+static volatile sig_atomic_t pipelineReady;
+
+static void sigusr1Handler(int signum) {
+    (void) signum;
+    pipelineReady = 1;
+}
 
 static int executePipeline(struct Pipeline* pipeline);
 static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
@@ -44,6 +53,7 @@ static int forkAndExecuteUtility(char** arguments,
 static const char* getExecutablePath(const char* command);
 static bool performRedirections(struct Redirection* redirections,
         size_t numRedirections);
+static void resetSignals(void);
 static int waitForCommand(pid_t pid);
 
 int execute(struct CompleteCommand* command) {
@@ -51,74 +61,100 @@ int execute(struct CompleteCommand* command) {
 }
 
 static int executePipeline(struct Pipeline* pipeline) {
-    int inputFd;
+    if (pipeline->numCommands <= 1) {
+        return executeSimpleCommand(&pipeline->commands[0], false);
+    }
 
-    for (size_t i = 0; i < pipeline->numCommands - 1; i++) {
+    int inputFd;
+    pid_t pgid = -1;
+
+    for (size_t i = 0; i < pipeline->numCommands; i++) {
+        bool firstInPipeline = i == 0;
+        bool lastInPipeline = i == pipeline->numCommands - 1;
+
         int pipeFds[2];
-        if (pipe(pipeFds) < 0) err(1, "pipe");
+        if (!lastInPipeline) {
+            if (pipe(pipeFds) < 0) err(1, "pipe");
+        }
 
         pid_t pid = fork();
 
         if (pid < 0) {
             err(1, "fork");
         } else if (pid == 0) {
-            close(pipeFds[0]);
+            if (!lastInPipeline) {
+                close(pipeFds[0]);
+            }
 
-            if (i > 0) {
+            if (!firstInPipeline) {
                 if (!moveFd(inputFd, 0)) {
                     warn("cannot move file descriptor");
                     _Exit(126);
                 }
             }
 
-            if (!moveFd(pipeFds[1], 1)) {
-                warn("cannot move file descriptor");
-                _Exit(126);
+            if (!lastInPipeline) {
+                if (!moveFd(pipeFds[1], 1)) {
+                    warn("cannot move file descriptor");
+                    _Exit(126);
+                }
             }
 
+            if (firstInPipeline) {
+                signal(SIGUSR1, sigusr1Handler);
+            }
+            setpgid(0, pgid == -1 ? 0 : pgid);
+
+            if (firstInPipeline) {
+                if (inputIsTerminal) {
+                    tcsetpgrp(0, getpgid(0));
+                }
+
+                while (!pipelineReady) {
+                    // Wait for all processes in the pipeline to start.
+                    sched_yield();
+                }
+            }
+
+            resetSignals();
             executeSimpleCommand(&pipeline->commands[i], true);
-            assert(false); // This should be unreachable.
         } else {
-            close(pipeFds[1]);
-            if (i > 0) {
+            if (!lastInPipeline) {
+                close(pipeFds[1]);
+                if (!firstInPipeline) {
+                    close(inputFd);
+                    setpgid(pid, pgid);
+                } else {
+                    pgid = pid;
+                    while (getpgid(pid) != pgid) {
+                        sched_yield();
+                    }
+                }
+
+                inputFd = pipeFds[0];
+            } else {
+                assert(inputFd != 0);
                 close(inputFd);
-            }
 
-            inputFd = pipeFds[0];
+                setpgid(pid, pgid);
+                // Inform the first process in the pipeline that all processes
+                // have started.
+                kill(pgid, SIGUSR1);
+
+                int exitStatus = waitForCommand(pid);
+
+                for (size_t j = 0; j < pipeline->numCommands - 1; j++) {
+                    // Wait for all other commands of the pipeline.
+                    int status;
+                    wait(&status);
+                }
+                if (pipeline->bang) return !exitStatus;
+                return exitStatus;
+            }
         }
     }
 
-    if (pipeline->numCommands > 1) {
-        pid_t pid = fork();
-
-        if (pid < 0) {
-            err(1, "fork");
-        } else if (pid == 0) {
-            if (!moveFd(inputFd, 0)) {
-                warn("cannot move file descriptor");
-                _Exit(126);
-            }
-
-            executeSimpleCommand(
-                    &pipeline->commands[pipeline->numCommands - 1], true);
-            assert(false); // This should be unreachable.
-        } else {
-            assert(inputFd != 0);
-            close(inputFd);
-
-            int exitStatus = waitForCommand(pid);
-
-            for (size_t i = 0; i < pipeline->numCommands - 1; i++) {
-                // Wait for all other commands of the pipeline.
-                int status;
-                wait(&status);
-            }
-            if (pipeline->bang) return !exitStatus;
-            return exitStatus;
-        }
-    }
-
-    return executeSimpleCommand(&pipeline->commands[0], false);
+    assert(false); // This should be unreachable.
 }
 
 static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
@@ -204,6 +240,12 @@ static int forkAndExecuteUtility(char** arguments,
     if (pid < 0) {
         err(1, "fork");
     } else if (pid == 0) {
+        setpgid(0, 0);
+        if (inputIsTerminal) {
+            tcsetpgrp(0, getpgid(0));
+        }
+
+        resetSignals();
         executeUtility(arguments, redirections, numRedirections);
     } else {
         return waitForCommand(pid);
@@ -272,13 +314,30 @@ static bool performRedirections(struct Redirection* redirections,
     return true;
 }
 
+static void resetSignals(void) {
+    signal(SIGINT, SIG_DFL);
+    signal(SIGQUIT, SIG_DFL);
+    signal(SIGTERM, SIG_DFL);
+    signal(SIGTSTP, SIG_DFL);
+    signal(SIGTTIN, SIG_DFL);
+    signal(SIGTTOU, SIG_DFL);
+}
+
 static int waitForCommand(pid_t pid) {
     int status;
     if (waitpid(pid, &status, 0) < 0) {
         err(1, "waitpid");
     }
 
+    if (inputIsTerminal) {
+        tcsetpgrp(0, getpgid(0));
+    }
+
     if (WIFSIGNALED(status)) {
+        if (inputIsTerminal) {
+            tcsetattr(0, TCSAFLUSH, &termios);
+        }
+
         int signum = WTERMSIG(status);
         if (signum == SIGINT) {
             fputc('\n', stderr);

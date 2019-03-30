@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,10 +20,12 @@
 #include <err.h>
 #include <getopt.h>
 #include <limits.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <unistd.h>
 
 #include "builtins.h"
@@ -35,6 +37,9 @@
 #ifndef DENNIX_VERSION
 #  define DENNIX_VERSION ""
 #endif
+
+bool inputIsTerminal;
+struct termios termios;
 
 int main(int argc, char* argv[]) {
     struct option longopts[] = {
@@ -57,6 +62,19 @@ int main(int argc, char* argv[]) {
         case '?':
             return 1;
         }
+    }
+
+    // Ignore signals that should not terminate the (interactive) shell.
+    signal(SIGINT, SIG_IGN);
+    signal(SIGQUIT, SIG_IGN);
+    signal(SIGTERM, SIG_IGN);
+    signal(SIGTSTP, SIG_IGN);
+    signal(SIGTTIN, SIG_IGN);
+    signal(SIGTTOU, SIG_IGN);
+
+    inputIsTerminal = isatty(0);
+    if (inputIsTerminal) {
+        tcgetattr(0, &termios);
     }
 
     pwd = getenv("PWD");
