@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -83,6 +83,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     assert(initProcess->pid == 1);
     Process::initProcess = initProcess;
 
+    initProcess->controllingTerminal = terminal;
     Reference<FileDescription> descr = new FileDescription(terminal, O_RDWR);
     initProcess->addFileDescriptor(descr, 0); // stdin
     initProcess->addFileDescriptor(descr, 0); // stdout

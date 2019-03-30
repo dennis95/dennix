@@ -267,6 +267,7 @@ LIBC_OBJ = \
 	unistd/gethostname \
 	unistd/getlogin \
 	unistd/getpid \
+	unistd/getpgid \
 	unistd/isatty \
 	unistd/link \
 	unistd/linkat \
@@ -276,9 +277,12 @@ LIBC_OBJ = \
 	unistd/read \
 	unistd/regfork \
 	unistd/rmdir \
+	unistd/setpgid \
 	unistd/sleep \
 	unistd/symlink \
 	unistd/symlinkat \
+	unistd/tcgetpgrp \
+	unistd/tcsetpgrp \
 	unistd/unlink \
 	unistd/unlinkat \
 	unistd/write

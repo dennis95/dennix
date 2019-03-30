@@ -17,6 +17,9 @@
  * Thread class.
  */
 
+#ifndef KERNEL_THREAD_H
+#define KERNEL_THREAD_H
+
 #include <signal.h>
 #include <dennix/kernel/clock.h>
 #include <dennix/kernel/interrupts.h>
@@ -68,3 +71,5 @@ void setKernelStack(uintptr_t stack);
 extern "C" {
 extern __fpu_t initFpu;
 }
+
+#endif

@@ -25,6 +25,7 @@
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/dynarray.h>
 #include <dennix/kernel/filedescription.h>
+#include <dennix/kernel/terminal.h>
 #include <dennix/kernel/thread.h>
 
 struct FdTableEntry {
@@ -46,18 +47,24 @@ public:
             char* const envp[]);
     int fcntl(int fd, int cmd, int param);
     Reference<FileDescription> getFd(int fd);
+    bool isParentOf(Process* process);
     void raiseSignal(siginfo_t siginfo);
+    void raiseSignalForGroup(siginfo_t siginfo);
     Process* regfork(int flags, regfork_t* registers);
+    int setpgid(pid_t pgid);
     void terminateBySignal(siginfo_t siginfo);
     Process* waitpid(pid_t pid, int flags);
 private:
+    void removeFromGroup();
     void terminate();
 public:
     AddressSpace* addressSpace;
+    Reference<Terminal> controllingTerminal;
     Clock cpuClock;
     Reference<FileDescription> cwdFd;
     Thread mainThread;
     pid_t pid;
+    pid_t pgid;
     Reference<FileDescription> rootFd;
     struct sigaction sigactions[NSIG];
     vaddr_t sigreturn;
@@ -65,15 +72,20 @@ public:
     mode_t umask;
 private:
     kthread_mutex_t childrenMutex;
+    kthread_mutex_t groupMutex;
     DynamicArray<FdTableEntry, int> fdTable;
     Process* firstChild;
     Process* nextChild;
     Process* parent;
     Process* prevChild;
+    Process* prevInGroup;
+    Process* nextInGroup;
     bool terminated;
 public:
     static bool addProcess(Process* process);
     static Process* current() { return Thread::current()->process; }
+    static Process* get(pid_t pid);
+    static Process* getGroup(pid_t pgid);
     static Process* initProcess;
 private:
     static int copyArguments(char* const argv[], char* const envp[],

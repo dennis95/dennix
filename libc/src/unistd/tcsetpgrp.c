@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,38 +13,22 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* utils/init.c
- * System initialization.
+/* libc/src/unistd/tcsetpgrp.c
+ * Set foreground process group ID.
  */
 
-#include <err.h>
-#include <stdbool.h>
-#include <stdlib.h>
+#include <devctl.h>
+#include <errno.h>
 #include <unistd.h>
-#include <sys/wait.h>
 
-int main(int argc, char* argv[]) {
-    (void) argc; (void) argv;
-
-    if (getpid() != 1) errx(1, "PID is not 1");
-
-    if (setenv("PATH", "/bin:/sbin", 1) < 0) err(1, "setenv");
-
-    pid_t childPid = fork();
-    if (childPid < 0) err(1, "fork");
-
-    if (childPid == 0) {
-        setpgid(0, 0);
-        tcsetpgrp(0, getpid());
-
-        const char* args[] = { "sh", NULL };
-        execv("/bin/sh", (char**) args);
-        err(1, "execv: '/bin/sh'");
+int tcsetpgrp(int fd, pid_t pgid) {
+    if (pgid < 0) {
+        errno = EINVAL;
+        return -1;
     }
 
-    while (true) {
-        // Wait for any orphaned processes.
-        int status;
-        wait(&status);
-    }
+    int info;
+    errno = posix_devctl(fd, TIOCSPGRP, &pgid, sizeof(pid_t), &info);
+    if (errno == EINVAL) errno = ENOTTY;
+    return info;
 }

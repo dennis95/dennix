@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -57,7 +57,9 @@
 #define SYSCALL_FCNTL 34
 #define SYSCALL_UTIMENSAT 35
 #define SYSCALL_DEVCTL 36
+#define SYSCALL_GETPGID 37
+#define SYSCALL_SETPGID 38
 
-#define NUM_SYSCALLS 37
+#define NUM_SYSCALLS 39
 
 #endif

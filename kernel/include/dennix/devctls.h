@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,5 +29,7 @@
    to allow error detection. */
 
 #define TIOCGWINSZ _DEVCTL(_IOCTL_PTR, 0) /* (struct winsize*) */
+#define TIOCGPGRP _DEVCTL(_IOCTL_PTR, 1) /* (pid_t*) */
+#define TIOCSPGRP _DEVCTL(_IOCTL_PTR, 2) /* (const pid_t*) */
 
 #endif

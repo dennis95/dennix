@@ -140,6 +140,17 @@ void Process::raiseSignal(siginfo_t siginfo) {
     mainThread.raiseSignal(siginfo);
 }
 
+void Process::raiseSignalForGroup(siginfo_t siginfo) {
+    AutoLock lock(&groupMutex);
+    assert(!prevInGroup);
+
+    Process* process = this;
+    while (process) {
+        process->raiseSignal(siginfo);
+        process = process->nextInGroup;
+    }
+}
+
 void Thread::raiseSignal(siginfo_t siginfo) {
     AutoLock lock(&signalMutex);
 
@@ -182,7 +193,9 @@ void Thread::raiseSignal(siginfo_t siginfo) {
         current->next = pending;
     }
 
-    updatePendingSignals();
+    if (this == Thread::current()) {
+        updatePendingSignals();
+    }
 }
 
 void Thread::updatePendingSignals() {
@@ -216,22 +229,31 @@ int Syscall::kill(pid_t pid, int signal) {
         return -1;
     }
 
-    Process* process;
-    if (pid == Process::current()->pid) {
-        process = Process::current();
-    } else {
-        // TODO: Allow sending signals to other processes.
-        errno = EPERM;
-        return -1;
-    }
-
-    if (signal == 0) return 0;
-
     siginfo_t siginfo = {};
     siginfo.si_signo = signal;
     siginfo.si_code = SI_USER;
     siginfo.si_pid = Process::current()->pid;
-    process->raiseSignal(siginfo);
+
+    if (pid > 0) {
+        Process* process = Process::get(pid);
+        if (!process) return -1;
+        if (signal == 0) return 0;
+        process->raiseSignal(siginfo);
+    } else if (pid == -1) {
+        // TODO: Implement sending signals to all processes.
+        errno = EPERM;
+        return -1;
+    } else {
+        pid_t pgid = -pid;
+        if (pid == 0) {
+            pgid = Process::current()->pgid;
+        }
+
+        Process* processGroup = Process::getGroup(pgid);
+        if (!processGroup) return -1;
+        if (signal == 0) return 0;
+        processGroup->raiseSignalForGroup(siginfo);
+    }
 
     return 0;
 }

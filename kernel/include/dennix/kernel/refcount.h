@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -93,6 +93,16 @@ public:
     template <typename T2>
     bool operator==(T2* const& obj) {
         return object == obj;
+    }
+
+    template <typename T2>
+    bool operator!=(const Reference<T2>& ref) {
+        return object != (T2*) ref;
+    }
+
+    template <typename T2>
+    bool operator!=(T2* const& obj) {
+        return object != obj;
     }
 
     operator bool() const {

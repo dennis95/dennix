@@ -49,6 +49,7 @@ int fstat(int fd, struct stat* result);
 int fstatat(int fd, const char* restrict path, struct stat* restrict result,
         int flags);
 pid_t getpid();
+pid_t getpgid(pid_t pid);
 int isatty(int fd);
 int kill(pid_t pid, int signal);
 int linkat(int oldFd, const char* oldPath, int newFd, const char* newPath,
@@ -63,6 +64,7 @@ ssize_t read(int fd, void* buffer, size_t size);
 ssize_t readdir(int fd, unsigned long offset, void* buffer, size_t size);
 int renameat(int oldFd, const char* oldPath, int newFd, const char* newPath);
 pid_t regfork(int flags, regfork_t* registers);
+int setpgid(pid_t pid, pid_t pgid);
 int sigaction(int signal, const struct sigaction* restrict action,
         struct sigaction* restrict old);
 int symlinkat(const char* targetPath, int fd, const char* linkPath);

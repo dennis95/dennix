@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,9 +18,12 @@
  */
 
 #include <errno.h>
+#include <limits.h>
 #include <sched.h>
+#include <signal.h>
 #include <dennix/devctls.h>
 #include <dennix/kernel/kernel.h>
+#include <dennix/kernel/process.h>
 #include <dennix/kernel/signal.h>
 #include <dennix/kernel/terminal.h>
 #include <dennix/kernel/terminaldisplay.h>
@@ -34,7 +37,7 @@ Terminal::Terminal() : Vnode(S_IFCHR, 0) {
     termio.c_iflag = 0;
     termio.c_oflag = 0;
     termio.c_cflag = 0;
-    termio.c_lflag = ECHO | ICANON;
+    termio.c_lflag = ECHO | ICANON | ISIG;
 
     termio.c_cc[VEOF] = CTRL('D');
     termio.c_cc[VEOL] = 0;
@@ -48,51 +51,41 @@ Terminal::Terminal() : Vnode(S_IFCHR, 0) {
     termio.c_cc[VSUSP] = CTRL('Z');
     termio.c_cc[VTIME] = 0;
 
+    foregroundGroup = -1;
     numEof = 0;
 }
 
 void Terminal::handleCharacter(char c) {
-    if (termio.c_lflag & ICANON) {
-        // TODO: Handle the unimplemented control characters.
-        if (c == termio.c_cc[VEOF]) {
-            if (terminalBuffer.hasIncompleteLine()) {
-                terminalBuffer.endLine();
-            } else {
-                numEof++;
-            }
-        } else if (c == termio.c_cc[VEOL]) {
-
-        } else if (c == termio.c_cc[VERASE]) {
-            if (terminalBuffer.backspace() && (termio.c_lflag & ECHO)) {
-                TerminalDisplay::backspace();
-            }
-        } else if (c == termio.c_cc[VINTR]) {
-
-        } else if (c == termio.c_cc[VKILL]) {
-
-        } else if (c == termio.c_cc[VQUIT]) {
-
-        } else if (c == termio.c_cc[VSTART]) {
-
-        } else if (c == termio.c_cc[VSTOP]) {
-
-        } else if (c == termio.c_cc[VSUSP]) {
-
+    if (termio.c_lflag & ICANON && c == termio.c_cc[VEOF]) {
+        if (terminalBuffer.hasIncompleteLine()) {
+            terminalBuffer.endLine();
         } else {
-            if (termio.c_lflag & ECHO) {
-                TerminalDisplay::printCharacterRaw(c);
-            }
-            terminalBuffer.write(c);
-            if (c == '\n') {
-                terminalBuffer.endLine();
-            }
+            numEof++;
         }
+    } else if (termio.c_lflag & ICANON && c == termio.c_cc[VERASE]) {
+        if (terminalBuffer.backspace() && (termio.c_lflag & ECHO)) {
+            TerminalDisplay::backspace();
+        }
+    } else if (termio.c_lflag & ISIG && c == termio.c_cc[VINTR]) {
+        raiseSignal(SIGINT);
+    } else if (termio.c_lflag & ICANON && c == termio.c_cc[VKILL]) {
+
+    } else if (termio.c_lflag & ISIG && c == termio.c_cc[VQUIT]) {
+        raiseSignal(SIGQUIT);
+    } else if (/* IXON */ false && c == termio.c_cc[VSTART]) {
+
+    } else if (/* IXON */ false && c == termio.c_cc[VSTOP]) {
+
+    } else if (termio.c_lflag & ISIG && c == termio.c_cc[VSUSP]) {
+
     } else {
         if (termio.c_lflag & ECHO) {
             TerminalDisplay::printCharacterRaw(c);
         }
         terminalBuffer.write(c);
-        terminalBuffer.endLine();
+        if (!(termio.c_lflag & ICANON) || c == '\n' || c == termio.c_cc[VEOL]) {
+            terminalBuffer.endLine();
+        }
     }
 }
 
@@ -124,6 +117,27 @@ void Terminal::onKeyboardEvent(int key) {
 int Terminal::devctl(int command, void* restrict data, size_t size,
         int* restrict info) {
     switch (command) {
+    case TIOCGPGRP: {
+        if (size != 0 && size != sizeof(pid_t)) {
+            *info = -1;
+            return EINVAL;
+        }
+
+        if (Process::current()->controllingTerminal != this) {
+            *info = -1;
+            return ENOTTY;
+        }
+
+        pid_t* pgid = (pid_t*) data;
+
+        if (foregroundGroup >= 0) {
+            *pgid = foregroundGroup;
+        } else {
+            *pgid = INT_MAX;
+        }
+        *info = 0;
+        return 0;
+    } break;
     case TIOCGWINSZ: {
         if (size != 0 && size != sizeof(struct winsize)) {
             *info = -1;
@@ -136,6 +150,36 @@ int Terminal::devctl(int command, void* restrict data, size_t size,
         *info = 0;
         return 0;
     } break;
+    case TIOCSPGRP: {
+        if (size != 0 && size != sizeof(pid_t)) {
+            *info = -1;
+            return EINVAL;
+        }
+
+        if (Process::current()->controllingTerminal != this) {
+            *info = -1;
+            return ENOTTY;
+        }
+
+        const pid_t* pgid = (const pid_t*) data;
+
+        if (*pgid < 0) {
+            *info = -1;
+            return EINVAL;
+        }
+
+        if (!Process::getGroup(*pgid)) {
+            *info = -1;
+            return EPERM;
+        }
+
+        // TODO: The terminal should lose its foreground ground when the group
+        // dies.
+        foregroundGroup = *pgid;
+
+        *info = 0;
+        return 0;
+    } break;
     default:
         *info = -1;
         return EINVAL;
@@ -144,6 +188,19 @@ int Terminal::devctl(int command, void* restrict data, size_t size,
 
 int Terminal::isatty() {
     return 1;
+}
+
+void Terminal::raiseSignal(int signal) {
+    siginfo_t siginfo = {};
+    siginfo.si_signo = signal;
+    siginfo.si_code = SI_KERNEL;
+
+    if (foregroundGroup > 0) {
+        Process* group = Process::getGroup(foregroundGroup);
+        if (group) {
+            group->raiseSignalForGroup(siginfo);
+        }
+    }
 }
 
 ssize_t Terminal::read(void* buffer, size_t size) {

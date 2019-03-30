@@ -33,8 +33,17 @@
 
 Process* Process::initProcess;
 
+struct ProcessTableEntry {
+    Process* process;
+    // This is either an actual group leader or some process of the group that
+    // acts as a pseudo group leader if the group does not have a leader.
+    Process* processGroup;
+
+    operator bool() { return process || processGroup; }
+};
+
 kthread_mutex_t processesMutex = KTHREAD_MUTEX_INITIALIZER;
-static DynamicArray<Process*, pid_t> processes;
+static DynamicArray<ProcessTableEntry, pid_t> processes;
 
 extern "C" {
 extern symbol_t beginSigreturn;
@@ -44,11 +53,16 @@ extern symbol_t endSigreturn;
 Process::Process() : mainThread(this) {
     addressSpace = nullptr;
     childrenMutex = KTHREAD_MUTEX_INITIALIZER;
+    controllingTerminal = nullptr;
     cwdFd = nullptr;
     firstChild = nullptr;
+    groupMutex = KTHREAD_MUTEX_INITIALIZER;
     nextChild = nullptr;
+    nextInGroup = nullptr;
     parent = nullptr;
     prevChild = nullptr;
+    prevInGroup = nullptr;
+    pgid = -1;
     pid = -1;
     rootFd = nullptr;
     memset(sigactions, '\0', sizeof(sigactions));
@@ -64,7 +78,11 @@ Process::~Process() {
 
 bool Process::addProcess(Process* process) {
     AutoLock lock(&processesMutex);
-    process->pid = processes.add(process);
+    Process* group = process->pgid == -1 ? process : nullptr;
+    process->pid = processes.add({process, group});
+    if (process->pgid == -1) {
+        process->pgid = process->pid;
+    }
     return process->pid != -1;
 }
 
@@ -295,6 +313,15 @@ int Process::fcntl(int fd, int cmd, int param) {
     }
 }
 
+Process* Process::get(pid_t pid) {
+    AutoLock lock(&processesMutex);
+    if (pid >= processes.allocatedSize || !processes[pid].process) {
+        errno = ESRCH;
+        return nullptr;
+    }
+    return processes[pid].process;
+}
+
 Reference<FileDescription> Process::getFd(int fd) {
     if (fd < 0 || fd >= fdTable.allocatedSize || !fdTable[fd]) {
         errno = EBADF;
@@ -302,6 +329,19 @@ Reference<FileDescription> Process::getFd(int fd) {
     }
 
     return fdTable[fd].descr;
+}
+
+Process* Process::getGroup(pid_t pgid) {
+    AutoLock lock(&processesMutex);
+    if (pgid >= processes.allocatedSize || !processes[pgid].processGroup) {
+        errno = ESRCH;
+        return nullptr;
+    }
+    return processes[pgid].processGroup;
+}
+
+bool Process::isParentOf(Process* process) {
+    return this == process->parent;
 }
 
 Process* Process::regfork(int /*flags*/, regfork_t* registers) {
@@ -329,33 +369,109 @@ Process* Process::regfork(int /*flags*/, regfork_t* registers) {
         }
     }
 
-    process->rootFd = rootFd;
+    process->controllingTerminal = controllingTerminal;
     process->cwdFd = cwdFd;
+    process->pgid = pgid;
+    process->rootFd = rootFd;
+    process->sigreturn = sigreturn;
     process->umask = umask;
 
-    kthread_mutex_lock(&childrenMutex);
+    if (!addProcess(process)) {
+        process->terminate();
+        delete process;
+        return nullptr;
+    }
 
+    kthread_mutex_lock(&childrenMutex);
     if (firstChild) {
         process->nextChild = firstChild;
         firstChild->prevChild = process;
     }
     firstChild = process;
-
-    if (!addProcess(process)) {
-        process->terminate();
-        if (process->nextChild) {
-            process->nextChild->prevChild = nullptr;
-        }
-        firstChild = process->nextChild;
-        delete process;
-        return nullptr;
-    }
     kthread_mutex_unlock(&childrenMutex);
+
+    AutoLock lock(&processesMutex);
+    Process* groupLeader = processes[pgid].processGroup;
+    kthread_mutex_lock(&groupLeader->groupMutex);
+    process->prevInGroup = this;
+    process->nextInGroup = nextInGroup;
+    if (nextInGroup) {
+        nextInGroup->prevInGroup = process;
+    }
+    nextInGroup = process;
+    kthread_mutex_unlock(&groupLeader->groupMutex);
+
     Thread::addThread(&process->mainThread);
     return process;
 }
 
+void Process::removeFromGroup() {
+    AutoLock lock(&processesMutex);
+    Process* groupLeader = processes[pgid].processGroup;
+    kthread_mutex_lock(&groupLeader->groupMutex);
+
+    if (!prevInGroup) {
+        // This is the (pseudo) group leader.
+        assert(this == groupLeader);
+        if (nextInGroup) {
+            // That process becomes the pseudo group leader.
+            groupLeader = nextInGroup;
+            kthread_mutex_lock(&groupLeader->groupMutex);
+            groupLeader->prevInGroup = nullptr;
+            processes[pgid].processGroup = groupLeader;
+            nextInGroup = nullptr;
+            kthread_mutex_unlock(&groupMutex);
+        } else {
+            // The group ceases to exist.
+            processes[pgid].processGroup = nullptr;
+        }
+    } else {
+        prevInGroup->nextInGroup = nextInGroup;
+        if (nextInGroup) {
+            nextInGroup->prevInGroup = prevInGroup;
+        }
+        prevInGroup = nullptr;
+        nextInGroup = nullptr;
+    }
+    kthread_mutex_unlock(&groupLeader->groupMutex);
+}
+
+int Process::setpgid(pid_t pgid) {
+    if (pgid == 0) {
+        pgid = pid;
+    }
+
+    if (this->pgid == pgid) return 0;
+    removeFromGroup();
+    this->pgid = pgid;
+
+    AutoLock lock(&processesMutex);
+    if (pgid >= processes.allocatedSize ||
+            (!processes[pgid].processGroup && pgid != pid)) {
+        errno = EPERM;
+        return -1;
+    }
+
+    if (!processes[pgid].processGroup) {
+        processes[pgid].processGroup = this;
+    } else {
+        Process* groupLeader = processes[pgid].processGroup;
+
+        AutoLock lock2(&groupLeader->groupMutex);
+        prevInGroup = groupLeader;
+        nextInGroup = groupLeader->nextInGroup;
+        groupLeader->nextInGroup = this;
+        if (nextInGroup) {
+            nextInGroup->prevInGroup = this;
+        }
+    }
+
+    return 0;
+}
+
 void Process::terminate() {
+    removeFromGroup();
+
     rootFd = nullptr;
     cwdFd = nullptr;
     fdTable.clear();
@@ -474,7 +590,7 @@ Process* Process::waitpid(pid_t pid, int flags) {
     kthread_mutex_unlock(&childrenMutex);
 
     AutoLock lock(&processesMutex);
-    processes.remove(process->pid);
+    processes[process->pid].process = nullptr;
 
     return process;
 }

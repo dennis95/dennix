@@ -71,6 +71,8 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_FCNTL] =*/ (void*) Syscall::fcntl,
     /*[SYSCALL_UTIMENSAT] =*/ (void*) Syscall::utimensat,
     /*[SYSCALL_DEVCTL] =*/ (void*) Syscall::devctl,
+    /*[SYSCALL_GETPGID] =*/ (void*) Syscall::getpgid,
+    /*[SYSCALL_SETPGID] =*/ (void*) Syscall::setpgid,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -225,6 +227,15 @@ int Syscall::fstatat(int fd, const char* restrict path,
 
 pid_t Syscall::getpid() {
     return Process::current()->pid;
+}
+
+pid_t Syscall::getpgid(pid_t pid) {
+    if (pid == 0) {
+        return Process::current()->pgid;
+    }
+    Process* process = Process::get(pid);
+    if (!process) return -1;
+    return process->pgid;
 }
 
 int Syscall::isatty(int fd) {
@@ -430,6 +441,30 @@ int Syscall::renameat(int oldFd, const char* oldPath, int newFd,
     free(oldCopy);
     free(newCopy);
     return result;
+}
+
+int Syscall::setpgid(pid_t pid, pid_t pgid) {
+    if (pgid < 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    // TODO: Disallow changing the group of the child after it has called exec.
+
+    Process* process;
+    if (pid == 0) {
+        process = Process::current();
+    } else {
+        process = Process::get(pid);
+        if (!process) return -1;
+        if (process != Process::current() &&
+                !Process::current()->isParentOf(process)) {
+            errno = ESRCH;
+            return -1;
+        }
+    }
+
+    return process->setpgid(pgid);
 }
 
 int Syscall::symlinkat(const char* targetPath, int fd, const char* linkPath) {
