@@ -21,12 +21,36 @@
 #define SH_H
 
 #include <stdbool.h>
+#include <stdnoreturn.h>
 
 #define NO_DISCARD __attribute__((warn_unused_result))
 
+struct ShellOptions {
+    bool allexport;
+    bool errexit;
+    bool hashall;
+    bool ignoreeof;
+    bool monitor;
+    bool noclobber;
+    bool noexec;
+    bool noglob;
+    bool nolog;
+    bool notify;
+    bool nounset;
+    bool verbose;
+    bool vi;
+    bool xtrace;
+
+    bool command;
+    bool interactive;
+    bool stdInput;
+};
+
 extern bool inputIsTerminal;
+extern struct ShellOptions shellOptions;
 extern struct termios termios;
 
+noreturn void executeScript(char** argv);
 NO_DISCARD bool addToArray(void** array, size_t* used, void* value,
         size_t size);
 NO_DISCARD bool moveFd(int old, int new);

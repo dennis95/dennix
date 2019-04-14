@@ -100,19 +100,21 @@ static int executePipeline(struct Pipeline* pipeline) {
                 }
             }
 
-            if (firstInPipeline) {
-                signal(SIGUSR1, sigusr1Handler);
-            }
-            setpgid(0, pgid == -1 ? 0 : pgid);
-
-            if (firstInPipeline) {
-                if (inputIsTerminal) {
-                    tcsetpgrp(0, getpgid(0));
+            if (shellOptions.monitor) {
+                if (firstInPipeline) {
+                    signal(SIGUSR1, sigusr1Handler);
                 }
+                setpgid(0, pgid == -1 ? 0 : pgid);
 
-                while (!pipelineReady) {
-                    // Wait for all processes in the pipeline to start.
-                    sched_yield();
+                if (firstInPipeline) {
+                    if (inputIsTerminal) {
+                        tcsetpgrp(0, getpgid(0));
+                    }
+
+                    while (!pipelineReady) {
+                        // Wait for all processes in the pipeline to start.
+                        sched_yield();
+                    }
                 }
             }
 
@@ -123,8 +125,10 @@ static int executePipeline(struct Pipeline* pipeline) {
                 close(pipeFds[1]);
                 if (!firstInPipeline) {
                     close(inputFd);
-                    setpgid(pid, pgid);
-                } else {
+                    if (shellOptions.monitor) {
+                        setpgid(pid, pgid);
+                    }
+                } else if (shellOptions.monitor) {
                     pgid = pid;
                     while (getpgid(pid) != pgid) {
                         sched_yield();
@@ -136,10 +140,12 @@ static int executePipeline(struct Pipeline* pipeline) {
                 assert(inputFd != 0);
                 close(inputFd);
 
-                setpgid(pid, pgid);
-                // Inform the first process in the pipeline that all processes
-                // have started.
-                kill(pgid, SIGUSR1);
+                if (shellOptions.monitor) {
+                    setpgid(pid, pgid);
+                    // Inform the first process in the pipeline that all
+                    // processes have started.
+                    kill(pgid, SIGUSR1);
+                }
 
                 int exitStatus = waitForCommand(pid);
 
@@ -225,6 +231,13 @@ static noreturn void executeUtility(char** arguments,
 
     if (command) {
         execv(command, arguments);
+
+        if (errno == ENOEXEC) {
+            free(redirections);
+            arguments[0] = (char*) command;
+            executeScript(arguments);
+        }
+
         warn("execv: '%s'", command);
         _Exit(126);
     } else {
@@ -240,9 +253,11 @@ static int forkAndExecuteUtility(char** arguments,
     if (pid < 0) {
         err(1, "fork");
     } else if (pid == 0) {
-        setpgid(0, 0);
-        if (inputIsTerminal) {
-            tcsetpgrp(0, getpgid(0));
+        if (shellOptions.monitor) {
+            setpgid(0, 0);
+            if (inputIsTerminal) {
+                tcsetpgrp(0, getpgid(0));
+            }
         }
 
         resetSignals();
@@ -329,19 +344,19 @@ static int waitForCommand(pid_t pid) {
         err(1, "waitpid");
     }
 
-    if (inputIsTerminal) {
+    if (inputIsTerminal && shellOptions.monitor) {
         tcsetpgrp(0, getpgid(0));
     }
 
     if (WIFSIGNALED(status)) {
-        if (inputIsTerminal) {
+        if (shellOptions.interactive && inputIsTerminal) {
             tcsetattr(0, TCSAFLUSH, &termios);
         }
 
         int signum = WTERMSIG(status);
-        if (signum == SIGINT) {
+        if (shellOptions.interactive && signum == SIGINT) {
             fputc('\n', stderr);
-        } else {
+        } else if (shellOptions.interactive) {
             fprintf(stderr, "%s\n", strsignal(signum));
         }
         return 128 + signum;
