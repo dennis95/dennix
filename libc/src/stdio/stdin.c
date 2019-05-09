@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,10 +19,14 @@
 
 #include "FILE.h"
 
+static unsigned char buffer[BUFSIZ];
 static FILE __stdin = {
     .fd = 0,
-    .flags = 0,
-    .ungetcBuffer = '\0',
+    .flags = FILE_FLAG_BUFFERED | FILE_FLAG_USER_BUFFER,
+    .buffer = buffer,
+    .bufferSize = sizeof(buffer),
+    .readPosition = UNGET_BYTES,
+    .readEnd = UNGET_BYTES,
 };
 
 FILE* stdin = &__stdin;

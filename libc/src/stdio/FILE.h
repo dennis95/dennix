@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,16 +20,39 @@
 #ifndef FILE_H
 #define FILE_H
 
+#include <stdbool.h>
 #include <stdio.h>
 
 struct __FILE {
     int fd;
     int flags;
-    unsigned char ungetcBuffer;
+    unsigned char* buffer;
+    size_t bufferSize;
+    size_t readPosition;
+    size_t readEnd;
+    size_t writePosition;
+    FILE* prev;
+    FILE* next;
 };
 
 #define FILE_FLAG_EOF (1 << 0)
 #define FILE_FLAG_ERROR (1 << 1)
-#define FILE_FLAG_UNGETC (1 << 2)
+#define FILE_FLAG_BUFFERED (1 << 2)
+#define FILE_FLAG_LINEBUFFER (1 << 3)
+#define FILE_FLAG_USER_BUFFER (1 << 4)
+
+#define UNGET_BYTES 8
+
+extern FILE* __firstFile;
+
+static inline bool fileWasRead(FILE* file) {
+    return file->readPosition != file->readEnd;
+}
+
+static inline bool fileWasWritten(FILE* file) {
+    return file->writePosition != 0;
+}
+
+size_t __file_write(FILE* file, const unsigned char* p, size_t size);
 
 #endif

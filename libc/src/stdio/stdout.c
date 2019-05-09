@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,12 +17,27 @@
  * Standard output.
  */
 
+#include <errno.h>
+#include <unistd.h>
 #include "FILE.h"
 
+static unsigned char buffer[BUFSIZ];
 static FILE __stdout = {
     .fd = 1,
-    .flags = 0,
-    .ungetcBuffer = '\0',
+    .flags = FILE_FLAG_BUFFERED | FILE_FLAG_USER_BUFFER,
+    .buffer = buffer,
+    .bufferSize = sizeof(buffer),
+    .readPosition = UNGET_BYTES,
+    .readEnd = UNGET_BYTES,
 };
 
 FILE* stdout = &__stdout;
+
+__attribute__((constructor)) static void setStdoutLinebuffer(void) {
+    // We must linebuffer stdout when it refers to a terminal.
+    int oldErrno = errno;
+    if (isatty(1)) {
+        __stdout.flags |= FILE_FLAG_LINEBUFFER;
+    }
+    errno = oldErrno;
+}

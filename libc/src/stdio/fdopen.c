@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,13 +18,35 @@
  */
 
 #include <stdlib.h>
+#include <unistd.h>
 #include "FILE.h"
 
 FILE* fdopen(int fd, const char* mode) {
     (void) mode;
 
     FILE* file = malloc(sizeof(FILE));
+    if (!file) return NULL;
+
     file->fd = fd;
-    file->flags = 0;
+    file->flags = FILE_FLAG_BUFFERED;
+
+    file->buffer = malloc(BUFSIZ);
+    if (!file->buffer) {
+        free(file);
+        return NULL;
+    }
+    file->bufferSize = BUFSIZ;
+
+    file->readPosition = UNGET_BYTES;
+    file->readEnd = UNGET_BYTES;
+    file->writePosition = 0;
+
+    if (isatty(fd)) {
+        file->flags |= FILE_FLAG_LINEBUFFER;
+    }
+
+    file->prev = NULL;
+    file->next = __firstFile;
+    __firstFile = file;
     return file;
 }

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,20 +17,56 @@
  * Read data from file.
  */
 
-#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include "FILE.h"
+
+static size_t file_read(FILE* file, unsigned char* p, size_t size) {
+    ssize_t result = read(file->fd, p, size);
+    if (result == 0) {
+        file->flags |= FILE_FLAG_EOF;
+        return 0;
+    } else if (result < 0) {
+        file->flags |= FILE_FLAG_ERROR;
+        return 0;
+    } else {
+        return result;
+    }
+}
 
 size_t fread_unlocked(void* restrict ptr, size_t size, size_t count,
         FILE* restrict file) {
-    if (size == 0 || count == 0) return 0;
+    size_t bytes = size * count;
+    if (!bytes) return 0;
+    if (file->flags & FILE_FLAG_EOF) return 0;
 
     unsigned char* p = (unsigned char*) ptr;
-    size_t i;
-    for (i = 0; i < count; i++) {
-        for (size_t j = 0; j < size; j++) {
-            int c = fgetc_unlocked(file);
-            if (c == EOF) return i;
-            p[i * size + j] = (unsigned char) c;
-        }
+
+    size_t bufferFilled = file->readEnd - file->readPosition;
+    if (bufferFilled <= bytes) {
+        memcpy(p, file->buffer + file->readPosition, bufferFilled);
+        file->readPosition = UNGET_BYTES;
+        file->readEnd = UNGET_BYTES;
+    } else {
+        memcpy(p, file->buffer + file->readPosition, bytes);
+        file->readPosition += bytes;
+        return count;
     }
-    return i;
+
+    size_t bytesRemaining = bytes - bufferFilled;
+    if (bytesRemaining == 0) return count;
+    if (bytesRemaining >= file->bufferSize - file->readEnd ||
+            !(file->flags & FILE_FLAG_BUFFERED)) {
+        size_t bytesRead = file_read(file, p + bufferFilled, bytesRemaining);
+        return (bufferFilled + bytesRead) / size;
+    }
+
+    size_t bytesRead = file_read(file, file->buffer + file->readEnd,
+            file->bufferSize - file->readEnd);
+    file->readEnd += bytesRead;
+
+    size_t toCopy = bytesRemaining > bytesRead ? bytesRead : bytesRemaining;
+    memcpy(p + bufferFilled, file->buffer + file->readPosition, toCopy);
+    file->readPosition += toCopy;
+    return (bufferFilled + toCopy) / size;
 }

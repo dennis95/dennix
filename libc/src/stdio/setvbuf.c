@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,10 +17,30 @@
  * Set file buffer.
  */
 
-#include <stdio.h>
+#include <stdlib.h>
+#include "FILE.h"
 
 int setvbuf(FILE* restrict file, char* restrict buffer, int type, size_t size) {
-    // Buffering is not yet implemented so there is nothing to do.
-    (void) file; (void) buffer; (void) type; (void) size;
+    if (type == _IOFBF) {
+        file->flags |= FILE_FLAG_BUFFERED;
+        file->flags &= ~FILE_FLAG_LINEBUFFER;
+    } else if (type == _IOLBF) {
+        file->flags |= FILE_FLAG_BUFFERED | FILE_FLAG_LINEBUFFER;
+    } else if (type == _IONBF) {
+        file->flags &= ~(FILE_FLAG_BUFFERED | FILE_FLAG_LINEBUFFER);
+    } else {
+        return -1;
+    }
+
+    if (buffer && size >= UNGET_BYTES) {
+        if (!(file->flags & FILE_FLAG_USER_BUFFER)) {
+            free(file->buffer);
+        }
+
+        file->buffer = (unsigned char*) buffer;
+        file->bufferSize = size;
+        file->flags |= FILE_FLAG_USER_BUFFER;
+    }
+
     return 0;
 }

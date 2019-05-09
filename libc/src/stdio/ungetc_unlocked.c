@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,9 +21,13 @@
 
 int ungetc_unlocked(int c, FILE* file) {
     if (c == EOF) return EOF;
-    if (file->flags & FILE_FLAG_UNGETC) return EOF;
-    file->ungetcBuffer = (unsigned char) c;
-    file->flags |= FILE_FLAG_UNGETC;
+
+    if (fileWasWritten(file) && fflush_unlocked(file) == EOF) {
+        return EOF;
+    }
+
+    if (file->readPosition == 0) return EOF;
+    file->buffer[--file->readPosition] = (unsigned char) c;
     file->flags &= ~FILE_FLAG_EOF;
 
     return (unsigned char) c;

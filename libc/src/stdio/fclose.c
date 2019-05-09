@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,6 +24,18 @@
 int fclose(FILE* file) {
     int result = 0;
     if (fflush(file) == EOF) result = EOF;
+
+    // Remove the file from the file list.
+    if (file == __firstFile) {
+        __firstFile = file->next;
+    }
+    if (file->prev) {
+        file->prev->next = file->next;
+    }
+    if (file->next) {
+        file->next->prev = file->prev;
+    }
+
     if (close(file->fd) < 0) result = EOF;
 
     if (file != stdin && file != stdout && file != stderr) {

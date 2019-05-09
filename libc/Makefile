@@ -139,6 +139,7 @@ LIBC_OBJ = \
 	signal/raise \
 	signal/sigaction \
 	signal/signal \
+	stdio/__file_write \
 	stdio/clearerr_unlocked \
 	stdio/clearerr \
 	stdio/dprintf \

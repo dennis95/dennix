@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,13 +18,26 @@
  */
 
 #include "FILE.h"
+#include <errno.h>
 #include <unistd.h>
 
 int fseeko_unlocked(FILE* file, off_t offset, int whence) {
-    if (lseek(file->fd, offset, whence) < 0) {
-        file->flags |= FILE_FLAG_ERROR;
+    if (fileWasWritten(file) && fflush_unlocked(file) == EOF) {
         return -1;
     }
-    file->flags &= ~(FILE_FLAG_EOF | FILE_FLAG_UNGETC);
+
+    if (whence == SEEK_CUR) {
+        if (__builtin_sub_overflow(offset, file->readEnd - file->readPosition,
+                &offset)) {
+            errno = EOVERFLOW;
+            return -1;
+        }
+    }
+
+    if (lseek(file->fd, offset, whence) < 0) return -1;
+
+    file->flags &= ~FILE_FLAG_EOF;
+    file->readPosition = UNGET_BYTES;
+    file->readEnd = UNGET_BYTES;
     return 0;
 }

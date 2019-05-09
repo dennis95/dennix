@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,20 +17,53 @@
  * Writes data to a file.
  */
 
-#include <stdio.h>
+#include <string.h>
+#include "FILE.h"
 
 size_t fwrite_unlocked(const void* restrict ptr, size_t size, size_t count,
         FILE* restrict file) {
-    if (size == 0 || count == 0) return 0;
+    size_t bytes = size * count;
+    if (!bytes) return 0;
 
     const unsigned char* p = (const unsigned char*) ptr;
-    size_t i;
-    for (i = 0; i < count; i++) {
-        for (size_t j = 0; j < size; j++) {
-            if (fputc_unlocked(p[i * size + j], file) == EOF) {
-                return i;
+
+    if (!(file->flags & FILE_FLAG_BUFFERED)) {
+        return __file_write(file, p, bytes) / size;
+    }
+
+    if (bytes > file->bufferSize - file->writePosition) {
+        if (__file_write(file, file->buffer, file->writePosition) <
+                file->writePosition) {
+            file->writePosition = 0;
+            return 0;
+        }
+        file->writePosition = 0;
+    }
+    if (bytes > file->bufferSize) {
+        return __file_write(file, p, bytes) / size;
+    }
+
+    size_t written = 0;
+    if (file->flags & FILE_FLAG_LINEBUFFER) {
+        size_t i = bytes;
+        while (i > 0 && p[i - 1] != '\n') {
+            i--;
+        }
+        if (i > 0) {
+            memcpy(file->buffer + file->writePosition, p, i);
+            written = __file_write(file, file->buffer, file->writePosition + i);
+            if (written < file->writePosition + i) {
+                written = written <= file->writePosition ? 0 :
+                        written - file->writePosition;
+                file->writePosition = 0;
+                return written / size;
             }
+            written = i;
+            file->writePosition = 0;
         }
     }
-    return i;
+
+    memcpy(file->buffer + file->writePosition, p + written, bytes - written);
+    file->writePosition += bytes - written;
+    return count;
 }

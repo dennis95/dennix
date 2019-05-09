@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,10 +17,40 @@
  * Flush a file stream.
  */
 
+#include <errno.h>
+#include <unistd.h>
 #include "FILE.h"
 
 int fflush_unlocked(FILE* file) {
-    file->flags &= ~FILE_FLAG_UNGETC;
-    // Buffering is not yet implemented so there is nothing else to do.
+    if (fileWasRead(file)) {
+        off_t offset = -(off_t) (file->readEnd - file->readPosition);
+        if (file->readPosition < UNGET_BYTES) {
+            file->readPosition = UNGET_BYTES;
+        }
+
+        if (lseek(file->fd, offset, SEEK_CUR) < 0) {
+            if (errno == ESPIPE) {
+                // We need to preserve the buffer as we would lose data
+                // otherwise. Staying in read mode is not a problem because
+                // applications must seek (not just flush) when writing after
+                // reading.
+                return 0;
+            }
+            file->flags |= FILE_FLAG_ERROR;
+            return EOF;
+        }
+        file->readPosition = UNGET_BYTES;
+        file->readEnd = UNGET_BYTES;
+    }
+
+    if (fileWasWritten(file)) {
+        if (__file_write(file, file->buffer, file->writePosition) <
+                file->writePosition) {
+            file->writePosition = 0;
+            return EOF;
+        }
+        file->writePosition = 0;
+    }
+
     return 0;
 }

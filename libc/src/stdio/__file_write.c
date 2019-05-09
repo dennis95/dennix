@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,19 +13,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/stdio/ftello_unlocked.c
- * Get file position.
+/* libc/src/stdio/__file_write.c
+ * Write data to a file.
  */
 
-#include "FILE.h"
 #include <unistd.h>
+#include "FILE.h"
 
-off_t ftello_unlocked(FILE* file) {
-    off_t offset = lseek(file->fd, 0, SEEK_CUR);
-    if (offset < 0) return offset;
+size_t __file_write(FILE* file, const unsigned char* p, size_t size) {
+    size_t written = 0;
 
-    offset += file->writePosition;
-    offset -= file->readEnd - file->readPosition;
-
-    return offset;
+    while (written < size) {
+        ssize_t result = write(file->fd, p, size - written);
+        if (result < 0) {
+            file->flags |= FILE_FLAG_ERROR;
+            return written;
+        }
+        written += result;
+        p += result;
+    }
+    return written;
 }
