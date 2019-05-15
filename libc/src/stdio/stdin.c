@@ -27,6 +27,9 @@ static FILE __stdin = {
     .bufferSize = sizeof(buffer),
     .readPosition = UNGET_BYTES,
     .readEnd = UNGET_BYTES,
+    .read = __file_read,
+    .write = __file_write,
+    .seek = __file_seek,
 };
 
 FILE* stdin = &__stdin;

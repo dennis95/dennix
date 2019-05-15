@@ -41,6 +41,10 @@ FILE* fdopen(int fd, const char* mode) {
     file->readEnd = UNGET_BYTES;
     file->writePosition = 0;
 
+    file->read = __file_read;
+    file->write = __file_write;
+    file->seek = __file_seek;
+
     if (isatty(fd)) {
         file->flags |= FILE_FLAG_LINEBUFFER;
     }

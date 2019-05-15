@@ -28,11 +28,11 @@ size_t fwrite_unlocked(const void* restrict ptr, size_t size, size_t count,
     const unsigned char* p = (const unsigned char*) ptr;
 
     if (!(file->flags & FILE_FLAG_BUFFERED)) {
-        return __file_write(file, p, bytes) / size;
+        return file->write(file, p, bytes) / size;
     }
 
     if (bytes > file->bufferSize - file->writePosition) {
-        if (__file_write(file, file->buffer, file->writePosition) <
+        if (file->write(file, file->buffer, file->writePosition) <
                 file->writePosition) {
             file->writePosition = 0;
             return 0;
@@ -40,7 +40,7 @@ size_t fwrite_unlocked(const void* restrict ptr, size_t size, size_t count,
         file->writePosition = 0;
     }
     if (bytes > file->bufferSize) {
-        return __file_write(file, p, bytes) / size;
+        return file->write(file, p, bytes) / size;
     }
 
     size_t written = 0;
@@ -51,7 +51,7 @@ size_t fwrite_unlocked(const void* restrict ptr, size_t size, size_t count,
         }
         if (i > 0) {
             memcpy(file->buffer + file->writePosition, p, i);
-            written = __file_write(file, file->buffer, file->writePosition + i);
+            written = file->write(file, file->buffer, file->writePosition + i);
             if (written < file->writePosition + i) {
                 written = written <= file->writePosition ? 0 :
                         written - file->writePosition;

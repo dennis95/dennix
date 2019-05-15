@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,8 +17,12 @@
  * Get file descriptor from FILE.
  */
 
+#include <errno.h>
 #include "FILE.h"
 
 int fileno(FILE* file) {
+    if (file->fd == -1) {
+        errno = EBADF;
+    }
     return file->fd;
 }

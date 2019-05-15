@@ -18,7 +18,6 @@
  */
 
 #include <errno.h>
-#include <unistd.h>
 #include "FILE.h"
 
 int fflush_unlocked(FILE* file) {
@@ -28,7 +27,7 @@ int fflush_unlocked(FILE* file) {
             file->readPosition = UNGET_BYTES;
         }
 
-        if (lseek(file->fd, offset, SEEK_CUR) < 0) {
+        if (file->seek(file, offset, SEEK_CUR) < 0) {
             if (errno == ESPIPE) {
                 // We need to preserve the buffer as we would lose data
                 // otherwise. Staying in read mode is not a problem because
@@ -44,7 +43,7 @@ int fflush_unlocked(FILE* file) {
     }
 
     if (fileWasWritten(file)) {
-        if (__file_write(file, file->buffer, file->writePosition) <
+        if (file->write(file, file->buffer, file->writePosition) <
                 file->writePosition) {
             file->writePosition = 0;
             return EOF;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,36 +13,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/stdio/fclose.c
- * Closes a file.
+/* libc/src/stdio/__file_seek.c
+ * Get or set file position.
  */
 
-#include <stdlib.h>
 #include <unistd.h>
 #include "FILE.h"
 
-int fclose(FILE* file) {
-    int result = 0;
-    if (fflush(file) == EOF) result = EOF;
-
-    // Remove the file from the file list.
-    if (file == __firstFile) {
-        __firstFile = file->next;
-    }
-    if (file->prev) {
-        file->prev->next = file->next;
-    }
-    if (file->next) {
-        file->next->prev = file->prev;
-    }
-
-    if (file->fd != -1 && close(file->fd) < 0) {
-        result = EOF;
-    }
-
-    if (file != stdin && file != stdout && file != stderr) {
-        free(file);
-    }
-
-    return result;
+off_t __file_seek(FILE* file, off_t offset, int whence) {
+    return lseek(file->fd, offset, whence);
 }

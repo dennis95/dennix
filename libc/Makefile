@@ -139,7 +139,10 @@ LIBC_OBJ = \
 	signal/raise \
 	signal/sigaction \
 	signal/signal \
+	stdio/__file_read \
+	stdio/__file_seek \
 	stdio/__file_write \
+	stdio/__fmodeflags \
 	stdio/clearerr_unlocked \
 	stdio/clearerr \
 	stdio/dprintf \
@@ -157,6 +160,7 @@ LIBC_OBJ = \
 	stdio/fgets \
 	stdio/fileno \
 	stdio/flockfile \
+	stdio/fmemopen \
 	stdio/fopen \
 	stdio/fprintf \
 	stdio/fputc_unlocked \

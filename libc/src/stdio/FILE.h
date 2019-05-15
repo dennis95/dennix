@@ -33,6 +33,9 @@ struct __FILE {
     size_t writePosition;
     FILE* prev;
     FILE* next;
+    size_t (*read)(FILE*, unsigned char*, size_t);
+    size_t (*write)(FILE*, const unsigned char*, size_t);
+    off_t (*seek)(FILE*, off_t, int);
 };
 
 #define FILE_FLAG_EOF (1 << 0)
@@ -53,6 +56,8 @@ static inline bool fileWasWritten(FILE* file) {
     return file->writePosition != 0;
 }
 
+size_t __file_read(FILE* file, unsigned char* p, size_t size);
 size_t __file_write(FILE* file, const unsigned char* p, size_t size);
+off_t __file_seek(FILE* file, off_t offset, int whence);
 
 #endif

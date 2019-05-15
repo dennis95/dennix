@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,35 +13,30 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/stdio/fclose.c
- * Closes a file.
+/* libc/src/stdio/__fmodeflags.c
+ * Get file open flags from mode.
  */
 
-#include <stdlib.h>
-#include <unistd.h>
-#include "FILE.h"
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
 
-int fclose(FILE* file) {
+int __fmodeflags(const char* mode) {
     int result = 0;
-    if (fflush(file) == EOF) result = EOF;
 
-    // Remove the file from the file list.
-    if (file == __firstFile) {
-        __firstFile = file->next;
-    }
-    if (file->prev) {
-        file->prev->next = file->next;
-    }
-    if (file->next) {
-        file->next->prev = file->prev;
-    }
-
-    if (file->fd != -1 && close(file->fd) < 0) {
-        result = EOF;
-    }
-
-    if (file != stdin && file != stdout && file != stderr) {
-        free(file);
+    while (*mode) {
+        switch(*mode++) {
+        case 'r': result |= O_RDONLY; break;
+        case 'w': result |= O_WRONLY | O_CREAT | O_TRUNC; break;
+        case 'a': result |= O_WRONLY | O_APPEND | O_CREAT; break;
+        case '+': result |= O_RDWR; break;
+        case 'e': result |= O_CLOEXEC; break;
+        case 'x': result |= O_EXCL; break;
+        case 'b': break;
+        default:
+            errno = EINVAL;
+            return -1;
+        }
     }
 
     return result;

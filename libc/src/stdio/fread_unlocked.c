@@ -18,21 +18,7 @@
  */
 
 #include <string.h>
-#include <unistd.h>
 #include "FILE.h"
-
-static size_t file_read(FILE* file, unsigned char* p, size_t size) {
-    ssize_t result = read(file->fd, p, size);
-    if (result == 0) {
-        file->flags |= FILE_FLAG_EOF;
-        return 0;
-    } else if (result < 0) {
-        file->flags |= FILE_FLAG_ERROR;
-        return 0;
-    } else {
-        return result;
-    }
-}
 
 size_t fread_unlocked(void* restrict ptr, size_t size, size_t count,
         FILE* restrict file) {
@@ -57,11 +43,11 @@ size_t fread_unlocked(void* restrict ptr, size_t size, size_t count,
     if (bytesRemaining == 0) return count;
     if (bytesRemaining >= file->bufferSize - file->readEnd ||
             !(file->flags & FILE_FLAG_BUFFERED)) {
-        size_t bytesRead = file_read(file, p + bufferFilled, bytesRemaining);
+        size_t bytesRead = file->read(file, p + bufferFilled, bytesRemaining);
         return (bufferFilled + bytesRead) / size;
     }
 
-    size_t bytesRead = file_read(file, file->buffer + file->readEnd,
+    size_t bytesRead = file->read(file, file->buffer + file->readEnd,
             file->bufferSize - file->readEnd);
     file->readEnd += bytesRead;
 

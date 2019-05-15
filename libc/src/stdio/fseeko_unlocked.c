@@ -19,7 +19,6 @@
 
 #include "FILE.h"
 #include <errno.h>
-#include <unistd.h>
 
 int fseeko_unlocked(FILE* file, off_t offset, int whence) {
     if (fileWasWritten(file) && fflush_unlocked(file) == EOF) {
@@ -34,7 +33,7 @@ int fseeko_unlocked(FILE* file, off_t offset, int whence) {
         }
     }
 
-    if (lseek(file->fd, offset, whence) < 0) return -1;
+    if (file->seek(file, offset, whence) < 0) return -1;
 
     file->flags &= ~FILE_FLAG_EOF;
     file->readPosition = UNGET_BYTES;

@@ -18,10 +18,9 @@
  */
 
 #include "FILE.h"
-#include <unistd.h>
 
 off_t ftello_unlocked(FILE* file) {
-    off_t offset = lseek(file->fd, 0, SEEK_CUR);
+    off_t offset = file->seek(file, 0, SEEK_CUR);
     if (offset < 0) return offset;
 
     offset += file->writePosition;
