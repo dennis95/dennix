@@ -58,6 +58,12 @@ int main(int argc, char* argv[]) {
     int optionIndex = parseOptions(argc, argv);
     int numArguments = argc - optionIndex;
 
+    if (shellOptions.command) {
+        if (numArguments == 0) errx(1, "The -c option requires an operand.");
+        optionIndex++;
+        numArguments--;
+    }
+
     if (numArguments == 0) {
         arguments = malloc(2 * sizeof(char*));
         if (!arguments) err(1, "malloc");
@@ -95,12 +101,18 @@ int main(int argc, char* argv[]) {
 
     inputFile = stdin;
 
+    if (shellOptions.command) {
+        char* command = argv[optionIndex - 1];
+        inputFile = fmemopen(command, strlen(command), "r");
+        if (!inputFile) err(1, "fmemopen");
+    }
+
     if (setjmp(jumpBuffer)) {
         shellOptions = (struct ShellOptions) {false};
         assert(arguments[0]);
     }
 
-    if (!shellOptions.stdInput && arguments[0]) {
+    if (!shellOptions.command && !shellOptions.stdInput && arguments[0]) {
         inputFile = fopen(arguments[0], "r");
         if (!inputFile) err(1, "fopen: '%s'", arguments[0]);
     }
@@ -130,6 +142,13 @@ int main(int argc, char* argv[]) {
     }
 
     while (true) {
+        if (feof(inputFile)) {
+            if (shellOptions.interactive) {
+                putchar('\n');
+            }
+            exit(0);
+        }
+
         if (shellOptions.interactive) {
             fprintf(stderr, "\e[32m%s@%s \e[1;36m%s $\e[22;39m ",
                     username, hostname, pwd ? pwd : ".");
@@ -141,17 +160,20 @@ int main(int argc, char* argv[]) {
 continue_tokenizing:
         do {
             ssize_t length = getline(&buffer, &bufferSize, inputFile);
-            if (length < 0) {
-                putchar('\n');
-                if (feof(inputFile)) exit(0);
+            if (length < 0 && !feof(inputFile)) {
+                if (shellOptions.interactive) {
+                    putchar('\n');
+                }
                 err(1, NULL);
             }
 
-            tokenResult = splitTokens(&tokenizer, buffer);
+            tokenResult = splitTokens(&tokenizer, length < 0 ? "" : buffer);
             if (tokenResult == TOKENIZER_ERROR) {
                 err(1, "Tokenizer error");
+            } else if (tokenResult == TOKENIZER_PREMATURE_EOF) {
+                warnx("syntax error: unexpected end of file");
             } else if (tokenResult == TOKENIZER_NEED_INPUT &&
-                    shellOptions.interactive) {
+                    shellOptions.interactive && !feof(inputFile)) {
                 fputs("> ", stderr);
             }
         } while (tokenResult == TOKENIZER_NEED_INPUT);
@@ -161,8 +183,9 @@ continue_tokenizing:
             continue;
         }
 
-        if (tokenizer.numTokens == 1) {
-            // Only a newline token was found.
+        if (tokenizer.numTokens == 1 && tokenizer.tokens[0].type == OPERATOR &&
+                tokenizer.tokens[0].text[0] == '\n') {
+            // Ignore the empty command.
             freeTokenizer(&tokenizer);
             continue;
         }
@@ -208,6 +231,7 @@ noreturn void executeScript(char** argv) {
 
 static void help(const char* argv0) {
     printf("Usage: %s [OPTIONS] [COMMAND] [ARGUMENT...]\n"
+            "  -c                       execute COMMAND\n"
             "  -i                       make shell interactive\n"
             "  -m, -o monitor           enable job control\n"
             "  -o OPTION                enable OPTION\n"
@@ -302,7 +326,12 @@ static int parseOptions(int argc, char* argv[]) {
                     goto nextArg;
                 }
 
-                // TODO: Add -c option
+                case 'c':
+                    if (!plusOption) {
+                        shellOptions.command = true;
+                        break;
+                    }
+                    // fallthrough
                 case 'i':
                     if (!plusOption) {
                         shellOptions.interactive = true;
@@ -322,6 +351,10 @@ static int parseOptions(int argc, char* argv[]) {
             }
         }
 nextArg:;
+    }
+
+    if (shellOptions.command && shellOptions.stdInput) {
+        errx(1, "The -c and -s options are mutually exclusive.");
     }
 
     if (!shellOptions.command && i >= argc) {

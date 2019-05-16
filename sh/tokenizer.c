@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -53,6 +53,27 @@ static inline bool isShellOrCommandSubstitution(struct Tokenizer* tokenizer) {
 
 enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
         const char* input) {
+    // Handle end of file.
+    if (!*input) {
+        if (tokenizer->tokenStatus != TOKEN_TOPLEVEL) {
+            return TOKENIZER_PREMATURE_EOF;
+        }
+
+        if (tokenizer->wordStatus != WORDSTATUS_NONE) {
+            enum TokenType type = tokenizer->wordStatus == WORDSTATUS_OPERATOR ?
+                    OPERATOR : TOKEN;
+            if (!delimit(tokenizer, type)) return TOKENIZER_ERROR;
+        }
+
+        // Append a newline token.
+        if (!appendToStringBuffer(&tokenizer->buffer, '\n')) {
+            return TOKENIZER_ERROR;
+        }
+        if (!delimit(tokenizer, OPERATOR)) return TOKENIZER_ERROR;
+
+        return TOKENIZER_DONE;
+    }
+
     while (*input) {
         char c = *input++;
 
