@@ -21,39 +21,39 @@
 #include <dennix/kbkeys.h>
 #include <dennix/kernel/keyboard.h>
 
-#define KBLAYOUT KBLAYOUT_US
+#define KBLAYOUT KBLAYOUT_DE
 
-// US keyboard layout.
-static const wchar_t KBLAYOUT_US[] = {
-    // no modifiers, shift, caps, unused
+// German keyboard layout.
+static const wchar_t KBLAYOUT_DE[] = {
+    // no modifiers, shift, caps, altGr
     0, 0, 0, 0,
     0, 0, 0, 0, // Escape
     L'1', L'!', L'1', 0,
-    L'2', L'@', L'2', 0,
-    L'3', L'#', L'3', 0,
+    L'2', L'"', L'2', L'²',
+    L'3', L'§', L'3', L'³',
     L'4', L'$', L'4', 0,
     L'5', L'%', L'5', 0,
-    L'6', L'^', L'6', 0,
-    L'7', L'&', L'7', 0,
-    L'8', L'*', L'8', 0,
-    L'9', L'(', L'9', 0,
-    L'0', L')', L'0', 0,
-    L'-', L'_', L'-', 0,
-    L'=', L'+', L'=', 0,
+    L'6', L'&', L'6', 0,
+    L'7', L'/', L'7', L'{',
+    L'8', L'(', L'8', L'[',
+    L'9', L')', L'9', L']',
+    L'0', L'=', L'0', L'}',
+    L'ß', L'?', L'ß', L'\\',
+    L'´', L'`', L'´', 0,
     L'\b', L'\b', L'\b', L'\b',
     L'\t', L'\t', L'\t', L'\t',
-    L'q', L'Q', L'Q', 0,
+    L'q', L'Q', L'Q', L'@',
     L'w', L'W', L'W', 0,
-    L'e', L'E', L'E', 0,
+    L'e', L'E', L'E', L'€',
     L'r', L'R', L'R', 0,
     L't', L'T', L'T', 0,
-    L'y', L'Y', L'Y', 0,
+    L'z', L'Z', L'Z', 0,
     L'u', L'U', L'U', 0,
     L'i', L'I', L'I', 0,
     L'o', L'O', L'O', 0,
     L'p', L'P', L'P', 0,
-    L'[', L'{', L'[', 0,
-    L']', L'}', L']', 0,
+    L'ü', L'Ü', L'Ü', 0,
+    L'+', L'*', L'+', L'~',
     L'\n', L'\n', L'\n', L'\n',
     0, 0, 0, 0, // left Control
     L'a', L'A', L'A', 0,
@@ -65,21 +65,21 @@ static const wchar_t KBLAYOUT_US[] = {
     L'j', L'J', L'J', 0,
     L'k', L'K', L'K', 0,
     L'l', L'L', L'L', 0,
-    L';', L':', L';', 0,
-    L'\'', L'"', L'\'', 0,
-    L'`', L'~', L'`', 0,
+    L'ö', L'Ö', L'Ö', 0,
+    L'ä', L'Ä', L'Ä', 0,
+    L'^', L'°', L'^', 0,
     0, 0, 0, 0, // left Shift
-    L'\\', L'|', L'\\', 0,
-    L'z', L'Z', L'Z', 0,
+    L'#', L'\'', L'#', 0,
+    L'y', L'Y', L'Y', 0,
     L'x', L'X', L'X', 0,
     L'c', L'C', L'C', 0,
     L'v', L'V', L'V', 0,
     L'b', L'B', L'B', 0,
     L'n', L'N', L'N', 0,
-    L'm', L'M', L'M', 0,
-    L',', L'<', L',', 0,
-    L'.', L'>', L'.', 0,
-    L'/', L'?', L'/', 0,
+    L'm', L'M', L'M', L'µ',
+    L',', L';', L',', 0,
+    L'.', L':', L'.', 0,
+    L'-', L'_', L'-', 0,
     0, 0, 0, 0, // right Shift
     L'*', L'*', L'*', L'*',
     0, 0, 0, 0, // left Alt
@@ -109,10 +109,10 @@ static const wchar_t KBLAYOUT_US[] = {
     L'2', 0, L'2', L'2',
     L'3', 0, L'3', L'3',
     L'0', 0, L'0', L'0',
-    L'.', 0, L'.', L'.',
+    L',', 0, L',', L',',
     0, 0, 0, 0,
     0, 0, 0, 0,
-    0, 0, 0, 0,
+    L'<', L'>', L'<', L'|',
     0, 0, 0, 0, // F11
     0, 0, 0, 0, // F12
     // Most things below are not printable
@@ -153,6 +153,7 @@ size_t Keyboard::getUtf8FromKey(int key, char* buffer) {
     static bool capsLock = false;
     static bool leftControl = false;
     static bool rightControl = false;
+    static bool altGr = false;
 
     if (key == KB_LSHIFT) {
         leftShift = true;
@@ -164,6 +165,8 @@ size_t Keyboard::getUtf8FromKey(int key, char* buffer) {
         leftControl = true;
     } else if (key == KB_RCONTROL) {
         rightControl = true;
+    } else if (key == KB_ALTGR) {
+        altGr = true;
     } else if (key == -KB_LSHIFT) {
         leftShift = false;
     } else if (key == -KB_RSHIFT) {
@@ -172,6 +175,8 @@ size_t Keyboard::getUtf8FromKey(int key, char* buffer) {
         leftControl = false;
     } else if (key == -KB_RCONTROL) {
         rightControl = false;
+    } else if (key == -KB_ALTGR) {
+        altGr = false;
     }
 
     if (key < 0) return -1;
@@ -180,7 +185,10 @@ size_t Keyboard::getUtf8FromKey(int key, char* buffer) {
     if ((size_t) key < sizeof(KBLAYOUT) / sizeof(wchar_t) / 4) {
         size_t index = key << 2;
         bool shift = leftShift || rightShift;
-        if (shift && capsLock) {
+        if (altGr) {
+            if (shift && KBLAYOUT[index + 1] != KBLAYOUT[index + 3]) return -1;
+            index += 3;
+        } else if (shift && capsLock) {
             // When shift and caps have the same effect they cancel each other.
             if (KBLAYOUT[index + 1] != KBLAYOUT[index + 2]) {
                 index++;
