@@ -23,5 +23,5 @@ int fputc_unlocked(int c, FILE* file) {
     if (fwrite_unlocked(&c, 1, 1, file) != 1) {
         return EOF;
     }
-    return c;
+    return (unsigned char) c;
 }
