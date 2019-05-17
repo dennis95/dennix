@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,71 +17,73 @@
  * Keyboard.
  */
 
-#include <stddef.h>
+#include <wchar.h>
 #include <dennix/kbkeys.h>
 #include <dennix/kernel/keyboard.h>
 
+#define KBLAYOUT KBLAYOUT_US
+
 // US keyboard layout.
-static const char KBLAYOUT_US[] = {
-    // No modifiers, Shift, Caps, Shift + Caps,
+static const wchar_t KBLAYOUT_US[] = {
+    // no modifiers, shift, caps, unused
     0, 0, 0, 0,
     0, 0, 0, 0, // Escape
-    '1', '!', '1', '!',
-    '2', '@', '2', '@',
-    '3', '#', '3', '#',
-    '4', '$', '4', '$',
-    '5', '%', '5', '%',
-    '6', '^', '6', '^',
-    '7', '&', '7', '&',
-    '8', '*', '8', '*',
-    '9', '(', '9', '(',
-    '0', ')', '0', ')',
-    '-', '_', '-', '_',
-    '=', '+', '=', '+',
-    '\b', '\b', '\b', '\b',
-    '\t', '\t', '\t', '\t',
-    'q', 'Q', 'Q', 'q',
-    'w', 'W', 'W', 'w',
-    'e', 'E', 'E', 'e',
-    'r', 'R', 'R', 'r',
-    't', 'T', 'T', 't',
-    'y', 'Y', 'Y', 'y',
-    'u', 'U', 'U', 'u',
-    'i', 'I', 'I', 'i',
-    'o', 'O', 'O', 'o',
-    'p', 'P', 'P', 'p',
-    '[', '{', '[', '{',
-    ']', '}', ']', '}',
-    '\n', '\n', '\n', '\n',
+    L'1', L'!', L'1', 0,
+    L'2', L'@', L'2', 0,
+    L'3', L'#', L'3', 0,
+    L'4', L'$', L'4', 0,
+    L'5', L'%', L'5', 0,
+    L'6', L'^', L'6', 0,
+    L'7', L'&', L'7', 0,
+    L'8', L'*', L'8', 0,
+    L'9', L'(', L'9', 0,
+    L'0', L')', L'0', 0,
+    L'-', L'_', L'-', 0,
+    L'=', L'+', L'=', 0,
+    L'\b', L'\b', L'\b', L'\b',
+    L'\t', L'\t', L'\t', L'\t',
+    L'q', L'Q', L'Q', 0,
+    L'w', L'W', L'W', 0,
+    L'e', L'E', L'E', 0,
+    L'r', L'R', L'R', 0,
+    L't', L'T', L'T', 0,
+    L'y', L'Y', L'Y', 0,
+    L'u', L'U', L'U', 0,
+    L'i', L'I', L'I', 0,
+    L'o', L'O', L'O', 0,
+    L'p', L'P', L'P', 0,
+    L'[', L'{', L'[', 0,
+    L']', L'}', L']', 0,
+    L'\n', L'\n', L'\n', L'\n',
     0, 0, 0, 0, // left Control
-    'a', 'A', 'A', 'a',
-    's', 'S', 'S', 's',
-    'd', 'D', 'D', 'd',
-    'f', 'F', 'F', 'f',
-    'g', 'G', 'G', 'g',
-    'h', 'H', 'H', 'h',
-    'j', 'J', 'J', 'j',
-    'k', 'K', 'K', 'k',
-    'l', 'L', 'L', 'l',
-    ';', ':', ';', ':',
-    '\'', '"', '\'', '"',
-    '`', '~', '`', '~',
+    L'a', L'A', L'A', 0,
+    L's', L'S', L'S', 0,
+    L'd', L'D', L'D', 0,
+    L'f', L'F', L'F', 0,
+    L'g', L'G', L'G', 0,
+    L'h', L'H', L'H', 0,
+    L'j', L'J', L'J', 0,
+    L'k', L'K', L'K', 0,
+    L'l', L'L', L'L', 0,
+    L';', L':', L';', 0,
+    L'\'', L'"', L'\'', 0,
+    L'`', L'~', L'`', 0,
     0, 0, 0, 0, // left Shift
-    '\\', '|', '\\', '|',
-    'z', 'Z', 'Z', 'z',
-    'x', 'X', 'X', 'x',
-    'c', 'C', 'C', 'c',
-    'v', 'V', 'V', 'v',
-    'b', 'B', 'B', 'b',
-    'n', 'N', 'N', 'n',
-    'm', 'M', 'M', 'm',
-    ',', '<', ',', '<',
-    '.', '>', '.', '>',
-    '/', '?', '/', '?',
+    L'\\', L'|', L'\\', 0,
+    L'z', L'Z', L'Z', 0,
+    L'x', L'X', L'X', 0,
+    L'c', L'C', L'C', 0,
+    L'v', L'V', L'V', 0,
+    L'b', L'B', L'B', 0,
+    L'n', L'N', L'N', 0,
+    L'm', L'M', L'M', 0,
+    L',', L'<', L',', 0,
+    L'.', L'>', L'.', 0,
+    L'/', L'?', L'/', 0,
     0, 0, 0, 0, // right Shift
-    '*', '*', '*', '*',
+    L'*', L'*', L'*', L'*',
     0, 0, 0, 0, // left Alt
-    ' ', ' ', ' ', ' ',
+    L' ', L' ', L' ', L' ',
     0, 0, 0, 0, // Caps Lock
     0, 0, 0, 0, // F1
     0, 0, 0, 0,
@@ -95,19 +97,19 @@ static const char KBLAYOUT_US[] = {
     0, 0, 0, 0, // F10
     0, 0, 0, 0, // Num Lock
     0, 0, 0, 0, // Scroll Lock
-    '7', 0, '7', 0,
-    '8', 0, '8', 0,
-    '9', 0, '9', 0,
-    '-', '-', '-', '-',
-    '4', 0, '4', 0,
-    '5', 0, '5', 0,
-    '6', 0, '6', 0,
-    '+', '+', '+', '+',
-    '1', 0, '1', 0,
-    '2', 0, '2', 0,
-    '3', 0, '3', 0,
-    '0', 0, '0', 0,
-    '.', 0, '.', 0,
+    L'7', 0, L'7', L'7',
+    L'8', 0, L'8', L'8',
+    L'9', 0, L'9', L'9',
+    L'-', L'-', L'-', L'-',
+    L'4', 0, L'4', L'4',
+    L'5', 0, L'5', L'5',
+    L'6', 0, L'6', L'6',
+    L'+', L'+', L'+', L'+',
+    L'1', 0, L'1', L'1',
+    L'2', 0, L'2', L'2',
+    L'3', 0, L'3', L'3',
+    L'0', 0, L'0', L'0',
+    L'.', 0, L'.', L'.',
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
@@ -145,7 +147,7 @@ static const struct {
     { 0, 0 }
 };
 
-char Keyboard::getCharFromKey(int key) {
+size_t Keyboard::getUtf8FromKey(int key, char* buffer) {
     static bool leftShift = false;
     static bool rightShift = false;
     static bool capsLock = false;
@@ -172,23 +174,38 @@ char Keyboard::getCharFromKey(int key) {
         rightControl = false;
     }
 
-    if (key < 0) return '\0';
+    if (key < 0) return -1;
 
-    char result = '\0';
-    size_t index = key << 2 | (capsLock << 1) | (leftShift || rightShift);
-    if (index < sizeof(KBLAYOUT_US)) {
-        result = KBLAYOUT_US[index];
+    wchar_t wc = L'\0';
+    if ((size_t) key < sizeof(KBLAYOUT) / sizeof(wchar_t) / 4) {
+        size_t index = key << 2;
+        bool shift = leftShift || rightShift;
+        if (shift && capsLock) {
+            // When shift and caps have the same effect they cancel each other.
+            if (KBLAYOUT[index + 1] != KBLAYOUT[index + 2]) {
+                index++;
+            }
+        } else if (shift) {
+            index++;
+        } else if (capsLock) {
+            index += 2;
+        }
+        wc = KBLAYOUT[index];
     } else if (key == KB_NUMPAD_ENTER) {
-        result = '\n';
+        wc = L'\n';
     } else if (key == KB_NUMPAD_DIV) {
-        result = '/';
+        wc = L'/';
     }
 
-    if (leftControl || rightControl) {
-        result = result & 0x1F;
+    bool control = leftControl || rightControl;
+    if (control && wc >= L'@' && wc <= L'~') {
+        wc = wc & 0x1F;
+    } else if (control && wc == L'?') {
+        wc = L'\x7F';
     }
 
-    return result;
+    if (!wc) return -1;
+    return wcrtomb(buffer, wc, nullptr);
 }
 
 const char* Keyboard::getSequenceFromKey(int key) {

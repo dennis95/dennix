@@ -102,9 +102,12 @@ void Terminal::handleSequence(const char* sequence) {
 }
 
 void Terminal::onKeyboardEvent(int key) {
-    char c = Keyboard::getCharFromKey(key);
-    if (c) {
-        handleCharacter(c);
+    char buffer[MB_CUR_MAX];
+    size_t bytes = Keyboard::getUtf8FromKey(key, buffer);
+    if (bytes != (size_t) -1) {
+        for (size_t i = 0; i < bytes; i++) {
+            handleCharacter(buffer[i]);
+        }
     } else {
         const char* sequence = Keyboard::getSequenceFromKey(key);
         if (sequence) {
