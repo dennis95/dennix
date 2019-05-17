@@ -106,7 +106,8 @@ COMMON_OBJ = \
 	time/timegm \
 	wchar/mbrtowc \
 	wchar/mbsinit \
-	wchar/mbsrtowcs
+	wchar/mbsrtowcs \
+	wchar/wcrtomb
 
 LIBC_OBJ = \
 	$(COMMON_OBJ) \

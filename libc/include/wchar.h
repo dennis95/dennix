@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -55,6 +55,7 @@ size_t mbrtowc(wchar_t* __restrict, const char* __restrict, size_t,
 int mbsinit(const mbstate_t*);
 size_t mbsrtowcs(wchar_t* __restrict, const char** __restrict, size_t,
         mbstate_t* __restrict);
+size_t wcrtomb(char* __restrict, wchar_t, mbstate_t* __restrict);
 
 #ifdef __cplusplus
 }
