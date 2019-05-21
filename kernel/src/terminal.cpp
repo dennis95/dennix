@@ -296,12 +296,16 @@ size_t TerminalBuffer::available() {
 
 bool TerminalBuffer::backspace() {
     if (lineIndex == writeIndex) return false;
+    bool continuationByte;
+    do {
+        continuationByte = (circularBuffer[writeIndex - 1] & 0xC0) == 0x80;
+        if (likely(writeIndex != 0)) {
+            writeIndex = (writeIndex - 1) % TERMINAL_BUFFER_SIZE;
+        } else {
+            writeIndex = TERMINAL_BUFFER_SIZE - 1;
+        }
+    } while (continuationByte && lineIndex != writeIndex);
 
-    if (likely(writeIndex != 0)) {
-        writeIndex = (writeIndex - 1) % TERMINAL_BUFFER_SIZE;
-    } else {
-        writeIndex = TERMINAL_BUFFER_SIZE - 1;
-    }
     return true;
 }
 
