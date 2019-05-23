@@ -22,6 +22,7 @@
 #include <dennix/kernel/portio.h>
 #include <dennix/kernel/registers.h>
 #include <dennix/kernel/signal.h>
+#include <dennix/kernel/terminaldisplay.h>
 #include <dennix/kernel/thread.h>
 
 #define PIC1_COMMAND 0x20
@@ -134,6 +135,7 @@ handleKernelException:
     } else if (context->interrupt <= 47) { // IRQ
         int irq = context->interrupt - 32;
         if (irq == 0) {
+            TerminalDisplay::display->update();
             newContext = Thread::schedule(context);
         }
 

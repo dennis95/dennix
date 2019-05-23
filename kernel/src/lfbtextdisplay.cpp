@@ -17,8 +17,6 @@
  * Linear frame buffer text display.
  */
 
-
-#include <string.h>
 #include <dennix/kernel/lfbtextdisplay.h>
 
 // Classical VGA font but with the Unicode replacement character at 0xFF.
@@ -87,36 +85,22 @@ void LfbTextDisplay::clear(CharPos from, CharPos to, uint8_t color) {
     size_t bufferStart = from.x + width() * from.y;
     size_t bufferEnd = to.x + width() * to.y;
     for (size_t i = bufferStart; i <= bufferEnd; i++) {
-        doubleBuffer[i].wc = L'\0';
-        doubleBuffer[i].color = color;
-    }
-
-    uint32_t rgbColor = vgaColors[color & 0xF0];
-    char* addr = lfb + 16 * from.y * pitch;
-
-    for (size_t i = from.y * 16; i < 16 * (to.y + 1); i++) {
-        size_t start = i < (from.y + 1) * 16 ? from.x * charWidth : 0;
-        size_t end = i >= to.y * 16 ? (to.x + 1) * charWidth : pixelWidth;
-        if (end == pixelWidth + 1) {
-            end--;
+        if (doubleBuffer[i].wc != L'\0' || doubleBuffer[i].color != color) {
+            doubleBuffer[i].wc = L'\0';
+            doubleBuffer[i].color = color;
+            doubleBuffer[i].modified = true;
         }
-        for (size_t j = start; j < end; j++) {
-            setPixelColor(&addr[j * bpp / 8], rgbColor);
-        }
-        addr += pitch;
     }
-
-    redraw(cursorPos);
 }
 
 void LfbTextDisplay::putCharacter(CharPos position, wchar_t wc, uint8_t color) {
     doubleBuffer[position.x + width() * position.y].wc = wc;
     doubleBuffer[position.x + width() * position.y].color = color;
-
-    redraw(position);
+    doubleBuffer[position.x + width() * position.y].modified = true;
 }
 
 void LfbTextDisplay::redraw(CharPos position) {
+    doubleBuffer[position.x + width() * position.y].modified = false;
     wchar_t wc = doubleBuffer[position.x + width() * position.y].wc;
     uint8_t color = doubleBuffer[position.x + width() * position.y].color;
 
@@ -143,42 +127,52 @@ void LfbTextDisplay::redraw(CharPos position) {
     }
 }
 
-void LfbTextDisplay::redrawAll() {
-    for (unsigned int y = 0; y < height(); y++) {
-        for (unsigned int x = 0; x < width(); x++) {
-            redraw({x, y});
-        }
-    }
-}
-
 void LfbTextDisplay::scroll(unsigned int lines, uint8_t color,
         bool up /*= true*/) {
-    size_t size = (height() - lines) * width() * sizeof(CharBufferEntry);
+    CharBufferEntry empty;
+    empty.wc = L'\0';
+    empty.color = color;
 
     if (up) {
-        memmove(doubleBuffer, doubleBuffer + lines * width(), size);
-        for (size_t y = height() - lines; y < height(); y++) {
-            for (size_t x = 0; x < width(); x++) {
-                doubleBuffer[x + y * width()].wc = L'\0';
-                doubleBuffer[x + y * width()].color = color;
+        for (unsigned int y = 0; y < height(); y++) {
+            for (unsigned int x = 0; x < width(); x++) {
+                CharBufferEntry& entry = y < height() - lines ?
+                        doubleBuffer[x + (y + lines) * width()] : empty;
+                if (doubleBuffer[x + y * width()] != entry) {
+                    doubleBuffer[x + y * width()].wc = entry.wc;
+                    doubleBuffer[x + y * width()].color = entry.color;
+                    doubleBuffer[x + y * width()].modified = true;
+                }
             }
         }
     } else {
-        memmove(doubleBuffer + lines * width(), doubleBuffer, size);
-        for (size_t y = 0; y < lines; y++) {
-            for (size_t x = 0; x < width(); x++) {
-                doubleBuffer[x + y * width()].wc = L'\0';
-                doubleBuffer[x + y * width()].color = color;
+        for (unsigned int y = height() - 1; y < height(); y--) {
+            for (unsigned int x = 0; x < width(); x++) {
+                CharBufferEntry& entry = y >= lines ?
+                        doubleBuffer[x + (y - lines) * width()] : empty;
+                if (doubleBuffer[x + y * width()] != entry) {
+                    doubleBuffer[x + y * width()].wc = entry.wc;
+                    doubleBuffer[x + y * width()].color = entry.color;
+                    doubleBuffer[x + y * width()].modified = true;
+                }
             }
         }
     }
-
-    redrawAll();
 }
 
 void LfbTextDisplay::setCursorPos(CharPos position) {
     CharPos oldPos = cursorPos;
     cursorPos = position;
-    redraw(oldPos);
-    redraw(cursorPos);
+    doubleBuffer[oldPos.x + oldPos.y * width()].modified = true;
+    doubleBuffer[cursorPos.x + cursorPos.y * width()].modified = true;
+}
+
+void LfbTextDisplay::update() {
+    for (unsigned int y = 0; y < height(); y++) {
+        for (unsigned int x = 0; x < width(); x++) {
+            if (doubleBuffer[x + y * width()].modified) {
+                redraw({x, y});
+            }
+        }
+    }
 }

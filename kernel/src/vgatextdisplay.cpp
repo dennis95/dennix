@@ -82,6 +82,10 @@ void VgaTextDisplay::setCursorPos(CharPos position) {
     outb(0x3D5, value & 0xFF);
 }
 
+void VgaTextDisplay::update() {
+
+}
+
 uint8_t unicodeToCp437(wchar_t wc) {
     // Translate Unicode characters into the code page 437 character set.
     // Note that some cp437 characters are used to represent multiple different

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,6 +25,11 @@
 struct CharBufferEntry {
     wchar_t wc;
     uint8_t color;
+    bool modified;
+
+    bool operator!=(const CharBufferEntry& other) {
+        return wc != other.wc || color != other.color;
+    }
 };
 
 class LfbTextDisplay : public TextDisplay {
@@ -35,10 +40,10 @@ public:
     virtual void putCharacter(CharPos position, wchar_t c, uint8_t color);
     virtual void scroll(unsigned int lines, uint8_t color, bool up = true);
     virtual void setCursorPos(CharPos position);
+    virtual void update();
 private:
     char* charAddress(CharPos position);
     void redraw(CharPos position);
-    void redrawAll();
     void setPixelColor(char* addr, uint32_t rgbColor);
 private:
     char* lfb;
