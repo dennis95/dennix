@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -32,6 +32,10 @@ __noreturn void __assertionFailure(const char*, const char*, unsigned int,
         const char*);
 #  define assert(assertion) ((assertion) ? (void) 0 : \
         __assertionFailure(#assertion, __FILE__, __LINE__, __func__))
+#endif
+
+#if !defined(__cplusplus) && __STDC_VERSION__ >= 201112L
+#  define static_assert _Static_assert
 #endif
 
 #ifdef __cplusplus
