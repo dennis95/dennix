@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,21 +13,32 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* editor/editor.c
+/* utils/editor.c
  * Text editor.
  */
 
+#include <assert.h>
 #include <err.h>
 #include <errno.h>
+#ifndef __dennix__
+#  include <locale.h>
+#endif
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#include <wchar.h>
+
+// The code assumes that wchar_t has a UTF-32 encoding so that we can save
+// invalid characters in the range 0xD800 to 0xD8FF.
+static_assert(L'ä' == 0xE4, "wchar_t is not UTF-32 encoded.");
+static_assert(L'☺' == 0x263A, "wchar_t is not UTF-32 encoded.");
+static_assert(L'𝜙' == 0x1D719, "wchar_t is not UTF-32 encoded.");
 
 struct line {
-    char* buffer;
+    wchar_t* buffer;
     size_t length;
     size_t bufferSize;
 };
@@ -55,20 +66,24 @@ static size_t windowY;
 static struct line* addLine(size_t lineNumber);
 static void backspace(void);
 static void delete(void);
+static void drawLine(size_t y);
 static void drawLines(void);
 static void getInput(void);
-static void handleKey(unsigned char c);
-static void handleSequence(unsigned char c);
+static void handleKey(char c);
+static void handleSequence(char c);
 static void newline(void);
-static void putCharacter(char c);
+static void putCharacter(wchar_t wc);
 static void readFile(const char* filename);
-static void redrawCurrentLine(void);
 static void removeAt(size_t x, size_t y);
 static void restoreTermios(void);
 static void saveFile(const char* filename);
 static void updateCursorPosition(void);
 
 int main(int argc, char* argv[]) {
+#ifndef __dennix__
+    setlocale(LC_ALL, "");
+#endif
+
     if (argc >= 2) {
         filename = argv[1];
     } else {
@@ -118,7 +133,7 @@ static struct line* addLine(size_t lineNumber) {
             (linesUsed - lineNumber) * sizeof(struct line));
 
     struct line* newLine = &lines[lineNumber];
-    newLine->buffer = malloc(80);
+    newLine->buffer = malloc(80 * sizeof(wchar_t));
     if (!newLine->buffer) err(1, "malloc");
     newLine->bufferSize = 80;
     newLine->length = 0;
@@ -131,7 +146,7 @@ static void backspace(void) {
         removeAt(cursorX + windowX - 1, cursorY + windowY);
         if (cursorX > 0) {
             cursorX--;
-            redrawCurrentLine();
+            drawLine(cursorY);
         } else {
             windowX--;
             drawLines();
@@ -166,18 +181,34 @@ static void delete(void) {
     drawLines();
 }
 
+static void drawLine(size_t y) {
+    printf("\e[%zuH\e[2K", y + 1);
+    if (y + windowY >= linesUsed) return;
+
+    struct line line = lines[y + windowY];
+    if (line.length <= windowX) return;
+    size_t length = line.length - windowX;
+    if (length > width) {
+        length = width;
+    }
+
+    mbstate_t ps = {0};
+
+    for (size_t i = 0; i < length; i++) {
+        wchar_t wc = line.buffer[windowX + i];
+        if (wc >= 0xD800 && wc <= 0xD8FF) {
+            wc = L'�';
+        }
+
+        char buffer[MB_CUR_MAX];
+        size_t size = wcrtomb(buffer, wc, &ps);
+        fwrite(buffer, 1, size, stdout);
+    }
+}
+
 static void drawLines(void) {
     for (size_t y = 0; y < height; y++) {
-        printf("\e[%zuH\e[2K", y + 1);
-        if (y + windowY >= linesUsed) return;
-
-        struct line line = lines[y + windowY];
-        if (line.length <= windowX) continue;
-        size_t length = line.length - windowX;
-        if (length > width) {
-            length = width;
-        }
-        fwrite(line.buffer + windowX, 1, length, stdout);
+        drawLine(y);
     }
 }
 
@@ -190,7 +221,7 @@ static enum {
 static char sequenceParam;
 
 static void getInput(void) {
-    unsigned char c;
+    char c;
     if (read(0, &c, 1) == 1) {
         if (state == NORMAL) {
             handleKey(c);
@@ -199,8 +230,8 @@ static void getInput(void) {
                 sequenceParam = '\0';
                 state = SEQUENCE;
             } else {
-                handleKey(c);
                 state = NORMAL;
+                handleKey(c);
             }
         } else if (state == SEQUENCE) {
             handleSequence(c);
@@ -208,7 +239,18 @@ static void getInput(void) {
     }
 }
 
-static void handleKey(unsigned char c) {
+static void handleKey(char c) {
+    static mbstate_t ps = {0};
+    wchar_t wc;
+
+    size_t result = mbrtowc(&wc, &c, 1, &ps);
+    if (result == (size_t) -2) {
+        return;
+    } else if (result == (size_t) -1) {
+        memset(&ps, 0, sizeof(ps));
+        return;
+    }
+
     if (c == '\e') {
         state = ESCAPED;
     } else if (c == CTRL('Q')) {
@@ -221,11 +263,11 @@ static void handleKey(unsigned char c) {
     } else if (c == '\n') {
         newline();
     } else if (CTRL(c) != c) {
-        putCharacter(c);
+        putCharacter(wc);
     }
 }
 
-static void handleSequence(unsigned char c) {
+static void handleSequence(char c) {
     switch (c) {
     case 'A':
         if (cursorY > 0) {
@@ -294,14 +336,14 @@ static void newline(void) {
     struct line* currentLine = newLine - 1;
     size_t position = cursorX + windowX;
     if (newLine->bufferSize < currentLine->length - position) {
-        newLine->buffer = realloc(newLine->buffer,
-                currentLine->length - position);
-        if (!newLine->buffer) err(1, "realloc");
+        newLine->buffer = reallocarray(newLine->buffer,
+                currentLine->length - position, sizeof(wchar_t));
+        if (!newLine->buffer) err(1, "reallocarray");
         newLine->bufferSize = currentLine->length - position;
     }
 
     memcpy(newLine->buffer, currentLine->buffer + position,
-            currentLine->length - position);
+            (currentLine->length - position) * sizeof(wchar_t));
     newLine->length = currentLine->length - position;
     currentLine->length = position;
 
@@ -316,21 +358,22 @@ static void newline(void) {
     updateCursorPosition();
 }
 
-static void putCharacter(char c) {
+static void putCharacter(wchar_t wc) {
     struct line* line = &lines[cursorY + windowY];
     size_t position = cursorX + windowX;
     if (line->length + 1 == line->bufferSize) {
-        line->buffer = reallocarray(line->buffer, line->bufferSize, 2);
+        line->buffer = reallocarray(line->buffer,
+                line->bufferSize * sizeof(wchar_t), 2);
         if (!line->buffer) err(1, "reallocarray");
         line->bufferSize *= 2;
     }
     memmove(line->buffer + position + 1, line->buffer + position,
-            line->length - position);
-    line->buffer[position] = c;
+            (line->length - position) * sizeof(wchar_t));
+    line->buffer[position] = wc;
     line->length++;
     if (cursorX < width - 1) {
         cursorX++;
-        redrawCurrentLine();
+        drawLine(cursorY);
     } else {
         windowX++;
         drawLines();
@@ -347,21 +390,54 @@ static void readFile(const char* filename) {
         return;
     }
 
-    while (true) {
-        struct line* currentLine = addLine(linesUsed);
-        ssize_t length = getline(&currentLine->buffer,
-                &currentLine->bufferSize, file);
+    char buffer[MB_CUR_MAX + 1];
+    size_t bytesInBuffer = 0;
+    mbstate_t ps = {0};
 
-        if (length == -1) {
-            if (ferror(file)) err(1, "'%s'", filename);
-            break;
-        }
+    while (!feof(file) || bytesInBuffer > 0) {
+        struct line* line = addLine(linesUsed);
+        wchar_t wc;
 
-        if (currentLine->buffer[length - 1] == '\n') {
-            length--;
-        }
+        do {
+            bytesInBuffer += fread(buffer + bytesInBuffer, 1,
+                    MB_CUR_MAX - bytesInBuffer, file);
+            if (bytesInBuffer == 0) break;
+            buffer[bytesInBuffer] = '\0';
 
-        currentLine->length = length;
+            const char* s = buffer;
+            size_t result = mbsrtowcs(&wc, &s, 1, &ps);
+
+            if (result != 1) {
+                // Encode invalid bytes as invalid wchar_t so that encoding
+                // errors can be preserved when saving.
+                wc = 0xD800 + (unsigned char) buffer[0];
+                memset(&ps, 0, sizeof(ps));
+                s = buffer + 1;
+            }
+
+            if (wc != L'\n') {
+                if (line->length >= line->bufferSize) {
+                    wchar_t* newBuffer = reallocarray(line->buffer, 2,
+                            line->bufferSize * sizeof(wchar_t));
+                    if (!newBuffer) err(1, "reallocarray");
+                    line->buffer = newBuffer;
+                    line->bufferSize *= 2;
+                }
+
+                line->buffer[line->length++] = wc;
+            }
+
+            if (s) {
+                bytesInBuffer -= s - buffer;
+                if (bytesInBuffer > 0) {
+                    memmove(buffer, s, bytesInBuffer);
+                }
+            } else {
+                bytesInBuffer = 0;
+            }
+        } while (wc != L'\n');
+
+        if (ferror(file)) err(1, "'%s'", filename);
         linesUsed++;
     }
 
@@ -373,30 +449,22 @@ static void readFile(const char* filename) {
     }
 }
 
-static void redrawCurrentLine(void) {
-    printf("\e[G\e[2K");
-    struct line line = lines[cursorY + windowY];
-    if (line.length <= windowX) return;
-    size_t length = line.length - windowX;
-    if (length > width) {
-        length = width;
-    }
-    fwrite(line.buffer + windowX, 1, length, stdout);
-}
-
 static void removeAt(size_t x, size_t y) {
     struct line* line = &lines[y];
     if (x < line->length) {
-        memmove(line->buffer + x, line->buffer + x + 1, line->length - x - 1);
+        memmove(line->buffer + x, line->buffer + x + 1,
+                (line->length - x - 1) * sizeof(wchar_t));
         line->length--;
     } else {
         struct line* next = line + 1;
         if (line->bufferSize < line->length + next->length) {
-            line->buffer = realloc(line->buffer, line->length + next->length);
+            line->buffer = reallocarray(line->buffer,
+                    line->length + next->length, sizeof(wchar_t));
             if (!line->buffer) err(1, "realloc");
             line->bufferSize = line->length + next->length;
         }
-        memcpy(line->buffer + line->length, next->buffer, next->length);
+        memcpy(line->buffer + line->length, next->buffer,
+                next->length * sizeof(wchar_t));
 
         line->length += next->length;
 
@@ -415,7 +483,18 @@ static void saveFile(const char* filename) {
     if (!file) err(1, "'%s'", filename);
 
     for (size_t i = 0; i < linesUsed; i++) {
-        fwrite(lines[i].buffer, 1, lines[i].length, file);
+        struct line* line = &lines[i];
+        mbstate_t ps = {0};
+        for (size_t i = 0; i < line->length; i++) {
+            wchar_t wc = line->buffer[i];
+            if (wc >= 0xD800 && wc <= 0xD8FF) {
+                fputc(wc - 0xD800, file);
+            } else {
+                char buffer[MB_CUR_MAX];
+                size_t size = wcrtomb(buffer, wc, &ps);
+                fwrite(buffer, 1, size, file);
+            }
+        }
         fputc('\n', file);
     }
 
