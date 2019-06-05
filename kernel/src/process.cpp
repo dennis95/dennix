@@ -205,7 +205,8 @@ int Process::dup3(int fd1, int fd2, int flags) {
 
 int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
         char* const envp[]) {
-    if (!S_ISREG(vnode->stat().st_mode)) {
+    mode_t mode = vnode->stat().st_mode;
+    if (!S_ISREG(mode) || !(mode & 0111)) {
         errno = EACCES;
         return -1;
     }
