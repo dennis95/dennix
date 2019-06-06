@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,12 +18,16 @@
  */
 
 #include <errno.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include "FILE.h"
 
 ssize_t getdelim(char** restrict lineptr, size_t* restrict size, int delimiter,
         FILE* restrict file) {
+    flockfile(file);
+
     if (!lineptr || !size) {
+        file->flags |= FILE_FLAG_ERROR;
+        funlockfile(file);
         errno = EINVAL;
         return -1;
     }
@@ -33,12 +37,12 @@ ssize_t getdelim(char** restrict lineptr, size_t* restrict size, int delimiter,
         char* newBuffer = realloc(*lineptr, *size);
         if (!newBuffer) {
             *size = 0;
+            file->flags |= FILE_FLAG_ERROR;
+            funlockfile(file);
             return -1;
         }
         *lineptr = newBuffer;
     }
-
-    flockfile(file);
 
     size_t i = 0;
     int c;
@@ -46,6 +50,7 @@ ssize_t getdelim(char** restrict lineptr, size_t* restrict size, int delimiter,
         if (i + 1 >= *size) {
             char* newBuffer = reallocarray(*lineptr, 2, *size);
             if (!newBuffer) {
+                file->flags |= FILE_FLAG_ERROR;
                 funlockfile(file);
                 return -1;
             }
