@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -44,6 +44,7 @@ public:
     virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset);
     virtual ssize_t read(void* buffer, size_t size);
     virtual ssize_t readdir(unsigned long offset, void* buffer, size_t size);
+    virtual ssize_t readlink(char* buffer, size_t size);
     virtual int rename(Reference<Vnode>& oldDirectory, const char* oldName,
             const char* newName);
     virtual int stat(struct stat* result);

@@ -75,6 +75,8 @@ int linkat(int, const char*, int, const char*, int);
 off_t lseek(int, off_t, int);
 int pipe(int[2]);
 ssize_t read(int, void*, size_t);
+ssize_t readlink(const char* __restrict, char* __restrict, size_t);
+ssize_t readlinkat(int, const char* __restrict, char* __restrict, size_t);
 int rmdir(const char*);
 int setpgid(pid_t, pid_t);
 unsigned int sleep(unsigned int);

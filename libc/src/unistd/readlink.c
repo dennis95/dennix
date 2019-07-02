@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,24 +13,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/symlink.h
- * Symbolic links.
+/* libc/src/unistd/readlink.c
+ * Read a symbolic link.
  */
 
-#ifndef KERNEL_SYMLINK_H
-#define KERNEL_SYMLINK_H
+#include <fcntl.h>
+#include <unistd.h>
 
-#include <dennix/kernel/vnode.h>
-
-class SymlinkVnode : public Vnode {
-public:
-    SymlinkVnode(const char* target, dev_t dev);
-    SymlinkVnode(const char* target, size_t targetLength, dev_t dev);
-    ~SymlinkVnode();
-    virtual char* getLinkTarget();
-    virtual ssize_t readlink(char* buffer, size_t size);
-private:
-    const char* target;
-};
-
-#endif
+ssize_t readlink(const char* restrict path, char* restrict buffer,
+        size_t size) {
+    return readlinkat(AT_FDCWD, path, buffer, size);
+}

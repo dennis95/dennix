@@ -73,6 +73,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_DEVCTL] =*/ (void*) Syscall::devctl,
     /*[SYSCALL_GETPGID] =*/ (void*) Syscall::getpgid,
     /*[SYSCALL_SETPGID] =*/ (void*) Syscall::setpgid,
+    /*[SYSCALL_READLINKAT] =*/ (void*) Syscall::readlinkat,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -388,6 +389,17 @@ ssize_t Syscall::readdir(int fd, unsigned long offset, void* buffer,
     Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
     return descr->readdir(offset, buffer, size);
+}
+
+ssize_t Syscall::readlinkat(int fd, const char* restrict path,
+        char* restrict buffer, size_t size) {
+    Reference<FileDescription> descr = getRootFd(fd, path);
+    if (!descr) return -1;
+
+    Reference<Vnode> vnode = resolvePath(descr->vnode, path, false);
+    if (!vnode) return -1;
+
+    return vnode->readlink(buffer, size);
 }
 
 pid_t Syscall::regfork(int flags, regfork_t* registers) {

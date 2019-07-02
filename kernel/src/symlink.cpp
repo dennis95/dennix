@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -39,4 +39,11 @@ SymlinkVnode::~SymlinkVnode() {
 
 char* SymlinkVnode::getLinkTarget() {
     return strdup(target);
+}
+
+ssize_t SymlinkVnode::readlink(char* buffer, size_t size) {
+    size_t length = size < (size_t) stats.st_size ? size : stats.st_size;
+    memcpy(buffer, target, length);
+    updateTimestamps(true, false, false);
+    return length;
 }

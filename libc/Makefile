@@ -281,6 +281,8 @@ LIBC_OBJ = \
 	unistd/pipe \
 	unistd/pipe2 \
 	unistd/read \
+	unistd/readlink \
+	unistd/readlinkat \
 	unistd/regfork \
 	unistd/rmdir \
 	unistd/setpgid \
