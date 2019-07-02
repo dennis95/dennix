@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,10 +20,11 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 static char* getEntryName(DIR* dir, dev_t dev, ino_t ino) {
     struct dirent* dirent = readdir(dir);
@@ -36,6 +37,65 @@ static char* getEntryName(DIR* dir, dev_t dev, ino_t ino) {
     }
 
     return NULL;
+}
+
+static int openParentDir(const char* path) {
+    struct stat st;
+    if (lstat(path, &st) < 0) return -1;
+    char* parentPath;
+
+    if (S_ISLNK(st.st_mode)) {
+        size_t linkSize = (size_t) st.st_size;
+        char* linkName = malloc(linkSize + 1);
+        if (!linkName) return -1;
+
+        ssize_t bytes = readlink(path, linkName, linkSize + 1);
+        if (bytes < 0) {
+            free(linkName);
+            return -1;
+        }
+
+        if ((size_t) bytes > linkSize) {
+            free(linkName);
+            errno = EIO;
+            return -1;
+        }
+        linkName[bytes] = '\0';
+
+        const char* slash;
+        if (!strchr(linkName, '/')) {
+            free(linkName);
+            parentPath = strdup(path);
+            if (!parentPath) return -1;
+        } else if (linkName[0] == '/' || !(slash = strrchr(path, '/'))) {
+            parentPath = linkName;
+        } else {
+            size_t prefixLength = slash - path + 1;
+            parentPath = malloc(bytes + prefixLength + 1);
+            if (!parentPath) {
+                free(linkName);
+                return -1;
+            }
+            memcpy(parentPath, path, prefixLength);
+            memcpy(parentPath + prefixLength, linkName, bytes + 1);
+            free(linkName);
+        }
+    } else {
+        parentPath = strdup(path);
+        if (!parentPath) return -1;
+    }
+
+    char* slash = strrchr(parentPath, '/');
+
+    int fd;
+    if (slash) {
+        slash[1] = '\0';
+        fd = open(parentPath, O_SEARCH | O_CLOEXEC | O_DIRECTORY);
+    } else {
+        fd = open(".", O_SEARCH | O_CLOEXEC | O_DIRECTORY);
+    }
+    free(parentPath);
+    return fd;
 }
 
 char* canonicalize_file_name(const char* path) {
@@ -53,31 +113,20 @@ char* canonicalize_file_name(const char* path) {
         fd = openat(currentFd, "..", O_SEARCH | O_CLOEXEC | O_DIRECTORY);
         close(currentFd);
     } else {
-        char* pathCopy = strdup(path);
-        if (!pathCopy) return NULL;
-        char* slash = strrchr(pathCopy, '/');
-        while (slash && !slash[1]) {
-            *slash = '\0';
-            slash = strrchr(pathCopy, '/');
-        }
-
-        if (slash) {
-            slash[1] = '\0';
-            fd = open(pathCopy, O_SEARCH | O_CLOEXEC | O_DIRECTORY);
-        } else {
-            fd = open(".", O_SEARCH | O_CLOEXEC | O_DIRECTORY);
-        }
-        free(pathCopy);
+        fd = openParentDir(path);
     }
 
     if (fd < 0) return NULL;
 
     char* name = malloc(1);
-    if (!name) return NULL;
+    if (!name) {
+        close(fd);
+        return NULL;
+    }
     *name = '\0';
     size_t length = 0;
 
-    while (1) {
+    while (true) {
         DIR* dir = fdopendir(fd);
         if (!dir) {
             close(fd);
