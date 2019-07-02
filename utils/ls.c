@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -36,6 +36,7 @@
 struct DirEntry {
     char* name;
     struct stat stat;
+    char* linkTarget;
 };
 
 struct DirListing {
@@ -221,6 +222,7 @@ static void addEntry(struct DirListing* listing, int dirFd, const char* name) {
 
     entry->name = strdup(name);
     if (!entry->name) err(1, "strdup");
+    entry->linkTarget = NULL;
 
     if (fstatat(dirFd, entry->name, &entry->stat, AT_SYMLINK_NOFOLLOW) < 0) {
         success = false;
@@ -228,6 +230,26 @@ static void addEntry(struct DirListing* listing, int dirFd, const char* name) {
         free(entry->name);
         free(entry);
         return;
+    }
+
+    if (S_ISLNK(entry->stat.st_mode) && output == outputLong) {
+        entry->linkTarget = malloc(entry->stat.st_size + 1);
+        if (!entry->linkTarget) err(1, "malloc");
+
+        ssize_t linkSize = readlinkat(dirFd, entry->name, entry->linkTarget,
+                entry->stat.st_size + 1);
+
+        if (linkSize < 0 || linkSize > entry->stat.st_size) {
+            if (linkSize > entry->stat.st_size) errno = EIO;
+            success = false;
+            warn("readlink: '%s'", name);
+            free(entry->name);
+            free(entry->linkTarget);
+            free(entry);
+            return;
+        }
+
+        entry->linkTarget[linkSize] = '\0';
     }
 
     if (listing->numEntries >= listing->allocated) {
@@ -247,6 +269,7 @@ static void addEntry(struct DirListing* listing, int dirFd, const char* name) {
 static void freeEntries(struct DirListing* listing) {
     for (size_t i = 0; i < listing->numEntries; i++) {
         free(listing->entries[i]->name);
+        free(listing->entries[i]->linkTarget);
         free(listing->entries[i]);
     }
     listing->numEntries = 0;
@@ -265,7 +288,7 @@ static void getColor(mode_t mode, const char** pre, const char** post) {
     } else if (S_ISBLK(mode) || S_ISCHR(mode)) {
         *pre = "\e[1;33m";
     } else if (S_ISFIFO(mode)) {
-        *pre = "\e33m";
+        *pre = "\e[33m";
     } else if (S_ISLNK(mode)) {
         *pre = "\e[1;36m";
     } else if (S_ISSOCK(mode)) {
@@ -508,9 +531,12 @@ static void outputLong(struct DirEntry** entries, size_t numEntries) {
         const char* pre;
         const char* post;
         getColor(entry->stat.st_mode, &pre, &post);
+        printf("%s%s%s", pre, entry->name, post);
 
-        // TODO: Print symlink targets.
-        printf("%s%s%s\n", pre, entry->name, post);
+        if (S_ISLNK(entry->stat.st_mode)) {
+            printf(" -> %s", entry->linkTarget);
+        }
+        putchar('\n');
     }
 }
 
