@@ -51,6 +51,8 @@ static size_t width = 80;
 
 static size_t cursorX;
 static size_t cursorY;
+static size_t linePos;
+static size_t logicalX;
 
 static const char* filename;
 
@@ -63,6 +65,8 @@ static struct termios oldTermios;
 static size_t windowX;
 static size_t windowY;
 
+static const unsigned int tabsize = 8;
+
 static struct line* addLine(size_t lineNumber);
 static void backspace(void);
 static void delete(void);
@@ -74,10 +78,12 @@ static void handleSequence(char c);
 static void newline(void);
 static void putCharacter(wchar_t wc);
 static void readFile(const char* filename);
-static void removeAt(size_t x, size_t y);
+static void removeAt(size_t y, size_t position);
 static void restoreTermios(void);
 static void saveFile(const char* filename);
 static void updateCursorPosition(void);
+static bool updateLinePos(void);
+static void updateLogicalPos(void);
 
 int main(int argc, char* argv[]) {
 #ifndef __dennix__
@@ -142,32 +148,29 @@ static struct line* addLine(size_t lineNumber) {
 }
 
 static void backspace(void) {
-    if (cursorX + windowX > 0) {
-        removeAt(cursorX + windowX - 1, cursorY + windowY);
-        if (cursorX > 0) {
-            cursorX--;
-            drawLine(cursorY);
-        } else {
-            windowX--;
+    if (linePos > 0) {
+        removeAt(cursorY + windowY, linePos - 1);
+        linePos--;
+        if (updateLinePos()) {
             drawLines();
+        } else {
+            drawLine(cursorY);
         }
+        logicalX = cursorX + windowX;
     } else if (cursorY + windowY > 0) {
         size_t y = cursorY + windowY - 1;
         size_t length = lines[y].length;
-        removeAt(length, y);
+        removeAt(y, length);
 
-        if (length >= width) {
-            cursorX = width - 1;
-            windowX = length - cursorX;
-        } else {
-            cursorX = length;
-        }
+        linePos = length;
 
         if (cursorY > 0) {
             cursorY--;
         } else {
             windowY--;
         }
+        updateLinePos();
+        logicalX = cursorX + windowX;
         drawLines();
     }
     updateCursorPosition();
@@ -175,10 +178,11 @@ static void backspace(void) {
 
 static void delete(void) {
     size_t y = cursorY + windowY;
-    if (cursorX + windowX >= lines[y].length && y >= linesUsed - 1) return;
+    if (linePos >= lines[y].length && y >= linesUsed - 1) return;
 
-    removeAt(cursorX + windowX, y);
+    removeAt(y, linePos);
     drawLines();
+    updateCursorPosition();
 }
 
 static void drawLine(size_t y) {
@@ -186,23 +190,31 @@ static void drawLine(size_t y) {
     if (y + windowY >= linesUsed) return;
 
     struct line line = lines[y + windowY];
-    if (line.length <= windowX) return;
-    size_t length = line.length - windowX;
-    if (length > width) {
-        length = width;
-    }
-
     mbstate_t ps = {0};
 
-    for (size_t i = 0; i < length; i++) {
-        wchar_t wc = line.buffer[windowX + i];
+    size_t i = 0;
+    size_t x = 0;
+    while (i < line.length && x < windowX + width) {
+        wchar_t wc = line.buffer[i];
         if (wc >= 0xD800 && wc <= 0xD8FF) {
             wc = L'�';
         }
 
-        char buffer[MB_CUR_MAX];
-        size_t size = wcrtomb(buffer, wc, &ps);
-        fwrite(buffer, 1, size, stdout);
+        if (wc == L'\t') {
+            x += tabsize - x % tabsize;
+            if (x >= windowX) {
+                printf("\e[%zuG", x - windowX + 1);
+            }
+        } else if (x >= windowX) {
+            char buffer[MB_CUR_MAX];
+            size_t size = wcrtomb(buffer, wc, &ps);
+            fwrite(buffer, 1, size, stdout);
+            x++;
+        } else {
+            x++;
+        }
+
+        i++;
     }
 }
 
@@ -262,7 +274,7 @@ static void handleKey(char c) {
         backspace();
     } else if (c == '\n') {
         newline();
-    } else if (CTRL(c) != c) {
+    } else if (CTRL(c) != c || c == '\t') {
         putCharacter(wc);
     }
 }
@@ -274,36 +286,51 @@ static void handleSequence(char c) {
             cursorY--;
         } else if (windowY > 0) {
             windowY--;
+        }
+
+        updateLogicalPos();
+        if (updateLinePos() || cursorY == 0) {
             drawLines();
         }
+        updateCursorPosition();
         break;
     case 'B':
         if (cursorY < height - 1 && windowY + cursorY + 1 < linesUsed) {
             cursorY++;
         } else if (windowY + cursorY + 1 < linesUsed) {
             windowY++;
+        }
+
+        updateLogicalPos();
+        if (updateLinePos() || cursorY == height - 1) {
             drawLines();
         }
+        updateCursorPosition();
         break;
     case 'C':
-        if (cursorX < width - 1) {
-            cursorX++;
-        } else if (cursorX + windowX < lines[cursorY + windowY].length) {
-            windowX++;
+        linePos++;
+
+        if (updateLinePos()) {
             drawLines();
         }
+        logicalX = cursorX + windowX;
+        updateCursorPosition();
         break;
     case 'D':
-        if (cursorX > 0) {
-            cursorX--;
-        } else if (windowX > 0) {
-            windowX--;
+        if (linePos > 0) {
+            linePos--;
+        }
+
+        if (updateLinePos()) {
             drawLines();
         }
+        logicalX = cursorX + windowX;
+        updateCursorPosition();
         break;
     case '~':
         if (sequenceParam == '3') {
             delete();
+            logicalX = cursorX + windowX;
         }
         break;
     default:
@@ -316,17 +343,6 @@ static void handleSequence(char c) {
     }
 
     state = NORMAL;
-
-    struct line* line = &lines[cursorY + windowY];
-
-    if (windowX >= line->length) {
-        windowX = line->length > 0 ? line->length - 1 : 0;
-        cursorX = line->length - windowX;
-        drawLines();
-    } else if (cursorX + windowX > line->length) {
-        cursorX = line->length - windowX;
-    }
-    updateCursorPosition();
 }
 
 static void newline(void) {
@@ -334,50 +350,52 @@ static void newline(void) {
     linesUsed++;
 
     struct line* currentLine = newLine - 1;
-    size_t position = cursorX + windowX;
-    if (newLine->bufferSize < currentLine->length - position) {
+    if (newLine->bufferSize < currentLine->length - linePos) {
         newLine->buffer = reallocarray(newLine->buffer,
-                currentLine->length - position, sizeof(wchar_t));
+                currentLine->length - linePos, sizeof(wchar_t));
         if (!newLine->buffer) err(1, "reallocarray");
-        newLine->bufferSize = currentLine->length - position;
+        newLine->bufferSize = currentLine->length - linePos;
     }
 
-    memcpy(newLine->buffer, currentLine->buffer + position,
-            (currentLine->length - position) * sizeof(wchar_t));
-    newLine->length = currentLine->length - position;
-    currentLine->length = position;
+    memcpy(newLine->buffer, currentLine->buffer + linePos,
+            (currentLine->length - linePos) * sizeof(wchar_t));
+    newLine->length = currentLine->length - linePos;
+    currentLine->length = linePos;
 
     if (cursorY < height - 1) {
         cursorY++;
     } else {
         windowY++;
     }
-    cursorX = 0;
-    windowX = 0;
+
+    linePos = 0;
+    logicalX = 0;
+    updateLinePos();
     drawLines();
     updateCursorPosition();
 }
 
 static void putCharacter(wchar_t wc) {
     struct line* line = &lines[cursorY + windowY];
-    size_t position = cursorX + windowX;
     if (line->length + 1 == line->bufferSize) {
         line->buffer = reallocarray(line->buffer,
                 line->bufferSize * sizeof(wchar_t), 2);
         if (!line->buffer) err(1, "reallocarray");
         line->bufferSize *= 2;
     }
-    memmove(line->buffer + position + 1, line->buffer + position,
-            (line->length - position) * sizeof(wchar_t));
-    line->buffer[position] = wc;
+    memmove(line->buffer + linePos + 1, line->buffer + linePos,
+            (line->length - linePos) * sizeof(wchar_t));
+    line->buffer[linePos] = wc;
     line->length++;
-    if (cursorX < width - 1) {
-        cursorX++;
-        drawLine(cursorY);
-    } else {
-        windowX++;
+
+    linePos++;
+
+    if (updateLinePos()) {
         drawLines();
+    } else {
+        drawLine(cursorY);
     }
+    logicalX = cursorX + windowX;
     updateCursorPosition();
 }
 
@@ -449,11 +467,11 @@ static void readFile(const char* filename) {
     }
 }
 
-static void removeAt(size_t x, size_t y) {
+static void removeAt(size_t y, size_t position) {
     struct line* line = &lines[y];
-    if (x < line->length) {
-        memmove(line->buffer + x, line->buffer + x + 1,
-                (line->length - x - 1) * sizeof(wchar_t));
+    if (position < line->length) {
+        memmove(line->buffer + position, line->buffer + position + 1,
+                (line->length - position - 1) * sizeof(wchar_t));
         line->length--;
     } else {
         struct line* next = line + 1;
@@ -511,4 +529,60 @@ static void saveFile(const char* filename) {
 
 static void updateCursorPosition(void) {
     printf("\e[%zu;%zuH", cursorY + 1, cursorX + 1);
+}
+
+static bool updateLinePos(void) {
+    // Move the cursor to the current line position.
+    struct line* line = &lines[cursorY + windowY];
+    if (linePos > line->length) {
+        linePos = line->length;
+    }
+
+    size_t x = 0;
+    for (size_t i = 0; i < linePos; i++) {
+        wchar_t wc = line->buffer[i];
+
+        if (wc == L'\t') {
+            x += tabsize - x % tabsize;
+        } else {
+            x++;
+        }
+    }
+
+    if (x < windowX) {
+        windowX = x;
+        cursorX = 0;
+        return true;
+    } else if (x >= windowX + width) {
+        windowX = x - width + 1;
+        cursorX = width - 1;
+        return true;
+    }
+
+    cursorX = x - windowX;
+    return false;
+}
+
+static void updateLogicalPos(void) {
+    // Move the line position to the logical x position.
+    struct line* line = &lines[cursorY + windowY];
+
+    size_t i = 0;
+    size_t x = 0;
+
+    while (x < logicalX && i < line->length) {
+        wchar_t wc = line->buffer[i++];
+
+        if (wc == L'\t') {
+            x += tabsize - x % tabsize;
+        } else {
+            x++;
+        }
+    }
+
+    if (x > logicalX) {
+        i--;
+    }
+
+    linePos = i;
 }
