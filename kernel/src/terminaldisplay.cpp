@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,6 +34,7 @@ static bool paramSpecified[MAX_PARAMS];
 static size_t paramIndex;
 static mbstate_t ps;
 static bool skipNewline;
+static const unsigned int tabsize = 8;
 
 static enum {
     NORMAL,
@@ -42,6 +43,9 @@ static enum {
 } status = NORMAL;
 
 void TerminalDisplay::backspace() {
+    // TODO: When the deleted character was a tab the cursor needs to be moved
+    // by an unknown number of positions but we do not keep track of this
+    // information.
     if (cursorPos.x == 0 && cursorPos.y > 0) {
         cursorPos.x = display->width() - 1;
         cursorPos.y--;
@@ -293,7 +297,15 @@ void TerminalDisplay::printCharacterRaw(char c) {
         wc = L'�';
     }
 
-    if (wc != L'\n') {
+    if (wc == L'\t') {
+        unsigned int length = tabsize - cursorPos.x % tabsize;
+        CharPos endPos = {cursorPos.x + length - 1, cursorPos.y};
+        if (endPos.x >= display->width()) {
+            endPos.x = display->width() - 1;
+        }
+        display->clear(cursorPos, endPos, color);
+        cursorPos.x += length - 1;
+    } else if (wc != L'\n') {
         display->putCharacter(cursorPos, wc, color);
     } else if (skipNewline) {
         skipNewline = false;
