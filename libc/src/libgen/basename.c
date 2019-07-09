@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,7 +29,7 @@ char* basename(char* path) {
 
     // Remove trailing slashes
     size_t size = strlen(path);
-    while (path[size - 1] == '/') {
+    while (size > 0 && path[size - 1] == '/') {
         path[--size] = '\0';
     }
 
