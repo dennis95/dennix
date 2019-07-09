@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,17 +17,22 @@
  * Calculates the length of a substring.
  */
 
+#include <stdbool.h>
 #include <string.h>
 
 size_t strspn(const char* string, const char* characters) {
     size_t result = 0;
 
-    while (1) {
+    while (true) {
+        bool found = false;
         for (size_t i = 0; characters[i]; i++) {
-            if (string[result] != characters[i]) {
-                return result;
+            if (string[result] == characters[i]) {
+                found = true;
+                break;
             }
         }
+        if (!found) return result;
+
         result++;
     }
 }
