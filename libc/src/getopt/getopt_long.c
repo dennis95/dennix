@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -103,7 +103,9 @@ static int handleLongOption(char* option, const struct option* longopts,
         }
     }
 
-    warnx("unrecognized option '--%s'", option);
+    if (opterr && !colonMode) {
+        warnx("unrecognized option '--%s'", option);
+    }
     return '?';
 }
 
