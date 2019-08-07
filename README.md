@@ -1,8 +1,8 @@
 # Dennix
 
-Dennix is a unix-like hobbyist operating system for x86 written from scratch.
-It includes its own monolithic kernel written in C++, a standard C library, a
-shell and userspace utilities written in C.
+Dennix is a unix-like hobbyist operating system for x86 and x86_64 written
+from scratch. It includes its own monolithic kernel written in C++, a standard
+C library, a shell and userspace utilities written in C.
 
 ## Building
 
