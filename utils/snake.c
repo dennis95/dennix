@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -121,6 +121,11 @@ static bool checkCollision(void) {
 static void checkFood(void) {
     if (food.row == snakeHead->row && food.col == snakeHead->col) {
         struct SnakeSegment* newSegment = malloc(sizeof(struct SnakeSegment));
+        if (!newSegment) {
+            puts("\e[2Jsnake: allocation failure");
+            exit(1);
+        }
+
         newSegment->row = snakeTail->row;
         newSegment->col = snakeTail->col;
         // Set the direction to NONE so that the new segment will not move in
@@ -179,6 +184,11 @@ static void handleInput(void) {
 static void initializeWorld(void) {
     // Create a snake with 6 segments.
     snakeHead = malloc(sizeof(struct SnakeSegment));
+    if (!snakeHead) {
+        puts("snake: allocation failure");
+        exit(1);
+    }
+
     snakeHead->row = 20;
     snakeHead->col = 10;
     snakeHead->direction = UP;
@@ -186,6 +196,10 @@ static void initializeWorld(void) {
     snakeTail = snakeHead;
     for (int i = 0; i < 5; i++) {
         struct SnakeSegment* next = malloc(sizeof(struct SnakeSegment));
+        if (!next) {
+            puts("snake: allocation failure");
+            exit(1);
+        }
         snakeTail->next = next;
 
         next->row = 20;

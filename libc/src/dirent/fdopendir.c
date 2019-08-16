@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,6 +22,7 @@
 
 DIR* fdopendir(int fd) {
     DIR* dir = malloc(sizeof(DIR));
+    if (!dir) return NULL;
     dir->fd = fd;
     dir->offset = 0;
     dir->dirent = NULL;

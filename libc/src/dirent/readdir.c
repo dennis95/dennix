@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,6 +28,7 @@ DEFINE_SYSCALL(SYSCALL_READDIR, ssize_t, sys_readdir,
 struct dirent* readdir(DIR* dir) {
     if (!dir->dirent) {
         dir->dirent = malloc(sizeof(struct dirent));
+        if (!dir->dirent) return NULL;
         dir->dirent->d_reclen = sizeof(struct dirent);
     }
 
@@ -44,6 +45,7 @@ struct dirent* readdir(DIR* dir) {
     } else {
         free(dir->dirent);
         dir->dirent = malloc((size_t) size);
+        if (!dir->dirent) return NULL;
         sys_readdir(dir->fd, dir->offset, dir->dirent, (size_t) size);
         dir->offset++;
         return dir->dirent;

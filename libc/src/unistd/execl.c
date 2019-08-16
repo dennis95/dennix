@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -33,6 +33,7 @@ int execl(const char* path, const char* argv0, ...) {
 
     // Create an array containing all arguments
     char** argv = malloc((argc + 1) * sizeof(char*));
+    if (!argv) return -1;
 
     va_start(ap, argv0);
     argv[0] = (char*) argv0;

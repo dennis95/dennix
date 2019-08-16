@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -82,6 +82,7 @@ int main(int argc, char* argv[]) {
 
     for (int i = optind; i < argc; i++) {
         char* nameCopy = strdup(argv[i]);
+        if (!nameCopy) err(1, "strdup");
         char* base = basename(nameCopy);
         if (strcmp(base, "/") == 0) {
             warnx("cannot remove root directory");

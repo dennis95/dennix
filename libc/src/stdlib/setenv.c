@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -55,6 +55,15 @@ static bool resetEnviron(void) {
     __environSize = allocationSize;
     for (size_t i = 0; i < length; i++) {
         __mallocedEnviron[i] = strdup(environ[i]);
+
+        if (!__mallocedEnviron[i]) {
+            for (size_t j = 0; j < i; j++) {
+                free(__mallocedEnviron[j]);
+            }
+            free(__mallocedEnviron);
+            __mallocedEnviron = NULL;
+            return false;
+        }
     }
     __mallocedEnviron[length] = NULL;
     environ = __mallocedEnviron;

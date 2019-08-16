@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,6 +23,7 @@
 char* strndup(const char* str, size_t size) {
     size_t length = strnlen(str, size);
     char* result = malloc(length + 1);
+    if (!result) return NULL;
     memcpy(result, str, length);
     result[length] = '\0';
     return result;
