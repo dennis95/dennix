@@ -61,6 +61,7 @@ int dup2(int, int);
 int execl(const char*, const char*, ...);
 int execv(const char*, char* const[]);
 int execve(const char*, char* const[], char* const[]);
+int execvp(const char*, char* const[]);
 __noreturn void _exit(int);
 pid_t fork(void);
 char* getcwd(char*, size_t);
@@ -95,10 +96,6 @@ int pipe2(int[2], int);
 pid_t rfork(int);
 pid_t regfork(int, regfork_t*);
 #endif
-
-/* These are just declared to make libgcov compile, which is compiled with
-   libgcc, and are not implemented. */
-int execvp(const char*, char* const[]);
 
 #ifdef __cplusplus
 }
