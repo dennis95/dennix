@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,8 +21,6 @@
 #define KERNEL_PIPE_H
 
 #include <dennix/kernel/vnode.h>
-
-#define PIPE_BUF 4096
 
 class PipeVnode : public Vnode {
 private:

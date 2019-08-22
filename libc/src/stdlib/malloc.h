@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,6 +20,7 @@
 #ifndef MALLOC_H
 #define MALLOC_H
 
+#include <limits.h>
 #include <stdlib.h>
 
 #if __is_dennix_libc
@@ -46,8 +47,6 @@ typedef struct Chunk {
 #define MAGIC_FREE_CHUNK 0xBEEFBEEF
 #define MAGIC_USED_CHUNK 0xDEADBEEF
 #define MAGIC_END_CHUNK 0xDEADDEAD
-
-#define PAGESIZE 0x1000
 
 #define alignUp(val, alignment) ((((val) - 1) & ~((alignment) - 1)) + (alignment))
 

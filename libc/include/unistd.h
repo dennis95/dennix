@@ -39,10 +39,6 @@
 extern "C" {
 #endif
 
-/* TODO: This should be defined in <limits.h> which is currently provided by
-   the compiler. */
-#define HOST_NAME_MAX 255
-
 #define F_OK 0
 #define R_OK (1 << 0)
 #define W_OK (1 << 1)

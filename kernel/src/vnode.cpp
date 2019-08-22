@@ -26,8 +26,6 @@
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/vnode.h>
 
-#define SYMLOOP_MAX 20
-
 static ino_t nextIno = 0;
 
 Vnode::Vnode(mode_t mode, dev_t dev) {

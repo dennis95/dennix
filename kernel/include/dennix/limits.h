@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,31 +13,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/stdlib/atexit.c
- * Registers a function that should run when the process terminates.
+/* kernel/include/dennix/limits.h
+ * Implementation limits.
  */
 
-#include <limits.h>
-#include <stdlib.h>
-#include <sys/types.h>
+#ifndef _DENNIX_LIMITS_H
+#define _DENNIX_LIMITS_H
 
-static void (*atexitHandlers[ATEXIT_MAX])(void);
+#define FILESIZEBITS 64
+#define PAGESIZE 0x1000
+#define PIPE_BUF 4096
+#define SYMLOOP_MAX 20
 
-int atexit(void (*func)(void)) {
-    for (size_t i = 0; i < ATEXIT_MAX; i++) {
-        if (!atexitHandlers[i]) {
-            atexitHandlers[i] = func;
-            return 0;
-        }
-    }
-    return -1;
-}
-
-__attribute__((destructor))
-void __callAtexitHandlers(void) {
-    for (ssize_t i = ATEXIT_MAX - 1; i >= 0; i--) {
-        if (atexitHandlers[i]) {
-            atexitHandlers[i]();
-        }
-    }
-}
+#endif

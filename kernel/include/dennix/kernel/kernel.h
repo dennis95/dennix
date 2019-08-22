@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,6 +20,7 @@
 #ifndef KERNEL_KERNEL_H
 #define KERNEL_KERNEL_H
 
+#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
 
