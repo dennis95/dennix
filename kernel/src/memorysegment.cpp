@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,7 +24,7 @@
 #include <dennix/kernel/memorysegment.h>
 #include <dennix/kernel/physicalmemory.h>
 
-static char segmentsPage[0x1000] ALIGNED(0x1000) = {0};
+static char segmentsPage[PAGESIZE] ALIGNED(PAGESIZE) = {0};
 static kthread_mutex_t mutex = KTHREAD_MUTEX_INITIALIZER;
 
 static inline size_t getFreeSpaceAfter(MemorySegment* segment) {
@@ -75,14 +75,14 @@ void MemorySegment::addSegment(MemorySegment* firstSegment, vaddr_t address,
 
 MemorySegment* MemorySegment::allocateSegment(vaddr_t address, size_t size,
         int flags) {
-    assert(!(address & 0xFFF));
-    assert(!(size & 0xFFF));
+    assert(PAGE_ALIGNED(address));
+    assert(PAGE_ALIGNED(size));
     MemorySegment* current = (MemorySegment*) segmentsPage;
 
     while (current->address != 0 && current->size != 0) {
         current++;
-        if (((uintptr_t) current & 0xFFF) ==
-                (0x1000 - 0x1000 % sizeof(MemorySegment))) {
+        if (((uintptr_t) current & PAGE_MISALIGN) ==
+                (PAGESIZE - PAGESIZE % sizeof(MemorySegment))) {
             MemorySegment** nextPage = (MemorySegment**) current;
             assert(*nextPage != nullptr);
             current = *nextPage;
@@ -211,8 +211,8 @@ void MemorySegment::verifySegmentList() {
         }
 
         current++;
-        if (((uintptr_t) current & 0xFFF) ==
-                (0x1000 - 0x1000 % sizeof(MemorySegment))) {
+        if (((uintptr_t) current & PAGE_MISALIGN) ==
+                (PAGESIZE - PAGESIZE % sizeof(MemorySegment))) {
             nextPage = (MemorySegment**) current;
             if (!*nextPage) break;
             current = *nextPage;
@@ -220,15 +220,15 @@ void MemorySegment::verifySegmentList() {
     }
 
     if (freeSegmentSpaceFound == 1) {
-        vaddr_t address = findFreeSegment(kernelSpace->firstSegment, 0x1000);
+        vaddr_t address = findFreeSegment(kernelSpace->firstSegment, PAGESIZE);
         paddr_t physical = PhysicalMemory::popPageFrame();
         kernelSpace->mapAt(address, physical, PROT_READ | PROT_WRITE);
         *nextPage = (MemorySegment*) address;
 
-        memset(*nextPage, 0, 0x1000);
+        memset(*nextPage, 0, PAGESIZE);
 
         freeSegment->address = address;
-        freeSegment->size = 0x1000;
+        freeSegment->size = PAGESIZE;
         freeSegment->flags = PROT_READ | PROT_WRITE;
         addSegment(kernelSpace->firstSegment, freeSegment);
     }

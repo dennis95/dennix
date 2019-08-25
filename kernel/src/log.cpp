@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -36,10 +36,10 @@ void Log::initialize(multiboot_info* multiboot) {
     } else if (multiboot->framebuffer_type == MULTIBOOT_RGB &&
             (multiboot->framebuffer_bpp == 24 ||
             multiboot->framebuffer_bpp == 32)) {
-        paddr_t lfbAligned = multiboot->framebuffer_addr & ~0xFFF;
+        paddr_t lfbAligned = multiboot->framebuffer_addr & ~PAGE_MISALIGN;
         size_t lfbOffset = multiboot->framebuffer_addr - lfbAligned;
         size_t lfbSize = ALIGNUP(multiboot->framebuffer_height *
-                multiboot->framebuffer_pitch + lfbOffset, 0x1000);
+                multiboot->framebuffer_pitch + lfbOffset, PAGESIZE);
         vaddr_t lfb = kernelSpace->mapPhysical(lfbAligned, lfbSize,
                 PROT_READ | PROT_WRITE) + lfbOffset;
         TerminalDisplay::display = new LfbTextDisplay((char*) lfb,

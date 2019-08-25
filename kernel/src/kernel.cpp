@@ -45,9 +45,9 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
 
     // Copy the multiboot structure.
     multiboot_info* multibootMapped = (multiboot_info*)
-            kernelSpace->mapPhysical(multibootAddress, 0x1000, PROT_READ);
+            kernelSpace->mapPhysical(multibootAddress, PAGESIZE, PROT_READ);
     memcpy(&multiboot, multibootMapped, sizeof(multiboot_info));
-    kernelSpace->unmapPhysical((vaddr_t) multibootMapped, 0x1000);
+    kernelSpace->unmapPhysical((vaddr_t) multibootMapped, PAGESIZE);
 
     PhysicalMemory::initialize(&multiboot);
 
@@ -101,10 +101,10 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
 static Reference<DirectoryVnode> loadInitrd(multiboot_info* multiboot) {
     Reference<DirectoryVnode> root;
 
-    paddr_t modulesAligned = multiboot->mods_addr & ~0xFFF;
+    paddr_t modulesAligned = multiboot->mods_addr & ~PAGE_MISALIGN;
     ptrdiff_t offset = multiboot->mods_addr - modulesAligned;
     size_t mappedSize = ALIGNUP(offset +
-            multiboot->mods_count * sizeof(multiboot_mod_list), 0x1000);
+            multiboot->mods_count * sizeof(multiboot_mod_list), PAGESIZE);
 
     vaddr_t modulesPage = kernelSpace->mapPhysical(modulesAligned, mappedSize,
             PROT_READ);
@@ -113,7 +113,7 @@ static Reference<DirectoryVnode> loadInitrd(multiboot_info* multiboot) {
             (modulesPage + offset);
     for (size_t i = 0; i < multiboot->mods_count; i++) {
         size_t size = ALIGNUP(modules[i].mod_end - modules[i].mod_start,
-                0x1000);
+                PAGESIZE);
         vaddr_t initrd = kernelSpace->mapPhysical(modules[i].mod_start, size,
                 PROT_READ);
         root = Initrd::loadInitrd(initrd);

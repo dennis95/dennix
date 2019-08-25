@@ -22,7 +22,7 @@
 #include <dennix/kernel/kthread.h>
 #include <dennix/kernel/physicalmemory.h>
 
-static char firstStackPage[0x1000] ALIGNED(0x1000);
+static char firstStackPage[PAGESIZE] ALIGNED(PAGESIZE);
 static paddr_t* stack = (paddr_t*) firstStackPage + 1;
 static vaddr_t lastStackPage = (vaddr_t) firstStackPage;
 
@@ -59,24 +59,24 @@ static inline bool isUsedByMultiboot(paddr_t physicalAddress,
     paddr_t mmapEnd = multiboot->mmap_addr + multiboot->mmap_length;
     paddr_t modsEnd = multiboot->mods_addr +
             multiboot->mods_count * sizeof(multiboot_mod_list);
-    return ((physicalAddress >= (multiboot->mmap_addr & ~0xFFF) &&
+    return ((physicalAddress >= (multiboot->mmap_addr & ~PAGE_MISALIGN) &&
             physicalAddress < mmapEnd) ||
-            (physicalAddress >= (multiboot->mods_addr & ~0xFFF) &&
+            (physicalAddress >= (multiboot->mods_addr & ~PAGE_MISALIGN) &&
             physicalAddress < modsEnd));
 }
 
 void PhysicalMemory::initialize(multiboot_info* multiboot) {
     paddr_t mmapPhys = (paddr_t) multiboot->mmap_addr;
-    paddr_t mmapAligned = mmapPhys & ~0xFFF;
+    paddr_t mmapAligned = mmapPhys & ~PAGE_MISALIGN;
     ptrdiff_t mmapOffset = mmapPhys - mmapAligned;
-    size_t mmapSize = ALIGNUP(mmapOffset + multiboot->mmap_length, 0x1000);
+    size_t mmapSize = ALIGNUP(mmapOffset + multiboot->mmap_length, PAGESIZE);
 
     // Map the module list so we can check which addresses are used by modules
     paddr_t modulesPhys = (paddr_t) multiboot->mods_addr;
-    paddr_t modulesAligned = modulesPhys & ~0xFFF;
+    paddr_t modulesAligned = modulesPhys & ~PAGE_MISALIGN;
     ptrdiff_t modulesOffset = modulesPhys - modulesAligned;
     size_t modulesSize = ALIGNUP(modulesOffset +
-            multiboot->mods_count * sizeof(multiboot_mod_list), 0x1000);
+            multiboot->mods_count * sizeof(multiboot_mod_list), PAGESIZE);
 
     vaddr_t mmapMapped = kernelSpace->mapPhysical(mmapAligned, mmapSize,
             PROT_READ);
@@ -95,7 +95,7 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
         if (mmapEntry->type == MULTIBOOT_MEMORY_AVAILABLE &&
             mmapEntry->addr + mmapEntry->len <= UINTPTR_MAX) {
             paddr_t addr = (paddr_t) mmapEntry->addr;
-            for (uint64_t i = 0; i < mmapEntry->len; i += 0x1000) {
+            for (uint64_t i = 0; i < mmapEntry->len; i += PAGESIZE) {
                 if (isUsedByModule(addr + i, modules, multiboot->mods_count) ||
                         isUsedByKernel(addr + i) ||
                         isUsedByMultiboot(addr + i, multiboot)) {
@@ -115,18 +115,18 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
 
 void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
     assert(physicalAddress);
-    assert(!(physicalAddress & 0xFFF));
+    assert(PAGE_ALIGNED(physicalAddress));
     AutoLock lock(&mutex);
 
-    if (((vaddr_t) (stack + 1) & 0xFFF) == 0) {
-        paddr_t* stackPage = (paddr_t*) ((vaddr_t) stack & ~0xFFF);
+    if (((vaddr_t) (stack + 1) & PAGE_MISALIGN) == 0) {
+        paddr_t* stackPage = (paddr_t*) ((vaddr_t) stack & ~PAGE_MISALIGN);
 
         if (*(stackPage + 1) == 0) {
             // We need to unlock the mutex because AddressSpace::mapPhysical
             // might need to pop page frames from the stack.
             kthread_mutex_unlock(&mutex);
             vaddr_t nextStackPage = kernelSpace->mapPhysical(physicalAddress,
-                    0x1000, PROT_READ | PROT_WRITE);
+                    PAGESIZE, PROT_READ | PROT_WRITE);
             kthread_mutex_lock(&mutex);
 
             if (unlikely(nextStackPage == 0)) {
@@ -134,7 +134,7 @@ void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
                 return;
             }
 
-            stackPage = (paddr_t*) ((vaddr_t) stack & ~0xFFF);
+            stackPage = (paddr_t*) ((vaddr_t) stack & ~PAGE_MISALIGN);
             *((paddr_t*) lastStackPage + 1) = nextStackPage;
             *(vaddr_t*) nextStackPage = lastStackPage;
             *((paddr_t*) nextStackPage + 1) = 0;
@@ -151,16 +151,16 @@ void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
 paddr_t PhysicalMemory::popPageFrame() {
     AutoLock lock(&mutex);
 
-    paddr_t* stackPage = (paddr_t*) ((vaddr_t) stack & ~0xFFF);
+    paddr_t* stackPage = (paddr_t*) ((vaddr_t) stack & ~PAGE_MISALIGN);
 
-    if (((vaddr_t) stack & 0xFFF) < 2 * sizeof(paddr_t)) {
+    if (((vaddr_t) stack & PAGE_MISALIGN) < 2 * sizeof(paddr_t)) {
         if (unlikely(*stackPage == 0)) {
             // We cannot unmap the pages of the stack anymore because
             // kernelSpace might be locked at this point.
             return 0;
         }
 
-        stack = (paddr_t*) (*stackPage + 0x1000 - sizeof(paddr_t));
+        stack = (paddr_t*) (*stackPage + PAGESIZE - sizeof(paddr_t));
     }
 
     return *stack--;

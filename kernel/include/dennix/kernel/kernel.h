@@ -34,6 +34,8 @@
 #define unlikely(x) __builtin_expect((x), 0)
 
 #define ALIGNUP(val, alignment) ((((val) - 1) & ~((alignment) - 1)) + (alignment))
+#define PAGE_MISALIGN (PAGESIZE - 1)
+#define PAGE_ALIGNED(value) !((value) & PAGE_MISALIGN)
 
 // Define an incomplete type for symbols so we can only take their addresses
 typedef struct _incomplete_type symbol_t;

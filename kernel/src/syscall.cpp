@@ -325,7 +325,7 @@ void* Syscall::mmap(__mmapRequest* request) {
 }
 
 int Syscall::munmap(void* addr, size_t size) {
-    if (size == 0 || ((vaddr_t) addr & 0xFFF)) {
+    if (size == 0 || !PAGE_ALIGNED((vaddr_t) addr)) {
         errno = EINVAL;
         return -1;
     }

@@ -102,7 +102,7 @@ int Process::copyArguments(char* const argv[], char* const envp[],
     stringSizes = ALIGNUP(stringSizes, alignof(char*));
 
     size_t size = ALIGNUP(stringSizes + (argc + envc + 2) * sizeof(char*),
-            0x1000);
+            PAGESIZE);
 
     vaddr_t page = newAddressSpace->mapMemory(size, PROT_READ | PROT_WRITE);
     vaddr_t pageMapped = kernelSpace->mapFromOtherAddressSpace(newAddressSpace,
@@ -143,11 +143,11 @@ uintptr_t Process::loadELF(uintptr_t elf, AddressSpace* newAddressSpace) {
     for (size_t i = 0; i < header->e_phnum; i++) {
         if (programHeader[i].p_type != PT_LOAD) continue;
 
-        vaddr_t loadAddressAligned = programHeader[i].p_vaddr & ~0xFFF;
+        vaddr_t loadAddressAligned = programHeader[i].p_vaddr & ~PAGE_MISALIGN;
         ptrdiff_t offset = programHeader[i].p_vaddr - loadAddressAligned;
 
         const void* src = (void*) (elf + programHeader[i].p_offset);
-        size_t size = ALIGNUP(programHeader[i].p_memsz + offset, 0x1000);
+        size_t size = ALIGNUP(programHeader[i].p_memsz + offset, PAGESIZE);
 
         int protection = 0;
         if (programHeader[i].p_flags & PF_X) protection |= PROT_EXEC;
@@ -221,20 +221,20 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
 
     size_t sigreturnSize = (uintptr_t) &endSigreturn -
             (uintptr_t) &beginSigreturn;
-    assert(sigreturnSize <= 0x1000);
-    sigreturn = newAddressSpace->mapMemory(0x1000, PROT_EXEC);
+    assert(sigreturnSize <= PAGESIZE);
+    sigreturn = newAddressSpace->mapMemory(PAGESIZE, PROT_EXEC);
     vaddr_t sigreturnMapped = kernelSpace->mapFromOtherAddressSpace(
-            newAddressSpace, sigreturn, 0x1000, PROT_WRITE);
+            newAddressSpace, sigreturn, PAGESIZE, PROT_WRITE);
     memcpy((void*) sigreturnMapped, &beginSigreturn, sigreturnSize);
-    kernelSpace->unmapPhysical(sigreturnMapped, 0x1000);
+    kernelSpace->unmapPhysical(sigreturnMapped, PAGESIZE);
 
     vaddr_t userStack = newAddressSpace->mapMemory(USER_STACK_SIZE,
             PROT_READ | PROT_WRITE);
-    vaddr_t newKernelStack = kernelSpace->mapMemory(0x1000,
+    vaddr_t newKernelStack = kernelSpace->mapMemory(PAGESIZE,
             PROT_READ | PROT_WRITE);
 
     InterruptContext* newInterruptContext = (InterruptContext*)
-            (newKernelStack + 0x1000 - sizeof(InterruptContext));
+            (newKernelStack + PAGESIZE - sizeof(InterruptContext));
 
     memset(newInterruptContext, 0, sizeof(InterruptContext));
 
@@ -349,10 +349,10 @@ Process* Process::regfork(int /*flags*/, regfork_t* registers) {
     Process* process = new Process();
     process->parent = this;
 
-    vaddr_t newKernelStack = kernelSpace->mapMemory(0x1000,
+    vaddr_t newKernelStack = kernelSpace->mapMemory(PAGESIZE,
             PROT_READ | PROT_WRITE);
     InterruptContext* newInterruptContext = (InterruptContext*)
-            (newKernelStack + 0x1000 - sizeof(InterruptContext));
+            (newKernelStack + PAGESIZE - sizeof(InterruptContext));
     Registers::restore(newInterruptContext, registers);
 
     process->mainThread.updateContext(newKernelStack, newInterruptContext,

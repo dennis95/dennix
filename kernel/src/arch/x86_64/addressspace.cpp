@@ -48,7 +48,7 @@ extern symbol_t kernelVirtualEnd;
 }
 
 static kthread_mutex_t listMutex = KTHREAD_MUTEX_INITIALIZER;
-static char _kernelMappingArea[0x1000] ALIGNED(0x1000);
+static char _kernelMappingArea[PAGESIZE] ALIGNED(PAGESIZE);
 
 struct PageIndex {
     size_t pml4Index;
@@ -58,7 +58,7 @@ struct PageIndex {
 };
 
 static PageIndex addressToIndex(vaddr_t virtualAddress) {
-    assert(!(virtualAddress & 0xFFF));
+    assert(PAGE_ALIGNED(virtualAddress));
     assert(virtualAddress <= 0x7FFFFFFFF000 ||
             virtualAddress >= 0xFFFF800000000000);
 
@@ -87,12 +87,12 @@ AddressSpace::AddressSpace() {
     } else {
         pml4 = PhysicalMemory::popPageFrame();
 
-        firstSegment = new MemorySegment(0, 0x1000, PROT_NONE | SEG_NOUNMAP,
+        firstSegment = new MemorySegment(0, PAGESIZE, PROT_NONE | SEG_NOUNMAP,
                 nullptr, nullptr);
         MemorySegment::addSegment(firstSegment, 0x800000000000, -0x800000000000,
                 PROT_NONE | SEG_NOUNMAP);
         mappingArea = MemorySegment::findAndAddNewSegment(
-                kernelSpace->firstSegment, 0x1000, PROT_NONE);
+                kernelSpace->firstSegment, PAGESIZE, PROT_NONE);
 
         AutoLock lock(&listMutex);
         next = kernelSpace->next;
@@ -124,7 +124,7 @@ AddressSpace::~AddressSpace() {
     kthread_mutex_unlock(&listMutex);
 
     MemorySegment::removeSegment(kernelSpace->firstSegment, mappingArea,
-            0x1000);
+            PAGESIZE);
 
     MemorySegment* currentSegment = firstSegment;
 
@@ -166,7 +166,7 @@ void AddressSpace::initialize() {
 
     while (p < (vaddr_t) &bootstrapEnd) {
         kernelSpace->unmap(p);
-        p += 0x1000;
+        p += PAGESIZE;
     }
 
     // Remove the mapping for the bootstrap paging structures.
@@ -286,7 +286,7 @@ vaddr_t AddressSpace::mapAt(vaddr_t virtualAddress, paddr_t physicalAddress,
                     PROT_READ | PROT_WRITE);
         }
 
-        memset(pdpt, 0, 0x1000);
+        memset(pdpt, 0, PAGESIZE);
     } else if (!isActive()) {
         paddr_t pdptPhys = pml4Mapping[index.pml4Index] & ~PAGE_FLAGS;
         kernelSpace->unmap(mappingArea);
@@ -308,7 +308,7 @@ vaddr_t AddressSpace::mapAt(vaddr_t virtualAddress, paddr_t physicalAddress,
             pageDir = (uintptr_t*) kernelSpace->mapAt(mappingArea, pdPhys,
                     PROT_READ | PROT_WRITE);
         }
-        memset(pageDir, 0, 0x1000);
+        memset(pageDir, 0, PAGESIZE);
     } else if (!isActive()) {
         paddr_t pdPhys = pdpt[index.pdptIndex] & ~PAGE_FLAGS;
         kernelSpace->unmap(mappingArea);
@@ -330,7 +330,7 @@ vaddr_t AddressSpace::mapAt(vaddr_t virtualAddress, paddr_t physicalAddress,
             pageTable = (uintptr_t*) kernelSpace->mapAt(mappingArea, ptPhys,
                     PROT_READ | PROT_WRITE);
         }
-        memset(pageTable, 0, 0x1000);
+        memset(pageTable, 0, PAGESIZE);
     } else if (!isActive()) {
         paddr_t ptPhys = pageDir[index.pdIndex] & ~PAGE_FLAGS;
         kernelSpace->unmap(mappingArea);

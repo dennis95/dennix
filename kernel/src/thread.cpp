@@ -41,7 +41,7 @@ Thread::Thread(Process* process) {
 }
 
 Thread::~Thread() {
-    kernelSpace->unmapMemory(kernelStack, 0x1000);
+    kernelSpace->unmapMemory(kernelStack, PAGESIZE);
 }
 
 void Thread::initializeIdleThread() {
@@ -93,7 +93,7 @@ InterruptContext* Thread::schedule(InterruptContext* context) {
         }
     }
 
-    setKernelStack(_current->kernelStack + 0x1000);
+    setKernelStack(_current->kernelStack + PAGESIZE);
     Registers::restoreFpu(&_current->fpuEnv);
 
     _current->process->addressSpace->activate();
