@@ -80,23 +80,26 @@ vaddr_t AddressSpace::mapFromOtherAddressSpace(AddressSpace* sourceSpace,
     return destination;
 }
 
-vaddr_t AddressSpace::mapMemory(size_t size, int protection) {
-    AutoLock lock(&mutex);
+vaddr_t AddressSpace::mapMemoryInternal(vaddr_t virtualAddress, size_t size,
+        int protection) {
+    size_t pages = size / PAGESIZE;
 
-    vaddr_t virtualAddress = MemorySegment::findAndAddNewSegment(firstSegment,
-            size, protection);
-    paddr_t physicalAddress;
+    if (!PhysicalMemory::reserveFrames(pages)) {
+        MemorySegment::removeSegment(firstSegment, virtualAddress, size);
+        return 0;
+    }
 
-    for (size_t i = 0; i < size; i += PAGESIZE) {
-        physicalAddress = PhysicalMemory::popPageFrame();
-        if (!physicalAddress ||
-                !mapAt(virtualAddress + i, physicalAddress, protection)) {
-            if (physicalAddress) {
-                PhysicalMemory::pushPageFrame(physicalAddress);
-            }
-            for (i = i - PAGESIZE; i < size; i -= PAGESIZE) {
-                physicalAddress = getPhysicalAddress(virtualAddress + i);
-                unmap(virtualAddress + i);
+    for (size_t i = 0; i < pages; i++) {
+        paddr_t physicalAddress = PhysicalMemory::popReserved();
+        if (unlikely(!mapAt(virtualAddress + i * PAGESIZE, physicalAddress,
+                protection))) {
+            PhysicalMemory::unreserveFrames(pages - i - 1);
+            PhysicalMemory::pushPageFrame(physicalAddress);
+
+            for (size_t j = 0; j < i; j++) {
+                physicalAddress = getPhysicalAddress(virtualAddress +
+                        j * PAGESIZE);
+                unmap(virtualAddress + j * PAGESIZE);
                 PhysicalMemory::pushPageFrame(physicalAddress);
             }
             MemorySegment::removeSegment(firstSegment, virtualAddress, size);
@@ -107,31 +110,19 @@ vaddr_t AddressSpace::mapMemory(size_t size, int protection) {
     return virtualAddress;
 }
 
+vaddr_t AddressSpace::mapMemory(size_t size, int protection) {
+    AutoLock lock(&mutex);
+    vaddr_t virtualAddress = MemorySegment::findAndAddNewSegment(firstSegment,
+            size, protection);
+    return mapMemoryInternal(virtualAddress, size, protection);
+}
+
 vaddr_t AddressSpace::mapMemory(vaddr_t virtualAddress, size_t size,
         int protection) {
     AutoLock lock(&mutex);
 
     MemorySegment::addSegment(firstSegment, virtualAddress, size, protection);
-    paddr_t physicalAddress;
-
-    for (size_t i = 0; i < size; i += PAGESIZE) {
-        physicalAddress = PhysicalMemory::popPageFrame();
-        if (!physicalAddress ||
-                !mapAt(virtualAddress + i, physicalAddress, protection)) {
-            if (physicalAddress) {
-                PhysicalMemory::pushPageFrame(physicalAddress);
-            }
-            for (i = i - PAGESIZE; i < size; i -= PAGESIZE) {
-                physicalAddress = getPhysicalAddress(virtualAddress + i);
-                unmap(virtualAddress + i);
-                PhysicalMemory::pushPageFrame(physicalAddress);
-            }
-            MemorySegment::removeSegment(firstSegment, virtualAddress, size);
-            return 0;
-        }
-    }
-
-    return virtualAddress;
+    return mapMemoryInternal(virtualAddress, size, protection);
 }
 
 vaddr_t AddressSpace::mapPhysical(paddr_t physicalAddress, size_t size,

@@ -42,6 +42,8 @@ public:
     void unmapPhysical(vaddr_t firstVirtualAddress, size_t size);
 private:
     bool isActive();
+    vaddr_t mapMemoryInternal(vaddr_t virtualAddress, size_t size,
+            int protection);
     void unmap(vaddr_t virtualAddress);
 public:
     MemorySegment* firstSegment;

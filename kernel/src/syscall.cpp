@@ -279,23 +279,6 @@ off_t Syscall::lseek(int fd, off_t offset, int whence) {
     return descr->lseek(offset, whence);
 }
 
-static void* mmapImplementation(void* /*addr*/, size_t size,
-        int protection, int flags, int /*fd*/, off_t /*offset*/) {
-    if (size == 0 || !(flags & MAP_PRIVATE)) {
-        errno = EINVAL;
-        return MAP_FAILED;
-    }
-
-    if (flags & MAP_ANONYMOUS) {
-        AddressSpace* addressSpace = Process::current()->addressSpace;
-        return (void*) addressSpace->mapMemory(size, protection);
-    }
-
-    //TODO: Implement other flags than MAP_ANONYMOUS
-    errno = ENOTSUP;
-    return MAP_FAILED;
-}
-
 int Syscall::mkdirat(int fd, const char* path, mode_t mode) {
     char* pathCopy = strdup(path);
     if (!pathCopy) return -1;
@@ -318,6 +301,24 @@ int Syscall::mkdirat(int fd, const char* path, mode_t mode) {
     return result;
 }
 
+static void* mmapImplementation(void* /*addr*/, size_t size,
+        int protection, int flags, int /*fd*/, off_t /*offset*/) {
+    if (size == 0 || !(flags & MAP_PRIVATE)) {
+        errno = EINVAL;
+        return MAP_FAILED;
+    }
+
+    if (flags & MAP_ANONYMOUS) {
+        AddressSpace* addressSpace = Process::current()->addressSpace;
+        return (void*) addressSpace->mapMemory(ALIGNUP(size, PAGESIZE),
+                protection);
+    }
+
+    // TODO: Implement other flags than MAP_ANONYMOUS
+    errno = ENOTSUP;
+    return MAP_FAILED;
+}
+
 void* Syscall::mmap(__mmapRequest* request) {
     return mmapImplementation(request->_addr, request->_size,
             request->_protection, request->_flags, request->_fd,
@@ -332,7 +333,7 @@ int Syscall::munmap(void* addr, size_t size) {
 
     AddressSpace* addressSpace = Process::current()->addressSpace;
     //TODO: The userspace process could unmap kernel pages!
-    addressSpace->unmapMemory((vaddr_t) addr, size);
+    addressSpace->unmapMemory((vaddr_t) addr, ALIGNUP(size, 0x1000));
     return 0;
 }
 

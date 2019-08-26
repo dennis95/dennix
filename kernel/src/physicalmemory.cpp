@@ -23,6 +23,8 @@
 #include <dennix/kernel/physicalmemory.h>
 
 static char firstStackPage[PAGESIZE] ALIGNED(PAGESIZE);
+static size_t framesAvailable;
+static size_t framesReserved;
 static paddr_t* stack = (paddr_t*) firstStackPage + 1;
 static vaddr_t lastStackPage = (vaddr_t) firstStackPage;
 
@@ -146,22 +148,47 @@ void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
     }
 
     *++stack = physicalAddress;
+    framesAvailable++;
 }
 
-paddr_t PhysicalMemory::popPageFrame() {
-    AutoLock lock(&mutex);
-
-    paddr_t* stackPage = (paddr_t*) ((vaddr_t) stack & ~PAGE_MISALIGN);
-
+static paddr_t popPageFrameInternal() {
     if (((vaddr_t) stack & PAGE_MISALIGN) < 2 * sizeof(paddr_t)) {
-        if (unlikely(*stackPage == 0)) {
-            // We cannot unmap the pages of the stack anymore because
-            // kernelSpace might be locked at this point.
-            return 0;
-        }
-
+        paddr_t* stackPage = (paddr_t*) ((vaddr_t) stack & ~PAGE_MISALIGN);
+        assert(*stackPage != 0);
         stack = (paddr_t*) (*stackPage + PAGESIZE - sizeof(paddr_t));
     }
 
     return *stack--;
+}
+
+paddr_t PhysicalMemory::popPageFrame() {
+    AutoLock lock(&mutex);
+    if (framesAvailable == 0) return 0;
+
+    framesAvailable--;
+    return popPageFrameInternal();
+}
+
+paddr_t PhysicalMemory::popReserved() {
+    AutoLock lock(&mutex);
+    assert(framesReserved > 0);
+
+    framesReserved--;
+    return popPageFrameInternal();
+}
+
+bool PhysicalMemory::reserveFrames(size_t frames) {
+    AutoLock lock(&mutex);
+
+    if (framesAvailable < frames) return false;
+    framesAvailable -= frames;
+    framesReserved += frames;
+    return true;
+}
+
+void PhysicalMemory::unreserveFrames(size_t frames) {
+    AutoLock lock(&mutex);
+
+    assert(framesReserved >= frames);
+    framesReserved -= frames;
 }
