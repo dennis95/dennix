@@ -25,6 +25,7 @@
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/initrd.h>
 #include <dennix/kernel/log.h>
+#include <dennix/kernel/panic.h>
 #include <dennix/kernel/physicalmemory.h>
 #include <dennix/kernel/pit.h>
 #include <dennix/kernel/process.h>
@@ -73,7 +74,8 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
 
     Log::printf("Starting init process...\n");
     Reference<Vnode> program = resolvePath(rootDir, "/sbin/init");
-    assert(program);
+    if (!program) PANIC("No init program found");
+
     Process* initProcess = new Process();
     const char* argv[] = { "init", nullptr };
     const char* envp[] = { nullptr };

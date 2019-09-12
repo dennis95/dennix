@@ -17,20 +17,19 @@
  * CPU registers.
  */
 
-#include <inttypes.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/registers.h>
 
 void Registers::dumpInterruptContext(const InterruptContext* context) {
-    Log::printf("Exception %lu occurred!\n", context->interrupt);
-    Log::printf("eax: 0x%lX, ebx: 0x%lX, ecx: 0x%lX, edx: 0x%lX\n",
+    Log::printf("EAX: 0x%.8lX, EBX: 0x%.8lX, ECX: 0x%.8lX, EDX: 0x%.8lX\n",
             context->eax, context->ebx, context->ecx, context->edx);
-    Log::printf("edi: 0x%lX, esi: 0x%lX, ebp: 0x%lX, error: 0x%lX\n",
-            context->edi, context->esi, context->ebp, context->error);
-    Log::printf("eip: 0x%lX, cs: 0x%lX, eflags: 0x%lX\n",
-            context->eip, context->cs, context->eflags);
+    Log::printf("ESI: 0x%.8lX, EDI: 0x%.8lX, EBP: 0x%.8lX\n",
+            context->esi, context->edi, context->ebp);
+    Log::printf("ERROR: 0x%.4lX, EFLAGS: 0x%.8lX\n", context->error,
+            context->eflags);
+    Log::printf("CS:  0x%.4lX, EIP: 0x%.8lX\n", context->cs, context->eip);
     if (context->cs != 0x8) {
-        Log::printf("ss: 0x%lX, esp: 0x%lX\n", context->ss, context->esp);
+        Log::printf("SS: 0x%.4lX, ESP: 0x%.8lX\n", context->ss, context->esp);
     }
 }
 

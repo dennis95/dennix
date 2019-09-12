@@ -17,7 +17,6 @@
  * Defines functions to print to the screen.
  */
 
-#include <stdarg.h>
 #include <stdio.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/lfbtextdisplay.h>
@@ -54,8 +53,12 @@ void Log::initialize(multiboot_info* multiboot) {
 void Log::printf(const char* format, ...) {
     va_list ap;
     va_start(ap, format);
-    vcbprintf(nullptr, callback, format, ap);
+    Log::vprintf(format, ap);
     va_end(ap);
+}
+
+void Log::vprintf(const char* format, va_list ap) {
+    vcbprintf(nullptr, callback, format, ap);
 }
 
 static size_t callback(void*, const char* s, size_t nBytes) {

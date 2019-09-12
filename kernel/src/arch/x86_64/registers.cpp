@@ -17,26 +17,24 @@
  * CPU registers.
  */
 
-#include <inttypes.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/registers.h>
 
 void Registers::dumpInterruptContext(const InterruptContext* context) {
-    Log::printf("Exception %lu occurred!\n", context->interrupt);
-    Log::printf("rax: 0x%lX, rbx: 0x%lX, rcx: 0x%lX\n", context->rax,
+    Log::printf("RAX: 0x%.16lX, RBX: 0x%.16lX, RCX: 0x%.16lX\n", context->rax,
             context->rbx, context->rcx);
-    Log::printf("rdx: 0x%lX, rdi: 0x%lX, rsi: 0x%lX\n", context->rdx,
-            context->rdi, context->rsi);
-    Log::printf("rbp: 0x%lX, r8: 0x%lX, r9: 0x%lX\n", context->rbp,
+    Log::printf("RDX: 0x%.16lX, RSI: 0x%.16lX, RDI: 0x%.16lX\n", context->rdx,
+            context->rsi, context->rdi);
+    Log::printf("RBP: 0x%.16lX, R8:  0x%.16lX, R9:  0x%.16lX\n", context->rbp,
             context->r8, context->r9);
-    Log::printf("r10: 0x%lX, r11: 0x%lX, r12: 0x%lX\n", context->r10,
+    Log::printf("R10: 0x%.16lX, R11: 0x%.16lX, R12: 0x%.16lX\n", context->r10,
             context->r11, context->r12);
-    Log::printf("r13: 0x%lX, r14: 0x%lX, r15: 0x%lX\n", context->r13,
+    Log::printf("R13: 0x%.16lX, R14: 0x%.16lX, R15: 0x%.16lX\n", context->r13,
             context->r14, context->r15);
-    Log::printf("rip: 0x%lX, cs: 0x%lX, rflags: 0x%lX\n", context->rip,
-            context->cs, context->rflags);
-    Log::printf("rsp: 0x%lX, ss: 0x%lX, error: 0x%lX\n", context->rsp,
-            context->ss, context->error);
+    Log::printf("ERROR: 0x%.4lX, RFLAGS: 0x%.16lX\n", context->error,
+            context->rflags);
+    Log::printf("CS:  0x%.4lX, RIP: 0x%.16lX\n", context->cs, context->rip);
+    Log::printf("SS:  0x%.4lX, RSP: 0x%.16lX\n", context->ss, context->rsp);
 }
 
 void Registers::restore(InterruptContext* context,

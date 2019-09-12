@@ -29,6 +29,8 @@
 #define PACKED __attribute__((__packed__))
 #define restrict __restrict
 #define ALWAYS_INLINE inline __attribute__((__always_inline__))
+#define PRINTF_LIKE(format, firstArg) \
+    __attribute__((__format__(__printf__, format, firstArg)))
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect((x), 0)

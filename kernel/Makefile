@@ -45,6 +45,7 @@ OBJ = \
 	lfbtextdisplay.o \
 	log.o \
 	memorysegment.o \
+	panic.o \
 	physicalmemory.o \
 	pipe.o \
 	pit.o \

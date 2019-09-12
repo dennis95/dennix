@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,21 +21,17 @@
 #include <stdlib.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/kthread.h>
-#include <dennix/kernel/log.h>
+#include <dennix/kernel/panic.h>
 
 static kthread_mutex_t heapLock = KTHREAD_MUTEX_INITIALIZER;
 
 extern "C" NORETURN void abort(void) {
-    Log::printf("Kernel abort");
-    while (true) asm volatile("cli; hlt");
+    PANIC("Abort was called");
 }
 
 extern "C" NORETURN void __assertionFailure(const char* assertion,
         const char* file, unsigned int line, const char* func) {
-    Log::printf("Assertion failed: '%s' at function %s (%s:%u)\n",
-            assertion, func, file, line);
-    // Halt the kernel.
-    while (true) asm volatile("cli; hlt");
+    panic(file, line, func, "Assertion failed: '%s'", assertion);
 }
 
 extern "C" void __lockHeap(void) {

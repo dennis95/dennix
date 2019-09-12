@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,22 +13,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/log.h
- * Declares functions to print to the screen.
+/* kernel/include/dennix/kernel/panic.h
+ * Kernel panic.
  */
 
-#ifndef KERNEL_LOG_H
-#define KERNEL_LOG_H
+#ifndef KERNEL_PANIC_H
+#define KERNEL_PANIC_H
 
-#include <stdarg.h>
 #include <dennix/kernel/kernel.h>
 
-struct multiboot_info;
+struct InterruptContext;
 
-namespace Log {
-void initialize(multiboot_info* multiboot);
-void printf(const char* format, ...) PRINTF_LIKE(1, 2);
-void vprintf(const char* format, va_list ap) PRINTF_LIKE(1, 0);
-}
+NORETURN void panic(const char* file, unsigned int line, const char* func,
+        const char* format, ...) PRINTF_LIKE(4, 5);
+NORETURN void panic(const char* file, unsigned int line, const char* func,
+        const InterruptContext* context, const char* format, ...)
+        PRINTF_LIKE(5, 6);
+
+#define PANIC(...) panic(__FILE__, __LINE__, __func__, __VA_ARGS__)
 
 #endif

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,7 +23,7 @@
 #include <tar.h>
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/initrd.h>
-#include <dennix/kernel/log.h>
+#include <dennix/kernel/panic.h>
 #include <dennix/kernel/symlink.h>
 
 struct TarHeader {
@@ -69,9 +69,8 @@ Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
                 (Reference<DirectoryVnode>) resolvePath(root, dirName);
 
         if (!directory) {
-            Log::printf("Could not add '%s' to nonexistent directory '%s'.\n",
+            PANIC("Could not add '%s' to nonexistent directory '%s'",
                     fileName, dirName);
-            return root;
         }
 
         Reference<Vnode> newFile;
@@ -98,8 +97,7 @@ Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
                     sizeof(header->linkname));
             header++;
         } else {
-            Log::printf("Unknown typeflag '%c'\n", header->typeflag);
-            return root;
+            PANIC("Unknown typeflag '%c'", header->typeflag);
         }
 
         newFile->stats.st_atim = mtime;

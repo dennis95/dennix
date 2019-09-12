@@ -18,7 +18,7 @@
  */
 
 #include <signal.h>
-#include <dennix/kernel/log.h>
+#include <dennix/kernel/panic.h>
 #include <dennix/kernel/portio.h>
 #include <dennix/kernel/registers.h>
 #include <dennix/kernel/signal.h>
@@ -32,7 +32,7 @@
 
 #define PIC_EOI 0x20
 
-#define EX_DEVIDE_BY_ZERO 0
+#define EX_DIVIDE_BY_ZERO 0
 #define EX_DEBUG 1
 #define EX_NON_MASKABLE_INTERRUPT 2
 #define EX_BREAKPOINT 3
@@ -77,10 +77,37 @@ void Interrupts::enable() {
     asm volatile ("sti");
 }
 
+static const char* exceptionName(unsigned int exception) {
+    switch (exception) {
+    case EX_DIVIDE_BY_ZERO: return "Divide-by-zero Exception";
+    case EX_DEBUG: return "Debug Exception";
+    case EX_NON_MASKABLE_INTERRUPT: return "Non-maskable Interrupt";
+    case EX_BREAKPOINT: return "Breakpoint Exception";
+    case EX_OVERFLOW: return "Overflow Exception";
+    case EX_BOUND_RANGE_EXCEEDED: return "Bound Range Exceeded Exception";
+    case EX_INVALID_OPCODE: return "Invalid Opcode Exception";
+    case EX_DEVICE_NOT_AVAILABLE: return "Device Not Available Exception";
+    case EX_DOUBLE_FAULT: return "Double Fault";
+    case EX_COPROCESSOR_SEGMENT_OVERRUN: return "Coprocessor Segment Overrun";
+    case EX_INVAILD_TSS: return "Invalid TSS Exception";
+    case EX_SEGMENT_NOT_PRESENT: return "Segment Not Present Exception";
+    case EX_STACK_SEGMENT_FAULT: return "Stack Fault";
+    case EX_GENERAL_PROTECTION_FAULT: return "General Protection Fault";
+    case EX_PAGE_FAULT: return "Page Fault";
+    case EX_X87_FLOATING_POINT_EXCEPTION: return "x87 Floating Point Exception";
+    case EX_ALIGNMENT_CHECK: return "Alignment Check Exception";
+    case EX_MACHINE_CHECK: return "Machine Check Exception";
+    case EX_SIMD_FLOATING_POINT_EXCEPTION:
+        return "SIMD Floating Point Exception";
+    case EX_VIRTUALIZATION_EXCEPTION: return "Virtualization Exception";
+    default: return "Exception";
+    }
+}
+
 static bool handleUserspaceException(const InterruptContext* context) {
     siginfo_t siginfo = {};
     switch (context->interrupt) {
-    case EX_DEVIDE_BY_ZERO:
+    case EX_DIVIDE_BY_ZERO:
         siginfo.si_signo = SIGFPE;
         siginfo.si_code = FPE_INTDIV;
         siginfo.si_addr = (void*) context->INSTRUCTION_POINTER;
@@ -129,9 +156,7 @@ extern "C" InterruptContext* handleInterrupt(InterruptContext* context) {
         if (!handleUserspaceException(context)) goto handleKernelException;
     } else if (context->interrupt <= 31) { // CPU Exception
 handleKernelException:
-        Registers::dumpInterruptContext(context);
-        // Halt the cpu
-        while (true) asm volatile ("cli; hlt");
+        PANIC(context, "Unexpected %s", exceptionName(context->interrupt));
     } else if (context->interrupt <= 47) { // IRQ
         int irq = context->interrupt - 32;
         if (irq == 0) {
@@ -153,7 +178,7 @@ handleKernelException:
     } else if (context->interrupt == 0x32) {
         newContext = Signal::sigreturn(context);
     } else {
-        Log::printf("Unknown interrupt %lu!\n", context->interrupt);
+        PANIC(context, "Unexpected interrupt %lu", context->interrupt);
     }
     return newContext;
 }
