@@ -25,8 +25,6 @@
 struct InterruptContext;
 
 NORETURN void panic(const char* file, unsigned int line, const char* func,
-        const char* format, ...) PRINTF_LIKE(4, 5);
-NORETURN void panic(const char* file, unsigned int line, const char* func,
         const InterruptContext* context, const char* format, ...)
         PRINTF_LIKE(5, 6);
 

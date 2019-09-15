@@ -55,4 +55,63 @@ inline void* operator new[](size_t /*size*/, void* addr) {
 inline void operator delete(void*, void*) {};
 inline void operator delete[](void*, void*) {};
 
+class ConstructorMayFail {
+public:
+    bool __constructionFailed = false;
+
+    // Disallow placement new.
+    void* operator new(size_t size) { return ::operator new(size); }
+};
+
+#define FAIL_CONSTRUCTOR do { __constructionFailed = true; return; } while (0)
+
+NORETURN void panic(const char* file, unsigned int line, const char* func,
+        const char* format, ...) PRINTF_LIKE(4, 5);
+
+class __new {
+private:
+    // This is just needed for the template magic below.
+    struct YesType { int yes; };
+    struct NoType { int no; };
+    static YesType test(ConstructorMayFail*);
+    static NoType test(void*);
+public:
+    __new() : file(nullptr) {}
+    __new(const char* file, unsigned int line, const char* func) : file(file),
+            line(line), func(func) {}
+    const __new& operator*(const __new&) const { return *this; }
+
+    template <typename T, typename = decltype(test((T*) nullptr).yes)>
+    ALWAYS_INLINE T* operator*(T* ptr) const {
+        if (unlikely(file && !ptr)) {
+            panic(file, line, func, "Allocation failure");
+        } else if (unlikely(file && ptr->__constructionFailed)) {
+            panic(file, line, func, "Construction failure");
+        } else if (unlikely(ptr && ptr->__constructionFailed)) {
+            delete ptr;
+            return nullptr;
+        }
+        return ptr;
+    }
+
+    template <typename T, typename = decltype(test((T*) nullptr).no),
+            typename = T>
+    ALWAYS_INLINE T* operator*(T* ptr) const {
+        if (unlikely(file && !ptr)) {
+            panic(file, line, func, "Allocation failure");
+        }
+        return ptr;
+    }
+private:
+    const char* file;
+    unsigned int line;
+    const char* func;
+};
+
+// Behaves mostly like the normal new keyword but also returns nullptr if the
+// constructor fails.
+#define new __new() * new
+// Behaves like new but causes a kernel panic on failure.
+#define xnew __new(__FILE__, __LINE__, __func__) * new
+
 #endif
