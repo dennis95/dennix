@@ -354,12 +354,14 @@ int Syscall::openat(int fd, const char* path, int flags, mode_t mode) {
 int Syscall::pipe2(int fd[2], int flags) {
     Reference<Vnode> readPipe;
     Reference<Vnode> writePipe;
-    new PipeVnode(readPipe, writePipe);
+    if (!(new PipeVnode(readPipe, writePipe))) return -1;
 
     Reference<FileDescription> readDescr = new FileDescription(readPipe,
             O_RDONLY);
+    if (!readDescr) return -1;
     Reference<FileDescription> writeDescr = new FileDescription(writePipe,
             O_WRONLY);
+    if (!writeDescr) return -1;
 
     int fdFlags = 0;
     if (flags & O_CLOEXEC) fdFlags |= FD_CLOEXEC;
@@ -410,6 +412,7 @@ pid_t Syscall::regfork(int flags, regfork_t* registers) {
     }
 
     Process* newProcess = Process::current()->regfork(flags, registers);
+    if (!newProcess) return -1;
 
     return newProcess->pid;
 }
@@ -499,6 +502,11 @@ int Syscall::symlinkat(const char* targetPath, int fd, const char* linkPath) {
 
     Reference<Vnode> symlink = new SymlinkVnode(targetPath,
             vnode->stat().st_dev);
+    if (!symlink) {
+        free(pathCopy);
+        return -1;
+    }
+
     int result = vnode->link(name, symlink);
     free(pathCopy);
     return result;

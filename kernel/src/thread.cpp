@@ -45,7 +45,7 @@ Thread::~Thread() {
 }
 
 void Thread::initializeIdleThread() {
-    Process* idleProcess = new Process();
+    Process* idleProcess = xnew Process();
     idleProcess->addressSpace = kernelSpace;
     Process::addProcess(idleProcess);
     assert(idleProcess->pid == 0);

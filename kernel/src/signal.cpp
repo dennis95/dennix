@@ -170,7 +170,8 @@ void Thread::raiseSignal(siginfo_t siginfo) {
             return;
         }
 
-        PendingSignal* pending = new PendingSignal;
+        // TODO: This should be implemented in a way that cannot fail.
+        PendingSignal* pending = xnew PendingSignal;
         pending->siginfo = siginfo;
         pending->next = pendingSignals;
         pendingSignals = pending;
@@ -187,7 +188,8 @@ void Thread::raiseSignal(siginfo_t siginfo) {
             return;
         }
 
-        PendingSignal* pending = new PendingSignal;
+        // TODO: This should be implemented in a way that cannot fail.
+        PendingSignal* pending = xnew PendingSignal;
         pending->siginfo = siginfo;
         pending->next = current->next;
         current->next = pending;

@@ -24,12 +24,14 @@
 SymlinkVnode::SymlinkVnode(const char* target, dev_t dev)
         : Vnode(S_IFLNK | 0777, dev) {
     this->target = strdup(target);
+    if (!this->target) FAIL_CONSTRUCTOR;
     stats.st_size = strlen(target);
 }
 
 SymlinkVnode::SymlinkVnode(const char* target, size_t targetLength, dev_t dev)
         : Vnode(S_IFLNK | 0777, dev) {
     this->target = strndup(target, targetLength);
+    if (!this->target) FAIL_CONSTRUCTOR;
     stats.st_size = strlen(this->target);
 }
 

@@ -47,6 +47,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     // Copy the multiboot structure.
     multiboot_info* multibootMapped = (multiboot_info*)
             kernelSpace->mapPhysical(multibootAddress, PAGESIZE, PROT_READ);
+    if (!multibootMapped) PANIC("Failed to map multiboot structure");
     memcpy(&multiboot, multibootMapped, sizeof(multiboot_info));
     kernelSpace->unmapPhysical((vaddr_t) multibootMapped, PAGESIZE);
 
@@ -69,24 +70,29 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     // Load the initrd.
     Log::printf("Loading Initrd...\n");
     Reference<DirectoryVnode> rootDir = loadInitrd(&multiboot);
-    Reference<FileDescription> rootFd = new FileDescription(rootDir, O_SEARCH);
+    if (!rootDir) PANIC("Could not load initrd");
+    Reference<FileDescription> rootFd = xnew FileDescription(rootDir, O_SEARCH);
     Process::current()->rootFd = rootFd;
 
     Log::printf("Starting init process...\n");
     Reference<Vnode> program = resolvePath(rootDir, "/sbin/init");
     if (!program) PANIC("No init program found");
 
-    Process* initProcess = new Process();
+    Process* initProcess = xnew Process();
     const char* argv[] = { "init", nullptr };
     const char* envp[] = { nullptr };
-    initProcess->execute(program, (char**) argv, (char**) envp);
+    if (initProcess->execute(program, (char**) argv, (char**) envp) < 0) {
+        PANIC("Failed to start init process");
+    }
     program = nullptr;
-    Process::addProcess(initProcess);
+    if (!Process::addProcess(initProcess)) {
+        PANIC("Failed to start init process");
+    }
     assert(initProcess->pid == 1);
     Process::initProcess = initProcess;
 
     initProcess->controllingTerminal = terminal;
-    Reference<FileDescription> descr = new FileDescription(terminal, O_RDWR);
+    Reference<FileDescription> descr = xnew FileDescription(terminal, O_RDWR);
     initProcess->addFileDescriptor(descr, 0); // stdin
     initProcess->addFileDescriptor(descr, 0); // stdout
     initProcess->addFileDescriptor(descr, 0); // stderr
@@ -110,6 +116,7 @@ static Reference<DirectoryVnode> loadInitrd(multiboot_info* multiboot) {
 
     vaddr_t modulesPage = kernelSpace->mapPhysical(modulesAligned, mappedSize,
             PROT_READ);
+    if (!modulesPage) PANIC("Failed to map multiboot modules");
 
     const multiboot_mod_list* modules = (multiboot_mod_list*)
             (modulesPage + offset);
@@ -118,6 +125,7 @@ static Reference<DirectoryVnode> loadInitrd(multiboot_info* multiboot) {
                 PAGESIZE);
         vaddr_t initrd = kernelSpace->mapPhysical(modules[i].mod_start, size,
                 PROT_READ);
+        if (!initrd) PANIC("Failed to map initrd");
         root = Initrd::loadInitrd(initrd);
         kernelSpace->unmapPhysical(initrd, size);
 

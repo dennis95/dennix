@@ -86,13 +86,19 @@ AddressSpace::AddressSpace() {
         next = nullptr;
     } else {
         pml4 = PhysicalMemory::popPageFrame();
+        if (!pml4) FAIL_CONSTRUCTOR;
 
         firstSegment = new MemorySegment(0, PAGESIZE, PROT_NONE | SEG_NOUNMAP,
                 nullptr, nullptr);
-        MemorySegment::addSegment(firstSegment, 0x800000000000, -0x800000000000,
-                PROT_NONE | SEG_NOUNMAP);
+        if (!firstSegment) FAIL_CONSTRUCTOR;
+        if (!MemorySegment::addSegment(firstSegment, 0x800000000000,
+                -0x800000000000, PROT_NONE | SEG_NOUNMAP)) {
+            FAIL_CONSTRUCTOR;
+        }
+
         mappingArea = MemorySegment::findAndAddNewSegment(
                 kernelSpace->firstSegment, PAGESIZE, PROT_NONE);
+        if (!mappingArea) FAIL_CONSTRUCTOR;
 
         AutoLock lock(&listMutex);
         next = kernelSpace->next;
@@ -116,15 +122,18 @@ AddressSpace::AddressSpace() {
 }
 
 AddressSpace::~AddressSpace() {
-    kthread_mutex_lock(&listMutex);
-    prev->next = next;
-    if (next) {
-        next->prev = prev;
-    }
-    kthread_mutex_unlock(&listMutex);
+    if (!pml4) return;
+    if (!__constructionFailed) {
+        kthread_mutex_lock(&listMutex);
+        prev->next = next;
+        if (next) {
+            next->prev = prev;
+        }
+        kthread_mutex_unlock(&listMutex);
 
-    MemorySegment::removeSegment(kernelSpace->firstSegment, mappingArea,
-            PAGESIZE);
+        MemorySegment::removeSegment(kernelSpace->firstSegment, mappingArea,
+                PAGESIZE);
+    }
 
     MemorySegment* currentSegment = firstSegment;
 
@@ -260,6 +269,7 @@ vaddr_t AddressSpace::mapAt(vaddr_t virtualAddress, paddr_t physicalAddress,
 
     if (!pml4Mapping[index.pml4Index]) {
         paddr_t pdptPhys = PhysicalMemory::popPageFrame();
+        if (!pdptPhys) goto fail;
         uintptr_t pdptFlags = PAGE_PRESENT | PAGE_WRITABLE;
         if (this != kernelSpace) pdptFlags |= PAGE_USER;
 
@@ -296,6 +306,7 @@ vaddr_t AddressSpace::mapAt(vaddr_t virtualAddress, paddr_t physicalAddress,
 
     if (!pdpt[index.pdptIndex]) {
         paddr_t pdPhys = PhysicalMemory::popPageFrame();
+        if (!pdPhys) goto fail;
         uintptr_t pdFlags = PAGE_PRESENT | PAGE_WRITABLE;
         if (this != kernelSpace) pdFlags |= PAGE_USER;
 
@@ -318,6 +329,7 @@ vaddr_t AddressSpace::mapAt(vaddr_t virtualAddress, paddr_t physicalAddress,
 
     if (!pageDir[index.pdIndex]) {
         paddr_t ptPhys = PhysicalMemory::popPageFrame();
+        if (!ptPhys) goto fail;
         uintptr_t ptFlags = PAGE_PRESENT | PAGE_WRITABLE;
         if (this != kernelSpace) ptFlags |= PAGE_USER;
 
@@ -347,4 +359,10 @@ vaddr_t AddressSpace::mapAt(vaddr_t virtualAddress, paddr_t physicalAddress,
     }
 
     return virtualAddress;
+
+fail:
+    if (!isActive()) {
+        kernelSpace->unmap(mappingArea);
+    }
+    return 0;
 }

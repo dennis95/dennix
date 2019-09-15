@@ -22,7 +22,7 @@
 
 #include <dennix/kernel/vnode.h>
 
-class PipeVnode : public Vnode {
+class PipeVnode : public Vnode, public ConstructorMayFail {
 private:
     // The pipe needs to reference count the read and write ends separately.
     // Thus we create classes for both ends. FileDescriptions should only be

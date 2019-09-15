@@ -29,6 +29,7 @@
 FileVnode::FileVnode(const void* data, size_t size, mode_t mode, dev_t dev)
         : Vnode(S_IFREG | mode, dev) {
     this->data = (char*) malloc(size);
+    if (!this->data) FAIL_CONSTRUCTOR;
     memcpy(this->data, data, size);
     stats.st_size = size;
 }

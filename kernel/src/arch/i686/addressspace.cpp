@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <string.h>
 #include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/panic.h>
 #include <dennix/kernel/physicalmemory.h>
 
 #define RECURSIVE_MAPPING 0xFFC00000
@@ -62,13 +63,18 @@ AddressSpace::AddressSpace() {
         next = nullptr;
     } else {
         pageDir = PhysicalMemory::popPageFrame();
+        if (!pageDir) FAIL_CONSTRUCTOR;
 
         firstSegment = new MemorySegment(0, PAGESIZE, PROT_NONE | SEG_NOUNMAP,
                 nullptr, nullptr);
-        MemorySegment::addSegment(firstSegment, 0xC0000000, -0xC0000000,
-                PROT_NONE | SEG_NOUNMAP);
+        if (!firstSegment) FAIL_CONSTRUCTOR;
+        if (!MemorySegment::addSegment(firstSegment, 0xC0000000, -0xC0000000,
+                PROT_NONE | SEG_NOUNMAP)) {
+            FAIL_CONSTRUCTOR;
+        }
         mappingArea = MemorySegment::findAndAddNewSegment(
                 kernelSpace->firstSegment, PAGESIZE, PROT_NONE);
+        if (!mappingArea) FAIL_CONSTRUCTOR;
 
         AutoLock lock(&listMutex);
         next = kernelSpace->next;
@@ -92,15 +98,18 @@ AddressSpace::AddressSpace() {
 }
 
 AddressSpace::~AddressSpace() {
-    kthread_mutex_lock(&listMutex);
-    prev->next = next;
-    if (next) {
-        next->prev = prev;
-    }
-    kthread_mutex_unlock(&listMutex);
+    if (!pageDir) return;
+    if (!__constructionFailed) {
+        kthread_mutex_lock(&listMutex);
+        prev->next = next;
+        if (next) {
+            next->prev = prev;
+        }
+        kthread_mutex_unlock(&listMutex);
 
-    MemorySegment::removeSegment(kernelSpace->firstSegment, mappingArea,
-            PAGESIZE);
+        MemorySegment::removeSegment(kernelSpace->firstSegment, mappingArea,
+                PAGESIZE);
+    }
 
     MemorySegment* currentSegment = firstSegment;
 
@@ -156,6 +165,7 @@ void AddressSpace::initialize() {
 
     kernelSpace->mappingArea = MemorySegment::findAndAddNewSegment(
             kernelSpace->firstSegment, PAGESIZE, PROT_NONE);
+    if (!kernelSpace->mappingArea) PANIC("Could not allocate mapping area");
 }
 
 void AddressSpace::activate() {
@@ -224,6 +234,13 @@ vaddr_t AddressSpace::mapAt(
     if (!pageDirectory[pdIndex]) {
         // Allocate a new page table and map it in the page directory
         paddr_t pageTablePhys = PhysicalMemory::popPageFrame();
+        if (!pageTablePhys) {
+            if (!isActive()) {
+                kernelSpace->unmap(mappingArea);
+            }
+            return 0;
+        }
+
         int pdFlags = PAGE_PRESENT | PAGE_WRITABLE;
         if (this != kernelSpace) pdFlags |= PAGE_USER;
 

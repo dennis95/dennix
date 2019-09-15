@@ -105,8 +105,10 @@ int Process::copyArguments(char* const argv[], char* const envp[],
             PAGESIZE);
 
     vaddr_t page = newAddressSpace->mapMemory(size, PROT_READ | PROT_WRITE);
+    if (!page) return -1;
     vaddr_t pageMapped = kernelSpace->mapFromOtherAddressSpace(newAddressSpace,
             page, size, PROT_WRITE);
+    if (!pageMapped) return -1;
 
     char* nextString = (char*) pageMapped;
     char** argvMapped = (char**) (pageMapped + stringSizes);
@@ -154,9 +156,12 @@ uintptr_t Process::loadELF(uintptr_t elf, AddressSpace* newAddressSpace) {
         if (programHeader[i].p_flags & PF_W) protection |= PROT_WRITE;
         if (programHeader[i].p_flags & PF_R) protection |= PROT_READ;
 
-        newAddressSpace->mapMemory(loadAddressAligned, size, protection);
+        if (!newAddressSpace->mapMemory(loadAddressAligned, size, protection)) {
+            return 0;
+        }
         vaddr_t dest = kernelSpace->mapFromOtherAddressSpace(newAddressSpace,
                 loadAddressAligned, size, PROT_WRITE);
+        if (!dest) return 0;
         memset((void*) (dest + offset), 0, programHeader[i].p_memsz);
         memcpy((void*) (dest + offset), src, programHeader[i].p_filesz);
         kernelSpace->unmapPhysical(dest, size);
@@ -216,22 +221,44 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
     // Load the program
     Reference<FileVnode> file = (Reference<FileVnode>) vnode;
     AddressSpace* newAddressSpace = new AddressSpace();
+    if (!newAddressSpace) return -1;
     uintptr_t entry = loadELF((uintptr_t) file->data, newAddressSpace);
-    if (!entry) return -1;
+    if (!entry) {
+        delete newAddressSpace;
+        return -1;
+    }
 
     size_t sigreturnSize = (uintptr_t) &endSigreturn -
             (uintptr_t) &beginSigreturn;
     assert(sigreturnSize <= PAGESIZE);
     sigreturn = newAddressSpace->mapMemory(PAGESIZE, PROT_EXEC);
+    if (!sigreturn) {
+        delete newAddressSpace;
+        return -1;
+    }
+
     vaddr_t sigreturnMapped = kernelSpace->mapFromOtherAddressSpace(
             newAddressSpace, sigreturn, PAGESIZE, PROT_WRITE);
+    if (!sigreturnMapped) {
+        delete newAddressSpace;
+        return -1;
+    }
     memcpy((void*) sigreturnMapped, &beginSigreturn, sigreturnSize);
     kernelSpace->unmapPhysical(sigreturnMapped, PAGESIZE);
 
     vaddr_t userStack = newAddressSpace->mapMemory(USER_STACK_SIZE,
             PROT_READ | PROT_WRITE);
+    if (!userStack) {
+        delete newAddressSpace;
+        return -1;
+    }
+
     vaddr_t newKernelStack = kernelSpace->mapMemory(PAGESIZE,
             PROT_READ | PROT_WRITE);
+    if (!newKernelStack) {
+        delete newAddressSpace;
+        return -1;
+    }
 
     InterruptContext* newInterruptContext = (InterruptContext*)
             (newKernelStack + PAGESIZE - sizeof(InterruptContext));
@@ -241,6 +268,12 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
     char** newArgv;
     char** newEnvp;
     int argc = copyArguments(argv, envp, newArgv, newEnvp, newAddressSpace);
+    if (argc < 0) {
+        kernelSpace->unmapMemory(newKernelStack, PAGESIZE);
+        delete newAddressSpace;
+        return -1;
+    }
+
 #ifdef __i386__
     // Pass argc, argv and envp to the process.
     newInterruptContext->eax = argc;
@@ -347,10 +380,16 @@ bool Process::isParentOf(Process* process) {
 
 Process* Process::regfork(int /*flags*/, regfork_t* registers) {
     Process* process = new Process();
+    if (!process) return nullptr;
     process->parent = this;
 
     vaddr_t newKernelStack = kernelSpace->mapMemory(PAGESIZE,
             PROT_READ | PROT_WRITE);
+    if (!newKernelStack) {
+        process->terminate();
+        delete process;
+        return nullptr;
+    }
     InterruptContext* newInterruptContext = (InterruptContext*)
             (newKernelStack + PAGESIZE - sizeof(InterruptContext));
     Registers::restore(newInterruptContext, registers);
@@ -360,6 +399,11 @@ Process* Process::regfork(int /*flags*/, regfork_t* registers) {
 
     // Fork the address space
     process->addressSpace = addressSpace->fork();
+    if (!process->addressSpace) {
+        process->terminate();
+        delete process;
+        return nullptr;
+    }
 
     // Copy the file descriptor table
     for (int i = fdTable.next(-1); i >= 0; i = fdTable.next(i)) {

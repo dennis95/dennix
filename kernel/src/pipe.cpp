@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -51,7 +51,13 @@ public:
 PipeVnode::PipeVnode(Reference<Vnode>& readPipe, Reference<Vnode>& writePipe)
         : Vnode(S_IFIFO | S_IRUSR | S_IWUSR, 0) {
     readEnd = new ReadEnd(this);
+    if (!readEnd) FAIL_CONSTRUCTOR;
     writeEnd = new WriteEnd(this);
+    if (!writeEnd) {
+        delete readEnd;
+        readEnd = nullptr;
+        FAIL_CONSTRUCTOR;
+    }
     bufferIndex = 0;
     bytesAvailable = 0;
 

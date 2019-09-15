@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -55,18 +55,19 @@ int DirectoryVnode::linkUnlocked(const char* name,
     Reference<Vnode>* newChildNodes = (Reference<Vnode>*)
             reallocarray(childNodes, childCount + 1, sizeof(Reference<Vnode>));
     if (!newChildNodes) return -1;
+    childNodes = newChildNodes;
+
     char** newFileNames = (char**) reallocarray(fileNames, childCount + 1,
             sizeof(const char*));
     if (!newFileNames) return -1;
-
-    childNodes = newChildNodes;
     fileNames = newFileNames;
+
+    fileNames[childCount] = strdup(name);
+    if (!fileNames[childCount]) return -1;
 
     // We must use placement new here because the memory returned by realloc
     // is uninitialized so we cannot call operator=.
     new (&childNodes[childCount]) Reference<Vnode>(vnode);
-    fileNames[childCount] = strdup(name);
-
     childCount++;
 
     vnode->onLink();
@@ -105,6 +106,7 @@ int DirectoryVnode::mkdir(const char* name, mode_t mode) {
 
     Reference<DirectoryVnode> newDirectory = new DirectoryVnode(this, mode,
             stats.st_dev);
+    if (!newDirectory) return -1;
     if (linkUnlocked(name, newDirectory) < 0) return -1;
     return 0;
 }

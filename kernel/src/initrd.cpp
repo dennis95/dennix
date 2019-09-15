@@ -47,7 +47,7 @@ struct TarHeader {
 };
 
 Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
-    Reference<DirectoryVnode> root = new DirectoryVnode(nullptr, 0755, 0);
+    Reference<DirectoryVnode> root = xnew DirectoryVnode(nullptr, 0755, 0);
     TarHeader* header = (TarHeader*) initrd;
 
     while (strcmp(header->magic, TMAGIC) == 0) {
@@ -55,13 +55,16 @@ Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
         if (header->prefix[0]) {
             path = (char*) malloc(strnlen(header->name, sizeof(header->name)) +
                     strnlen(header->prefix, sizeof(header->prefix)) + 2);
+            if (!path) PANIC("Allocation failure");
 
             stpcpy(stpcpy(stpcpy(path, header->prefix), "/"), header->name);
         } else {
             path = strndup(header->name, sizeof(header->name));
+            if (!path) PANIC("Allocation failure");
         }
 
         char* path2 = strdup(path);
+        if (!path2) PANIC("Allocation failure");
         char* dirName = dirname(path);
         char* fileName = basename(path2);
 
@@ -81,15 +84,15 @@ Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
         mtime.tv_nsec = 0;
 
         if (header->typeflag == REGTYPE || header->typeflag == AREGTYPE) {
-            newFile = new FileVnode(header + 1, size, mode,
+            newFile = xnew FileVnode(header + 1, size, mode,
                     directory->stats.st_dev);
             header += 1 + ALIGNUP(size, 512) / 512;
         } else if (header->typeflag == DIRTYPE) {
-            newFile = new DirectoryVnode(directory, mode,
+            newFile = xnew DirectoryVnode(directory, mode,
                     directory->stats.st_dev);
             header++;
         } else if (header->typeflag == SYMTYPE) {
-            newFile = new SymlinkVnode(header->linkname,
+            newFile = xnew SymlinkVnode(header->linkname,
                     sizeof(header->linkname), directory->stats.st_dev);
             header++;
         } else if (header->typeflag == LNKTYPE) {
@@ -103,7 +106,9 @@ Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
         newFile->stats.st_atim = mtime;
         newFile->stats.st_mtim = mtime;
 
-        directory->link(fileName, newFile);
+        if (directory->link(fileName, newFile) < 0) {
+            PANIC("Could not link file '/%s'", path);
+        }
         free(path);
         free(path2);
     }

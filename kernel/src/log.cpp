@@ -22,6 +22,7 @@
 #include <dennix/kernel/lfbtextdisplay.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/multiboot.h>
+#include <dennix/kernel/panic.h>
 #include <dennix/kernel/terminal.h>
 #include <dennix/kernel/terminaldisplay.h>
 #include <dennix/kernel/vgatextdisplay.h>
@@ -31,7 +32,7 @@ static size_t callback(void*, const char* s, size_t nBytes);
 void Log::initialize(multiboot_info* multiboot) {
     if (!(multiboot->flags & MULTIBOOT_FRAMEBUFFER_INFO) ||
             multiboot->framebuffer_type == MULTIBOOT_EGA_TEXT) {
-        TerminalDisplay::display = new VgaTextDisplay();
+        TerminalDisplay::display = xnew VgaTextDisplay();
     } else if (multiboot->framebuffer_type == MULTIBOOT_RGB &&
             (multiboot->framebuffer_bpp == 24 ||
             multiboot->framebuffer_bpp == 32)) {
@@ -41,7 +42,8 @@ void Log::initialize(multiboot_info* multiboot) {
                 multiboot->framebuffer_pitch + lfbOffset, PAGESIZE);
         vaddr_t lfb = kernelSpace->mapPhysical(lfbAligned, lfbSize,
                 PROT_READ | PROT_WRITE) + lfbOffset;
-        TerminalDisplay::display = new LfbTextDisplay((char*) lfb,
+        if (!lfb) PANIC("Failed to map linear framebuffer");
+        TerminalDisplay::display = xnew LfbTextDisplay((char*) lfb,
                 multiboot->framebuffer_width, multiboot->framebuffer_height,
                 multiboot->framebuffer_pitch, multiboot->framebuffer_bpp);
     } else {

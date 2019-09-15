@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -70,6 +70,8 @@ Reference<FileDescription> FileDescription::openat(const char* path, int flags,
     if (!node) {
         if (!(flags & O_CREAT)) return nullptr;
         char* pathCopy = strdup(path);
+        if (!pathCopy) return nullptr;
+
         char* slash = strrchr(pathCopy, '/');
         char* newFileName;
 
@@ -94,7 +96,7 @@ Reference<FileDescription> FileDescription::openat(const char* path, int flags,
 
         Reference<FileVnode> file = new FileVnode(nullptr, 0, mode & 07777,
                 vnode->stat().st_dev);
-        if (node->link(newFileName, file) < 0) {
+        if (!file || node->link(newFileName, file) < 0) {
             free(pathCopy);
             return nullptr;
         }

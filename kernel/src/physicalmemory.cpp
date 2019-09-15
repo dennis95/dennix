@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/kthread.h>
+#include <dennix/kernel/panic.h>
 #include <dennix/kernel/physicalmemory.h>
 
 static char firstStackPage[PAGESIZE] ALIGNED(PAGESIZE);
@@ -82,8 +83,10 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
 
     vaddr_t mmapMapped = kernelSpace->mapPhysical(mmapAligned, mmapSize,
             PROT_READ);
+    if (!mmapMapped) PANIC("Failed to map multiboot mmap");
     vaddr_t modulesMapped = kernelSpace->mapPhysical(modulesAligned,
             modulesSize, PROT_READ);
+    if (!modulesMapped) PANIC("Failed to map multiboot modules");
 
     vaddr_t mmap = mmapMapped + mmapOffset;
     vaddr_t mmapEnd = mmap + multiboot->mmap_length;

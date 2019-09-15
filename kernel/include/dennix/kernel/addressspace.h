@@ -24,7 +24,7 @@
 #include <dennix/kernel/kthread.h>
 #include <dennix/kernel/memorysegment.h>
 
-class AddressSpace {
+class AddressSpace : public ConstructorMayFail {
 public:
     AddressSpace();
     ~AddressSpace();

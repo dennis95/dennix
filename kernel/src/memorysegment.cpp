@@ -65,12 +65,13 @@ void MemorySegment::addSegment(MemorySegment* firstSegment,
     }
 }
 
-void MemorySegment::addSegment(MemorySegment* firstSegment, vaddr_t address,
+bool MemorySegment::addSegment(MemorySegment* firstSegment, vaddr_t address,
         size_t size, int protection) {
     AutoLock lock(&mutex);
+    if (!verifySegmentList()) return false;
     MemorySegment* newSegment = allocateSegment(address, size, protection);
     addSegment(firstSegment, newSegment);
-    verifySegmentList();
+    return true;
 }
 
 MemorySegment* MemorySegment::allocateSegment(vaddr_t address, size_t size,
@@ -146,6 +147,12 @@ void MemorySegment::removeSegment(MemorySegment* firstSegment, vaddr_t address,
             size -= diff;
             address += diff;
         } else {
+            if (!verifySegmentList()) {
+                // We are so low on memory that we cannot keep track of segments
+                // and therefore have to leak virtual memory.
+                return;
+            }
+
             // Split the segment
             size_t firstSize = address - currentSegment->address;
             size_t secondSize = currentSegment->size - firstSize - size;
@@ -168,8 +175,6 @@ void MemorySegment::removeSegment(MemorySegment* firstSegment, vaddr_t address,
 
         currentSegment = currentSegment->next;
     }
-
-    verifySegmentList();
 }
 
 vaddr_t MemorySegment::findFreeSegment(MemorySegment* firstSegment,
@@ -190,14 +195,15 @@ vaddr_t MemorySegment::findAndAddNewSegment(MemorySegment* firstSegment,
         size_t size, int protection) {
     AutoLock lock(&mutex);
 
+    if (!verifySegmentList()) return 0;
     vaddr_t address = findFreeSegment(firstSegment, size);
+    if (!address) return 0;
     MemorySegment* newSegment = allocateSegment(address, size, protection);
     addSegment(firstSegment, newSegment);
-    verifySegmentList();
     return address;
 }
 
-void MemorySegment::verifySegmentList() {
+bool MemorySegment::verifySegmentList() {
     MemorySegment* current = (MemorySegment*) segmentsPage;
     MemorySegment** nextPage;
 
@@ -219,10 +225,17 @@ void MemorySegment::verifySegmentList() {
         }
     }
 
+    assert(freeSegmentSpaceFound > 0);
+
     if (freeSegmentSpaceFound == 1) {
         vaddr_t address = findFreeSegment(kernelSpace->firstSegment, PAGESIZE);
+        if (!address) return false;
         paddr_t physical = PhysicalMemory::popPageFrame();
-        kernelSpace->mapAt(address, physical, PROT_READ | PROT_WRITE);
+        if (!physical) return false;
+        if (!kernelSpace->mapAt(address, physical, PROT_READ | PROT_WRITE)) {
+            PhysicalMemory::pushPageFrame(physical);
+            return false;
+        }
         *nextPage = (MemorySegment*) address;
 
         memset(*nextPage, 0, PAGESIZE);
@@ -232,4 +245,6 @@ void MemorySegment::verifySegmentList() {
         freeSegment->flags = PROT_READ | PROT_WRITE;
         addSegment(kernelSpace->firstSegment, freeSegment);
     }
+
+    return true;
 }

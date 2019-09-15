@@ -22,7 +22,7 @@
 
 #include <dennix/kernel/vnode.h>
 
-class SymlinkVnode : public Vnode {
+class SymlinkVnode : public Vnode, public ConstructorMayFail {
 public:
     SymlinkVnode(const char* target, dev_t dev);
     SymlinkVnode(const char* target, size_t targetLength, dev_t dev);

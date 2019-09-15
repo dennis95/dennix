@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -125,7 +125,7 @@ static void checkPort1() {
     /* On some computers PS/2 emulation is completely broken. In this case we
        just assume that there is a keyboard connected to port 1 that just
        works without any additional initialization. */
-    PS2Keyboard* keyboard = new PS2Keyboard();
+    PS2Keyboard* keyboard = xnew PS2Keyboard();
     keyboard->listener = (Terminal*) terminal;
 
     ps2Device1 = keyboard;
@@ -141,7 +141,7 @@ static void checkPort1() {
         uint8_t id = readDataPort();
         if (id == 0x41 || id == 0xC1 || id == 0x83) {
             // The device identified itself as a keyboard
-            PS2Keyboard* keyboard = new PS2Keyboard();
+            PS2Keyboard* keyboard = xnew PS2Keyboard();
             keyboard->listener = (Terminal*) terminal;
 
             ps2Device1 = keyboard;

@@ -60,7 +60,7 @@ LfbTextDisplay::LfbTextDisplay(char* lfb, size_t pixelWidth, size_t pixelHeight,
     this->pitch = pitch;
     this->bpp = bpp;
     cursorPos = {0, 0};
-    doubleBuffer = new CharBufferEntry[_height * _width];
+    doubleBuffer = xnew CharBufferEntry[_height * _width];
     clear({0, 0}, {_width - 1, _height - 1}, 0x07);
 }
 
