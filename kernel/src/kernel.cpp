@@ -21,6 +21,7 @@
 #include <string.h>
 #include <dennix/fcntl.h>
 #include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/devices.h>
 #include <dennix/kernel/directory.h>
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/initrd.h>
@@ -73,6 +74,8 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     if (!rootDir) PANIC("Could not load initrd");
     Reference<FileDescription> rootFd = xnew FileDescription(rootDir, O_SEARCH);
     Process::current()->rootFd = rootFd;
+
+    Devices::initialize(rootDir);
 
     Log::printf("Starting init process...\n");
     Reference<Vnode> program = resolvePath(rootDir, "/sbin/init");
