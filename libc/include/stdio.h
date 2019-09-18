@@ -73,6 +73,7 @@ int fprintf(FILE* __restrict, const char* __restrict, ...) __printf_like(2, 3);
 int fputc(int, FILE*);
 int fputs(const char* __restrict, FILE* __restrict);
 size_t fread(void* __restrict, size_t, size_t, FILE* __restrict);
+FILE* freopen(const char* __restrict, const char* __restrict, FILE* __restrict);
 int fscanf(FILE* __restrict, const char* __restrict, ...) __scanf_like(2, 3);
 int fseek(FILE*, long, int);
 long ftell(FILE*);
