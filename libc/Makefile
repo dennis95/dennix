@@ -270,6 +270,7 @@ LIBC_OBJ = \
 	unistd/_exit \
 	unistd/fchdirat \
 	unistd/fork \
+	unistd/ftruncate \
 	unistd/getcwd \
 	unistd/gethostname \
 	unistd/getlogin \

@@ -48,6 +48,7 @@ int fcntl(int fd, int cmd, int param);
 int fstat(int fd, struct stat* result);
 int fstatat(int fd, const char* restrict path, struct stat* restrict result,
         int flags);
+int ftruncate(int fd, off_t length);
 pid_t getpid();
 pid_t getpgid(pid_t pid);
 int isatty(int fd);

@@ -74,6 +74,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_GETPGID] =*/ (void*) Syscall::getpgid,
     /*[SYSCALL_SETPGID] =*/ (void*) Syscall::setpgid,
     /*[SYSCALL_READLINKAT] =*/ (void*) Syscall::readlinkat,
+    /*[SYSCALL_FTRUNCATE] =*/ (void*) Syscall::ftruncate,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -224,6 +225,12 @@ int Syscall::fstatat(int fd, const char* restrict path,
     if (!vnode) return -1;
 
     return vnode->stat(result);
+}
+
+int Syscall::ftruncate(int fd, off_t length) {
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) return -1;
+    return descr->vnode->ftruncate(length);
 }
 
 pid_t Syscall::getpid() {
