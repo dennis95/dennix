@@ -140,6 +140,7 @@ LIBC_OBJ = \
 	signal/raise \
 	signal/sigaction \
 	signal/signal \
+	signal/sigprocmask \
 	stdio/__file_read \
 	stdio/__file_seek \
 	stdio/__file_write \

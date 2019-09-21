@@ -75,6 +75,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_SETPGID] =*/ (void*) Syscall::setpgid,
     /*[SYSCALL_READLINKAT] =*/ (void*) Syscall::readlinkat,
     /*[SYSCALL_FTRUNCATE] =*/ (void*) Syscall::ftruncate,
+    /*[SYSCALL_SIGPROCMASK] =*/ (void*) Syscall::sigprocmask,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {

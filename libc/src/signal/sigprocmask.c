@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,19 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/sigset.h
- * Signal sets.
+/* libc/src/signal/sigprocmask.c
+ * Set signal mask.
  */
 
-#ifndef _DENNIX_SIGSET_H
-#define _DENNIX_SIGSET_H
+#include <signal.h>
+#include <sys/syscall.h>
 
-typedef __UINT64_TYPE__ sigset_t;
-
-#define _SIGSET(signal) (1 << ((signal) - 1))
-
-#define SIG_BLOCK 0
-#define SIG_UNBLOCK 1
-#define SIG_SETMASK 2
-
-#endif
+DEFINE_SYSCALL_GLOBAL(SYSCALL_SIGPROCMASK, int, sigprocmask,
+        (int, const sigset_t* restrict, sigset_t* restrict));

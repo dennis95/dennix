@@ -41,7 +41,6 @@ public:
     void raiseSignal(siginfo_t siginfo);
     void updateContext(vaddr_t newKernelStack, InterruptContext* newContext,
             const __fpu_t* newFpuEnv);
-private:
     void updatePendingSignals();
 public:
     Clock cpuClock;

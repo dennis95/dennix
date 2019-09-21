@@ -43,6 +43,7 @@ struct SignalStackFrame {
 };
 
 static sigset_t defaultIgnoredSignals = _SIGSET(SIGCHLD) | _SIGSET(SIGURG);
+static sigset_t uncatchableSignals = _SIGSET(SIGKILL) | _SIGSET(SIGSTOP);
 
 extern "C" {
 volatile unsigned long signalPending = 0;
@@ -132,7 +133,8 @@ InterruptContext* Thread::handleSignal(InterruptContext* context) {
     context->INSTRUCTION_POINTER = (uintptr_t) action.sa_sigaction;
     context->STACK_POINTER = (uintptr_t) sigreturnPointer;
 
-    signalMask |= action.sa_mask | _SIGSET(siginfo.si_signo);
+    signalMask |= (action.sa_mask & ~uncatchableSignals)
+            | _SIGSET(siginfo.si_signo);
     return context;
 }
 
@@ -220,7 +222,8 @@ InterruptContext* Signal::sigreturn(InterruptContext* context) {
     Registers::restore(context, &mcontext->__regs);
     Registers::restoreFpu(&mcontext->__fpuEnv);
 
-    Thread::current()->signalMask = frame->ucontext.uc_sigmask;
+    Thread::current()->signalMask = frame->ucontext.uc_sigmask
+            & ~uncatchableSignals;
 
     return context;
 }
@@ -279,6 +282,36 @@ int Syscall::sigaction(int signal, const struct sigaction* restrict action,
 
     if (action) {
         Process::current()->sigactions[signal] = *action;
+    }
+
+    return 0;
+}
+
+int Syscall::sigprocmask(int how, const sigset_t* restrict set,
+        sigset_t* restrict old) {
+    if (old) {
+        *old = Thread::current()->signalMask;
+    }
+
+    if (how == SIG_BLOCK) {
+        if (set) {
+            Thread::current()->signalMask |= *set & ~uncatchableSignals;
+        }
+    } else if (how == SIG_UNBLOCK) {
+        if (set) {
+            Thread::current()->signalMask &= ~*set;
+        }
+    } else if (how == SIG_SETMASK) {
+        if (set) {
+            Thread::current()->signalMask = *set & ~uncatchableSignals;
+        }
+    } else {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (set) {
+        Thread::current()->updatePendingSignals();
     }
 
     return 0;
