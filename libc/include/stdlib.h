@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -58,6 +58,7 @@ long strtol(const char* __restrict, char** __restrict, int);
 long long strtoll(const char* __restrict, char** __restrict, int);
 unsigned long strtoul(const char* __restrict, char** __restrict, int);
 unsigned long long strtoull(const char* __restrict, char** __restrict, int);
+int system(const char*);
 
 #if __USE_DENNIX || __USE_POSIX
 char* mkdtemp(char*);

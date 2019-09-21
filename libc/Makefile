@@ -225,6 +225,7 @@ LIBC_OBJ = \
 	stdlib/mkstemp \
 	stdlib/mkstemps \
 	stdlib/setenv \
+	stdlib/system \
 	stdlib/unsetenv \
 	string/strcoll \
 	sys/ioctl/ioctl \
