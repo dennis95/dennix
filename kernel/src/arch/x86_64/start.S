@@ -275,14 +275,12 @@ _start2:
     or $CR0_FPU_EXCEPTIONS, %rcx
     mov %rcx, %cr0
     fninit
-    pushw $0x37A
-    fldcw (%rsp)
 
     # Initialize SSE.
     mov %cr4, %rcx
     or $(CR4_SSE_ENABLE | CR4_SSE_EXCEPTIONS), %rcx
     mov %rcx, %cr4
-    push $0x1D00
+    push $0x1F80
     ldmxcsr (%rsp)
     fxsave initFpu
 

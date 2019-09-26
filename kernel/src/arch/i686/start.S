@@ -156,8 +156,6 @@ _start2:
     or $CR0_FPU_EXCEPTIONS, %ecx
     mov %ecx, %cr0
     fninit
-    pushw $0x37A
-    fldcw (%esp)
     fnsave initFpu
 
     mov $kernel_stack, %esp
