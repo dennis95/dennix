@@ -1,11 +1,14 @@
-.hidden __hwcap
+# .hidden __hwcap
 
 .global feclearexcept
 .type feclearexcept,@function
-feclearexcept:	
+feclearexcept:
 	mov 4(%esp),%ecx
 	and $0x3f,%ecx
 	fnstsw %ax
+	jmp 2f
+
+#if 0
 		# consider sse fenv as well if the cpu has XMM capability
 	call 1f
 1:	addl $__hwcap-1b,(%esp)
@@ -28,6 +31,8 @@ feclearexcept:
 	push %edx
 	ldmxcsr (%esp)
 	pop %edx
+#endif
+
 1:	xor %eax,%eax
 	ret
 		# only do the expensive x87 fenv load/store when needed
@@ -49,7 +54,7 @@ feclearexcept:
 
 .global feraiseexcept
 .type feraiseexcept,@function
-feraiseexcept:	
+feraiseexcept:
 	mov 4(%esp),%eax
 	and $0x3f,%eax
 	sub $32,%esp
@@ -71,6 +76,8 @@ __fesetround:
 	andb $0xf3,1(%esp)
 	or %ch,1(%esp)
 	fldcw (%esp)
+
+#if 0
 		# consider sse fenv as well if the cpu has XMM capability
 	call 1f
 1:	addl $__hwcap-1b,(%esp)
@@ -82,6 +89,8 @@ __fesetround:
 	andb $0x9f,1(%esp)
 	or %ch,1(%esp)
 	ldmxcsr (%esp)
+#endif
+
 1:	pop %ecx
 	ret
 
@@ -100,6 +109,8 @@ fegetenv:
 	mov 4(%esp),%ecx
 	xor %eax,%eax
 	fnstenv (%ecx)
+
+#if 0
 		# consider sse fenv as well if the cpu has XMM capability
 	call 1f
 1:	addl $__hwcap-1b,(%esp)
@@ -111,6 +122,8 @@ fegetenv:
 	pop %edx
 	and $0x3f,%edx
 	or %edx,4(%ecx)
+#endif
+
 1:	ret
 
 .global fesetenv
@@ -132,6 +145,8 @@ fesetenv:
 	pushl $0x37f
 	fldenv (%esp)
 	add $28,%esp
+
+#if 0
 		# consider sse fenv as well if the cpu has XMM capability
 2:	call 1f
 1:	addl $__hwcap-1b,(%esp)
@@ -144,6 +159,8 @@ fesetenv:
 	or $0x1f80,%ecx
 	mov %ecx,4(%esp)
 	ldmxcsr 4(%esp)
+#endif
+2:
 1:	ret
 
 .global fetestexcept
@@ -152,6 +169,8 @@ fetestexcept:
 	mov 4(%esp),%ecx
 	and $0x3f,%ecx
 	fnstsw %ax
+
+#if 0
 		# consider sse fenv as well if the cpu has XMM capability
 	call 1f
 1:	addl $__hwcap-1b,(%esp)
@@ -160,5 +179,7 @@ fetestexcept:
 	jz 1f
 	stmxcsr 4(%esp)
 	or 4(%esp),%eax
+#endif
+
 1:	and %ecx,%eax
 	ret

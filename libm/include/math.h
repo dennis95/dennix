@@ -7,9 +7,18 @@ extern "C" {
 
 #include <features.h>
 
-#define __NEED_float_t
-#define __NEED_double_t
-#include <bits/alltypes.h>
+#if defined(__FLT_EVAL_METHOD__) && __FLT_EVAL_METHOD__ == 0
+typedef float float_t;
+typedef double double_t;
+#elif __FLT_EVAL_METHOD__ == 1
+typedef double float_t;
+typedef double double_t;
+#elif __FLT_EVAL_METHOD__ == 2
+typedef long double float_t;
+typedef long double double_t;
+#else
+#  error "Unsupported FLT_EVAL_METHOD."
+#endif
 
 #if 100*__GNUC__+__GNUC_MINOR__ >= 303
 #define NAN       __builtin_nanf("")
@@ -361,12 +370,13 @@ float       truncf(float);
 long double truncl(long double);
 
 
-#if defined(_XOPEN_SOURCE) || defined(_BSD_SOURCE)
+#if defined(_XOPEN_SOURCE) || defined(_BSD_SOURCE) || __USE_DENNIX
 #undef  MAXFLOAT
 #define MAXFLOAT        3.40282346638528859812e+38F
 #endif
 
-#if defined(_XOPEN_SOURCE) || defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
+#if defined(_XOPEN_SOURCE) || defined(_GNU_SOURCE) || defined(_BSD_SOURCE) \
+	|| __USE_DENNIX
 #define M_E             2.7182818284590452354   /* e */
 #define M_LOG2E         1.4426950408889634074   /* log_2 e */
 #define M_LOG10E        0.43429448190325182765  /* log_10 e */
@@ -392,7 +402,7 @@ double      y1(double);
 double      yn(int, double);
 #endif
 
-#if defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
+#if defined(_GNU_SOURCE) || defined(_BSD_SOURCE) || __USE_DENNIX
 #define HUGE            3.40282346638528859812e+38F
 
 double      drem(double, double);
@@ -419,7 +429,7 @@ float       y1f(float);
 float       ynf(int, float);
 #endif
 
-#ifdef _GNU_SOURCE
+#if defined(_GNU_SOURCE) || __USE_DENNIX
 long double lgammal_r(long double, int*);
 
 void        sincos(double, double*, double*);

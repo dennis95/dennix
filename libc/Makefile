@@ -302,32 +302,37 @@ LIBC_OBJ = \
 
 LIBK_OBJ = $(COMMON_OBJ)
 
+EMPTY_LIBS = libm.a
+LIBS = $(addprefix $(BUILD)/, libc.a libk.a $(EMPTY_LIBS))
+
 include $(ARCH).mk
 
 LIBC_OBJ := $(addprefix $(BUILD)/, $(addsuffix .o, $(LIBC_OBJ)))
 LIBK_OBJ := $(addprefix $(BUILD)/, $(addsuffix .libk.o, $(LIBK_OBJ)))
 
-all: $(BUILD)/libc.a $(BUILD)/libk.a $(CRT_OBJ)
+all: $(LIBS) $(CRT_OBJ)
 
 -include $(LIBC_OBJ:.o=.d)
 -include $(LIBK_OBJ:.o=.d)
 
+include $(REPO_ROOT)/libm/libm.mk
+LIBC_OBJ += $(LIBM_OBJ)
+
 install: install-headers install-libs
 
-install-headers:
-	@mkdir -p $(INCLUDE_DIR)
+install-headers: install-libm-headers
 	cp -rf --preserve=timestamp include/. $(INCLUDE_DIR)
 	touch $(SYSROOT)
 
-install-libs: $(BUILD)/libc.a $(BUILD)/libk.a $(CRT_OBJ)
+install-libs: $(LIBS) $(CRT_OBJ)
 	@mkdir -p $(LIB_DIR)
 	cp -f --preserve=timestamp $^ $(LIB_DIR)
 	touch $(SYSROOT)
 
 $(BUILD)/libc.a: $(LIBC_OBJ)
-	$(AR) $(ARFLAGS) $@ $^
-
 $(BUILD)/libk.a: $(LIBK_OBJ)
+
+$(BUILD)/%.a:
 	$(AR) $(ARFLAGS) $@ $^
 
 $(BUILD)/%.o: src/%.c

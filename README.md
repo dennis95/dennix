@@ -20,7 +20,9 @@ cdrom image.
 ## License
 
 Dennix is free software and is licensed under the terms of the ISC license. The
-full license terms can be found in the `LICENSE` file.
+full license terms can be found in the `LICENSE` file. The math library (libm)
+code is licensed under the MIT license and other permissive licenses compatible
+to the ISC license. See the `libm/COPYRIGHT` file for details.
 
 Please note that this license only applies to Dennix itself. Any third-party
 ports that are included in release images are released under their own

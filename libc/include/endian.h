@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,10 +23,15 @@
 #include <sys/cdefs.h>
 #include <stdint.h>
 
-#define BYTE_ORDER __BYTE_ORDER__
-#define LITTLE_ENDIAN __ORDER_LITTLE_ENDIAN__
-#define BIG_ENDIAN __ORDER_BIG_ENDIAN__
-#define PDP_ENDIAN __ORDER_PDP_ENDIAN__
+#define __BYTE_ORDER __BYTE_ORDER__
+#define __LITTLE_ENDIAN __ORDER_LITTLE_ENDIAN__
+#define __BIG_ENDIAN __ORDER_BIG_ENDIAN__
+#define __PDP_ENDIAN __ORDER_PDP_ENDIAN__
+
+#define BYTE_ORDER __BYTE_ORDER
+#define LITTLE_ENDIAN __LITTLE_ENDIAN
+#define BIG_ENDIAN __BIG_ENDIAN
+#define PDP_ENDIAN __PDP_ENDIAN
 
 #define __bswap16(x) __builtin_bswap16(x)
 #define __bswap32(x) __builtin_bswap32(x)

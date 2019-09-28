@@ -1,0 +1,12 @@
+The files in this directory implement the math library (libm). The code was
+taken from musl libc (https://www.musl-libc.org/) and updated to be used in
+Dennix. It is licensed under the MIT license compatible to the ISC license used
+by Dennix. Some code is licensed under other permissive terms as noted in the
+individual files.
+
+The current version is based on commit f5eee489f7662b08ad1bba4b1267e34eb9565bba
+of musl.
+
+The math library is not built as a separate libm.a libary but is built is part
+of libc. An empty libm.a file is installed so that programs that try to link
+with libm will work.
