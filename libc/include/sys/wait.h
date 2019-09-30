@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,7 +24,7 @@
 #define __need_id_t
 #define __need_pid_t
 #define __need_siginfo_t
-#include <sys/libc-types.h>
+#include <bits/types.h>
 #include <dennix/wait.h>
 
 #ifdef __cplusplus

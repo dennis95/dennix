@@ -31,7 +31,7 @@
 #if __USE_DENNIX || __USE_POSIX
 #  define __need_ssize_t
 #endif
-#include <sys/libc-types.h>
+#include <bits/types.h>
 #include <dennix/seek.h>
 
 #if __USE_POSIX || __USE_DENNIX

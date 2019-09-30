@@ -30,7 +30,7 @@
 #if __USE_DENNIX || __USE_POSIX
 #  define __need_FILE
 #endif
-#include <sys/libc-types.h>
+#include <bits/types.h>
 
 #ifdef __cplusplus
 extern "C" {

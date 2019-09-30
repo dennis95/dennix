@@ -28,7 +28,7 @@
 #define __need_size_t
 #define __need_ssize_t
 #define __need_uid_t
-#include <sys/libc-types.h>
+#include <bits/types.h>
 #include <dennix/conf.h>
 #include <dennix/seek.h>
 #if __USE_DENNIX
