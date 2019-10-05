@@ -39,6 +39,7 @@ extern "C" {
 __noreturn void abort(void);
 int abs(int);
 int atexit(void (*)(void));
+double atof(const char*);
 int atoi(const char*);
 long atol(const char*);
 void* bsearch(const void*, const void*, size_t, size_t,
@@ -54,7 +55,10 @@ void qsort(void*, size_t, size_t, int (*)(const void*, const void*));
 int rand(void);
 void* realloc(void*, size_t);
 void srand(unsigned int);
+double strtod(const char* __restrict, char** __restrict);
+float strtof(const char* __restrict, char** __restrict);
 long strtol(const char* __restrict, char** __restrict, int);
+long double strtold(const char* __restrict, char** __restrict);
 long long strtoll(const char* __restrict, char** __restrict, int);
 unsigned long strtoul(const char* __restrict, char** __restrict, int);
 unsigned long long strtoull(const char* __restrict, char** __restrict, int);

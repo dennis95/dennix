@@ -215,6 +215,7 @@ LIBC_OBJ = \
 	stdio/vscanf \
 	stdlib/abort \
 	stdlib/atexit \
+	stdlib/atof \
 	stdlib/canonicalize_file_name \
 	stdlib/_Exit \
 	stdlib/exit \
@@ -225,6 +226,9 @@ LIBC_OBJ = \
 	stdlib/mkstemp \
 	stdlib/mkstemps \
 	stdlib/setenv \
+	stdlib/strtod \
+	stdlib/strtof \
+	stdlib/strtold \
 	stdlib/system \
 	stdlib/unsetenv \
 	string/strcoll \
