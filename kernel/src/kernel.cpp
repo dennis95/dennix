@@ -76,6 +76,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     Process::current()->rootFd = rootFd;
 
     Devices::initialize(rootDir);
+    rootDir->mkdir("tmp", 0777);
 
     Log::printf("Starting init process...\n");
     Reference<Vnode> program = resolvePath(rootDir, "/sbin/init");

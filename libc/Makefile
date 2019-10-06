@@ -205,6 +205,7 @@ LIBC_OBJ = \
 	stdio/stderr \
 	stdio/stdin \
 	stdio/stdout \
+	stdio/tmpfile \
 	stdio/ungetc_unlocked \
 	stdio/ungetc \
 	stdio/vdprintf \

@@ -96,6 +96,7 @@ int snprintf(char* __restrict, size_t, const char* __restrict, ...)
 int sprintf(char* __restrict, const char* __restrict, ...) __printf_like(2, 3);
 int sscanf(const char* __restrict, const char* __restrict, ...)
         __scanf_like(2, 3);
+FILE* tmpfile(void);
 int ungetc(int, FILE*);
 int vfprintf(FILE* __restrict, const char* __restrict, __gnuc_va_list)
         __printf_like(2, 0);
