@@ -50,6 +50,7 @@ char* strrchr(const char*, int);
 size_t strspn(const char*, const char*);
 char* strstr(const char*, const char*);
 char* strtok(char* __restrict, const char* __restrict);
+size_t strxfrm(char* __restrict, const char* __restrict, size_t);
 
 #if __USE_DENNIX || __USE_POSIX
 char* stpcpy(char* __restrict, const char* __restrict);

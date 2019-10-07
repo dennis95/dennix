@@ -36,21 +36,44 @@ extern "C" {
 #define MB_CUR_MAX 4
 #define RAND_MAX 32767
 
+typedef struct {
+    int quot;
+    int rem;
+} div_t;
+
+typedef struct {
+    long quot;
+    long rem;
+} ldiv_t;
+
+typedef struct {
+    long long quot;
+    long long rem;
+} lldiv_t;
+
 __noreturn void abort(void);
 int abs(int);
 int atexit(void (*)(void));
 double atof(const char*);
 int atoi(const char*);
 long atol(const char*);
+long long atoll(const char*);
 void* bsearch(const void*, const void*, size_t, size_t,
         int (*)(const void*, const void*));
 void* calloc(size_t, size_t);
+div_t div(int, int);
 __noreturn void _Exit(int);
 __noreturn void exit(int);
 void free(void*);
 char* getenv(const char*);
+long labs(long);
+ldiv_t ldiv(long, long);
+long long llabs(long long);
+lldiv_t lldiv(long long, long long);
 void* malloc(size_t);
+int mblen(const char*, size_t);
 size_t mbstowcs(wchar_t* __restrict, const char* __restrict, size_t);
+int mbtowc(wchar_t* __restrict, const char* __restrict, size_t);
 void qsort(void*, size_t, size_t, int (*)(const void*, const void*));
 int rand(void);
 void* realloc(void*, size_t);

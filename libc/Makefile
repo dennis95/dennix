@@ -60,12 +60,20 @@ COMMON_OBJ = \
 	stdlib/abs \
 	stdlib/atoi \
 	stdlib/atol \
+	stdlib/atoll \
 	stdlib/bsearch \
 	stdlib/calloc \
+	stdlib/div \
 	stdlib/free \
+	stdlib/labs \
+	stdlib/ldiv \
+	stdlib/llabs \
+	stdlib/lldiv \
 	stdlib/malloc \
 	stdlib/malloc-util \
+	stdlib/mblen \
 	stdlib/mbstowcs \
+	stdlib/mbtowc \
 	stdlib/qsort \
 	stdlib/qsort_r \
 	stdlib/rand \
@@ -160,6 +168,7 @@ LIBC_OBJ = \
 	stdio/fflush \
 	stdio/fgetc_unlocked \
 	stdio/fgetc \
+	stdio/fgetpos \
 	stdio/fgets_unlocked \
 	stdio/fgets \
 	stdio/fileno \
@@ -178,6 +187,7 @@ LIBC_OBJ = \
 	stdio/fseek \
 	stdio/fseeko_unlocked \
 	stdio/fseeko \
+	stdio/fsetpos \
 	stdio/ftell \
 	stdio/ftello_unlocked \
 	stdio/ftello \
@@ -235,6 +245,7 @@ LIBC_OBJ = \
 	stdlib/system \
 	stdlib/unsetenv \
 	string/strcoll \
+	string/strxfrm \
 	sys/ioctl/ioctl \
 	sys/mman/mmap \
 	sys/mman/munmap \
@@ -260,6 +271,7 @@ LIBC_OBJ = \
 	time/clock_nanosleep \
 	time/clock \
 	time/ctime \
+	time/difftime \
 	time/localtime \
 	time/mktime \
 	time/nanosleep \

@@ -57,6 +57,7 @@ struct tm {
 char* asctime(const struct tm*);
 clock_t clock(void);
 char* ctime(const time_t*);
+double difftime(time_t, time_t);
 struct tm* gmtime(const time_t*);
 struct tm* localtime(const time_t*);
 time_t mktime(struct tm*);

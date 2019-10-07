@@ -49,6 +49,11 @@ typedef struct __FILE FILE;
 #  define __FILE_defined
 #endif
 
+#if defined(__need_fpos_t) && !defined(__fpos_t_defined)
+typedef __off_t fpos_t;
+#  define __fpos_t_defined
+#endif
+
 #if defined(__need_gid_t) && !defined(__gid_t_defined)
 typedef __gid_t gid_t;
 #  define __gid_t_defined
@@ -105,6 +110,7 @@ typedef __time_t time_t;
 #undef __need_clockid_t
 #undef __need_dev_t
 #undef __need_FILE
+#undef __need_fpos_t
 #undef __need_gid_t
 #undef __need_ino_t
 #undef __need_mode_t
