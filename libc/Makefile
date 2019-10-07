@@ -136,6 +136,8 @@ LIBC_OBJ = \
 	fcntl/fcntl \
 	fcntl/open \
 	fcntl/openat \
+	locale/localeconv \
+	locale/setlocale \
 	signal/kill \
 	signal/raise \
 	signal/sigaction \
