@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,32 +13,26 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/fcntl.h
- * File control.
+/* libc/include/bits/stat.h
+ * File mode bits.
  */
 
-#ifndef _FCNTL_H
-#define _FCNTL_H
+#ifndef _BITS_STAT_H
+#define _BITS_STAT_H
 
-#include <sys/cdefs.h>
-#define __need_mode_t
-#define __need_off_t
-#define __need_pid_t
-#include <bits/types.h>
-#include <bits/stat.h>
-#include <dennix/fcntl.h>
-#include <dennix/seek.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int fcntl(int, int, ...);
-int open(const char*, int, ...);
-int openat(int, const char*, int, ...);
-
-#ifdef __cplusplus
-}
-#endif
+#define S_IRWXU 0700
+#define S_IRUSR 0400
+#define S_IWUSR 0200
+#define S_IXUSR 0100
+#define S_IRWXG 070
+#define S_IRGRP 040
+#define S_IWGRP 020
+#define S_IXGRP 010
+#define S_IRWXO 07
+#define S_IROTH 04
+#define S_IWOTH 02
+#define S_IXOTH 01
+#define S_ISUID 04000
+#define S_ISGID 02000
 
 #endif
