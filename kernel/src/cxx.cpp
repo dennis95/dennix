@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,11 +13,35 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/cxx/purevirtual.cpp
- * C++ pure virtual function support.
+/* kernel/src/cxx.cpp
+ * C++ runtime support.
  */
 
 #include <stdlib.h>
+
+void* operator new(size_t size) {
+    return malloc(size);
+}
+
+void* operator new[](size_t size) {
+    return malloc(size);
+}
+
+void operator delete(void* addr) {
+    free(addr);
+}
+
+void operator delete[](void* addr) {
+    free(addr);
+}
+
+void operator delete(void* addr, size_t /*size*/) {
+    free(addr);
+}
+
+void operator delete[](void* addr, size_t /*size*/) {
+    free(addr);
+}
 
 extern "C" void __cxa_pure_virtual() {
     abort();

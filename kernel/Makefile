@@ -34,6 +34,7 @@ OBJ = \
 	addressspace.o \
 	clock.o \
 	conf.o \
+	cxx.o \
 	devices.o \
 	directory.o \
 	file.o \

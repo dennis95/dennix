@@ -23,8 +23,6 @@ BUILD = $(BUILD_DIR)/libc
 ARFLAGS = -crs
 CFLAGS ?= -O2 -g
 CFLAGS += --sysroot=$(SYSROOT) -std=gnu11 -ffreestanding -Wall -Wextra
-CXXFLAGS ?= -O2 -g
-CXXFLAGS += --sysroot=$(SYSROOT) -std=gnu++14 -ffreestanding -Wall -Wextra
 CPPFLAGS += -I include -D_ALL_SOURCE
 
 LIBC_FLAGS += -D__is_dennix_libc
@@ -32,8 +30,6 @@ LIBK_FLAGS += -D__is_dennix_libk
 
 COMMON_OBJ = \
 	ctype/ctype \
-	cxx/new \
-	cxx/purevirtual \
 	errno/errno \
 	getopt/getopt \
 	getopt/getopt_long \
@@ -358,10 +354,6 @@ $(BUILD)/%.o: src/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(LIBC_FLAGS) -MD -MP -c -o $@ $<
 
-$(BUILD)/%.o: src/%.cpp
-	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LIBC_FLAGS) -MD -MP -c -o $@ $<
-
 $(BUILD)/%.o: src/%.S
 	@mkdir -p $(dir $@)
 	$(CC) $(ASFLAGS) $(CPPFLAGS) $(LIBC_FLAGS) -c -o $@ $<
@@ -369,10 +361,6 @@ $(BUILD)/%.o: src/%.S
 $(BUILD)/%.libk.o: src/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(LIBK_FLAGS) -MD -MP -c -o $@ $<
-
-$(BUILD)/%.libk.o: src/%.cpp
-	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LIBK_FLAGS) -MD -MP -c -o $@ $<
 
 clean:
 	rm -rf $(BUILD)
