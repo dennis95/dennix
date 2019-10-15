@@ -242,6 +242,8 @@ LIBC_OBJ = \
 	stdlib/unsetenv \
 	string/strcoll \
 	string/strxfrm \
+	strings/strcasecmp \
+	strings/strncasecmp \
 	sys/ioctl/ioctl \
 	sys/mman/mmap \
 	sys/mman/munmap \
