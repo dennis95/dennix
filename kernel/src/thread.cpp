@@ -97,6 +97,7 @@ InterruptContext* Thread::schedule(InterruptContext* context) {
     Registers::restoreFpu(&_current->fpuEnv);
 
     _current->process->addressSpace->activate();
+    _current->checkSigalarm(true);
     _current->updatePendingSignals();
     return _current->interruptContext;
 }

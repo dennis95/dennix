@@ -52,6 +52,7 @@ extern symbol_t endSigreturn;
 
 Process::Process() : mainThread(this) {
     addressSpace = nullptr;
+    alarmTime.tv_nsec = -1;
     childrenMutex = KTHREAD_MUTEX_INITIALIZER;
     controllingTerminal = nullptr;
     cwdFd = nullptr;
@@ -179,6 +180,30 @@ int Process::addFileDescriptor(const Reference<FileDescription>& descr,
     }
 
     return fd;
+}
+
+unsigned int Process::alarm(unsigned int seconds) {
+    struct timespec now;
+    Clock::get(CLOCK_REALTIME)->getTime(&now);
+    Interrupts::disable();
+
+    unsigned int remaining;
+    if (alarmTime.tv_nsec != -1) {
+        remaining = alarmTime.tv_sec - now.tv_sec;
+        if (alarmTime.tv_nsec > now.tv_nsec) remaining++;
+    } else {
+        remaining = 0;
+    }
+
+    if (seconds == 0) {
+        alarmTime.tv_nsec = -1;
+    } else {
+        alarmTime.tv_sec = now.tv_sec + seconds;
+        alarmTime.tv_nsec = now.tv_nsec;
+    }
+
+    Interrupts::enable();
+    return remaining;
 }
 
 int Process::close(int fd) {

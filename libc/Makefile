@@ -277,6 +277,7 @@ LIBC_OBJ = \
 	time/time \
 	time/tzset \
 	unistd/access \
+	unistd/alarm \
 	unistd/chdir \
 	unistd/close \
 	unistd/confstr \

@@ -50,6 +50,7 @@ extern int optind;
 extern int optopt;
 
 int access(const char*, int);
+unsigned int alarm(unsigned int);
 int chdir(const char*);
 int close(int);
 size_t confstr(int, char*, size_t);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,33 +13,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/kthread.h
- * Kernel threading functions.
+/* libc/src/unistd/alarm.c
+ * Alarm timer.
  */
 
-#ifndef KERNEL_KTHREAD_H
-#define KERNEL_KTHREAD_H
+#include <unistd.h>
+#include <sys/syscall.h>
 
-typedef bool kthread_mutex_t;
-#define KTHREAD_MUTEX_INITIALIZER false
-
-int kthread_mutex_lock(kthread_mutex_t* mutex);
-int kthread_mutex_trylock(kthread_mutex_t* mutex);
-int kthread_mutex_unlock(kthread_mutex_t* mutex);
-
-// A useful class that automatically unlocks a mutex when it goes out of scope.
-class AutoLock {
-public:
-    AutoLock(kthread_mutex_t* mutex) {
-        this->mutex = mutex;
-        kthread_mutex_lock(mutex);
-    }
-
-    ~AutoLock() {
-        kthread_mutex_unlock(mutex);
-    }
-private:
-    kthread_mutex_t* mutex;
-};
-
-#endif
+DEFINE_SYSCALL_GLOBAL(SYSCALL_ALARM, unsigned int, alarm, (unsigned int));

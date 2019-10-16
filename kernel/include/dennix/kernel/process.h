@@ -36,10 +36,12 @@ struct FdTableEntry {
 };
 
 class Process {
+    friend Thread;
 public:
     Process();
     ~Process();
     int addFileDescriptor(const Reference<FileDescription>& descr, int flags);
+    unsigned int alarm(unsigned int seconds);
     int close(int fd);
     int dup3(int fd1, int fd2, int flags);
     void exit(int status);
@@ -71,6 +73,7 @@ public:
     siginfo_t terminationStatus;
     mode_t umask;
 private:
+    struct timespec alarmTime;
     kthread_mutex_t childrenMutex;
     kthread_mutex_t groupMutex;
     DynamicArray<FdTableEntry, int> fdTable;

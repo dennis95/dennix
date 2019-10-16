@@ -76,6 +76,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_READLINKAT] =*/ (void*) Syscall::readlinkat,
     /*[SYSCALL_FTRUNCATE] =*/ (void*) Syscall::ftruncate,
     /*[SYSCALL_SIGPROCMASK] =*/ (void*) Syscall::sigprocmask,
+    /*[SYSCALL_ALARM] =*/ (void*) Syscall::alarm,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -110,6 +111,10 @@ NORETURN void Syscall::abort() {
 
     sched_yield();
     __builtin_unreachable();
+}
+
+unsigned int Syscall::alarm(unsigned int seconds) {
+    return Process::current()->alarm(seconds);
 }
 
 int Syscall::clock_gettime(clockid_t clockid, struct timespec* result) {

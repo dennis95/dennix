@@ -57,6 +57,50 @@ static inline bool isMoreImportantSignalThan(int signal1, int signal2) {
     return signal1 <= signal2;
 }
 
+static bool timespecLess(struct timespec ts1, struct timespec ts2) {
+    if (ts1.tv_sec < ts2.tv_sec) return true;
+    if (ts1.tv_sec > ts2.tv_sec) return false;
+    return ts1.tv_nsec < ts2.tv_nsec;
+}
+
+void Thread::checkSigalarm(bool scheduling) {
+    if (!scheduling) {
+        Interrupts::disable();
+    }
+
+    if (process->alarmTime.tv_nsec == -1) {
+        if (!scheduling) {
+            Interrupts::enable();
+        }
+        return;
+    }
+
+    struct timespec now;
+    Clock::get(CLOCK_REALTIME)->getTime(&now);
+    if (!timespecLess(now, process->alarmTime)) {
+        if (scheduling) {
+            // If the mutex is locked then we cannot raise the signal now. The
+            // raiseSignal and handleSignal functions also check whether an
+            // alarm is pending to ensure an alarm cannot be delayed infinitely.
+            if (kthread_mutex_trylock(&signalMutex) != 0) return;
+        }
+
+        siginfo_t siginfo = {};
+        siginfo.si_signo = SIGALRM;
+        siginfo.si_code = SI_KERNEL;
+        raiseSignalUnlocked(siginfo);
+        process->alarmTime.tv_nsec = -1;
+
+        if (scheduling) {
+            kthread_mutex_unlock(&signalMutex);
+        }
+    }
+
+    if (!scheduling) {
+        Interrupts::enable();
+    }
+}
+
 extern "C" InterruptContext* handleSignal(InterruptContext* context) {
     return Thread::current()->handleSignal(context);
 }
@@ -87,6 +131,7 @@ InterruptContext* Thread::handleSignal(InterruptContext* context) {
     siginfo_t siginfo = pending->siginfo;
     delete pending;
 
+    checkSigalarm(false);
     updatePendingSignals();
     kthread_mutex_unlock(&signalMutex);
 
@@ -155,7 +200,14 @@ void Process::raiseSignalForGroup(siginfo_t siginfo) {
 
 void Thread::raiseSignal(siginfo_t siginfo) {
     AutoLock lock(&signalMutex);
+    raiseSignalUnlocked(siginfo);
+    if (this == Thread::current()) {
+        checkSigalarm(false);
+        updatePendingSignals();
+    }
+}
 
+void Thread::raiseSignalUnlocked(siginfo_t siginfo) {
     struct sigaction action = process->sigactions[siginfo.si_signo];
 
     if (action.sa_handler == SIG_IGN || (action.sa_handler == SIG_DFL &&
@@ -195,10 +247,6 @@ void Thread::raiseSignal(siginfo_t siginfo) {
         pending->siginfo = siginfo;
         pending->next = current->next;
         current->next = pending;
-    }
-
-    if (this == Thread::current()) {
-        updatePendingSignals();
     }
 }
 

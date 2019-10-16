@@ -42,6 +42,9 @@ public:
     void updateContext(vaddr_t newKernelStack, InterruptContext* newContext,
             const __fpu_t* newFpuEnv);
     void updatePendingSignals();
+private:
+    void checkSigalarm(bool scheduling);
+    void raiseSignalUnlocked(siginfo_t siginfo);
 public:
     Clock cpuClock;
     __fpu_t fpuEnv;

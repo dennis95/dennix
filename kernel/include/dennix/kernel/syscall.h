@@ -33,6 +33,7 @@ struct stat;
 namespace Syscall {
 
 NORETURN void abort();
+unsigned int alarm(unsigned int seconds);
 int clock_gettime(clockid_t clockid, struct timespec* result);
 int clock_nanosleep(clockid_t clockid, int flags,
         const struct timespec* requested, struct timespec* remaining);

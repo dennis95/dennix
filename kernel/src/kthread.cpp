@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,12 +17,20 @@
  * Kernel threading functions.
  */
 
+#include <errno.h>
 #include <sched.h>
 #include <dennix/kernel/kthread.h>
 
 int kthread_mutex_lock(kthread_mutex_t* mutex) {
     while (__atomic_test_and_set(mutex, __ATOMIC_ACQUIRE)) {
         sched_yield();
+    }
+    return 0;
+}
+
+int kthread_mutex_trylock(kthread_mutex_t* mutex) {
+    if (__atomic_test_and_set(mutex, __ATOMIC_ACQUIRE)) {
+        return EBUSY;
     }
     return 0;
 }
