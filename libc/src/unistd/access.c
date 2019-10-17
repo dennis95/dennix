@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,6 +17,7 @@
  * Checks accessibility of a file.
  */
 
+#include <errno.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -30,14 +31,18 @@ int access(const char* path, int mode) {
     bool accessible = true;
 
     if (mode & R_OK) {
-        accessible &= (st.st_mode & (S_IRUSR | S_IRGRP | S_IROTH));
+        accessible &= !!(st.st_mode & (S_IRUSR | S_IRGRP | S_IROTH));
     }
     if (mode & W_OK) {
-        accessible &= (st.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH));
+        accessible &= !!(st.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH));
     }
     if (mode & X_OK) {
-        accessible &= (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH));
+        accessible &= !!(st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH));
     }
 
-    return accessible ? 0 : -1;
+    if (!accessible) {
+        errno = EACCES;
+        return -1;
+    }
+    return 0;
 }
