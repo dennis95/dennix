@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -45,7 +45,7 @@ void* realloc(void* addr, size_t size) {
     assert(chunk->magic == MAGIC_USED_CHUNK);
 
     if (size == 0) size = 1;
-    size = alignUp(size, alignof(max_align_t));
+    size = alignUp(size, 16);
 
     ssize_t sizeDiff = size - chunk->size;
 

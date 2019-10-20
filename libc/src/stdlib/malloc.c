@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,7 +25,7 @@
 void* malloc(size_t size) {
     if (size == 0) size = 1;
 
-    size = alignUp(size, alignof(max_align_t));
+    size = alignUp(size, 16);
 
     __lockHeap();
 

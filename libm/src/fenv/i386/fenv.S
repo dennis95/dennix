@@ -6,7 +6,6 @@ feclearexcept:
 	mov 4(%esp),%ecx
 	and $0x3f,%ecx
 	fnstsw %ax
-	jmp 2f
 
 #if 0
 		# consider sse fenv as well if the cpu has XMM capability
@@ -15,6 +14,7 @@ feclearexcept:
 	pop %edx
 	testl $0x02000000,(%edx)
 	jz 2f
+#endif
 		# maintain exceptions in the sse mxcsr, clear x87 exceptions
 	test %eax,%ecx
 	jz 1f
@@ -31,10 +31,9 @@ feclearexcept:
 	push %edx
 	ldmxcsr (%esp)
 	pop %edx
-#endif
-
 1:	xor %eax,%eax
 	ret
+#if 0
 		# only do the expensive x87 fenv load/store when needed
 2:	test %eax,%ecx
 	jz 1b
@@ -51,6 +50,7 @@ feclearexcept:
 	add $32,%esp
 	xor %eax,%eax
 	ret
+#endif
 
 .global feraiseexcept
 .type feraiseexcept,@function
@@ -84,13 +84,12 @@ __fesetround:
 	pop %edx
 	testl $0x02000000,(%edx)
 	jz 1f
+#endif
 	stmxcsr (%esp)
 	shl $3,%ch
 	andb $0x9f,1(%esp)
 	or %ch,1(%esp)
 	ldmxcsr (%esp)
-#endif
-
 1:	pop %ecx
 	ret
 
@@ -117,13 +116,12 @@ fegetenv:
 	pop %edx
 	testl $0x02000000,(%edx)
 	jz 1f
+#endif
 	push %eax
 	stmxcsr (%esp)
 	pop %edx
 	and $0x3f,%edx
 	or %edx,4(%ecx)
-#endif
-
 1:	ret
 
 .global fesetenv
@@ -153,14 +151,13 @@ fesetenv:
 	pop %edx
 	testl $0x02000000,(%edx)
 	jz 1f
+#endif
 		# mxcsr := same rounding mode, cleared exceptions, default mask
-	and $0xc00,%ecx
+2:	and $0xc00,%ecx
 	shl $3,%ecx
 	or $0x1f80,%ecx
 	mov %ecx,4(%esp)
 	ldmxcsr 4(%esp)
-#endif
-2:
 1:	ret
 
 .global fetestexcept
@@ -177,9 +174,8 @@ fetestexcept:
 	pop %edx
 	testl $0x02000000,(%edx)
 	jz 1f
+#endif
 	stmxcsr 4(%esp)
 	or 4(%esp),%eax
-#endif
-
 1:	and %ecx,%eax
 	ret

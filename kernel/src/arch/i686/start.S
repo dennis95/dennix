@@ -21,6 +21,9 @@
 #define CR0_FPU_EXCEPTIONS (1 << 5)
 #define CR0_WRITE_PROTECT (1 << 16)
 #define CR0_PAGING_ENABLE (1 << 31)
+#define CR4_SSE_ENABLE (1 << 9)
+#define CR4_SSE_EXCEPTIONS (1 << 10)
+#define EFLAGS_ID (1 << 21)
 
 #define MULTIBOOT_MAGIC 0x1BADB002
 #define MULTIBOOT_FLAGS 0x7
@@ -54,6 +57,26 @@
 .type _start, @function
 _start:
     cld
+
+    # Save the multiboot magic and pointer for later.
+    mov %eax, %ebp
+    mov %ebx, %esi
+
+    # Check whether the CPU supports SSE. We are temporarily abusing
+    # kernelPageDirectory as a stack because pushf needs one.
+    mov $(kernelPageDirectory + 4), %esp
+    pushf
+    mov (%esp), %eax
+    xorl $EFLAGS_ID, (%esp)
+    popf
+    pushf
+    cmp (%esp), %eax
+    je unsupportedCpu
+
+    mov $1, %eax
+    cpuid
+    test $(1 << 25), %edx
+    jz unsupportedCpu
 
     # Add the page tables to the page directory
     movl $(pageTableBootstrap + PAGE_WRITE), kernelPageDirectory
@@ -106,6 +129,26 @@ _start:
     jmp _start2
 .size _start, . - _start
 
+unsupportedCpu:
+    # Try to write an error message to the screen.
+    # TODO: If the bootloader enabled graphics mode (which is likely the case)
+    # we will not be able to see the message!
+    mov $errorMsg, %eax
+    mov $0xB8000, %ebx
+1:  mov (%eax), %cl
+    test %cl, %cl
+    jz 2f
+    mov %cl, (%ebx)
+    movb $0x07, 1(%ebx)
+    inc %eax
+    add $2, %ebx
+    jmp 1b
+2:  hlt
+
+.section bootstrap_rodata, "a"
+errorMsg:
+    .asciz "Dennix requires a CPU with SSE support."
+
 .section bootstrap_bss, "aw", @nobits
 .align 4096
 .global kernelPageDirectory
@@ -156,15 +199,23 @@ _start2:
     or $CR0_FPU_EXCEPTIONS, %ecx
     mov %ecx, %cr0
     fninit
-    fnsave initFpu
+
+    # Initialize SSE.
+    mov %cr4, %ecx
+    or $(CR4_SSE_ENABLE | CR4_SSE_EXCEPTIONS), %ecx
+    mov %ecx, %cr4
+    push $0x1F80
+    ldmxcsr (%esp)
+    fxsave initFpu
 
     mov $kernel_stack, %esp
+    mov %ebp, %eax
 
     push $0
     push $0
     mov %esp, %ebp
 
-    push %ebx # multiboot
+    push %esi # multiboot
     push %eax # magic
 
     call _init

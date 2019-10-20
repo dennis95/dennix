@@ -323,6 +323,9 @@ LIBK_OBJ = $(COMMON_OBJ)
 EMPTY_LIBS = libm.a
 LIBS = $(addprefix $(BUILD)/, libc.a libk.a $(EMPTY_LIBS))
 
+all:
+
+include $(REPO_ROOT)/libm/libm.mk
 include $(ARCH).mk
 
 LIBC_OBJ := $(addprefix $(BUILD)/, $(addsuffix .o, $(LIBC_OBJ)))
@@ -332,8 +335,6 @@ all: $(LIBS) $(CRT_OBJ)
 
 -include $(LIBC_OBJ:.o=.d)
 -include $(LIBK_OBJ:.o=.d)
-
-include $(REPO_ROOT)/libm/libm.mk
 LIBC_OBJ += $(LIBM_OBJ)
 
 install: install-headers install-libs

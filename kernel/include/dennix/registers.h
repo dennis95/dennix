@@ -58,9 +58,7 @@ typedef struct {
 #endif
 } __registers_t;
 
-#ifdef __i386__
-typedef char __fpu_t[108];
-#elif defined(__x86_64__)
+#if defined(__i386__) || defined(__x86_64__)
 typedef char __fpu_t[512] __attribute__((__aligned__(16)));
 #else
 #  error "__fpu_t is undefined for this architecture."

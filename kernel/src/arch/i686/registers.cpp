@@ -50,7 +50,7 @@ void Registers::restore(InterruptContext* context,
 }
 
 void Registers::restoreFpu(const __fpu_t* fpu) {
-    asm("frstor (%0)" :: "r"(*fpu));
+    asm("fxrstor (%0)" :: "r"(*fpu));
 }
 
 void Registers::save(const InterruptContext* context,
@@ -68,5 +68,5 @@ void Registers::save(const InterruptContext* context,
 }
 
 void Registers::saveFpu(__fpu_t* fpu) {
-    asm("fnsave (%0)" :: "r"(*fpu));
+    asm("fxsave (%0)" :: "r"(*fpu));
 }
