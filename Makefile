@@ -22,31 +22,38 @@ KERNEL = $(BUILD_DIR)/kernel/kernel
 INITRD = $(BUILD_DIR)/initrd.tar.xz
 ISO = dennix.iso
 LICENSE = $(LICENSES_DIR)/dennix/LICENSE
+DXPORT = ./ports/dxport --host=$(ARCH)-dennix --builddir=$(BUILD_DIR)/ports
+DXPORT += --sysroot=$(SYSROOT)
 
 all: libc kernel sh utils iso
 
-kernel: $(INCLUDE_DIR) $(LIB_DIR)
+kernel $(KERNEL): $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C kernel
 
 libc: $(INCLUDE_DIR)
 	$(MAKE) -C libc
 
-install-all: install-headers install-libc install-sh install-utils
+install-all: install-headers install-libc install-sh install-utils install-ports
 
-install-headers:
+install-headers $(INCLUDE_DIR):
 	$(MAKE) -C kernel install-headers
 	$(MAKE) -C libc install-headers
 
-install-libc:
+install-libc $(LIB_DIR): $(INCLUDE_DIR)
 	$(MAKE) -C libc install-libs
 
-install-sh:
+install-ports $(DXPORT_DIR): $(INCLUDE_DIR) $(LIB_DIR)
+ifneq ($(wildcard ./ports/dxport),)
+	-$(DXPORT) install -k all
+endif
+
+install-sh: $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C sh install
 
 install-toolchain: install-headers
 	SYSROOT=$(SYSROOT) $(REPO_ROOT)/build-aux/install-toolchain.sh
 
-install-utils:
+install-utils: $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C utils install
 
 iso: $(ISO)
@@ -58,33 +65,24 @@ $(ISO): $(KERNEL) $(INITRD)
 	cp -f $(INITRD) $(BUILD_DIR)/isosrc
 	$(MKRESCUE) -o $@ $(BUILD_DIR)/isosrc
 
-$(KERNEL): $(INCLUDE_DIR)
-	$(MAKE) -C kernel
-
 $(INITRD): $(SYSROOT)
 	cd $(SYSROOT) && tar cJf ../$(INITRD) --format=ustar *
 
 qemu: $(ISO)
-	qemu-system-$(BASE_ARCH) -cdrom $^
+	qemu-system-$(BASE_ARCH) -cdrom $^ -m 512M
 
-sh: $(INCLUDE_DIR)
+sh: $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C sh
 
-utils: $(INCLUDE_DIR)
+utils: $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C utils
 
 $(SYSROOT): $(INCLUDE_DIR) $(LIB_DIR) $(BIN_DIR) $(SYSROOT)/usr $(LICENSE)
+$(SYSROOT): $(DXPORT_DIR)
 
 $(BIN_DIR):
 	$(MAKE) -C sh install
 	$(MAKE) -C utils install
-
-$(INCLUDE_DIR):
-	$(MAKE) -C kernel install-headers
-	$(MAKE) -C libc install-headers
-
-$(LIB_DIR):
-	$(MAKE) -C libc install-libs
 
 $(LICENSE): LICENSE
 	@mkdir -p $(LICENSES_DIR)/dennix
@@ -101,5 +99,6 @@ distclean:
 	rm -rf build sysroot
 	rm -f *.iso
 
-.PHONY: all kernel libc install-all install-headers install-libc install-sh
-.PHONY: install-toolchain install-utils iso qemu sh utils clean distclean
+.PHONY: all kernel libc install-all install-headers install-libc install-ports
+.PHONY: install-sh install-toolchain install-utils iso qemu sh utils clean
+.PHONY: distclean
