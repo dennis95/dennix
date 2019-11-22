@@ -33,7 +33,6 @@
 #include "execute.h"
 #include "expand.h"
 #include "parser.h"
-#include "tokenizer.h"
 
 #ifndef DENNIX_VERSION
 #  define DENNIX_VERSION ""
@@ -47,9 +46,11 @@ static char** arguments;
 static char* buffer;
 static size_t bufferSize;
 static struct CompleteCommand command;
+static char hostname[HOST_NAME_MAX + 1];
 static FILE* inputFile;
 static jmp_buf jumpBuffer;
-static struct Tokenizer tokenizer;
+static struct Parser parser;
+static const char* username;
 
 static void help(const char* argv0);
 static int parseOptions(int argc, char* argv[]);
@@ -132,82 +133,30 @@ int main(int argc, char* argv[]) {
         tcgetattr(0, &termios);
     }
 
-    const char* username = getlogin();
+    username = getlogin();
     if (!username) {
         username = "?";
     }
-    char hostname[HOST_NAME_MAX + 1];
     if (gethostname(hostname, sizeof(hostname)) < 0) {
         strcpy(hostname, "?");
     }
 
     while (true) {
         if (feof(inputFile)) {
-            if (shellOptions.interactive) {
-                putchar('\n');
-            }
             exit(0);
         }
 
-        if (shellOptions.interactive) {
-            fprintf(stderr, "\e[32m%s@%s \e[1;36m%s $\e[22;39m ",
-                    username, hostname, pwd ? pwd : ".");
-        }
-
-        enum TokenizerResult tokenResult;
-        if (!initTokenizer(&tokenizer)) err(1, "initTokenizer");
-
-continue_tokenizing:
-        do {
-            ssize_t length = getline(&buffer, &bufferSize, inputFile);
-            if (length < 0 && !feof(inputFile)) {
-                if (shellOptions.interactive) {
-                    putchar('\n');
-                }
-                err(1, NULL);
-            }
-
-            tokenResult = splitTokens(&tokenizer, length < 0 ? "" : buffer);
-            if (tokenResult == TOKENIZER_ERROR) {
-                err(1, "Tokenizer error");
-            } else if (tokenResult == TOKENIZER_PREMATURE_EOF) {
-                warnx("syntax error: unexpected end of file");
-            } else if (tokenResult == TOKENIZER_NEED_INPUT &&
-                    shellOptions.interactive && !feof(inputFile)) {
-                fputs("> ", stderr);
-            }
-        } while (tokenResult == TOKENIZER_NEED_INPUT);
-
-        if (tokenResult != TOKENIZER_DONE) {
-            freeTokenizer(&tokenizer);
-            continue;
-        }
-
-        if (tokenizer.numTokens == 1 && tokenizer.tokens[0].type == OPERATOR &&
-                tokenizer.tokens[0].text[0] == '\n') {
-            // Ignore the empty command.
-            freeTokenizer(&tokenizer);
-            continue;
-        }
-
-        struct Parser parser;
-        initParser(&parser, &tokenizer);
-
+        if (!initParser(&parser)) err(1, "initParser");
         enum ParserResult parserResult = parse(&parser, &command);
 
-        if (parserResult == PARSER_NEWLINE) {
-            if (shellOptions.interactive) {
-                fputs("> ", stderr);
-            }
-            goto continue_tokenizing;
-        } else if (parserResult == PARSER_ERROR) {
+        if (parserResult == PARSER_ERROR) {
             err(1, "Parser error");
         } else if (parserResult == PARSER_MATCH) {
             execute(&command);
             freeCompleteCommand(&command);
         }
 
-        freeTokenizer(&tokenizer);
+        freeParser(&parser);
     }
 }
 
@@ -215,7 +164,7 @@ noreturn void executeScript(char** argv) {
     // Reset all global state and jump back at the beginning of the shell to
     // execute the script.
     freeCompleteCommand(&command);
-    freeTokenizer(&tokenizer);
+    freeParser(&parser);
 
     for (size_t i = 0; arguments[i]; i++) {
         free(arguments[i]);
@@ -367,6 +316,25 @@ nextArg:;
     }
 
     return i;
+}
+
+ssize_t readCommand(char** str, bool newCommand) {
+    if (shellOptions.interactive && !feof(inputFile)) {
+        if (newCommand) {
+            fprintf(stderr, "\e[32m%s@%s \e[1;36m%s $\e[22;39m ",
+                    username, hostname, pwd ? pwd : ".");
+        } else {
+            fputs("> ", stderr);
+        }
+    }
+
+    ssize_t length = getline(&buffer, &bufferSize, inputFile);
+    if (length < 0 && shellOptions.interactive) {
+        putchar('\n');
+    }
+    if (length < 0 && !feof(inputFile)) err(1, "getline");
+    *str = buffer;
+    return length;
 }
 
 // Utility functions:

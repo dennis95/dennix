@@ -22,6 +22,7 @@
 
 #include <stdbool.h>
 #include <stdnoreturn.h>
+#include <sys/types.h>
 
 #define NO_DISCARD __attribute__((warn_unused_result))
 
@@ -54,5 +55,6 @@ noreturn void executeScript(char** argv);
 NO_DISCARD bool addToArray(void** array, size_t* used, void* value,
         size_t size);
 NO_DISCARD bool moveFd(int old, int new);
+ssize_t readCommand(char** str, bool newCommand);
 
 #endif

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,6 +22,8 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+
+#include "tokenizer.h"
 
 struct Redirection {
     int fd;
@@ -48,19 +50,22 @@ struct CompleteCommand {
 };
 
 struct Parser {
-    const struct Tokenizer* tokenizer;
+    struct Tokenizer tokenizer;
     size_t offset;
 };
 
 enum ParserResult {
     PARSER_MATCH,
-    PARSER_BACKTRACK,
     PARSER_SYNTAX,
     PARSER_ERROR,
+    PARSER_NO_CMD,
+    // The following results are only used internally.
+    PARSER_BACKTRACK,
     PARSER_NEWLINE,
 };
 
-void initParser(struct Parser* parser, const struct Tokenizer* tokenizer);
+void freeParser(struct Parser* parser);
+NO_DISCARD bool initParser(struct Parser* parser);
 enum ParserResult parse(struct Parser* parser,
         struct CompleteCommand* command);
 void freeCompleteCommand(struct CompleteCommand* command);

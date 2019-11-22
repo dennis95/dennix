@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "tokenizer.h"
 #include "parser.h"
 
 #define BACKTRACKING // specify that a function might return PARSER_BACKTRACK.
@@ -41,26 +40,57 @@ static void freePipeline(struct Pipeline* pipeline);
 static void freeSimpleCommand(struct SimpleCommand* command);
 
 static inline struct Token* getToken(struct Parser* parser) {
-    if (parser->offset >= parser->tokenizer->numTokens) {
+    if (parser->offset >= parser->tokenizer.numTokens) {
         return NULL;
     }
-    return &parser->tokenizer->tokens[parser->offset];
+    return &parser->tokenizer.tokens[parser->offset];
 }
 
-void initParser(struct Parser* parser, const struct Tokenizer* tokenizer) {
-    parser->tokenizer = tokenizer;
+void freeParser(struct Parser* parser) {
+    freeTokenizer(&parser->tokenizer);
+}
+
+bool initParser(struct Parser* parser) {
     parser->offset = 0;
+    return initTokenizer(&parser->tokenizer);
 }
 
 enum ParserResult parse(struct Parser* parser,
         struct CompleteCommand* command) {
-    enum ParserResult result = parsePipeline(parser, &command->pipeline);
+    enum TokenizerResult tokenResult;
+    char* str;
+    ssize_t length = readCommand(&str, true);
 
+continue_tokenizing:
+    tokenResult = splitTokens(&parser->tokenizer, length < 0 ? "" : str);
+    if (tokenResult == TOKENIZER_ERROR) {
+        return PARSER_ERROR;
+    } else if (tokenResult == TOKENIZER_PREMATURE_EOF) {
+        syntaxError(NULL);
+        return PARSER_SYNTAX;
+    } else if (tokenResult == TOKENIZER_NEED_INPUT) {
+        length = readCommand(&str, false);
+        goto continue_tokenizing;
+    }
+
+    if (parser->tokenizer.numTokens == 1 &&
+            parser->tokenizer.tokens[0].type == OPERATOR &&
+            parser->tokenizer.tokens[0].text[0] == '\n') {
+        return PARSER_NO_CMD;
+    }
+
+    enum ParserResult result = parsePipeline(parser, &command->pipeline);
     assert(result != PARSER_BACKTRACK);
 
+    if (result == PARSER_NEWLINE) {
+        length = readCommand(&str, false);
+        goto continue_tokenizing;
+    }
+
     if (result == PARSER_MATCH &&
-            parser->offset < parser->tokenizer->numTokens - 1) {
+            parser->offset < parser->tokenizer.numTokens - 1) {
         syntaxError(getToken(parser));
+        freePipeline(&command->pipeline);
         return PARSER_SYNTAX;
     }
 
