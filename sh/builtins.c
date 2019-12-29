@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 
 #include "builtins.h"
+#include "variables.h"
 
 static int cd(int argc, char* argv[]);
 static int sh_umask(int argc, char* argv[]);
@@ -111,8 +112,10 @@ static int cd(int argc, char* argv[]) {
         pwd = newPwd;
     }
 
-    if (!pwd || setenv("PWD", pwd, 1) < 0) {
-        unsetenv("PWD");
+    if (pwd) {
+        setVariable("PWD", pwd, true);
+    } else {
+        unsetVariable("PWD");
     }
     return 0;
 }

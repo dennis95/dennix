@@ -33,16 +33,17 @@
 #include "execute.h"
 #include "expand.h"
 #include "parser.h"
+#include "variables.h"
 
 #ifndef DENNIX_VERSION
 #  define DENNIX_VERSION ""
 #endif
 
 bool inputIsTerminal;
+int lastStatus;
 struct ShellOptions shellOptions;
 struct termios termios;
 
-static char** arguments;
 static char* buffer;
 static size_t bufferSize;
 static struct CompleteCommand command;
@@ -57,7 +58,7 @@ static int parseOptions(int argc, char* argv[]);
 
 int main(int argc, char* argv[]) {
     int optionIndex = parseOptions(argc, argv);
-    int numArguments = argc - optionIndex;
+    numArguments = argc - optionIndex;
 
     if (shellOptions.command) {
         if (numArguments == 0) errx(1, "The -c option requires an operand.");
@@ -65,13 +66,15 @@ int main(int argc, char* argv[]) {
         numArguments--;
     }
 
+    initializeVariables();
+
     if (numArguments == 0) {
-        arguments = malloc(2 * sizeof(char*));
+        arguments = malloc(sizeof(char*));
         if (!arguments) err(1, "malloc");
         arguments[0] = strdup(argv[0]);
         if (!arguments[0]) err(1, "strdup");
-        arguments[1] = NULL;
     } else {
+        numArguments--;
         if (shellOptions.stdInput) {
             numArguments++;
             optionIndex--;
@@ -83,11 +86,10 @@ int main(int argc, char* argv[]) {
             if (!arguments[0]) err(1, "strdup");
         }
 
-        for (int i = shellOptions.stdInput; i < numArguments; i++) {
+        for (int i = shellOptions.stdInput; i <= numArguments; i++) {
             arguments[i] = strdup(argv[optionIndex + i]);
             if (!arguments[i]) err(1, "strdup");
         }
-        arguments[numArguments] = NULL;
     }
 
     pwd = getenv("PWD");
@@ -96,7 +98,7 @@ int main(int argc, char* argv[]) {
     } else {
         pwd = getcwd(NULL, 0);
         if (pwd) {
-            setenv("PWD", pwd, 1);
+            setVariable("PWD", pwd, true);
         }
     }
 
@@ -152,25 +154,31 @@ int main(int argc, char* argv[]) {
         if (parserResult == PARSER_ERROR) {
             err(1, "Parser error");
         } else if (parserResult == PARSER_MATCH) {
-            execute(&command);
+            lastStatus = execute(&command);
             freeCompleteCommand(&command);
+        } else if (parserResult == PARSER_SYNTAX) {
+            lastStatus = 1;
         }
 
         freeParser(&parser);
     }
 }
 
-noreturn void executeScript(char** argv) {
+noreturn void executeScript(int argc, char** argv) {
     // Reset all global state and jump back at the beginning of the shell to
     // execute the script.
     freeCompleteCommand(&command);
     freeParser(&parser);
 
-    for (size_t i = 0; arguments[i]; i++) {
+    for (int i = 0; i <= numArguments; i++) {
         free(arguments[i]);
     }
     free(arguments);
+    numArguments = argc - 1;
     arguments = argv;
+
+    // Unset all nonexported variables.
+    initializeVariables();
 
     if (inputFile != stdin) {
         fclose(inputFile);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -37,6 +37,14 @@ bool appendToStringBuffer(struct StringBuffer* buffer, char c) {
         buffer->allocated *= 2;
     }
     buffer->buffer[buffer->used++] = c;
+    return true;
+}
+
+bool appendStringToStringBuffer(struct StringBuffer* buffer, const char* s) {
+    while (*s) {
+        if (!appendToStringBuffer(buffer, *s)) return false;
+        s++;
+    }
     return true;
 }
 

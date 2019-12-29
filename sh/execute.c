@@ -46,9 +46,9 @@ static void sigusr1Handler(int signum) {
 static int executePipeline(struct Pipeline* pipeline);
 static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         bool subshell);
-static noreturn void executeUtility(char** arguments,
+static noreturn void executeUtility(int argc, char** arguments,
         struct Redirection* redirections, size_t numRedirections);
-static int forkAndExecuteUtility(char** arguments,
+static int forkAndExecuteUtility(int argc, char** arguments,
         struct Redirection* redirections, size_t numRedirections);
 static const char* getExecutablePath(const char* command);
 static bool performRedirections(struct Redirection* redirections,
@@ -166,22 +166,24 @@ static int executePipeline(struct Pipeline* pipeline) {
 static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         bool subshell) {
     int argc = simpleCommand->numWords;
+    int result = 1;
 
-    char** arguments = malloc((argc + 1) * sizeof(char*));
+    char** arguments = calloc(argc + 1, sizeof(char*));
     if (!arguments) err(1, "malloc");
-    for (int i = 0; i < argc; i++) {
-        arguments[i] = expandWord(simpleCommand->words[i]);
-    }
-
-    arguments[argc] = NULL;
-
     size_t numRedirections = simpleCommand->numRedirections;
-    struct Redirection* redirections = malloc(numRedirections *
+    struct Redirection* redirections = calloc(numRedirections,
             sizeof(struct Redirection));
     if (!redirections) err(1, "malloc");
+
+    for (int i = 0; i < argc; i++) {
+        arguments[i] = expandWord(simpleCommand->words[i]);
+        if (!arguments[i]) goto cleanup;
+    }
+
     for (size_t i = 0; i < numRedirections; i++) {
         redirections[i] = simpleCommand->redirections[i];
         redirections[i].filename = expandWord(redirections[i].filename);
+        if (!redirections[i].filename) goto cleanup;
     }
 
     const char* command = arguments[0];
@@ -194,29 +196,33 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
     } else {
         for (struct builtin* builtin = builtins; builtin->name; builtin++) {
             if (strcmp(command, builtin->name) == 0) {
-                int result = builtin->func(argc, arguments);
-                free(arguments);
-                free(redirections);
-                if (subshell) {
-                    exit(result);
-                }
-                return result;
+                result = builtin->func(argc, arguments);
+                goto cleanup;
             }
         }
     }
 
     if (subshell) {
-        executeUtility(arguments, redirections, numRedirections);
+        executeUtility(argc, arguments, redirections, numRedirections);
     } else {
-        int result = forkAndExecuteUtility(arguments, redirections,
+        result = forkAndExecuteUtility(argc, arguments, redirections,
                 numRedirections);
-        free(arguments);
-        free(redirections);
-        return result;
     }
+
+cleanup:
+    if (subshell) _Exit(result);
+    for (int i = 0; i < argc; i++) {
+        free(arguments[i]);
+    }
+    free(arguments);
+    for (size_t i = 0; i < numRedirections; i++) {
+        free((void*) redirections[i].filename);
+    }
+    free(redirections);
+    return result;
 }
 
-static noreturn void executeUtility(char** arguments,
+static noreturn void executeUtility(int argc, char** arguments,
         struct Redirection* redirections, size_t numRedirections) {
     const char* command = arguments[0];
     if (!performRedirections(redirections, numRedirections)) {
@@ -235,7 +241,7 @@ static noreturn void executeUtility(char** arguments,
         if (errno == ENOEXEC) {
             free(redirections);
             arguments[0] = (char*) command;
-            executeScript(arguments);
+            executeScript(argc, arguments);
         }
 
         warn("execv: '%s'", command);
@@ -246,7 +252,7 @@ static noreturn void executeUtility(char** arguments,
     }
 }
 
-static int forkAndExecuteUtility(char** arguments,
+static int forkAndExecuteUtility(int argc, char** arguments,
         struct Redirection* redirections, size_t numRedirections) {
     pid_t pid = fork();
 
@@ -261,7 +267,7 @@ static int forkAndExecuteUtility(char** arguments,
         }
 
         resetSignals();
-        executeUtility(arguments, redirections, numRedirections);
+        executeUtility(argc, arguments, redirections, numRedirections);
     } else {
         return waitForCommand(pid);
     }

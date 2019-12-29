@@ -48,10 +48,11 @@ struct ShellOptions {
 };
 
 extern bool inputIsTerminal;
+extern int lastStatus;
 extern struct ShellOptions shellOptions;
 extern struct termios termios;
 
-noreturn void executeScript(char** argv);
+noreturn void executeScript(int argc, char** argv);
 NO_DISCARD bool addToArray(void** array, size_t* used, void* value,
         size_t size);
 NO_DISCARD bool moveFd(int old, int new);

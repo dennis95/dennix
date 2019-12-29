@@ -32,7 +32,8 @@ OBJ = \
 	parser.o \
 	sh.o \
 	stringbuffer.o \
-	tokenizer.o
+	tokenizer.o \
+	variables.o
 
 all: $(BUILD)/sh
 

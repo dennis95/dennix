@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2019 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,13 +13,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* sh/expand.h
- * Word expansion.
+/* sh/variables.h
+ * Shell variables.
  */
 
-#ifndef EXPAND_H
-#define EXPAND_H
+#include <stdbool.h>
 
-char* expandWord(const char* word);
+extern char** arguments;
+extern int numArguments;
 
-#endif
+const char* getVariable(const char* name);
+void initializeVariables(void);
+void setVariable(const char* name, const char* value, bool export);
+void unsetVariable(const char* name);
