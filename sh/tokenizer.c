@@ -276,6 +276,7 @@ void freeTokenizer(struct Tokenizer* tokenizer) {
     for (size_t i = 0; i < tokenizer->numTokens; i++) {
         free(tokenizer->tokens[i].text);
     }
+    free(tokenizer->tokens);
     free(tokenizer->buffer.buffer);
 }
 
