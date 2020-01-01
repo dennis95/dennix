@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -113,6 +113,27 @@ void initializeVariables(void) {
     }
 }
 
+bool isRegularVariableName(const char* s) {
+    if (!isalpha(*s) && *s != '_') return false;
+    while (*++s) {
+        if (!isalnum(*s) && *s != '_') return false;
+    }
+    return true;
+}
+
+void printEnvVariables(void) {
+    for (size_t i = 0; i < variablesAllocated; i++) {
+        struct ShellVar* var = &variables[i];
+        if (var->value) continue;
+        const char* value = getenv(var->name);
+        if (value) {
+            printf("export %s=%s\n", var->name, value);
+        } else {
+            printf("export %s\n", var->name);
+        }
+    }
+}
+
 void setVariable(const char* name, const char* value, bool export) {
     for (size_t i = 0; i < variablesAllocated; i++) {
         struct ShellVar* var = &variables[i];
@@ -122,10 +143,12 @@ void setVariable(const char* name, const char* value, bool export) {
                 var->value = strdup(value);
                 if (!var->value) err(1, "strdup");
             } else {
-                var->value = NULL;
-                if (setenv(name, value, 1) < 0) {
+                if (!value) value = var->value;
+                if (value && setenv(name, value, 1) < 0) {
                     err(1, "setenv");
                 }
+                free(var->value);
+                var->value = NULL;
             }
             return;
         }
@@ -142,7 +165,7 @@ void setVariable(const char* name, const char* value, bool export) {
     }
     variablesAllocated++;
 
-    if (export) {
+    if (export && value) {
         if (setenv(name, value, 1) < 0) err(1, "setenv");
     }
 }

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,11 +29,15 @@
 #include "variables.h"
 
 static int cd(int argc, char* argv[]);
+static int export(int argc, char* argv[]);
 static int sh_umask(int argc, char* argv[]);
+static int unset(int argc, char* argv[]);
 
 struct builtin builtins[] = {
     { "cd", cd },
+    { "export", export },
     { "umask", sh_umask },
+    { "unset", unset },
     { NULL, NULL }
 };
 
@@ -120,6 +124,50 @@ static int cd(int argc, char* argv[]) {
     return 0;
 }
 
+static int export(int argc, char* argv[]) {
+    bool print = false;
+    int i;
+    for (i = 1; i < argc; i++) {
+        if (argv[i][0] != '-' || argv[i][1] == '\0') break;
+        if (argv[i][1] == '-' && argv[i][2] == '\0') {
+            i++;
+            break;
+        }
+        for (size_t j = 1; argv[i][j]; j++) {
+            if (argv[i][j] == 'p') {
+                print = true;
+            } else {
+                warnx("export: invalid option '-%c'", argv[i][j]);
+                return 1;
+            }
+        }
+    }
+
+    if (print && i < argc) {
+        warnx("export: extra operand '%s'", argv[i]);
+        return 1;
+    }
+
+    if (print || i == argc) {
+        printEnvVariables();
+        return 0;
+    }
+
+    bool success = true;
+    for (; i < argc; i++) {
+        char* equals = strchr(argv[i], '=');
+        if (equals) *equals = '\0';
+
+        if (!isRegularVariableName(argv[i])) {
+            warnx("export: '%s' is not a valid name", argv[i]);
+            success = false;
+            continue;
+        }
+        setVariable(argv[i], equals ? equals + 1 : NULL, true);
+    }
+    return success ? 0 : 1;
+}
+
 static int sh_umask(int argc, char* argv[]) {
     // TODO: Implement the -S option.
     if (argc > 1) {
@@ -137,4 +185,34 @@ static int sh_umask(int argc, char* argv[]) {
         printf("%.4o\n", (unsigned int) mask);
     }
     return 0;
+}
+
+static int unset(int argc, char* argv[]) {
+    int i;
+    for (i = 1; i < argc; i++) {
+        if (argv[i][0] != '-' || argv[i][1] == '\0') break;
+        if (argv[i][1] == '-' && argv[i][2] == '\0') {
+            i++;
+            break;
+        }
+        for (size_t j = 1; argv[i][j]; j++) {
+            if (argv[i][j] == 'v') {
+                // ignored
+            } else {
+                warnx("unset: invalid option '-%c'", argv[i][j]);
+                return 1;
+            }
+        }
+    }
+
+    bool success = true;
+    for (; i < argc; i++) {
+        if (!isRegularVariableName(argv[i])) {
+            warnx("unset: '%s' is not a valid name", argv[i]);
+            success = false;
+            continue;
+        }
+        unsetVariable(argv[i]);
+    }
+    return success ? 0 : 1;
 }

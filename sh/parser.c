@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,6 +18,7 @@
  */
 
 #include <assert.h>
+#include <ctype.h>
 #include <err.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -160,14 +161,25 @@ fail:
     return result;
 }
 
+static bool isName(const char* s, size_t length) {
+    if (!isalpha(s[0]) && s[0] != '_') return false;
+    for (size_t i = 1; i < length; i++) {
+        if (!isalnum(s[i]) && s[i] != '_') return false;
+    }
+    return true;
+}
+
 static enum ParserResult parseSimpleCommand(struct Parser* parser,
         struct SimpleCommand* command) {
+    command->assignmentWords = NULL;
+    command->numAssignmentWords = 0;
     command->redirections = NULL;
     command->numRedirections = 0;
     command->words = NULL;
     command->numWords = 0;
 
     enum ParserResult result;
+    bool hadNonAssignmentWord = false;
 
     struct Token* token = getToken(parser);
     assert(token);
@@ -184,7 +196,8 @@ static enum ParserResult parseSimpleCommand(struct Parser* parser,
             result = parseIoRedirect(parser, fd, &redirection);
 
             if (result == PARSER_BACKTRACK) {
-                if (command->numWords > 0 || command->numRedirections > 0) {
+                if (command->numWords > 0 || command->numRedirections > 0 ||
+                        command->numAssignmentWords > 0) {
                     return PARSER_MATCH;
                 }
                 result = PARSER_SYNTAX;
@@ -201,10 +214,23 @@ static enum ParserResult parseSimpleCommand(struct Parser* parser,
             }
         } else {
             assert(token->type == TOKEN);
-            if (!addToArray((void**) &command->words, &command->numWords,
-                    &token->text, sizeof(char*))) {
-                result = PARSER_ERROR;
-                goto fail;
+
+            const char* equals = strchr(token->text, '=');
+            if (!hadNonAssignmentWord && equals && equals != token->text &&
+                    isName(token->text, equals - token->text)) {
+                if (!addToArray((void**) &command->assignmentWords,
+                        &command->numAssignmentWords, &token->text,
+                        sizeof(char*))) {
+                    result = PARSER_ERROR;
+                    goto fail;
+                }
+            } else {
+                hadNonAssignmentWord = true;
+                if (!addToArray((void**) &command->words, &command->numWords,
+                        &token->text, sizeof(char*))) {
+                    result = PARSER_ERROR;
+                    goto fail;
+                }
             }
             parser->offset++;
         }
@@ -285,6 +311,7 @@ static void freePipeline(struct Pipeline* pipeline) {
 }
 
 static void freeSimpleCommand(struct SimpleCommand* command) {
+    free(command->assignmentWords);
     free(command->redirections);
     free(command->words);
 }

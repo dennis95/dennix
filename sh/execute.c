@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -35,6 +35,7 @@
 #include "execute.h"
 #include "expand.h"
 #include "sh.h"
+#include "variables.h"
 
 static volatile sig_atomic_t pipelineReady;
 
@@ -47,9 +48,11 @@ static int executePipeline(struct Pipeline* pipeline);
 static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         bool subshell);
 static noreturn void executeUtility(int argc, char** arguments,
-        struct Redirection* redirections, size_t numRedirections);
+        struct Redirection* redirections, size_t numRedirections,
+        char** assignments, size_t numAssignments);
 static int forkAndExecuteUtility(int argc, char** arguments,
-        struct Redirection* redirections, size_t numRedirections);
+        struct Redirection* redirections, size_t numRedirections,
+        char** assignments, size_t numAssignments);
 static const char* getExecutablePath(const char* command);
 static bool performRedirections(struct Redirection* redirections,
         size_t numRedirections);
@@ -174,6 +177,9 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
     struct Redirection* redirections = calloc(numRedirections,
             sizeof(struct Redirection));
     if (!redirections) err(1, "malloc");
+    size_t numAssignments = simpleCommand->numAssignmentWords;
+    char** assignments = calloc(numAssignments, sizeof(char*));
+    if (!assignments) err(1, "malloc");
 
     for (int i = 0; i < argc; i++) {
         arguments[i] = expandWord(simpleCommand->words[i]);
@@ -186,14 +192,33 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         if (!redirections[i].filename) goto cleanup;
     }
 
+    for (size_t i = 0; i < numAssignments; i++) {
+        assignments[i] = expandWord(simpleCommand->assignmentWords[i]);
+        if (!assignments[i]) goto cleanup;
+    }
+
     const char* command = arguments[0];
     if (!command) {
-        assert(numRedirections > 0);
+        assert(numRedirections > 0 || numAssignments > 0);
+
+        for (size_t i = 0; i < numAssignments; i++) {
+            char* equals = strchr(assignments[i], '=');
+            *equals = '\0';
+            setVariable(assignments[i], equals + 1, false);
+            free(assignments[i]);
+        }
+        numAssignments = 0;
+        if (numRedirections == 0) {
+            // Avoid unnecessary forking.
+            result = 0;
+            goto cleanup;
+        }
     // Special built-ins
     } else if (strcmp(command, "exit") == 0) {
         exit(0);
     // Regular built-ins
     } else {
+        // TODO: Handle assignments and redirections for builtins.
         for (struct builtin* builtin = builtins; builtin->name; builtin++) {
             if (strcmp(command, builtin->name) == 0) {
                 result = builtin->func(argc, arguments);
@@ -203,10 +228,11 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
     }
 
     if (subshell) {
-        executeUtility(argc, arguments, redirections, numRedirections);
+        executeUtility(argc, arguments, redirections, numRedirections,
+                assignments, numAssignments);
     } else {
         result = forkAndExecuteUtility(argc, arguments, redirections,
-                numRedirections);
+                numRedirections, assignments, numAssignments);
     }
 
 cleanup:
@@ -219,14 +245,27 @@ cleanup:
         free((void*) redirections[i].filename);
     }
     free(redirections);
+    for (size_t i = 0; i < numAssignments; i++) {
+        free(assignments[i]);
+    }
+    free(assignments);
     return result;
 }
 
 static noreturn void executeUtility(int argc, char** arguments,
-        struct Redirection* redirections, size_t numRedirections) {
+        struct Redirection* redirections, size_t numRedirections,
+        char** assignments, size_t numAssignments) {
     const char* command = arguments[0];
     if (!performRedirections(redirections, numRedirections)) {
         _Exit(126);
+    }
+
+    for (size_t i = 0; i < numAssignments; i++) {
+        char* equals = strchr(assignments[i], '=');
+        *equals = '\0';
+        if (setenv(assignments[i], equals + 1, 1) < 0) {
+            _Exit(126);
+        }
     }
 
     if (!command) _Exit(0);
@@ -253,7 +292,8 @@ static noreturn void executeUtility(int argc, char** arguments,
 }
 
 static int forkAndExecuteUtility(int argc, char** arguments,
-        struct Redirection* redirections, size_t numRedirections) {
+        struct Redirection* redirections, size_t numRedirections,
+        char** assignments, size_t numAssignments) {
     pid_t pid = fork();
 
     if (pid < 0) {
@@ -267,7 +307,8 @@ static int forkAndExecuteUtility(int argc, char** arguments,
         }
 
         resetSignals();
-        executeUtility(argc, arguments, redirections, numRedirections);
+        executeUtility(argc, arguments, redirections, numRedirections,
+                assignments, numAssignments);
     } else {
         return waitForCommand(pid);
     }
@@ -275,7 +316,8 @@ static int forkAndExecuteUtility(int argc, char** arguments,
 
 static const char* getExecutablePath(const char* command) {
     size_t commandLength = strlen(command);
-    const char* path = getenv("PATH");
+    const char* path = getVariable("PATH");
+    if (!path) return NULL;
 
     while (*path) {
         size_t length = strcspn(path, ":");

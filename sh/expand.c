@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -44,14 +44,6 @@ static bool isPositionalParameter(const char* s) {
     do {
         if (!isdigit(*s)) return false;
     } while (*++s);
-    return true;
-}
-
-static bool isRegularVariableName(const char* s) {
-    if (!isalpha(*s) && *s != '_') return false;
-    while (*++s) {
-        if (!isalnum(*s) && *s != '_') return false;
-    }
     return true;
 }
 
