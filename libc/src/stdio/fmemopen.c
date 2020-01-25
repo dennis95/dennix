@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -109,6 +109,9 @@ FILE* fmemopen(void* restrict buffer, size_t size, const char* restrict mode) {
 
     file->prev = NULL;
     file->next = __firstFile;
+    if (file->next) {
+        file->next->prev = file;
+    }
     __firstFile = file;
     return file;
 }
