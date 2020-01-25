@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -139,7 +139,7 @@ void MemorySegment::removeSegment(MemorySegment* firstSegment, vaddr_t address,
             currentSegment->address += size;
             currentSegment->size -= size;
             size = 0;
-        } else if (currentSegment->address + currentSegment->size <
+        } else if (currentSegment->address + currentSegment->size <=
                 address + size) {
             size_t diff = currentSegment->address + currentSegment->size -
                     address;
@@ -162,6 +162,9 @@ void MemorySegment::removeSegment(MemorySegment* firstSegment, vaddr_t address,
 
             newSegment->prev = currentSegment;
             newSegment->next = currentSegment->next;
+            if (newSegment->next) {
+                newSegment->next->prev = newSegment;
+            }
 
             currentSegment->next = newSegment;
             currentSegment->size = firstSize;
