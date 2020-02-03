@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -175,20 +175,8 @@ _start:
 
 .code32
 unsupportedCpu:
-    # Try to write an error message to the screen.
-    # TODO: If the bootloader enabled graphics mode (which is likely the case)
-    # we will not be able to see the message!
     mov $errorMsg, %eax
-    mov $0xB8000, %ebx
-1:  mov (%eax), %cl
-    test %cl, %cl
-    jz 2f
-    mov %cl, (%ebx)
-    movb $0x07, 1(%ebx)
-    inc %eax
-    add $2, %ebx
-    jmp 1b
-2:  hlt
+    jmp earlyPanic
 
 .section bootstrap_rodata, "a"
 errorMsg:

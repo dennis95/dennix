@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,13 +17,7 @@
  * Linker script that tells how the kernel will be loaded into memory.
  */
 
-#define KERNEL_PHYSICAL 0x100000
-
-#ifdef __i386__
-#  define KERNEL_VIRTUAL 0xC0000000
-#elif defined(__x86_64__)
-#  define KERNEL_VIRTUAL 0xFFFFFFFF80000000
-#endif
+#include <dennix/kernel/arch.h>
 
 ENTRY(_start);
 
