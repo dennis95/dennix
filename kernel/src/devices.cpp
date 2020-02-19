@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <dennix/kernel/devices.h>
 #include <dennix/kernel/panic.h>
+#include <dennix/kernel/terminaldisplay.h>
 
 class DevFull : public Vnode {
 public:
@@ -66,7 +67,8 @@ void Devices::initialize(Reference<DirectoryVnode> rootDir) {
     if (rootDir->link("dev", dev) < 0 ||
             dev->link("full", xnew DevFull()) < 0 ||
             dev->link("null", xnew DevNull()) < 0 ||
-            dev->link("zero", xnew DevZero()) < 0) {
+            dev->link("zero", xnew DevZero()) < 0 ||
+            dev->link("display", TerminalDisplay::display) < 0) {
         PANIC("Could not create /dev directory.");
     }
 }

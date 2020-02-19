@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,9 +24,7 @@
 #include <dennix/winsize.h>
 
 /* Devctl numbers that are defined by default in <devctl.h> and <sys/ioctl.h>
-   are defined here. Note that it is not required that devctls for different
-   devices have different numbers. It is however useful to use different numbers
-   to allow error detection. */
+   are defined here. More devctl numbers are defined in <dennix/display.h>. */
 
 #define TIOCGWINSZ _DEVCTL(_IOCTL_PTR, 0) /* (struct winsize*) */
 #define TIOCGPGRP _DEVCTL(_IOCTL_PTR, 1) /* (pid_t*) */

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,14 +13,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/textdisplay.h
- * Abstract text display class.
+/* kernel/include/dennix/kernel/display.h
+ * Abstract display class.
  */
 
-#ifndef KERNEL_TEXTDISPLAY_H
-#define KERNEL_TEXTDISPLAY_H
+#ifndef KERNEL_DISPLAY_H
+#define KERNEL_DISPLAY_H
 
-#include <dennix/kernel/kernel.h>
+#include <dennix/kernel/vnode.h>
 
 struct CharPos {
     unsigned int x;
@@ -29,8 +29,9 @@ struct CharPos {
     bool operator==(const CharPos& p) { return p.x == x && p.y == y; }
 };
 
-class TextDisplay {
+class Display : public Vnode {
 public:
+    Display() : Vnode(S_IFCHR | 0666, 0) {}
     unsigned int height() { return _height; }
     unsigned int width() { return _width; }
     virtual void clear(CharPos from, CharPos to, uint8_t color) = 0;
@@ -38,7 +39,7 @@ public:
     virtual void scroll(unsigned int lines, uint8_t color, bool up = true) = 0;
     virtual void setCursorPos(CharPos position) = 0;
     virtual void update() = 0;
-    virtual ~TextDisplay() {}
+    virtual ~Display() {}
 protected:
     unsigned int _height;
     unsigned int _width;

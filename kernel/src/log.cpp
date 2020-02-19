@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,7 +19,7 @@
 
 #include <stdio.h>
 #include <dennix/kernel/addressspace.h>
-#include <dennix/kernel/lfbtextdisplay.h>
+#include <dennix/kernel/lfbdisplay.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/multiboot.h>
 #include <dennix/kernel/panic.h>
@@ -43,7 +43,7 @@ void Log::initialize(multiboot_info* multiboot) {
         vaddr_t lfb = kernelSpace->mapPhysical(lfbAligned, lfbSize,
                 PROT_READ | PROT_WRITE) + lfbOffset;
         if (!lfb) PANIC("Failed to map linear framebuffer");
-        TerminalDisplay::display = xnew LfbTextDisplay((char*) lfb,
+        TerminalDisplay::display = xnew LfbDisplay((char*) lfb,
                 multiboot->framebuffer_width, multiboot->framebuffer_height,
                 multiboot->framebuffer_pitch, multiboot->framebuffer_bpp);
     } else {

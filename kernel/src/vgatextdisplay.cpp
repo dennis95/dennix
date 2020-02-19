@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,7 +17,9 @@
  * VGA text mode display.
  */
 
+#include <errno.h>
 #include <string.h>
+#include <dennix/display.h>
 #include <dennix/kernel/portio.h>
 #include <dennix/kernel/vgatextdisplay.h>
 
@@ -84,6 +86,42 @@ void VgaTextDisplay::setCursorPos(CharPos position) {
 
 void VgaTextDisplay::update() {
 
+}
+
+int VgaTextDisplay::devctl(int command, void* restrict data, size_t size,
+        int* restrict info) {
+    switch (command) {
+    case DISPLAY_SET_MODE: {
+        if (size != 0 && size != sizeof(int)) {
+            *info = -1;
+            return EINVAL;
+        }
+
+        const int* mode = (const int*) data;
+        *info = DISPLAY_MODE_TEXT;
+
+        if (*mode == DISPLAY_MODE_QUERY || *mode == DISPLAY_MODE_TEXT) {
+            return 0;
+        } else {
+            return ENOTSUP;
+        }
+    } break;
+    case DISPLAY_GET_RESOLUTION:
+        *info = -1;
+        if (size != 0 && size != sizeof(struct display_resolution)) {
+            return EINVAL;
+        }
+        return ENOTSUP;
+    case DISPLAY_DRAW:
+        *info = -1;
+        if (size != 0 && size != sizeof(struct display_draw)) {
+            return EINVAL;
+        }
+        return ENOTSUP;
+    default:
+        *info = -1;
+        return EINVAL;
+    }
 }
 
 uint8_t unicodeToCp437(wchar_t wc) {

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,10 +20,10 @@
 #ifndef KERNEL_TERMINALDISPLAY_H
 #define KERNEL_TERMINALDISPLAY_H
 
-#include <dennix/kernel/textdisplay.h>
+#include <dennix/kernel/display.h>
 
 namespace TerminalDisplay {
-extern TextDisplay* display;
+extern Reference<Display> display;
 
 void backspace();
 void printCharacter(char c);
