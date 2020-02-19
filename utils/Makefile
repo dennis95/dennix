@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -22,10 +22,11 @@ include $(REPO_ROOT)/build-aux/version.mk
 BUILD = $(BUILD_DIR)/utils
 
 CFLAGS ?= -O2 -g
-CFLAGS += --sysroot=$(SYSROOT) -Wall -Wextra
+CFLAGS += --sysroot=$(SYSROOT) -std=c11 -Wall -Wextra
 CPPFLAGS += -D_DENNIX_SOURCE -DDENNIX_VERSION=\"$(VERSION)\"
 
 BIN_PROGRAMS = \
+	bricks \
 	cat \
 	chmod \
 	clear \

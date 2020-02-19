@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -78,7 +78,7 @@ utils: $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C utils
 
 $(SYSROOT): $(INCLUDE_DIR) $(LIB_DIR) $(BIN_DIR) $(SYSROOT)/usr $(LICENSE)
-$(SYSROOT): $(DXPORT_DIR)
+$(SYSROOT): $(SYSROOT)/share/fonts/vgafont $(DXPORT_DIR)
 
 $(BIN_DIR):
 	$(MAKE) -C sh install
@@ -90,6 +90,10 @@ $(LICENSE): LICENSE
 
 $(SYSROOT)/usr:
 	ln -s . $@
+
+$(SYSROOT)/share/fonts/vgafont: kernel/vgafont
+	@mkdir -p $(dir $@)
+	cp -f kernel/vgafont $@
 
 clean:
 	rm -rf $(BUILD_DIR)
