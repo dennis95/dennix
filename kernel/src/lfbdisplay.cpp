@@ -32,25 +32,6 @@ extern const uint8_t vgafont[];
 static const size_t charHeight = 16;
 static const size_t charWidth = 9;
 
-static uint32_t vgaColors[16] = {
-    RGB(0, 0, 0),
-    RGB(0, 0, 170),
-    RGB(0, 170, 0),
-    RGB(0, 170, 170),
-    RGB(170, 0, 0),
-    RGB(170, 0, 170),
-    RGB(170, 85, 0),
-    RGB(170, 170, 170),
-    RGB(85, 85, 85),
-    RGB(85, 85, 255),
-    RGB(85, 255, 85),
-    RGB(85, 255, 255),
-    RGB(255, 85, 85),
-    RGB(255, 85, 255),
-    RGB(255, 255, 85),
-    RGB(255, 255, 255),
-};
-
 LfbDisplay::LfbDisplay(char* lfb, size_t pixelWidth, size_t pixelHeight,
         size_t pitch, size_t bpp) {
     this->lfb = lfb;
@@ -64,7 +45,8 @@ LfbDisplay::LfbDisplay(char* lfb, size_t pixelWidth, size_t pixelHeight,
     doubleBuffer = xnew CharBufferEntry[_height * _width];
     invalidated = false;
     renderingText = true;
-    clear({0, 0}, {_width - 1, _height - 1}, 0x07);
+    Color defaultColor = { RGB(170, 170, 170), RGB(0, 0, 0), 0x07 };
+    clear({0, 0}, {_width - 1, _height - 1}, defaultColor);
 }
 
 ALWAYS_INLINE char* LfbDisplay::charAddress(CharPos position) {
@@ -85,31 +67,35 @@ ALWAYS_INLINE void LfbDisplay::setPixelColor(char* addr,
     }
 }
 
-void LfbDisplay::clear(CharPos from, CharPos to, uint8_t color) {
+void LfbDisplay::clear(CharPos from, CharPos to, Color color) {
     size_t bufferStart = from.x + width() * from.y;
     size_t bufferEnd = to.x + width() * to.y;
     for (size_t i = bufferStart; i <= bufferEnd; i++) {
-        if (doubleBuffer[i].wc != L'\0' || doubleBuffer[i].color != color) {
+        if (doubleBuffer[i].wc != L'\0' ||
+                doubleBuffer[i].fgColor != color.fgColor ||
+                doubleBuffer[i].bgColor != color.bgColor) {
             doubleBuffer[i].wc = L'\0';
-            doubleBuffer[i].color = color;
+            doubleBuffer[i].fgColor = color.fgColor;
+            doubleBuffer[i].bgColor = color.bgColor;
             doubleBuffer[i].modified = true;
         }
     }
 }
 
-void LfbDisplay::putCharacter(CharPos position, wchar_t wc, uint8_t color) {
+void LfbDisplay::putCharacter(CharPos position, wchar_t wc, Color color) {
     doubleBuffer[position.x + width() * position.y].wc = wc;
-    doubleBuffer[position.x + width() * position.y].color = color;
+    doubleBuffer[position.x + width() * position.y].fgColor = color.fgColor;
+    doubleBuffer[position.x + width() * position.y].bgColor = color.bgColor;
     doubleBuffer[position.x + width() * position.y].modified = true;
 }
 
 void LfbDisplay::redraw(CharPos position) {
-    doubleBuffer[position.x + width() * position.y].modified = false;
-    wchar_t wc = doubleBuffer[position.x + width() * position.y].wc;
-    uint8_t color = doubleBuffer[position.x + width() * position.y].color;
+    CharBufferEntry* entry = &doubleBuffer[position.x + width() * position.y];
+    entry->modified = false;
+    wchar_t wc = entry->wc;
 
-    uint32_t foreground = vgaColors[color & 0x0F];
-    uint32_t background = vgaColors[(color >> 4) & 0x0F];
+    uint32_t foreground = entry->fgColor;
+    uint32_t background = entry->bgColor;
     uint8_t cp437 = unicodeToCp437(wc);
     const uint8_t* charFont = vgafont + cp437 * 16;
     char* addr = charAddress(position);
@@ -131,11 +117,11 @@ void LfbDisplay::redraw(CharPos position) {
     }
 }
 
-void LfbDisplay::scroll(unsigned int lines, uint8_t color,
-        bool up /*= true*/) {
+void LfbDisplay::scroll(unsigned int lines, Color color, bool up /*= true*/) {
     CharBufferEntry empty;
     empty.wc = L'\0';
-    empty.color = color;
+    empty.fgColor = color.fgColor;
+    empty.bgColor = color.bgColor;
 
     if (up) {
         for (unsigned int y = 0; y < height(); y++) {
@@ -144,7 +130,8 @@ void LfbDisplay::scroll(unsigned int lines, uint8_t color,
                         doubleBuffer[x + (y + lines) * width()] : empty;
                 if (doubleBuffer[x + y * width()] != entry) {
                     doubleBuffer[x + y * width()].wc = entry.wc;
-                    doubleBuffer[x + y * width()].color = entry.color;
+                    doubleBuffer[x + y * width()].fgColor = entry.fgColor;
+                    doubleBuffer[x + y * width()].bgColor = entry.bgColor;
                     doubleBuffer[x + y * width()].modified = true;
                 }
             }
@@ -156,7 +143,8 @@ void LfbDisplay::scroll(unsigned int lines, uint8_t color,
                         doubleBuffer[x + (y - lines) * width()] : empty;
                 if (doubleBuffer[x + y * width()] != entry) {
                     doubleBuffer[x + y * width()].wc = entry.wc;
-                    doubleBuffer[x + y * width()].color = entry.color;
+                    doubleBuffer[x + y * width()].fgColor = entry.fgColor;
+                    doubleBuffer[x + y * width()].bgColor = entry.bgColor;
                     doubleBuffer[x + y * width()].modified = true;
                 }
             }

@@ -19,13 +19,39 @@
 
 #include <string.h>
 #include <wchar.h>
+#include <dennix/display.h>
 #include <dennix/kernel/terminaldisplay.h>
 
 Reference<Display> TerminalDisplay::display;
 
 #define MAX_PARAMS 16
 
-static uint8_t color = 0x07; // gray on black
+static const uint32_t vgaColors[16] = {
+    RGB(0, 0, 0),
+    RGB(0, 0, 170),
+    RGB(0, 170, 0),
+    RGB(0, 170, 170),
+    RGB(170, 0, 0),
+    RGB(170, 0, 170),
+    RGB(170, 85, 0),
+    RGB(170, 170, 170),
+    RGB(85, 85, 85),
+    RGB(85, 85, 255),
+    RGB(85, 255, 85),
+    RGB(85, 255, 255),
+    RGB(255, 85, 85),
+    RGB(255, 85, 255),
+    RGB(255, 255, 85),
+    RGB(255, 255, 255),
+};
+
+static const Color defaultColor = {
+    .fgColor = vgaColors[7],
+    .bgColor = vgaColors[0],
+    .vgaColor = 0x07
+};
+static Color color = defaultColor;
+static bool fgIsVgaColor = true;
 static CharPos cursorPos;
 static CharPos savedPos;
 
@@ -52,78 +78,91 @@ void TerminalDisplay::backspace() {
     } else {
         cursorPos.x--;
     }
-    display->putCharacter(cursorPos, '\0', 0x07);
+    display->putCharacter(cursorPos, '\0', color);
 }
 
 static void setGraphicsRendition() {
     for (size_t i = 0; i < MAX_PARAMS; i++) {
         if (!paramSpecified[i]) continue;
 
-        switch (params[i]) {
-        case 0: // Reset
-            color = 0x07;
-            break;
-        case 1: // Increased intensity
-            color |= 0x08;
-            break;
-        case 22: // Normal intensity
-            color &= ~0x08;
-            break;
-        // Foreground colors
-        case 30:
-            color = (color & 0xF8) | 0x00;
-            break;
-        case 31:
-            color = (color & 0xF8) | 0x04;
-            break;
-        case 32:
-            color = (color & 0xF8) | 0x02;
-            break;
-        case 33:
-            color = (color & 0xF8) | 0x06;
-            break;
-        case 34:
-            color = (color & 0xF8) | 0x01;
-            break;
-        case 35:
-            color = (color & 0xF8) | 0x05;
-            break;
-        case 36:
-            color = (color & 0xF8) | 0x03;
-            break;
-        case 37: case 39:
-            color = (color & 0xF8) | 0x07;
-            break;
-        // Background colors
-        case 40: case 49:
-            color = (color & 0x0F) | 0x00;
-            break;
-        case 41:
-            color = (color & 0x0F) | 0x40;
-            break;
-        case 42:
-            color = (color & 0x0F) | 0x20;
-            break;
-        case 43:
-            color = (color & 0x0F) | 0x60;
-            break;
-        case 44:
-            color = (color & 0x0F) | 0x10;
-            break;
-        case 45:
-            color = (color & 0x0F) | 0x50;
-            break;
-        case 46:
-            color = (color & 0x0F) | 0x30;
-            break;
-        case 47:
-            color = (color & 0x0F) | 0x70;
-            break;
+        unsigned int param = params[i];
+        const uint8_t ansiToVga[] = { 0, 4, 2, 6, 1, 5, 3, 7 };
 
-        default:
-            // Unsupported parameter, ignore
-            // TODO: Implement more attributes when needed
-            break;
+        if (param == 0) { // Reset
+            color = defaultColor;
+            fgIsVgaColor = true;
+        } else if (param == 1) { // Increased intensity / Bold
+            // When using colors from the VGA palette we implement this as
+            // increased intensity. For other colors this is currently ignored.
+            color.vgaColor |= 0x08;
+            if (fgIsVgaColor) {
+                color.fgColor = vgaColors[(color.vgaColor & 0xF) | 0x08];
+            }
+        } else if (param == 22) { // Normal intensity / Not bold
+            color.vgaColor &= ~0x08;
+            if (fgIsVgaColor) {
+                color.fgColor = vgaColors[color.vgaColor & 0x7];
+            }
+        } else if (param >= 30 && param <= 37) {
+            color.vgaColor = (color.vgaColor & 0xF8) | ansiToVga[param - 30];
+            color.fgColor = vgaColors[color.vgaColor & 0x0F];
+            fgIsVgaColor = true;
+        } else if (param == 38 || param == 48) {
+            i++;
+            if (i >= MAX_PARAMS) return;
+            uint32_t newColor;
+            if (params[i] == 2) {
+                if (i + 3 >= MAX_PARAMS) return;
+                newColor = RGB(params[i + 1], params[i + 2], params[i + 3]);
+                i += 3;
+            } else if (params[i] == 5) {
+                if (i + 1 >= MAX_PARAMS) return;
+                i++;
+                if (params[i] < 16) {
+                    newColor = vgaColors[params[i]];
+                } else if (params[i] < 232) {
+                    params[i] -= 16;
+                    uint8_t r = params[i] / 36;
+                    uint8_t g = params[i] / 6 % 6;
+                    uint8_t b = params[i] % 6;
+                    const uint8_t value[] = { 0, 95, 135, 175, 215, 255 };
+                    newColor = RGB(value[r], value[g], value[b]);
+                } else if (params[i] <= 255) {
+                    uint8_t value = 8 + 10 * (params[i] - 232);
+                    newColor = RGB(value, value, value);
+                } else {
+                    continue;
+                }
+            } else {
+                continue;
+            }
+
+            if (param == 38) {
+                color.fgColor = newColor;
+                fgIsVgaColor = false;
+            } else {
+                color.bgColor = newColor;
+            }
+        } else if (param == 39) {
+            color.vgaColor = (color.vgaColor & 0xF8) | 0x07;
+            color.fgColor = vgaColors[color.vgaColor & 0x0F];
+            fgIsVgaColor = true;
+        } else if (param >= 40 && param <= 47) {
+            color.vgaColor = (color.vgaColor & 0x0F) |
+                    ansiToVga[param - 40] << 4;
+            color.bgColor = vgaColors[(color.vgaColor & 0xF0) >> 4];
+        } else if (param == 49) {
+            color.vgaColor &= 0x0F;
+            color.bgColor = vgaColors[(color.vgaColor & 0xF0) >> 4];
+        } else if (param >= 90 && param <= 97) {
+            color.vgaColor = (color.vgaColor & 0xF0) | ansiToVga[param - 90] |
+                    0x8;
+            color.fgColor = vgaColors[color.vgaColor & 0x0F];
+            fgIsVgaColor = true;
+        } else if (param >= 100 && param <= 107) {
+            color.vgaColor = (color.vgaColor & 0x0F) |
+                    ansiToVga[param - 100] << 4 | 0x80;
+            color.bgColor = vgaColors[(color.vgaColor & 0xF0) >> 4];
         }
     }
 }
@@ -145,7 +184,8 @@ void TerminalDisplay::printCharacter(char c) {
             }
             paramIndex = 0;
         } else if (c == 'c') { // RIS - Reset to Initial State
-            color = 0x07;
+            color = defaultColor;
+            fgIsVgaColor = true;
             CharPos lastPos = {display->width() - 1, display->height() - 1};
             display->clear({0, 0}, lastPos, color);
             cursorPos = {0, 0};

@@ -25,11 +25,11 @@
 class VgaTextDisplay : public Display {
 public:
     VgaTextDisplay();
-    virtual void clear(CharPos from, CharPos to, uint8_t color);
+    virtual void clear(CharPos from, CharPos to, Color color);
     virtual int devctl(int command, void* restrict data, size_t size,
             int* restrict info);
-    virtual void putCharacter(CharPos position, wchar_t c, uint8_t color);
-    virtual void scroll(unsigned int lines, uint8_t color, bool up = true);
+    virtual void putCharacter(CharPos position, wchar_t c, Color color);
+    virtual void scroll(unsigned int lines, Color color, bool up = true);
     virtual void setCursorPos(CharPos position);
     virtual void update();
 };

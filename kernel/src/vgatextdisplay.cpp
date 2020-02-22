@@ -41,30 +41,31 @@ VgaTextDisplay::VgaTextDisplay() {
     _width = 80;
 }
 
-void VgaTextDisplay::clear(CharPos from, CharPos to, uint8_t color) {
+void VgaTextDisplay::clear(CharPos from, CharPos to, Color color) {
     char* begin = videoOffset(from);
     char* end = videoOffset(to);
 
     while (begin <= end) {
         begin[0] = 0;
-        begin[1] = color;
+        begin[1] = color.vgaColor;
         begin += 2;
     }
 }
 
-void VgaTextDisplay::putCharacter(CharPos position, wchar_t wc, uint8_t color) {
+void VgaTextDisplay::putCharacter(CharPos position, wchar_t wc, Color color) {
+    uint8_t vgaColor = color.vgaColor;
     uint8_t cp437 = unicodeToCp437(wc);
     if (cp437 == 0xFF) {
         // Print unrepresentable characters as ? with inverted colors.
         cp437 = '?';
-        color = ((color & 0x0F) << 4) | ((color & 0xF0) >> 4);
+        vgaColor = ((vgaColor & 0x0F) << 4) | ((vgaColor & 0xF0) >> 4);
     }
 
     *videoOffset(position) = cp437;
-    *(videoOffset(position) + 1) = color;
+    *(videoOffset(position) + 1) = vgaColor;
 }
 
-void VgaTextDisplay::scroll(unsigned int lines, uint8_t color,
+void VgaTextDisplay::scroll(unsigned int lines, Color color,
         bool up /*= true*/) {
     size_t size = 2 * (height() - lines) * width();
     if (up) {

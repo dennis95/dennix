@@ -29,14 +29,20 @@ struct CharPos {
     bool operator==(const CharPos& p) { return p.x == x && p.y == y; }
 };
 
+struct Color {
+    uint32_t fgColor;
+    uint32_t bgColor;
+    uint8_t vgaColor;
+};
+
 class Display : public Vnode {
 public:
     Display() : Vnode(S_IFCHR | 0666, 0) {}
     unsigned int height() { return _height; }
     unsigned int width() { return _width; }
-    virtual void clear(CharPos from, CharPos to, uint8_t color) = 0;
-    virtual void putCharacter(CharPos position, wchar_t c, uint8_t color) = 0;
-    virtual void scroll(unsigned int lines, uint8_t color, bool up = true) = 0;
+    virtual void clear(CharPos from, CharPos to, Color color) = 0;
+    virtual void putCharacter(CharPos position, wchar_t c, Color color) = 0;
+    virtual void scroll(unsigned int lines, Color color, bool up = true) = 0;
     virtual void setCursorPos(CharPos position) = 0;
     virtual void update() = 0;
     virtual ~Display() {}
