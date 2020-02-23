@@ -82,9 +82,7 @@ void TerminalDisplay::backspace() {
 }
 
 static void setGraphicsRendition() {
-    for (size_t i = 0; i < MAX_PARAMS; i++) {
-        if (!paramSpecified[i]) continue;
-
+    for (size_t i = 0; i <= paramIndex; i++) {
         unsigned int param = params[i];
         const uint8_t ansiToVga[] = { 0, 4, 2, 6, 1, 5, 3, 7 };
 
@@ -226,7 +224,7 @@ void TerminalDisplay::printCharacter(char c) {
             case 'C': { // CUF - Cursor Forward
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
                 if (cursorPos.x + param >= display->width()) {
-                    cursorPos.x = 0;
+                    cursorPos.x = display->width() - 1;
                 } else {
                     cursorPos.x += param;
                 }
@@ -304,7 +302,7 @@ void TerminalDisplay::printCharacter(char c) {
             } break;
             case 'd': { // VPA - Line Position Absolute
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
-                if (0 < param && param < display->height()) {
+                if (0 < param && param <= display->height()) {
                     cursorPos.y = param - 1;
                 }
             } break;
