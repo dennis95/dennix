@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -88,11 +88,13 @@ int unlinkat(int, const char*, int);
 ssize_t write(int, const void*, size_t);
 
 #if __USE_DENNIX
+typedef unsigned long useconds_t;
 int dup3(int, int, int);
 int fchdirat(int, const char*);
 int pipe2(int[2], int);
 pid_t rfork(int);
 pid_t regfork(int, regfork_t*);
+int usleep(useconds_t);
 #endif
 
 #ifdef __cplusplus
