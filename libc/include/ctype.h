@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,16 +21,20 @@
 #define _CTYPE_H
 
 #include <sys/cdefs.h>
-#define __need_locale_t
-#include <bits/types.h>
+#if __USE_DENNIX || __USE_POSIX
+#  define __need_locale_t
+#  include <bits/types.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#if __USE_C >= 1999 || __USE_DENNIX
 extern __gnu_inline int isblank(int _c) {
     return _c == '\t' || _c == ' ';
 }
+#endif
 
 extern __gnu_inline int iscntrl(int _c) {
     return (_c >= '\0' && _c <= '\x1F') || _c == '\x7F';

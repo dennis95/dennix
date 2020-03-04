@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,18 +22,20 @@
 
 #include <sys/cdefs.h>
 #define __need_clock_t
-#define __need_locale_t
 #define __need_NULL
 #define __need_size_t
 #define __need_time_t
 #if __USE_DENNIX || __USE_POSIX
 #  define __need_clockid_t
+#  define __need_locale_t
 #  define __need_timer_t
 #endif
 #include <bits/types.h>
-#include <dennix/timespec.h>
 #if __USE_DENNIX || __USE_POSIX
 #  include <dennix/clock.h>
+#endif
+#if __USE_DENNIX || __USE_POSIX || __USE_C >= 2011
+#  include <dennix/timespec.h>
 #endif
 
 #ifdef __cplusplus

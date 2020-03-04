@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -46,30 +46,21 @@ typedef struct {
     long rem;
 } ldiv_t;
 
-typedef struct {
-    long long quot;
-    long long rem;
-} lldiv_t;
-
 __noreturn void abort(void);
 int abs(int);
 int atexit(void (*)(void));
 double atof(const char*);
 int atoi(const char*);
 long atol(const char*);
-long long atoll(const char*);
 void* bsearch(const void*, const void*, size_t, size_t,
         int (*)(const void*, const void*));
 void* calloc(size_t, size_t);
 div_t div(int, int);
-__noreturn void _Exit(int);
 __noreturn void exit(int);
 void free(void*);
 char* getenv(const char*);
 long labs(long);
 ldiv_t ldiv(long, long);
-long long llabs(long long);
-lldiv_t lldiv(long long, long long);
 void* malloc(size_t);
 int mblen(const char*, size_t);
 size_t mbstowcs(wchar_t* __restrict, const char* __restrict, size_t);
@@ -79,13 +70,25 @@ int rand(void);
 void* realloc(void*, size_t);
 void srand(unsigned int);
 double strtod(const char* __restrict, char** __restrict);
-float strtof(const char* __restrict, char** __restrict);
 long strtol(const char* __restrict, char** __restrict, int);
+unsigned long strtoul(const char* __restrict, char** __restrict, int);
+int system(const char*);
+
+#if __USE_C >= 1999 || __USE_DENNIX
+typedef struct {
+    long long quot;
+    long long rem;
+} lldiv_t;
+
+long long atoll(const char*);
+__noreturn void _Exit(int);
+long long llabs(long long);
+lldiv_t lldiv(long long, long long);
+float strtof(const char* __restrict, char** __restrict);
 long double strtold(const char* __restrict, char** __restrict);
 long long strtoll(const char* __restrict, char** __restrict, int);
-unsigned long strtoul(const char* __restrict, char** __restrict, int);
 unsigned long long strtoull(const char* __restrict, char** __restrict, int);
-int system(const char*);
+#endif
 
 #if __USE_DENNIX || __USE_POSIX
 char* mkdtemp(char*);

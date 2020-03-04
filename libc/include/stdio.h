@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -93,8 +93,6 @@ void rewind(FILE*);
 int scanf(const char* __restrict, ...) __scanf_like(1, 2);
 void setbuf(FILE* __restrict, char* __restrict);
 int setvbuf(FILE* __restrict, char* __restrict, int, size_t);
-int snprintf(char* __restrict, size_t, const char* __restrict, ...)
-        __printf_like(3, 4);
 int sprintf(char* __restrict, const char* __restrict, ...) __printf_like(2, 3);
 int sscanf(const char* __restrict, const char* __restrict, ...)
         __scanf_like(2, 3);
@@ -102,16 +100,21 @@ FILE* tmpfile(void);
 int ungetc(int, FILE*);
 int vfprintf(FILE* __restrict, const char* __restrict, __gnuc_va_list)
         __printf_like(2, 0);
+int vprintf(const char* __restrict, __gnuc_va_list) __printf_like(1, 0);
+int vsprintf(char* __restrict, const char* __restrict, __gnuc_va_list)
+        __printf_like(2, 0);
+
+#if __USE_C >= 1999 || __USE_DENNIX
+int snprintf(char* __restrict, size_t, const char* __restrict, ...)
+        __printf_like(3, 4);
 int vfscanf(FILE* __restrict, const char* __restrict, __gnuc_va_list)
         __scanf_like(2, 0);
-int vprintf(const char* __restrict, __gnuc_va_list) __printf_like(1, 0);
 int vscanf(const char* __restrict, __gnuc_va_list) __scanf_like(1, 0);
 int vsnprintf(char* __restrict, size_t, const char* __restrict, __gnuc_va_list)
         __printf_like(3, 0);
-int vsprintf(char* __restrict, const char* __restrict, __gnuc_va_list)
-        __printf_like(2, 0);
 int vsscanf(const char* __restrict, const char* __restrict, __gnuc_va_list)
         __scanf_like(2, 0);
+#endif
 
 #if __USE_DENNIX || __USE_POSIX
 int dprintf(int, const char* __restrict, ...) __printf_like(2, 3);

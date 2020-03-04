@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -56,7 +56,8 @@
 #  define __USE_C 1999
 #elif defined(_ANSI_SOURCE)
 #  define __USE_C 1989
-#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#elif (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L) || \
+    (defined(__cplusplus) && __cplusplus >= 201703L)
 #  define __USE_C 2011
 #elif (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) || \
     (defined(__cplusplus) && __cplusplus >= 201103L)
