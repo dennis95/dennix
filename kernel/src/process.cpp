@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,7 +29,7 @@
 #include <dennix/kernel/registers.h>
 #include <dennix/kernel/signal.h>
 
-#define USER_STACK_SIZE (32 * 1024) // 32 KiB
+#define USER_STACK_SIZE (128 * 1024) // 128 KiB
 
 Process* Process::initProcess;
 
