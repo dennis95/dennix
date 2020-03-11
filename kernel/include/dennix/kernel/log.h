@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,7 +26,8 @@
 struct multiboot_info;
 
 namespace Log {
-void initialize(multiboot_info* multiboot);
+void earlyInitialize(multiboot_info* multiboot);
+void initialize();
 void printf(const char* format, ...) PRINTF_LIKE(1, 2);
 void vprintf(const char* format, va_list ap) PRINTF_LIKE(1, 0);
 }

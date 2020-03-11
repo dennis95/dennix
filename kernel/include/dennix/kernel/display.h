@@ -41,6 +41,7 @@ public:
     unsigned int height() { return _height; }
     unsigned int width() { return _width; }
     virtual void clear(CharPos from, CharPos to, Color color) = 0;
+    virtual void initialize() = 0;
     virtual void putCharacter(CharPos position, wchar_t c, Color color) = 0;
     virtual void scroll(unsigned int lines, Color color, bool up = true) = 0;
     virtual void setCursorPos(CharPos position) = 0;

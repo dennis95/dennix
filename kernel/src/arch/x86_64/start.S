@@ -197,14 +197,15 @@ fakeGdtDescriptor:
 
 .section bootstrap_bss, "aw", @nobits
 .align 4096
-.global kernelPml4
-kernelPml4:
-    .skip 4096
 bootstrapPdpt:
     .skip 4096
 bootstrapPageDir:
     .skip 4096
 bootstrapPageTable:
+    .skip 4096
+# Anything below is not freed after initialization.
+.global kernelPml4
+kernelPml4:
     .skip 4096
 kernelBasePdpt:
     .skip 4096

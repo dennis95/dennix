@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -50,6 +50,24 @@ extern symbol_t kernelVirtualEnd;
 static kthread_mutex_t listMutex = KTHREAD_MUTEX_INITIALIZER;
 static char _kernelMappingArea[PAGESIZE] ALIGNED(PAGESIZE);
 
+// We need to create the initial kernel segments at compile time because
+// they are needed before memory allocations are possible.
+static MemorySegment segments[] = {
+    MemorySegment(0, 0xFFFF800000000000, PROT_NONE, nullptr, &segments[1]),
+    MemorySegment(RECURSIVE_MAPPING, -RECURSIVE_MAPPING, PROT_READ | PROT_WRITE,
+            &segments[0], &segments[2]),
+    MemorySegment(0xFFFFFFFF80000000, 0x1000, PROT_READ | PROT_WRITE,
+            &segments[1], &segments[3]),
+    MemorySegment((vaddr_t) &kernelVirtualBegin, (vaddr_t) &kernelExecEnd -
+            (vaddr_t) &kernelVirtualBegin, PROT_EXEC, &segments[2],
+            &segments[4]),
+    MemorySegment((vaddr_t) &kernelExecEnd, (vaddr_t) &kernelReadOnlyEnd -
+            (vaddr_t) &kernelExecEnd, PROT_READ, &segments[3], &segments[5]),
+    MemorySegment((vaddr_t) &kernelReadOnlyEnd, (vaddr_t) &kernelVirtualEnd -
+            (vaddr_t) &kernelReadOnlyEnd, PROT_READ | PROT_WRITE, &segments[4],
+            nullptr),
+};
+
 struct PageIndex {
     size_t pml4Index;
     size_t pdptIndex;
@@ -78,10 +96,10 @@ static inline uintptr_t protectionToFlags(int protection) {
 }
 
 AddressSpace::AddressSpace() {
-    if (this == &_kernelSpace) {
-        pml4 = 0;
+    if (this == kernelSpace) {
+        pml4 = (paddr_t) &kernelPml4;
         mappingArea = (vaddr_t) _kernelMappingArea;
-        firstSegment = nullptr;
+        firstSegment = segments;
         prev = nullptr;
         next = nullptr;
     } else {
@@ -149,32 +167,15 @@ AddressSpace::~AddressSpace() {
     PhysicalMemory::pushPageFrame(pml4);
 }
 
-// We need to create the initial kernel segments at compile time because
-// they are needed before memory allocations are possible.
-static MemorySegment userSegment(0, 0xFFFF800000000000, PROT_NONE, nullptr,
-        nullptr);
-static MemorySegment recursiveMappingSegment(RECURSIVE_MAPPING,
-        -RECURSIVE_MAPPING, PROT_READ | PROT_WRITE, &userSegment, nullptr);
-static MemorySegment videoSegment(0xFFFFFFFF80000000, 0x1000,
-        PROT_READ | PROT_WRITE, &recursiveMappingSegment, nullptr);
-static MemorySegment execSegment((vaddr_t) &kernelVirtualBegin,
-        (vaddr_t) &kernelExecEnd - (vaddr_t) &kernelVirtualBegin, PROT_EXEC,
-        &videoSegment, nullptr);
-static MemorySegment readOnlySegment((vaddr_t) &kernelExecEnd,
-        (vaddr_t) &kernelReadOnlyEnd - (vaddr_t) &kernelExecEnd, PROT_READ,
-        &execSegment, nullptr);
-static MemorySegment writableSegment((vaddr_t) &kernelReadOnlyEnd,
-        (vaddr_t) &kernelVirtualEnd - (vaddr_t) &kernelReadOnlyEnd,
-        PROT_READ | PROT_WRITE, &readOnlySegment, nullptr);
-
 void AddressSpace::initialize() {
-    kernelSpace = &_kernelSpace;
-    kernelSpace->pml4 = (paddr_t) &kernelPml4;
     // Unmap the bootstrap sections
     vaddr_t p = (vaddr_t) &bootstrapBegin;
 
     while (p < (vaddr_t) &bootstrapEnd) {
         kernelSpace->unmap(p);
+        if (p < (paddr_t) &kernelPml4) {
+            PhysicalMemory::pushPageFrame(p);
+        }
         p += PAGESIZE;
     }
 
@@ -182,14 +183,6 @@ void AddressSpace::initialize() {
     kernelSpace->unmap(RECURSIVE_PAGETABLE(0, 0, 0));
     kernelSpace->unmap(RECURSIVE_PAGEDIR(0, 0));
     kernelSpace->unmap(RECURSIVE_PDPT(0));
-
-    // Initialize segments for kernel space
-    kernelSpace->firstSegment = &userSegment;
-    userSegment.next = &recursiveMappingSegment;
-    recursiveMappingSegment.next = &videoSegment;
-    videoSegment.next = &execSegment;
-    execSegment.next = &readOnlySegment;
-    readOnlySegment.next = &writableSegment;
 }
 
 void AddressSpace::activate() {

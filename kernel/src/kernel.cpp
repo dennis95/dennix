@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -45,16 +45,18 @@ static multiboot_info multiboot;
 extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     AddressSpace::initialize();
 
-    // Copy the multiboot structure.
+    // Copy the multiboot structure. This cannot fail because we just freed some
+    // memory.
     multiboot_info* multibootMapped = (multiboot_info*)
             kernelSpace->mapPhysical(multibootAddress, PAGESIZE, PROT_READ);
-    if (!multibootMapped) PANIC("Failed to map multiboot structure");
     memcpy(&multiboot, multibootMapped, sizeof(multiboot_info));
     kernelSpace->unmapPhysical((vaddr_t) multibootMapped, PAGESIZE);
+    Log::earlyInitialize(&multiboot);
+    // Kernel panic works after this point.
 
     PhysicalMemory::initialize(&multiboot);
 
-    Log::initialize(&multiboot);
+    Log::initialize();
     Log::printf("Welcome to Dennix " DENNIX_VERSION "\n");
     Log::printf("Initializing PS/2 Controller...\n");
     PS2::initialize();

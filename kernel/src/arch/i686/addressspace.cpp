@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,6 @@
 #include <assert.h>
 #include <string.h>
 #include <dennix/kernel/addressspace.h>
-#include <dennix/kernel/panic.h>
 #include <dennix/kernel/physicalmemory.h>
 
 #define RECURSIVE_MAPPING 0xFFC00000
@@ -40,6 +39,23 @@ extern symbol_t kernelVirtualEnd;
 }
 
 static kthread_mutex_t listMutex = KTHREAD_MUTEX_INITIALIZER;
+static char _kernelMappingArea[PAGESIZE] ALIGNED(PAGESIZE);
+
+// We need to create the initial kernel segments at compile time because
+// they are needed before memory allocations are possible.
+static MemorySegment segments[] = {
+    MemorySegment(0, 0xC0000000, PROT_NONE, nullptr, &segments[1]),
+    MemorySegment(0xC0000000, 0x1000, PROT_READ | PROT_WRITE, &segments[0],
+            &segments[2]),
+    MemorySegment((vaddr_t) &kernelVirtualBegin, (vaddr_t) &kernelReadOnlyEnd -
+            (vaddr_t) &kernelVirtualBegin, PROT_READ | PROT_EXEC, &segments[1],
+            &segments[3]),
+    MemorySegment((vaddr_t) &kernelReadOnlyEnd, (vaddr_t) &kernelVirtualEnd -
+            (vaddr_t) &kernelReadOnlyEnd, PROT_READ | PROT_WRITE, &segments[2],
+            &segments[4]),
+    MemorySegment(RECURSIVE_MAPPING, -RECURSIVE_MAPPING, PROT_READ | PROT_WRITE,
+            &segments[3], nullptr),
+};
 
 static inline void addressToIndex(
         vaddr_t virtualAddress, size_t& pdIndex, size_t& ptIndex) {
@@ -55,10 +71,10 @@ static inline int protectionToFlags(int protection) {
 }
 
 AddressSpace::AddressSpace() {
-    if (this == &_kernelSpace) {
-        pageDir = 0;
-        mappingArea = 0;
-        firstSegment = nullptr;
+    if (this == kernelSpace) {
+        pageDir = (paddr_t) &kernelPageDirectory;
+        mappingArea = (vaddr_t) _kernelMappingArea;
+        firstSegment = segments;
         prev = nullptr;
         next = nullptr;
     } else {
@@ -125,47 +141,21 @@ AddressSpace::~AddressSpace() {
     PhysicalMemory::pushPageFrame(pageDir);
 }
 
-// We need to create the initial kernel segments at compile time because
-// they are needed before memory allocations are possible.
-static MemorySegment userSegment(0, 0xC0000000, PROT_NONE, nullptr, nullptr);
-static MemorySegment videoSegment(0xC0000000, 0x1000, PROT_READ | PROT_WRITE,
-        &userSegment, nullptr);
-static MemorySegment readOnlySegment((vaddr_t) &kernelVirtualBegin,
-        (vaddr_t) &kernelReadOnlyEnd - (vaddr_t) &kernelVirtualBegin,
-        PROT_READ | PROT_EXEC, &videoSegment, nullptr);
-static MemorySegment writableSegment((vaddr_t) &kernelReadOnlyEnd,
-        (vaddr_t) &kernelVirtualEnd - (vaddr_t) &kernelReadOnlyEnd,
-        PROT_READ | PROT_WRITE, &readOnlySegment, nullptr);
-static MemorySegment recursiveMappingSegment(RECURSIVE_MAPPING,
-        -RECURSIVE_MAPPING, PROT_READ | PROT_WRITE, &writableSegment,
-        nullptr);
-
 void AddressSpace::initialize() {
-    kernelSpace = &_kernelSpace;
-    kernelSpace->pageDir = (paddr_t) &kernelPageDirectory;
-
     // Unmap the bootstrap sections
     vaddr_t p = (vaddr_t) &bootstrapBegin;
 
     while (p < (vaddr_t) &bootstrapEnd) {
         kernelSpace->unmap(p);
+        if (p < (paddr_t) &kernelPageDirectory) {
+            PhysicalMemory::pushPageFrame(p);
+        }
         p += PAGESIZE;
     }
 
     // Remove the mapping for the bootstrap page table
     // This is the first page table, so know it is mapped at RECURSIVE_MAPPING.
     kernelSpace->unmap(RECURSIVE_MAPPING);
-
-    // Initialize segments for kernel space
-    kernelSpace->firstSegment = &userSegment;
-    userSegment.next = &videoSegment;
-    videoSegment.next = &readOnlySegment;
-    readOnlySegment.next = &writableSegment;
-    writableSegment.next = &recursiveMappingSegment;
-
-    kernelSpace->mappingArea = MemorySegment::findAndAddNewSegment(
-            kernelSpace->firstSegment, PAGESIZE, PROT_NONE);
-    if (!kernelSpace->mappingArea) PANIC("Could not allocate mapping area");
 }
 
 void AddressSpace::activate() {

@@ -139,6 +139,7 @@ errorMsg:
 
 .section bootstrap_bss, "aw", @nobits
 .align 4096
+# Anything below is not freed after initialization.
 .global kernelPageDirectory
 kernelPageDirectory:
     .skip 4096

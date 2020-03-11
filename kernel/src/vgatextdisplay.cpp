@@ -52,6 +52,9 @@ void VgaTextDisplay::clear(CharPos from, CharPos to, Color color) {
     }
 }
 
+void VgaTextDisplay::initialize() {
+}
+
 void VgaTextDisplay::putCharacter(CharPos position, wchar_t wc, Color color) {
     uint8_t vgaColor = color.vgaColor;
     uint8_t cp437 = unicodeToCp437(wc);

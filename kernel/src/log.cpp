@@ -29,10 +29,19 @@
 
 static size_t callback(void*, const char* s, size_t nBytes);
 
-void Log::initialize(multiboot_info* multiboot) {
+// To avoid early memory allocations we statically allocate enough space for
+// either the vga text or the lfb display.
+static union DisplayBuffer {
+    LfbDisplay l;
+    VgaTextDisplay v;
+    DisplayBuffer() {}
+    ~DisplayBuffer() {}
+} displayBuf;
+
+void Log::earlyInitialize(multiboot_info* multiboot) {
     if (!(multiboot->flags & MULTIBOOT_FRAMEBUFFER_INFO) ||
             multiboot->framebuffer_type == MULTIBOOT_EGA_TEXT) {
-        TerminalDisplay::display = xnew VgaTextDisplay();
+        TerminalDisplay::display = new (&displayBuf.v) VgaTextDisplay();
     } else if (multiboot->framebuffer_type == MULTIBOOT_RGB &&
             (multiboot->framebuffer_bpp == 24 ||
             multiboot->framebuffer_bpp == 32)) {
@@ -42,14 +51,22 @@ void Log::initialize(multiboot_info* multiboot) {
                 multiboot->framebuffer_pitch + lfbOffset, PAGESIZE);
         vaddr_t lfb = kernelSpace->mapPhysical(lfbAligned, lfbSize,
                 PROT_READ | PROT_WRITE) + lfbOffset;
-        if (!lfb) PANIC("Failed to map linear framebuffer");
-        TerminalDisplay::display = xnew LfbDisplay((char*) lfb,
+        if (!lfb) {
+            // This shouldn't fail in practise as enough memory should be
+            // available.
+            asm ("hlt");
+        }
+        TerminalDisplay::display = new (&displayBuf.l) LfbDisplay((char*) lfb,
                 multiboot->framebuffer_width, multiboot->framebuffer_height,
                 multiboot->framebuffer_pitch, multiboot->framebuffer_bpp);
     } else {
         // Without any usable display we cannot do anything.
         while (true) asm volatile ("cli; hlt");
     }
+}
+
+void Log::initialize() {
+    TerminalDisplay::display->initialize();
 }
 
 void Log::printf(const char* format, ...) {

@@ -42,11 +42,9 @@ LfbDisplay::LfbDisplay(char* lfb, size_t pixelWidth, size_t pixelHeight,
     this->pitch = pitch;
     this->bpp = bpp;
     cursorPos = {0, 0};
-    doubleBuffer = xnew CharBufferEntry[_height * _width];
+    doubleBuffer = nullptr;
     invalidated = false;
     renderingText = true;
-    Color defaultColor = { RGB(170, 170, 170), RGB(0, 0, 0), 0x07 };
-    clear({0, 0}, {_width - 1, _height - 1}, defaultColor);
 }
 
 ALWAYS_INLINE char* LfbDisplay::charAddress(CharPos position) {
@@ -82,7 +80,19 @@ void LfbDisplay::clear(CharPos from, CharPos to, Color color) {
     }
 }
 
+void LfbDisplay::initialize() {
+    doubleBuffer = xnew CharBufferEntry[_height * _width];
+    Color defaultColor = { RGB(170, 170, 170), RGB(0, 0, 0), 0x07 };
+    clear({0, 0}, {_width - 1, _height - 1}, defaultColor);
+}
+
 void LfbDisplay::putCharacter(CharPos position, wchar_t wc, Color color) {
+    if (unlikely(!doubleBuffer)) {
+        CharBufferEntry entry = { wc, color.fgColor, color.bgColor, true };
+        redraw(position, &entry);
+        return;
+    }
+
     doubleBuffer[position.x + width() * position.y].wc = wc;
     doubleBuffer[position.x + width() * position.y].fgColor = color.fgColor;
     doubleBuffer[position.x + width() * position.y].bgColor = color.bgColor;
@@ -91,6 +101,10 @@ void LfbDisplay::putCharacter(CharPos position, wchar_t wc, Color color) {
 
 void LfbDisplay::redraw(CharPos position) {
     CharBufferEntry* entry = &doubleBuffer[position.x + width() * position.y];
+    redraw(position, entry);
+}
+
+void LfbDisplay::redraw(CharPos position, CharBufferEntry* entry) {
     entry->modified = false;
     wchar_t wc = entry->wc;
 
@@ -153,6 +167,7 @@ void LfbDisplay::scroll(unsigned int lines, Color color, bool up /*= true*/) {
 }
 
 void LfbDisplay::setCursorPos(CharPos position) {
+    if (unlikely(!doubleBuffer)) return;
     CharPos oldPos = cursorPos;
     cursorPos = position;
     doubleBuffer[oldPos.x + oldPos.y * width()].modified = true;
@@ -160,7 +175,7 @@ void LfbDisplay::setCursorPos(CharPos position) {
 }
 
 void LfbDisplay::update() {
-    if (!renderingText) return;
+    if (!renderingText || !doubleBuffer) return;
     bool redrawAll = invalidated;
     invalidated = false;
 
