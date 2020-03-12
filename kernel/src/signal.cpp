@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -40,6 +40,9 @@ struct SignalStackFrame {
     // These must always be saved on the stack.
     siginfo_t siginfo;
     ucontext_t ucontext;
+#ifdef __x86_64__
+    const char redZone[128];
+#endif
 };
 
 static sigset_t defaultIgnoredSignals = _SIGSET(SIGCHLD) | _SIGSET(SIGURG);
