@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -51,7 +51,7 @@ STRTOL_RESULT STRTOL_NAME(const char* restrict string, char** restrict end,
         return 0;
     }
 
-    const char* str = string;
+    const unsigned char* str = (const unsigned char*) string;
 
     // Ignore any leading white space
     while (isspace(*str)) {
@@ -72,7 +72,7 @@ STRTOL_RESULT STRTOL_NAME(const char* restrict string, char** restrict end,
     // Autodetect the base if necessary
     if (base == 0) {
         if (*str == '0') {
-            if (str[1] == 'x' || str[1] == 'X') {
+            if ((str[1] == 'x' || str[1] == 'X') && isxdigit(str[2])) {
                 base = 16;
             } else {
                 base = 8;
@@ -127,7 +127,7 @@ STRTOL_RESULT STRTOL_NAME(const char* restrict string, char** restrict end,
     }
 
     if (end) {
-        *end = (char*) (numberFound ? str : string);
+        *end = numberFound ? (char*) str : (char*) string;
     }
 
     return result;
