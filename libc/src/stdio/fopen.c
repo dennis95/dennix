@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,6 +19,7 @@
 
 #include <fcntl.h>
 #include <stdio.h>
+#include <unistd.h>
 
 FILE* fopen(const char* restrict path, const char* restrict mode) {
     int flags = __fmodeflags(mode);
@@ -27,5 +28,9 @@ FILE* fopen(const char* restrict path, const char* restrict mode) {
     int fd = open(path, flags,
             S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
     if (fd == -1) return NULL;
-    return fdopen(fd, mode);
+    FILE* result = fdopen(fd, mode);
+    if (!result) {
+        close(fd);
+    }
+    return result;
 }
