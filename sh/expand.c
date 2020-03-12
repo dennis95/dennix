@@ -190,7 +190,9 @@ static ssize_t doParameterSubstitution(const char* word,
             nameLength++;
         }
         char* name = strndup(word, nameLength);
+        if (!name) err(1, "strdup");
         const char* value = getVariable(name);
+        free(name);
         if (value) {
             if (!appendStringToStringBuffer(sb, value)) err(1, "stringbuffer");
         }
