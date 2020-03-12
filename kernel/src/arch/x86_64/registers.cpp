@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -55,7 +55,7 @@ void Registers::restore(InterruptContext* context,
     context->r14 = registers->__r14;
     context->r15 = registers->__r15;
     context->rip = registers->__rip;
-    context->rflags = registers->__rflags;
+    context->rflags = (registers->__rflags & 0xCD5) | 0x200;
     context->rsp = registers->__rsp;
     context->cs = 0x1B;
     context->ss = 0x23;
