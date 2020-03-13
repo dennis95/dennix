@@ -60,7 +60,8 @@ iso: $(ISO)
 
 $(ISO): $(KERNEL) $(INITRD)
 	rm -rf $(BUILD_DIR)/isosrc
-	cp -rf isosrc $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)/isosrc/boot/grub
+	cp -f build-aux/grub.cfg $(BUILD_DIR)/isosrc/boot/grub
 	cp -f $(KERNEL) $(BUILD_DIR)/isosrc
 	cp -f $(INITRD) $(BUILD_DIR)/isosrc
 	$(MKRESCUE) -o $@ $(BUILD_DIR)/isosrc
