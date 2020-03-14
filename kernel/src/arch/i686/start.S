@@ -38,8 +38,8 @@
 # Choose preferred video settings. The bootloader is still allowed to choose a
 # different video mode.
 #define VIDEO_MODE GRAPHICS
-#define PREFERRED_WIDTH 0
-#define PREFERRED_HEIGHT 0
+#define PREFERRED_WIDTH 1024
+#define PREFERRED_HEIGHT 768
 
 .section multiboot
 .align 4
