@@ -17,14 +17,23 @@ to be installed. After the toolchain has been installed you need to add
 `$PREFIX/bin` to your `$PATH`. Finally you can run `make` to build a bootable
 cdrom image.
 
+## Ports
+
+Patches and scripts for installing third-party ports are available at
+<https://github.com/dennis95/dennix-ports>. If you put the contents of that
+repository into a subdirectory named `ports` all third-party ports will be
+downloaded, built, and installed automatically during the build. For releases a
+ports tarball is available that includes all third-party source code and that
+does not need to download any additional files.
+
 ## License
 
 Dennix is free software and is licensed under the terms of the ISC license. The
 full license terms can be found in the `LICENSE` file. The math library (libm)
-code is licensed under the MIT license and other permissive licenses compatible
-to the ISC license. See the `libm/COPYRIGHT` file for details.
+code was adopted from musl and is licensed under the MIT license and other
+permissive licenses compatible to the ISC license. See the `libm/COPYRIGHT`
+file for details.
 
-Please note that this license only applies to Dennix itself. Any third-party
-ports that are included in release images are released under their own
-licenses. The licenses for all ports are available in the `/share/licenses`
-directory of the release image.
+All third-party ports are released under their own licenses. The full license
+text for every port is available in the `/share/licenses` directory of the
+release image.
