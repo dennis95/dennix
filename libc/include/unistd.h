@@ -54,6 +54,7 @@ unsigned int alarm(unsigned int);
 int chdir(const char*);
 int close(int);
 size_t confstr(int, char*, size_t);
+int dup(int);
 int dup2(int, int);
 int execl(const char*, const char*, ...);
 int execv(const char*, char* const[]);
