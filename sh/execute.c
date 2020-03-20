@@ -68,7 +68,7 @@ static int executePipeline(struct Pipeline* pipeline) {
         return executeSimpleCommand(&pipeline->commands[0], false);
     }
 
-    int inputFd;
+    int inputFd = -1;
     pid_t pgid = -1;
 
     for (size_t i = 0; i < pipeline->numCommands; i++) {

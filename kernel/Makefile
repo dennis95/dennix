@@ -24,7 +24,8 @@ LDSCRIPT = $(BUILD)/linker.ld
 
 CXXFLAGS ?= -O2 -g
 CXXFLAGS += --sysroot=$(SYSROOT) -std=gnu++14 -ffreestanding -fno-exceptions
-CXXFLAGS += -fno-rtti -fcheck-new -Wall -Wextra -Wno-missing-field-initializers
+CXXFLAGS += -fno-rtti -fcheck-new -nostdinc++
+CXXFLAGS += -Wall -Wextra -Wno-missing-field-initializers
 CPPFLAGS += -I include -DDENNIX_VERSION=\"$(VERSION)\"
 CPPFLAGS += -D__is_dennix_kernel -D_DENNIX_SOURCE
 LDFLAGS += --sysroot=$(SYSROOT) -T $(LDSCRIPT) -ffreestanding -nostdlib
