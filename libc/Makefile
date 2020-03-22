@@ -142,6 +142,7 @@ LIBC_OBJ = \
 	fcntl/openat \
 	locale/localeconv \
 	locale/setlocale \
+	pwd/getpwnam \
 	signal/kill \
 	signal/raise \
 	signal/sigaction \

@@ -26,11 +26,15 @@
 #include <sys/wait.h>
 #include <dennix/display.h>
 
+#define HOME "/home/user"
+
 int main(int argc, char* argv[]) {
     (void) argc; (void) argv;
 
     if (getpid() != 1) errx(1, "PID is not 1");
 
+    chdir(HOME);
+    if (setenv("HOME", HOME, 1) < 0) err(1, "setenv");
     if (setenv("PATH", "/bin:/sbin", 1) < 0) err(1, "setenv");
 
     const char* term = "dennix-16color";

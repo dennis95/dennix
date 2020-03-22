@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -104,6 +104,11 @@ typedef __time_t time_t;
 #  define __time_t_defined
 #endif
 
+#if defined(__need_uid_t) && !defined(__uid_t_defined)
+typedef __uid_t uid_t;
+#  define __uid_t_defined
+#endif
+
 #undef __need_blkcnt_t
 #undef __need_blksize_t
 #undef __need_clock_t
@@ -120,3 +125,4 @@ typedef __time_t time_t;
 #undef __need_ssize_t
 #undef __need_suseconds_t
 #undef __need_time_t
+#undef __need_uid_t
