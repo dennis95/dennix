@@ -39,6 +39,74 @@
 extern "C" {
 #endif
 
+/* Define POSIX version macros. Note that at this point we do not yet provide
+   everything required by the options we define. However when an option is
+   defined we intend to eventually provide all the missing functionality. */
+
+#define _POSIX_VERSION 200809L
+#define _POSIX2_VERSION 200809L
+
+/* #define _POSIX_ADVISORY_INFO */
+/* TODO: #define _POSIX_ASYNCHRONOUS_IO */
+/* TODO: #define _POSIX_BARRIERS */
+/* TODO: #define _POSIX_CHOWN_RESTRICTED */
+#define _POSIX_CLOCK_SELECTION _POSIX_VERSION
+#define _POSIX_CPUTIME _POSIX_VERSION
+/* #define _POSIX_FSYNC */
+/* #define _POSIX_IPV6 */
+#define _POSIX_JOB_CONTROL _POSIX_VERSION
+#define _POSIX_MAPPED_FILES _POSIX_VERSION
+/* #define _POSIX_MEMLOCK */
+/* #define _POSIX_MEMLOCK_RANGE */
+/* TODO: #define _POSIX_MEMORY_PROTECTION */
+/* #define _POSIX_MESSAGE_PASSING */
+#define _POSIX_MONOTONIC_CLOCK _POSIX_VERSION
+#define _POSIX_NO_TRUNC 1
+/* #define _POSIX_PRIORITIZED_IO */
+/* #define _POSIX_PRIORITY_SCHEDULING */
+/* #define _POSIX_RAW_SOCKETS */
+/* TODO: #define _POSIX_READER_WRITER_LOCKS */
+/* TODO: #define _POSIX_REALTIME_SIGNALS */
+/* TODO: #define _POSIX_REGEXP */
+/* TODO: #define _POSIX_SAVED_IDS */
+/* TODO: #define _POSIX_SEMAPHORES */
+/* #define _POSIX_SHARED_MEMORY_OBJECTS */
+#define _POSIX_SHELL _POSIX_VERSION
+/* #define _POSIX_SPAWN */
+/* TODO: #define _POSIX_SPIN_LOCKS */
+/* #define _POSIX_SPORADIC_SERVER */
+/* #define _POSIX_SYNCHRONIZED_IO */
+/* #define _POSIX_THREAD_ATTR_STACKADDR */
+/* #define _POSIX_THREAD_ATTR_STACKSIZE */
+#define _POSIX_THREAD_CPUTIME _POSIX_VERSION
+/* #define _POSIX_THREAD_PRIO_INHERIT */
+/* #define _POSIX_THREAD_PRIO_PROTECT */
+/* #define _POSIX_THREAD_PRIORITY_SCHEDULING */
+/* #define _POSIX_THREAD_PROCESS_SHARED */
+/* #define _POSIX_THREAD_ROBUST_PRIO_INHERIT */
+/* #define _POSIX_THREAD_ROBUST_PRIO_PROTECT */
+#define _POSIX_THREAD_SAFE_FUNCTIONS _POSIX_VERSION
+/* #define _POSIX_THREAD_SPORADIC_SERVER */
+/* TODO: #define _POSIX_THREADS */
+/* TODO: #define _POSIX_TIMEOUTS */
+#define _POSIX_TIMERS _POSIX_VERSION
+/* #define _POSIX_TYPED_MEMORY_OBJECTS */
+#define _POSIX2_C_BIND _POSIX2_VERSION
+/* #define _POSIX2_C_DEV */
+/* #define _POSIX2_CHAR_TERM */
+/* #define _POSIX2_FORT_DEV */
+/* #define _POSIX2_FORT_RUN */
+/* #define _POSIX2_LOCALEDEF */
+/* #define _POSIX2_SW_DEV */
+/* #define _POSIX2_UPE */
+/* #define _XOPEN_CRYPT */
+/* TODO: #define _XOPEN_ENH_I18N */
+/* #define _XOPEN_REALTIME */
+/* #define _XOPEN_REALTIME_THREADS */
+/* #define _XOPEN_SHM */
+/* #define _XOPEN_UNIX */
+/* #define _XOPEN_UUCP */
+
 #define F_OK 0
 #define R_OK (1 << 0)
 #define W_OK (1 << 1)
