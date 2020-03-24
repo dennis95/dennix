@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,6 +34,10 @@ static void changeChunkSize(Chunk* chunk, ssize_t sizeDiff) {
 
     chunk->size += sizeDiff;
     newNextChunk->size -= sizeDiff;
+
+    if (newNextChunk->next) {
+        newNextChunk->next->prev = newNextChunk;
+    }
 }
 
 void* realloc(void* addr, size_t size) {
