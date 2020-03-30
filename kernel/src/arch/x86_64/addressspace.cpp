@@ -56,15 +56,13 @@ static MemorySegment segments[] = {
     MemorySegment(0, 0xFFFF800000000000, PROT_NONE, nullptr, &segments[1]),
     MemorySegment(RECURSIVE_MAPPING, -RECURSIVE_MAPPING, PROT_READ | PROT_WRITE,
             &segments[0], &segments[2]),
-    MemorySegment(0xFFFFFFFF80000000, 0x1000, PROT_READ | PROT_WRITE,
-            &segments[1], &segments[3]),
     MemorySegment((vaddr_t) &kernelVirtualBegin, (vaddr_t) &kernelExecEnd -
-            (vaddr_t) &kernelVirtualBegin, PROT_EXEC, &segments[2],
-            &segments[4]),
+            (vaddr_t) &kernelVirtualBegin, PROT_EXEC, &segments[1],
+            &segments[3]),
     MemorySegment((vaddr_t) &kernelExecEnd, (vaddr_t) &kernelReadOnlyEnd -
-            (vaddr_t) &kernelExecEnd, PROT_READ, &segments[3], &segments[5]),
+            (vaddr_t) &kernelExecEnd, PROT_READ, &segments[2], &segments[4]),
     MemorySegment((vaddr_t) &kernelReadOnlyEnd, (vaddr_t) &kernelVirtualEnd -
-            (vaddr_t) &kernelReadOnlyEnd, PROT_READ | PROT_WRITE, &segments[4],
+            (vaddr_t) &kernelReadOnlyEnd, PROT_READ | PROT_WRITE, &segments[3],
             nullptr),
 };
 

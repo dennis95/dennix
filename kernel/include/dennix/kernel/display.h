@@ -14,12 +14,13 @@
  */
 
 /* kernel/include/dennix/kernel/display.h
- * Abstract display class.
+ * Display class.
  */
 
 #ifndef KERNEL_DISPLAY_H
 #define KERNEL_DISPLAY_H
 
+#include <dennix/display.h>
 #include <dennix/kernel/vnode.h>
 
 struct CharPos {
@@ -33,25 +34,50 @@ struct Color {
     uint32_t fgColor;
     uint32_t bgColor;
     uint8_t vgaColor;
+
+    bool operator!=(const Color& other) {
+        return fgColor != other.fgColor || bgColor != other.bgColor ||
+                vgaColor != other.vgaColor;
+    }
+};
+
+struct CharBufferEntry {
+    wchar_t wc;
+    Color color;
+    bool modified;
+
+    bool operator!=(const CharBufferEntry& other) {
+        return wc != other.wc || color != other.color;
+    }
 };
 
 class Display : public Vnode {
 public:
-    Display() : Vnode(S_IFCHR | 0666, 0) {}
-    unsigned int height() { return _height; }
-    unsigned int width() { return _width; }
-    virtual void clear(CharPos from, CharPos to, Color color) = 0;
-    virtual void initialize() = 0;
-    virtual void putCharacter(CharPos position, wchar_t c, Color color) = 0;
-    virtual void scroll(unsigned int lines, Color color, bool up = true) = 0;
-    virtual void setCursorPos(CharPos position) = 0;
-    virtual void update() = 0;
-    virtual ~Display() {}
-protected:
-    unsigned int _height;
-    unsigned int _width;
+    Display(video_mode mode, char* buffer, size_t pitch);
+    void clear(CharPos from, CharPos to, Color color);
+    virtual int devctl(int command, void* restrict data, size_t size,
+            int* restrict info);
+    void initialize();
+    void putCharacter(CharPos position, wchar_t c, Color color);
+    void scroll(unsigned int lines, Color color, bool up = true);
+    void setCursorPos(CharPos position);
+    void update();
+private:
+    char* charAddress(CharPos position);
+    void redraw(CharPos position);
+    void redraw(CharPos position, CharBufferEntry* entry);
+    void setPixelColor(char* addr, uint32_t rgbColor);
+public:
+    unsigned int columns;
+    unsigned int rows;
+private:
+    char* buffer;
+    video_mode mode;
+    size_t pitch;
+    CharPos cursorPos;
+    CharBufferEntry* doubleBuffer;
+    bool invalidated;
+    bool renderingText;
 };
-
-uint8_t unicodeToCp437(wchar_t wc);
 
 #endif

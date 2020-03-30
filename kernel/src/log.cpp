@@ -19,29 +19,29 @@
 
 #include <stdio.h>
 #include <dennix/kernel/addressspace.h>
-#include <dennix/kernel/lfbdisplay.h>
+#include <dennix/kernel/display.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/multiboot.h>
-#include <dennix/kernel/panic.h>
 #include <dennix/kernel/terminal.h>
 #include <dennix/kernel/terminaldisplay.h>
-#include <dennix/kernel/vgatextdisplay.h>
 
 static size_t callback(void*, const char* s, size_t nBytes);
 
 // To avoid early memory allocations we statically allocate enough space for
-// either the vga text or the lfb display.
-static union DisplayBuffer {
-    LfbDisplay l;
-    VgaTextDisplay v;
-    DisplayBuffer() {}
-    ~DisplayBuffer() {}
-} displayBuf;
+// the display.
+char displayBuf[sizeof(Display)];
 
 void Log::earlyInitialize(multiboot_info* multiboot) {
     if (!(multiboot->flags & MULTIBOOT_FRAMEBUFFER_INFO) ||
             multiboot->framebuffer_type == MULTIBOOT_EGA_TEXT) {
-        TerminalDisplay::display = new (&displayBuf.v) VgaTextDisplay();
+        vaddr_t videoMapped = kernelSpace->mapPhysical(0xB8000, PAGESIZE,
+                PROT_READ | PROT_WRITE);
+        video_mode mode;
+        mode.video_bpp = 0;
+        mode.video_height = 25;
+        mode.video_width = 80;
+        TerminalDisplay::display = new (displayBuf) Display(mode,
+                (char*) videoMapped, 160);
     } else if (multiboot->framebuffer_type == MULTIBOOT_RGB &&
             (multiboot->framebuffer_bpp == 24 ||
             multiboot->framebuffer_bpp == 32)) {
@@ -56,9 +56,13 @@ void Log::earlyInitialize(multiboot_info* multiboot) {
             // available.
             asm ("hlt");
         }
-        TerminalDisplay::display = new (&displayBuf.l) LfbDisplay((char*) lfb,
-                multiboot->framebuffer_width, multiboot->framebuffer_height,
-                multiboot->framebuffer_pitch, multiboot->framebuffer_bpp);
+
+        video_mode mode;
+        mode.video_bpp = multiboot->framebuffer_bpp;
+        mode.video_height = multiboot->framebuffer_height;
+        mode.video_width = multiboot->framebuffer_width;
+        TerminalDisplay::display = new (displayBuf) Display(mode, (char*) lfb,
+                multiboot->framebuffer_pitch);
     } else {
         // Without any usable display we cannot do anything.
         while (true) asm volatile ("cli; hlt");

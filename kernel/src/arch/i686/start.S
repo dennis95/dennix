@@ -114,9 +114,6 @@ _start:
     add $0x1000, %edx
     loop 1b
 
-    # Map video memory at 0xC0000000.
-    movl $0xB8003, pageTableKernel
-
     # Enable paging
     mov $kernelPageDirectory, %ecx
     mov %ecx, %cr3

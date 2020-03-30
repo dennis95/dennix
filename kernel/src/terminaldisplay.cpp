@@ -73,7 +73,7 @@ void TerminalDisplay::backspace() {
     // by an unknown number of positions but we do not keep track of this
     // information.
     if (cursorPos.x == 0 && cursorPos.y > 0) {
-        cursorPos.x = display->width() - 1;
+        cursorPos.x = display->columns - 1;
         cursorPos.y--;
     } else {
         cursorPos.x--;
@@ -184,7 +184,7 @@ void TerminalDisplay::printCharacter(char c) {
         } else if (c == 'c') { // RIS - Reset to Initial State
             color = defaultColor;
             fgIsVgaColor = true;
-            CharPos lastPos = {display->width() - 1, display->height() - 1};
+            CharPos lastPos = {display->columns - 1, display->rows - 1};
             display->clear({0, 0}, lastPos, color);
             cursorPos = {0, 0};
             savedPos = {0, 0};
@@ -215,16 +215,16 @@ void TerminalDisplay::printCharacter(char c) {
             } break;
             case 'B': { // CUD - Cursor Down
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
-                if (cursorPos.y + param >= display->height()) {
-                    cursorPos.y = display->height() - 1;
+                if (cursorPos.y + param >= display->rows) {
+                    cursorPos.y = display->rows - 1;
                 } else {
                     cursorPos.y += param;
                 }
             } break;
             case 'C': { // CUF - Cursor Forward
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
-                if (cursorPos.x + param >= display->width()) {
-                    cursorPos.x = display->width() - 1;
+                if (cursorPos.x + param >= display->columns) {
+                    cursorPos.x = display->columns - 1;
                 } else {
                     cursorPos.x += param;
                 }
@@ -239,8 +239,8 @@ void TerminalDisplay::printCharacter(char c) {
             } break;
             case 'E': { // CNL - Cursor Next Line
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
-                if (cursorPos.y + param >= display->height()) {
-                    cursorPos.y = display->height() - 1;
+                if (cursorPos.y + param >= display->rows) {
+                    cursorPos.y = display->rows - 1;
                 } else {
                     cursorPos.y += param;
                 }
@@ -257,7 +257,7 @@ void TerminalDisplay::printCharacter(char c) {
             } break;
             case 'G': { // CHA - Cursor Horizontal Absolute
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
-                if (0 < param && param <= display->width()) {
+                if (0 < param && param <= display->columns) {
                     cursorPos.x = param - 1;
                 }
             } break;
@@ -265,14 +265,14 @@ void TerminalDisplay::printCharacter(char c) {
             case 'f': { // CUP - Cursor Position
                 unsigned int x = paramSpecified[1] ? params[1] : 1;
                 unsigned int y = paramSpecified[0] ? params[0] : 1;
-                if (0 < x && x <= display->width() &&
-                        0 < y && y <= display->height()) {
+                if (0 < x && x <= display->columns &&
+                        0 < y && y <= display->rows) {
                     cursorPos = {x - 1, y - 1};
                 }
             } break;
             case 'J': { // ED - Erase Display
                 unsigned int param = paramSpecified[0] ? params[0] : 0;
-                CharPos lastPos = {display->width() - 1, display->height() - 1};
+                CharPos lastPos = {display->columns - 1, display->rows - 1};
                 if (param == 0) {
                     display->clear(cursorPos, lastPos, color);
                 } else if (param == 1) {
@@ -283,7 +283,7 @@ void TerminalDisplay::printCharacter(char c) {
             } break;
             case 'K': { // EL - Erase in Line
                 unsigned int param = paramSpecified[0] ? params[0] : 0;
-                CharPos lastPosInLine = {display->width() - 1, cursorPos.y};
+                CharPos lastPosInLine = {display->columns - 1, cursorPos.y};
                 if (param == 0) {
                     display->clear(cursorPos, lastPosInLine, color);
                 } else if (param == 1) {
@@ -302,7 +302,7 @@ void TerminalDisplay::printCharacter(char c) {
             } break;
             case 'd': { // VPA - Line Position Absolute
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
-                if (0 < param && param <= display->height()) {
+                if (0 < param && param <= display->rows) {
                     cursorPos.y = param - 1;
                 }
             } break;
@@ -338,8 +338,8 @@ void TerminalDisplay::printCharacterRaw(char c) {
     if (wc == L'\t') {
         unsigned int length = tabsize - cursorPos.x % tabsize;
         CharPos endPos = {cursorPos.x + length - 1, cursorPos.y};
-        if (endPos.x >= display->width()) {
-            endPos.x = display->width() - 1;
+        if (endPos.x >= display->columns) {
+            endPos.x = display->columns - 1;
         }
         display->clear(cursorPos, endPos, color);
         cursorPos.x += length - 1;
@@ -350,12 +350,12 @@ void TerminalDisplay::printCharacterRaw(char c) {
         return;
     }
 
-    if (wc == L'\n' || cursorPos.x + 1 >= display->width()) {
+    if (wc == L'\n' || cursorPos.x + 1 >= display->columns) {
         cursorPos.x = 0;
 
-        if (cursorPos.y + 1 >= display->height()) {
+        if (cursorPos.y + 1 >= display->rows) {
             display->scroll(1, color);
-            cursorPos.y = display->height() - 1;
+            cursorPos.y = display->rows - 1;
         } else {
             cursorPos.y++;
         }

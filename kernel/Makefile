@@ -38,6 +38,7 @@ OBJ = \
 	cxx.o \
 	devices.o \
 	directory.o \
+	display.o \
 	file.o \
 	filedescription.o \
 	initrd.o \
@@ -45,7 +46,6 @@ OBJ = \
 	keyboard.o \
 	kthread.o \
 	libk.o \
-	lfbdisplay.o \
 	log.o \
 	memorysegment.o \
 	panic.o \
@@ -64,7 +64,6 @@ OBJ = \
 	terminal.o \
 	terminaldisplay.o \
 	thread.o \
-	vgatextdisplay.o \
 	vnode.o
 
 include $(ARCH).mk

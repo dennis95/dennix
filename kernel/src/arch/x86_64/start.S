@@ -144,10 +144,6 @@ _start:
     add $0x1000, %edx
     loop 1b
 
-    # Map video memory at 0xFFFFFFFF80000000.
-    movl $0xB8003, kernelPageTable
-    movl $PAGE_HIGH_NO_EXECUTE, kernelPageTable + 4
-
     # Enable paging and long mode.
     mov %cr4, %ecx
     or $CR4_PAE_ENABLE, %ecx

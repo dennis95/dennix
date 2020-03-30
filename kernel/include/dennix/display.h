@@ -50,6 +50,12 @@ struct display_draw {
     unsigned int draw_height;
 };
 
+struct video_mode {
+    unsigned int video_height;
+    unsigned int video_width;
+    unsigned int video_bpp; /* 0 for text mode */
+};
+
 /* Supported alpha values are 0 (transparent) and 255 (not transparent). */
 #define RGBA(r, g, b, a) (((a) << 24) | ((r) << 16) | ((g) << 8) | (b))
 #define RGB(r, g, b) RGBA(r, g, b, 255U)

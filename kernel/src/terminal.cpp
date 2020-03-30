@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -148,8 +148,8 @@ int Terminal::devctl(int command, void* restrict data, size_t size,
         }
 
         struct winsize* ws = (struct winsize*) data;
-        ws->ws_col = TerminalDisplay::display->width();
-        ws->ws_row = TerminalDisplay::display->height();
+        ws->ws_col = TerminalDisplay::display->columns;
+        ws->ws_row = TerminalDisplay::display->rows;
         *info = 0;
         return 0;
     } break;

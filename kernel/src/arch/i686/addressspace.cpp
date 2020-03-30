@@ -45,16 +45,14 @@ static char _kernelMappingArea[PAGESIZE] ALIGNED(PAGESIZE);
 // they are needed before memory allocations are possible.
 static MemorySegment segments[] = {
     MemorySegment(0, 0xC0000000, PROT_NONE, nullptr, &segments[1]),
-    MemorySegment(0xC0000000, 0x1000, PROT_READ | PROT_WRITE, &segments[0],
-            &segments[2]),
     MemorySegment((vaddr_t) &kernelVirtualBegin, (vaddr_t) &kernelReadOnlyEnd -
-            (vaddr_t) &kernelVirtualBegin, PROT_READ | PROT_EXEC, &segments[1],
-            &segments[3]),
+            (vaddr_t) &kernelVirtualBegin, PROT_READ | PROT_EXEC, &segments[0],
+            &segments[2]),
     MemorySegment((vaddr_t) &kernelReadOnlyEnd, (vaddr_t) &kernelVirtualEnd -
-            (vaddr_t) &kernelReadOnlyEnd, PROT_READ | PROT_WRITE, &segments[2],
-            &segments[4]),
+            (vaddr_t) &kernelReadOnlyEnd, PROT_READ | PROT_WRITE, &segments[1],
+            &segments[3]),
     MemorySegment(RECURSIVE_MAPPING, -RECURSIVE_MAPPING, PROT_READ | PROT_WRITE,
-            &segments[3], nullptr),
+            &segments[2], nullptr),
 };
 
 static inline void addressToIndex(
