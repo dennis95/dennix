@@ -27,6 +27,7 @@
 #include <dennix/kernel/initrd.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/panic.h>
+#include <dennix/kernel/pci.h>
 #include <dennix/kernel/physicalmemory.h>
 #include <dennix/kernel/pit.h>
 #include <dennix/kernel/process.h>
@@ -66,6 +67,9 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     Log::printf("Initializing RTC and PIT...\n");
     Rtc::initialize();
     Pit::initialize();
+
+    Log::printf("Scanning for PCI devices...\n");
+    Pci::scanForDevices();
 
     Log::printf("Enabling interrupts...\n");
     Interrupts::enable();

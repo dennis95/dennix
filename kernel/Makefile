@@ -49,6 +49,7 @@ OBJ = \
 	log.o \
 	memorysegment.o \
 	panic.o \
+	pci.o \
 	physicalmemory.o \
 	pipe.o \
 	pit.o \
