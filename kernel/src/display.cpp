@@ -18,8 +18,13 @@
  */
 
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/display.h>
+#include <dennix/kernel/panic.h>
 #include <dennix/kernel/portio.h>
+#include <dennix/kernel/terminaldisplay.h>
 
 // Classical VGA font but with the Unicode replacement character at 0xFF.
 asm(".pushsection .rodata\n"
@@ -28,6 +33,7 @@ asm(".pushsection .rodata\n"
     ".incbin \"../vgafont\"\n"
 ".popsection");
 extern const uint8_t vgafont[];
+GraphicsDriver* graphicsDriver;
 
 static const size_t charHeight = 16;
 static const size_t charWidth = 9;
@@ -50,6 +56,7 @@ Display::Display(video_mode mode, char* buffer, size_t pitch)
     doubleBuffer = nullptr;
     invalidated = false;
     renderingText = true;
+    haveOldBuffer = true;
 }
 
 ALWAYS_INLINE char* Display::charAddress(CharPos position) {
@@ -83,7 +90,9 @@ void Display::clear(CharPos from, CharPos to, Color color) {
 }
 
 void Display::initialize() {
-    doubleBuffer = xnew CharBufferEntry[rows * columns];
+    doubleBuffer = (CharBufferEntry*) malloc(rows * columns *
+            sizeof(CharBufferEntry));
+    if (!doubleBuffer) PANIC("Allocation failure");
     Color defaultColor = { RGB(170, 170, 170), RGB(0, 0, 0), 0x07 };
     clear({0, 0}, {columns - 1, rows - 1}, defaultColor);
 }
@@ -194,6 +203,94 @@ void Display::setCursorPos(CharPos position) {
     }
 }
 
+int Display::setVideoMode(video_mode* videoMode) {
+    if (!graphicsDriver->isSupportedMode(*videoMode)) return ENOTSUP;
+
+    size_t newRows = videoMode->video_height / charHeight;
+    size_t newColumns = (videoMode->video_width + 1) / charWidth;
+    size_t newSize = newRows * newColumns;
+    size_t oldSize = rows * columns;
+
+    if (newSize > oldSize) {
+        CharBufferEntry* newDoubleBuffer = (CharBufferEntry*)
+                reallocarray(doubleBuffer, newSize, sizeof(CharBufferEntry));
+        if (!newDoubleBuffer) return ENOMEM;
+        doubleBuffer = newDoubleBuffer;
+    }
+
+    vaddr_t framebuffer = graphicsDriver->setVideoMode(videoMode);
+
+    if (!framebuffer) return EIO;
+    if (haveOldBuffer) {
+        size_t oldBufferSize = ALIGNUP(mode.video_height * pitch, PAGESIZE);
+        kernelSpace->unmapPhysical((vaddr_t) buffer, oldBufferSize);
+        haveOldBuffer = false;
+    }
+    buffer = (char*) framebuffer;
+    mode = *videoMode;
+    pitch = mode.video_width * (mode.video_bpp / 8);
+
+    size_t oldRows = rows;
+    size_t oldColumns = columns;
+
+    newRows = videoMode->video_height / charHeight;
+    newColumns = (videoMode->video_width + 1) / charWidth;
+
+    CharBufferEntry blank;
+    blank.wc = L'\0';
+    blank.color.bgColor = RGB(0, 0, 0);
+    blank.color.fgColor = RGB(170, 170, 170);
+    blank.color.vgaColor = 0x07;
+    blank.modified = true;
+
+    if (cursorPos.y >= newRows) {
+        scroll(cursorPos.y - newRows + 1, blank.color);
+    }
+    rows = newRows;
+    columns = newColumns;
+    TerminalDisplay::updateDisplaySize();
+
+    if (newColumns <= oldColumns) {
+        for (size_t i = 0; i < newRows; i++) {
+            if (i < oldRows) {
+                memmove(&doubleBuffer[i * newColumns],
+                        &doubleBuffer[i * oldColumns],
+                        newColumns * sizeof(CharBufferEntry));
+            } else {
+                for (size_t j = 0; j < newColumns; j++) {
+                    doubleBuffer[i * newColumns + j] = blank;
+                }
+            }
+        }
+    } else {
+        for (size_t i = newRows; i > 0; i--) {
+            if (i < oldRows) {
+                memmove(&doubleBuffer[(i - 1) * newColumns],
+                        &doubleBuffer[(i - 1) * oldColumns],
+                        oldColumns * sizeof(CharBufferEntry));
+                for (size_t j = oldColumns; j < newColumns; j++) {
+                    doubleBuffer[(i - 1) * newColumns + j] = blank;
+                }
+            } else {
+                for (size_t j = 0; j < newColumns; j++) {
+                    doubleBuffer[(i - 1) * newColumns + j] = blank;
+                }
+            }
+        }
+    }
+
+    if (newSize < oldSize) {
+        CharBufferEntry* newDoubleBuffer = (CharBufferEntry*)
+                reallocarray(doubleBuffer, newSize, sizeof(CharBufferEntry));
+        if (newDoubleBuffer) {
+            doubleBuffer = newDoubleBuffer;
+        }
+    }
+
+    invalidated = true;
+    return 0;
+}
+
 void Display::update() {
     if (!renderingText || !doubleBuffer) return;
     bool redrawAll = invalidated;
@@ -281,6 +378,34 @@ int Display::devctl(int command, void* restrict data, size_t size,
         *info = 0;
         return 0;
     } break;
+    case DISPLAY_GET_VIDEO_MODE: {
+        if (size != 0 && size != sizeof(struct video_mode)) {
+            *info = -1;
+            return EINVAL;
+        }
+
+        video_mode* videoMode = (video_mode*) data;
+        *videoMode = mode;
+        *info = 0;
+        return 0;
+    }
+    case DISPLAY_SET_VIDEO_MODE: {
+        if (size != 0 && size != sizeof(struct video_mode)) {
+            *info = -1;
+            return EINVAL;
+        }
+
+        if (!graphicsDriver) {
+            *info = -1;
+            return ENOTSUP;
+        }
+
+        video_mode* videoMode = (video_mode*) data;
+
+        int errnum = setVideoMode(videoMode);
+        *info = errnum ? -1 : 0;
+        return errnum;
+    }
     default:
         *info = -1;
         return EINVAL;

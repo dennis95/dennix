@@ -67,6 +67,7 @@ private:
     void redraw(CharPos position);
     void redraw(CharPos position, CharBufferEntry* entry);
     void setPixelColor(char* addr, uint32_t rgbColor);
+    int setVideoMode(video_mode* videoMode);
 public:
     unsigned int columns;
     unsigned int rows;
@@ -78,6 +79,15 @@ private:
     CharBufferEntry* doubleBuffer;
     bool invalidated;
     bool renderingText;
+    bool haveOldBuffer;
 };
+
+class GraphicsDriver {
+public:
+    virtual bool isSupportedMode(video_mode mode) = 0;
+    virtual vaddr_t setVideoMode(video_mode* mode) = 0;
+};
+
+extern GraphicsDriver* graphicsDriver;
 
 #endif

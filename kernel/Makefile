@@ -33,6 +33,7 @@ LIBS += -lk -lgcc
 
 OBJ = \
 	addressspace.o \
+	bga.o \
 	clock.o \
 	conf.o \
 	cxx.o \

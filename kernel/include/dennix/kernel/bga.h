@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2020 Dennis Wölfing
+/* Copyright (c) 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,23 +13,30 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/terminaldisplay.h
- * Terminal display with support for ECMA-48 terminal escapes.
+/* kernel/include/dennix/kernel/bga.h
+ * Bochs Graphics Adaptor.
  */
 
-#ifndef KERNEL_TERMINALDISPLAY_H
-#define KERNEL_TERMINALDISPLAY_H
+#ifndef KERNEL_BGA_H
+#define KERNEL_BGA_H
 
 #include <dennix/kernel/display.h>
 
-namespace TerminalDisplay {
-extern Reference<Display> display;
-
-void backspace();
-void printCharacter(char c);
-void printCharacterRaw(char c);
-void updateCursorPosition();
-void updateDisplaySize();
-}
+class BgaDevice : public GraphicsDriver {
+public:
+    BgaDevice(uint16_t version, uint8_t bus, uint8_t device, uint8_t function);
+    virtual bool isSupportedMode(video_mode mode);
+    virtual vaddr_t setVideoMode(video_mode* mode);
+public:
+    static void initialize(uint8_t bus, uint8_t device, uint8_t function);
+private:
+    vaddr_t framebuffer;
+    uint16_t version;
+    uint16_t maxX;
+    uint16_t maxY;
+    uint8_t bus;
+    uint8_t device;
+    uint8_t function;
+};
 
 #endif

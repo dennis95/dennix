@@ -17,6 +17,7 @@
  * Peripheral Component Interconnect.
  */
 
+#include <dennix/kernel/bga.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/pci.h>
 #include <dennix/kernel/portio.h>
@@ -71,8 +72,11 @@ static void checkFunction(uint8_t bus, uint8_t device, uint8_t function,
             bus, device, function, vendor, deviceId, classCode, subclass);
 #endif
 
-    // TODO: Handle devices found.
-    (void) vendor; (void) deviceId;
+    // Handle devices for which we have a driver.
+    if ((vendor == 0x1234 && deviceId == 0x1111) ||
+            (vendor == 0x80EE && deviceId == 0xBEEF)) {
+        BgaDevice::initialize(bus, device, function);
+    }
 
     // Scan PCI bridges for more devices.
     if (classCode == 0x06 && subclass == 0x04) {

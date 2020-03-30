@@ -29,6 +29,10 @@
 #define DISPLAY_GET_RESOLUTION _DEVCTL(_IOCTL_PTR, 3)
 /* Draw to the screen. Only supported in LFB mode. */
 #define DISPLAY_DRAW _DEVCTL(_IOCTL_PTR, 4)
+/* Get the current video mode. */
+#define DISPLAY_GET_VIDEO_MODE _DEVCTL(_IOCTL_PTR, 5)
+/* Set the video mode. */
+#define DISPLAY_SET_VIDEO_MODE _DEVCTL(_IOCTL_PTR, 6)
 
 #define DISPLAY_MODE_QUERY 0
 #define DISPLAY_MODE_TEXT 1

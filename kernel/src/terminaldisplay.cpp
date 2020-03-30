@@ -370,3 +370,20 @@ void TerminalDisplay::printCharacterRaw(char c) {
 void TerminalDisplay::updateCursorPosition() {
     display->setCursorPos(cursorPos);
 }
+
+void TerminalDisplay::updateDisplaySize() {
+    if (cursorPos.x >= display->columns) {
+        cursorPos.x = display->columns - 1;
+    }
+    if (cursorPos.y >= display->rows) {
+        cursorPos.y = display->rows - 1;
+    }
+    if (savedPos.x >= display->columns) {
+        savedPos.x = display->columns - 1;
+    }
+    if (savedPos.y >= display->rows) {
+        savedPos.y = display->rows - 1;
+    }
+
+    updateCursorPosition();
+}
