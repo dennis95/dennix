@@ -29,6 +29,7 @@ BIN_PROGRAMS = \
 	bricks \
 	cat \
 	chmod \
+	chvideomode \
 	clear \
 	cp \
 	date \
