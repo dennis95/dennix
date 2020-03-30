@@ -45,7 +45,8 @@ struct SignalStackFrame {
 #endif
 };
 
-static sigset_t defaultIgnoredSignals = _SIGSET(SIGCHLD) | _SIGSET(SIGURG);
+static sigset_t defaultIgnoredSignals = _SIGSET(SIGCHLD) | _SIGSET(SIGURG) |
+        _SIGSET(SIGWINCH);
 static sigset_t uncatchableSignals = _SIGSET(SIGKILL) | _SIGSET(SIGSTOP);
 
 extern "C" {

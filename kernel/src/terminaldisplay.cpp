@@ -17,9 +17,11 @@
  * Terminal display with support for ECMA-48 terminal escapes.
  */
 
+#include <signal.h>
 #include <string.h>
 #include <wchar.h>
 #include <dennix/display.h>
+#include <dennix/kernel/terminal.h>
 #include <dennix/kernel/terminaldisplay.h>
 
 Reference<Display> TerminalDisplay::display;
@@ -386,4 +388,5 @@ void TerminalDisplay::updateDisplaySize() {
     }
 
     updateCursorPosition();
+    terminal->raiseSignal(SIGWINCH);
 }

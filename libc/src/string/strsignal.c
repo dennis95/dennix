@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -45,6 +45,7 @@ char* strsignal(int signum) {
     case SIGURG: return "Urgent I/O condition";
     case SIGUSR1: return "User defined signal 1";
     case SIGUSR2: return "User defined signal 2";
+    case SIGWINCH: return "Terminal window size changed";
     default: return "Unknown signal";
     }
 }
