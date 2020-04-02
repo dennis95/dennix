@@ -57,11 +57,11 @@ static bool fgIsVgaColor = true;
 static CharPos cursorPos;
 static CharPos savedPos;
 
+static bool endOfLine;
 static unsigned int params[MAX_PARAMS];
 static bool paramSpecified[MAX_PARAMS];
 static size_t paramIndex;
 static mbstate_t ps;
-static bool skipNewline;
 static const unsigned int tabsize = 8;
 
 static enum {
@@ -74,7 +74,9 @@ void TerminalDisplay::backspace() {
     // TODO: When the deleted character was a tab the cursor needs to be moved
     // by an unknown number of positions but we do not keep track of this
     // information.
-    if (cursorPos.x == 0 && cursorPos.y > 0) {
+    if (endOfLine) {
+        endOfLine = false;
+    } else if (cursorPos.x == 0 && cursorPos.y > 0) {
         cursorPos.x = display->columns - 1;
         cursorPos.y--;
     } else {
@@ -185,6 +187,7 @@ void TerminalDisplay::printCharacter(char c) {
             paramIndex = 0;
         } else if (c == 'c') { // RIS - Reset to Initial State
             color = defaultColor;
+            endOfLine = false;
             fgIsVgaColor = true;
             CharPos lastPos = {display->columns - 1, display->rows - 1};
             display->clear({0, 0}, lastPos, color);
@@ -230,6 +233,7 @@ void TerminalDisplay::printCharacter(char c) {
                 } else {
                     cursorPos.x += param;
                 }
+                endOfLine = false;
             } break;
             case 'D': { // CUB - Cursor Back
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
@@ -238,6 +242,7 @@ void TerminalDisplay::printCharacter(char c) {
                 } else {
                     cursorPos.x -= param;
                 }
+                endOfLine = false;
             } break;
             case 'E': { // CNL - Cursor Next Line
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
@@ -247,6 +252,7 @@ void TerminalDisplay::printCharacter(char c) {
                     cursorPos.y += param;
                 }
                 cursorPos.x = 0;
+                endOfLine = false;
             } break;
             case 'F': { // CPL - Cursor Previous Line
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
@@ -256,6 +262,7 @@ void TerminalDisplay::printCharacter(char c) {
                     cursorPos.y -= param;
                 }
                 cursorPos.x = 0;
+                endOfLine = false;
             } break;
             case 'G': { // CHA - Cursor Horizontal Absolute
                 unsigned int param = paramSpecified[0] ? params[0] : 1;
@@ -271,6 +278,7 @@ void TerminalDisplay::printCharacter(char c) {
                         0 < y && y <= display->rows) {
                     cursorPos = {x - 1, y - 1};
                 }
+                endOfLine = false;
             } break;
             case 'J': { // ED - Erase Display
                 unsigned int param = paramSpecified[0] ? params[0] : 0;
@@ -316,6 +324,7 @@ void TerminalDisplay::printCharacter(char c) {
             } break;
             case 'u': { // RCP - Restore Cursor Position
                 cursorPos = savedPos;
+                endOfLine = false;
             } break;
             default:
                 // Unknown command, ignore
@@ -337,22 +346,7 @@ void TerminalDisplay::printCharacterRaw(char c) {
         wc = L'�';
     }
 
-    if (wc == L'\t') {
-        unsigned int length = tabsize - cursorPos.x % tabsize;
-        CharPos endPos = {cursorPos.x + length - 1, cursorPos.y};
-        if (endPos.x >= display->columns) {
-            endPos.x = display->columns - 1;
-        }
-        display->clear(cursorPos, endPos, color);
-        cursorPos.x += length - 1;
-    } else if (wc != L'\n') {
-        display->putCharacter(cursorPos, wc, color);
-    } else if (skipNewline) {
-        skipNewline = false;
-        return;
-    }
-
-    if (wc == L'\n' || cursorPos.x + 1 >= display->columns) {
+    if (endOfLine || wc == L'\n') {
         cursorPos.x = 0;
 
         if (cursorPos.y + 1 >= display->rows) {
@@ -361,11 +355,26 @@ void TerminalDisplay::printCharacterRaw(char c) {
         } else {
             cursorPos.y++;
         }
+        endOfLine = false;
+        if (wc == L'\n') return;
+    }
 
-        skipNewline = wc != L'\n';
+    if (wc == L'\t') {
+        unsigned int length = tabsize - cursorPos.x % tabsize;
+        CharPos endPos = {cursorPos.x + length - 1, cursorPos.y};
+        if (endPos.x >= display->columns) {
+            endPos.x = display->columns - 1;
+        }
+        display->clear(cursorPos, endPos, color);
+        cursorPos.x += length - 1;
+    } else {
+        display->putCharacter(cursorPos, wc, color);
+    }
+
+    if (cursorPos.x + 1 >= display->columns) {
+        endOfLine = true;
     } else {
         cursorPos.x++;
-        skipNewline = false;
     }
 }
 
