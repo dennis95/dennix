@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -47,6 +47,7 @@ struct ShellOptions {
     bool stdInput;
 };
 
+extern bool endOfFileReached;
 extern bool inputIsTerminal;
 extern int lastStatus;
 extern struct ShellOptions shellOptions;
@@ -56,6 +57,7 @@ noreturn void executeScript(int argc, char** argv);
 NO_DISCARD bool addToArray(void** array, size_t* used, void* value,
         size_t size);
 NO_DISCARD bool moveFd(int old, int new);
+int printPrompt(bool newCommand);
 ssize_t readCommand(char** str, bool newCommand);
 
 #endif

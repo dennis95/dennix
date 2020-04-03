@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -32,6 +32,7 @@
 #include "builtins.h"
 #include "execute.h"
 #include "expand.h"
+#include "interactive.h"
 #include "parser.h"
 #include "variables.h"
 
@@ -39,6 +40,7 @@
 #  define DENNIX_VERSION ""
 #endif
 
+bool endOfFileReached;
 bool inputIsTerminal;
 int lastStatus;
 struct ShellOptions shellOptions;
@@ -49,6 +51,7 @@ static size_t bufferSize;
 static struct CompleteCommand command;
 static char hostname[HOST_NAME_MAX + 1];
 static FILE* inputFile;
+static bool interactiveInput;
 static jmp_buf jumpBuffer;
 static struct Parser parser;
 static const char* username;
@@ -131,7 +134,12 @@ int main(int argc, char* argv[]) {
     }
 
     inputIsTerminal = isatty(0);
+    interactiveInput = false;
     if (shellOptions.interactive && inputIsTerminal) {
+        if (inputFile == stdin) {
+            interactiveInput = true;
+            initializeInteractive();
+        }
         tcgetattr(0, &termios);
     }
 
@@ -144,7 +152,10 @@ int main(int argc, char* argv[]) {
     }
 
     while (true) {
-        if (feof(inputFile)) {
+        if (endOfFileReached || feof(inputFile)) {
+            if (shellOptions.interactive) {
+                fputc('\n', stderr);
+            }
             exit(0);
         }
 
@@ -168,6 +179,7 @@ noreturn void executeScript(int argc, char** argv) {
     // Reset all global state and jump back at the beginning of the shell to
     // execute the script.
     freeCompleteCommand(&command);
+    freeInteractive();
     freeParser(&parser);
 
     for (int i = 0; i <= numArguments; i++) {
@@ -326,20 +338,27 @@ nextArg:;
     return i;
 }
 
+int printPrompt(bool newCommand) {
+    if (newCommand) {
+        int length = fprintf(stderr, "\e[32m%s@%s \e[1;36m%s $\e[22;39m ",
+                username, hostname, pwd ? pwd : ".");
+        // 20 bytes are used for escape sequences.
+        return length - 20;
+    } else {
+        fputs("> ", stderr);
+        return 2;
+    }
+}
+
 ssize_t readCommand(char** str, bool newCommand) {
+    if (interactiveInput) {
+        return readCommandInteractive(str, newCommand);
+    }
     if (shellOptions.interactive && !feof(inputFile)) {
-        if (newCommand) {
-            fprintf(stderr, "\e[32m%s@%s \e[1;36m%s $\e[22;39m ",
-                    username, hostname, pwd ? pwd : ".");
-        } else {
-            fputs("> ", stderr);
-        }
+        printPrompt(newCommand);
     }
 
     ssize_t length = getline(&buffer, &bufferSize, inputFile);
-    if (length < 0 && shellOptions.interactive) {
-        putchar('\n');
-    }
     if (length < 0 && !feof(inputFile)) err(1, "getline");
     *str = buffer;
     return length;
