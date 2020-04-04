@@ -44,6 +44,7 @@ static void sigusr1Handler(int signum) {
     pipelineReady = 1;
 }
 
+static int executeList(struct List* list);
 static int executePipeline(struct Pipeline* pipeline);
 static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         bool subshell);
@@ -60,7 +61,16 @@ static void resetSignals(void);
 static int waitForCommand(pid_t pid);
 
 int execute(struct CompleteCommand* command) {
-    return executePipeline(&command->pipeline);
+    return executeList(&command->list);
+}
+
+static int executeList(struct List* list) {
+    for (size_t i = 0; i < list->numPipelines; i++) {
+        lastStatus = executePipeline(&list->pipelines[i]);
+        while (list->separators[i] == LIST_AND && lastStatus != 0) i++;
+        while (list->separators[i] == LIST_OR && lastStatus == 0) i++;
+    }
+    return lastStatus;
 }
 
 static int executePipeline(struct Pipeline* pipeline) {

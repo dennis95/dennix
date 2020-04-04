@@ -47,8 +47,20 @@ struct Pipeline {
     bool bang;
 };
 
+struct List {
+    struct Pipeline* pipelines;
+    char* separators;
+    size_t numPipelines;
+};
+
+enum {
+    LIST_AND,
+    LIST_OR,
+    LIST_SEMI,
+};
+
 struct CompleteCommand {
-    struct Pipeline pipeline;
+    struct List list;
 };
 
 struct Parser {

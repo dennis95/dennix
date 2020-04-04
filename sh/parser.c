@@ -32,12 +32,14 @@
 static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
         int fd, struct Redirection* result);
 static enum ParserResult parseLinebreak(struct Parser* parser);
+static enum ParserResult parseList(struct Parser* parser, struct List* list);
 static enum ParserResult parsePipeline(struct Parser* parser,
         struct Pipeline* pipeline);
 static enum ParserResult parseSimpleCommand(struct Parser* parser,
         struct SimpleCommand* command);
 static void syntaxError(struct Token* token);
 
+static void freeList(struct List* list);
 static void freePipeline(struct Pipeline* pipeline);
 static void freeSimpleCommand(struct SimpleCommand* command);
 
@@ -88,19 +90,73 @@ enum ParserResult parse(struct Parser* parser,
         return PARSER_NO_CMD;
     }
 
-    result = parsePipeline(parser, &command->pipeline);
+    result = parseList(parser, &command->list);
     assert(result != PARSER_BACKTRACK);
 
     if (result == PARSER_MATCH &&
             parser->offset < parser->tokenizer.numTokens - 1) {
         syntaxError(getToken(parser));
-        freePipeline(&command->pipeline);
+        freeList(&command->list);
         return PARSER_SYNTAX;
     }
 
     if (result == PARSER_SYNTAX) {
         syntaxError(getToken(parser));
     }
+    return result;
+}
+
+static enum ParserResult parseList(struct Parser* parser, struct List* list) {
+    list->numPipelines = 0;
+    list->pipelines = NULL;
+    list->separators = NULL;
+
+    enum ParserResult result;
+    while (true) {
+        struct Pipeline pipeline;
+        result = parsePipeline(parser, &pipeline);
+        if (result != PARSER_MATCH) goto fail;
+
+        if (!addToArray((void**) &list->pipelines, &list->numPipelines,
+                &pipeline, sizeof(pipeline))) {
+            result = PARSER_ERROR;
+            goto fail;
+        }
+        void* newSeperators = realloc(list->separators, list->numPipelines);
+        if (!newSeperators) {
+            result = PARSER_ERROR;
+            goto fail;
+        }
+        list->separators = newSeperators;
+        list->separators[list->numPipelines - 1] = LIST_SEMI;
+
+        struct Token* token = getToken(parser);
+        if (!token || token->type != OPERATOR) return PARSER_MATCH;
+
+        if (strcmp(token->text, "&&") == 0 || strcmp(token->text, "||") == 0) {
+            list->separators[list->numPipelines - 1] =
+                    *token->text == '&' ? LIST_AND : LIST_OR;
+
+            parser->offset++;
+            result = parseLinebreak(parser);
+            if (result != PARSER_MATCH) goto fail;
+        } else if (strcmp(token->text, ";") == 0) {
+            parser->offset++;
+        } else {
+            // TODO: Implement asynchronous lists.
+            return PARSER_MATCH;
+        }
+
+        token = getToken(parser);
+
+        if (list->separators[list->numPipelines - 1] == LIST_SEMI && (!token ||
+                (token->type == OPERATOR && strcmp(token->text, "\n") == 0))) {
+            return PARSER_MATCH;
+        }
+    }
+
+fail:
+    freeList(list);
     return result;
 }
 
@@ -315,7 +371,15 @@ static void syntaxError(struct Token* token) {
 }
 
 void freeCompleteCommand(struct CompleteCommand* command) {
-    freePipeline(&command->pipeline);
+    freeList(&command->list);
+}
+
+static void freeList(struct List* list) {
+    for (size_t i = 0; i < list->numPipelines; i++) {
+        freePipeline(&list->pipelines[i]);
+    }
+    free(list->pipelines);
+    free(list->separators);
 }
 
 static void freePipeline(struct Pipeline* pipeline) {
