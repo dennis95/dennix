@@ -63,7 +63,6 @@ enum ParserResult {
     PARSER_NO_CMD,
     // The following results are only used internally.
     PARSER_BACKTRACK,
-    PARSER_NEWLINE,
 };
 
 void freeParser(struct Parser* parser);

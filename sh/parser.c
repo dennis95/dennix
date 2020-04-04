@@ -31,6 +31,7 @@
 
 static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
         int fd, struct Redirection* result);
+static enum ParserResult parseLinebreak(struct Parser* parser);
 static enum ParserResult parsePipeline(struct Parser* parser,
         struct Pipeline* pipeline);
 static enum ParserResult parseSimpleCommand(struct Parser* parser,
@@ -56,11 +57,10 @@ bool initParser(struct Parser* parser) {
     return initTokenizer(&parser->tokenizer);
 }
 
-enum ParserResult parse(struct Parser* parser,
-        struct CompleteCommand* command) {
+static enum ParserResult getNextLine(struct Parser* parser, bool newCommand) {
     enum TokenizerResult tokenResult;
     char* str;
-    ssize_t length = readCommand(&str, true);
+    ssize_t length = readCommand(&str, newCommand);
 
 continue_tokenizing:
     tokenResult = splitTokens(&parser->tokenizer, length < 0 ? "" : str);
@@ -74,19 +74,22 @@ continue_tokenizing:
         goto continue_tokenizing;
     }
 
+    return PARSER_MATCH;
+}
+
+enum ParserResult parse(struct Parser* parser,
+        struct CompleteCommand* command) {
+    enum ParserResult result = getNextLine(parser, true);
+    if (result != PARSER_MATCH) return result;
+
     if (parser->tokenizer.numTokens == 1 &&
             parser->tokenizer.tokens[0].type == OPERATOR &&
             parser->tokenizer.tokens[0].text[0] == '\n') {
         return PARSER_NO_CMD;
     }
 
-    enum ParserResult result = parsePipeline(parser, &command->pipeline);
+    result = parsePipeline(parser, &command->pipeline);
     assert(result != PARSER_BACKTRACK);
-
-    if (result == PARSER_NEWLINE) {
-        length = readCommand(&str, false);
-        goto continue_tokenizing;
-    }
 
     if (result == PARSER_MATCH &&
             parser->offset < parser->tokenizer.numTokens - 1) {
@@ -138,20 +141,9 @@ static enum ParserResult parsePipeline(struct Parser* parser,
 
         parser->offset++;
 
+        result = parseLinebreak(parser);
+        if (result != PARSER_MATCH) goto fail;
         token = getToken(parser);
-        if (!token) {
-            result = PARSER_SYNTAX;
-            goto fail;
-        }
-
-        while (token->type == OPERATOR && strcmp(token->text, "\n") == 0) {
-            parser->offset++;
-            token = getToken(parser);
-            if (!token) {
-                result = PARSER_NEWLINE;
-                goto fail;
-            }
-        }
     }
 
     return PARSER_MATCH;
@@ -286,6 +278,29 @@ static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
     result->filename = filename->text;
 
     parser->offset++;
+    return PARSER_MATCH;
+}
+
+static enum ParserResult parseLinebreak(struct Parser* parser) {
+    struct Token* token = getToken(parser);
+    if (!token) {
+        syntaxError(NULL);
+        return PARSER_SYNTAX;
+    }
+
+    while (token->type == OPERATOR && strcmp(token->text, "\n") == 0) {
+        parser->offset++;
+        token = getToken(parser);
+        if (!token) {
+            enum ParserResult result = getNextLine(parser, false);
+            if (result != PARSER_MATCH) return result;
+            token = getToken(parser);
+            if (!token) {
+                syntaxError(NULL);
+                return PARSER_SYNTAX;
+            }
+        }
+    }
     return PARSER_MATCH;
 }
 
