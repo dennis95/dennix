@@ -146,9 +146,6 @@ AddressSpace::~AddressSpace() {
             next->prev = prev;
         }
         kthread_mutex_unlock(&listMutex);
-
-        MemorySegment::removeSegment(kernelSpace->firstSegment, mappingArea,
-                PAGESIZE);
     }
 
     MemorySegment* currentSegment = firstSegment;
@@ -162,6 +159,16 @@ AddressSpace::~AddressSpace() {
         currentSegment = next;
     }
 
+    if (!__constructionFailed) {
+        MemorySegment::removeSegment(kernelSpace->firstSegment, mappingArea,
+                PAGESIZE);
+    }
+    if (firstSegment) {
+        if (firstSegment->next) {
+            MemorySegment::deallocateSegment(firstSegment->next);
+        }
+        delete firstSegment;
+    }
     PhysicalMemory::pushPageFrame(pml4);
 }
 
