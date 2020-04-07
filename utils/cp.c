@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -87,11 +87,7 @@ int main(int argc, char* argv[]) {
     const char* destination = argv[argc - 1];
     if (optind == argc - 2) {
         struct stat destSt;
-        int statResult = stat(destination, &destSt);
-        if (statResult < 0 && errno != ENOENT) {
-            err(1, "stat: '%s'", destination);
-        } else if ((statResult < 0 && errno == ENOENT) ||
-                !S_ISDIR(destSt.st_mode)) {
+        if (stat(destination, &destSt) < 0 || !S_ISDIR(destSt.st_mode)) {
             copy(AT_FDCWD, argv[optind], argv[optind], AT_FDCWD, destination,
                     destination, force, prompt, recursive);
             return status;

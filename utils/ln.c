@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -121,7 +121,7 @@ static bool createLink(const char* target, int dirFd, const char* linkName,
         const char* linkPath, bool force, bool symbolic, bool logical) {
     struct stat st;
     bool fileExists = true;
-    if (fstatat(dirFd, linkName, &st, 0) < 0 && errno != ELOOP) {
+    if (fstatat(dirFd, linkName, &st, AT_SYMLINK_NOFOLLOW) < 0) {
         if (errno != ENOENT) {
             warn("stat: '%s'", linkPath);
             return false;

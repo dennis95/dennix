@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -116,7 +116,7 @@ static bool getConfirmation(void) {
 static bool move(int sourceFd, const char* sourceName, const char* sourcePath,
         int destFd, const char* destName, const char* destPath, bool prompt) {
     struct stat sourceSt, destSt;
-    if (fstatat(sourceFd, sourceName, &sourceSt, 0) < 0) {
+    if (fstatat(sourceFd, sourceName, &sourceSt, AT_SYMLINK_NOFOLLOW) < 0) {
         warn("stat: '%s'", sourcePath);
         return false;
     }
