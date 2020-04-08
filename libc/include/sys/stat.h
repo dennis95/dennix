@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -52,9 +52,11 @@ extern "C" {
 #define st_mtime st_mtim.tv_sec
 
 int chmod(const char*, mode_t);
+int fchmod(int, mode_t);
 int fchmodat(int, const char*, mode_t, int);
 int fstat(int, struct stat*);
 int fstatat(int, const char* __restrict, struct stat* __restrict, int);
+int futimens(int, const struct timespec[2]);
 int lstat(const char* __restrict, struct stat* __restrict);
 int mkdir(const char*, mode_t);
 int mkdirat(int, const char*, mode_t);

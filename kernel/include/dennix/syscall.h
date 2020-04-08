@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -63,7 +63,9 @@
 #define SYSCALL_FTRUNCATE 40
 #define SYSCALL_SIGPROCMASK 41
 #define SYSCALL_ALARM 42
+#define SYSCALL_FCHMOD 43
+#define SYSCALL_FUTIMENS 44
 
-#define NUM_SYSCALLS 43
+#define NUM_SYSCALLS 45
 
 #endif

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -77,6 +77,8 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_FTRUNCATE] =*/ (void*) Syscall::ftruncate,
     /*[SYSCALL_SIGPROCMASK] =*/ (void*) Syscall::sigprocmask,
     /*[SYSCALL_ALARM] =*/ (void*) Syscall::alarm,
+    /*[SYSCALL_FCHMOD] =*/ (void*) Syscall::fchmod,
+    /*[SYSCALL_FUTIMENS] =*/ (void*) Syscall::futimens,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -195,12 +197,13 @@ int Syscall::fchdirat(int fd, const char* path) {
     return 0;
 }
 
-int Syscall::fchmodat(int fd, const char* path, mode_t mode, int flags) {
-    if (mode & ~07777) {
-        errno = EINVAL;
-        return -1;
-    }
+int Syscall::fchmod(int fd, mode_t mode) {
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) return -1;
+    return descr->vnode->chmod(mode);
+}
 
+int Syscall::fchmodat(int fd, const char* path, mode_t mode, int flags) {
     bool followFinalSymlink = !(flags & AT_SYMLINK_NOFOLLOW);
     Reference<FileDescription> descr = getRootFd(fd, path);
     if (!descr) return -1;
@@ -237,6 +240,25 @@ int Syscall::ftruncate(int fd, off_t length) {
     Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
     return descr->vnode->ftruncate(length);
+}
+
+int Syscall::futimens(int fd, const struct timespec ts[2]) {
+    static struct timespec nullTs[2] = {{ 0, UTIME_NOW }, { 0, UTIME_NOW }};
+    if (!ts) {
+        ts = nullTs;
+    }
+
+    if (((ts[0].tv_nsec < 0 || ts[0].tv_nsec >= 1000000000) &&
+            ts[0].tv_nsec != UTIME_NOW && ts[0].tv_nsec != UTIME_OMIT) ||
+            ((ts[1].tv_nsec < 0 || ts[1].tv_nsec >= 1000000000) &&
+            ts[1].tv_nsec != UTIME_NOW && ts[1].tv_nsec != UTIME_OMIT)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) return -1;
+    return descr->vnode->utimens(ts[0], ts[1]);
 }
 
 pid_t Syscall::getpid() {

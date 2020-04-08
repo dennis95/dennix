@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -196,7 +196,7 @@ void Vnode::updateTimestamps(bool access, bool status, bool modification) {
 // Default implementation. Inheriting classes will override these functions.
 int Vnode::chmod(mode_t mode) {
     AutoLock lock(&mutex);
-    stats.st_mode = (stats.st_mode & ~07777) | mode;
+    stats.st_mode = (stats.st_mode & ~07777) | (mode & 07777);
     updateTimestamps(false, true, false);
     return 0;
 }

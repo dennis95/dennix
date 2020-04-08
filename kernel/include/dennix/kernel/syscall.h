@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -45,12 +45,14 @@ int dup3(int fd1, int fd2, int flags);
 int execve(const char* path, char* const argv[], char* const envp[]);
 NORETURN void exit(int status);
 int fchdirat(int fd, const char* path);
+int fchmod(int fd, mode_t mode);
 int fchmodat(int fd, const char* path, mode_t mode, int flags);
 int fcntl(int fd, int cmd, int param);
 int fstat(int fd, struct stat* result);
 int fstatat(int fd, const char* restrict path, struct stat* restrict result,
         int flags);
 int ftruncate(int fd, off_t length);
+int futimens(int fd, const struct timespec ts[2]);
 pid_t getpid();
 pid_t getpgid(pid_t pid);
 int isatty(int fd);
