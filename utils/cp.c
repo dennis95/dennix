@@ -31,6 +31,13 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+enum {
+    ATTR_MODE = 1 << 0,
+    ATTR_OWNER = 1 << 1,
+    ATTR_TIMESTAMP = 1 << 2,
+};
+
+static int preserve;
 static int status;
 
 static void copyFile(int sourceFd, const char* sourcePath, int destFd,
@@ -43,6 +50,7 @@ int main(int argc, char* argv[]) {
     struct option longopts[] = {
         { "force", no_argument, 0, 'f' },
         { "interactive", no_argument, 0, 'i' },
+        { "preserve", optional_argument, 0, 2 },
         { "recursive", no_argument, 0, 'R' },
         { "help", no_argument, 0, 0 },
         { "version", no_argument, 0, 1 },
@@ -53,17 +61,46 @@ int main(int argc, char* argv[]) {
     bool prompt = false;
     bool recursive = false;
     int c;
-    while ((c = getopt_long(argc, argv, "fiRr", longopts, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "fipRr", longopts, NULL)) != -1) {
         switch (c) {
         case 0:
             return help(argv[0], "[OPTIONS] SOURCE... DESTINATION\n"
                     "  -f, --force              force copy\n"
                     "  -i, --interactive        prompt before overwrite\n"
+                    "  -p                       preserve mode, owner and "
+                    "timestamp\n"
+                    "      --preserve[=ATTRIBS] preserve ATTRIBS\n"
                     "  -R, -r, --recursive      recursively copy directories\n"
                     "      --help               display this help\n"
                     "      --version            display version info");
         case 1:
             return version(argv[0]);
+        case 2:
+            if (optarg) {
+                char* arg = optarg;
+                while (*arg) {
+                    char* comma = strchr(arg, ',');
+                    if (comma) *comma = '\0';
+                    if (strcmp(arg, "mode") == 0) {
+                        preserve |= ATTR_MODE;
+                    } else if (strcmp(arg, "ownership") == 0 ||
+                            strcmp(arg, "owner") == 0) {
+                        preserve |= ATTR_OWNER;
+                    } else if (strcmp(arg, "timestamp") == 0) {
+                        preserve |= ATTR_TIMESTAMP;
+                    } else if (strcmp(arg, "all") == 0) {
+                        preserve = ATTR_MODE | ATTR_OWNER | ATTR_TIMESTAMP;
+                    } else {
+                        errx(1, "invalid argument '--preserve=%s'", arg);
+                    }
+
+                    if (!comma) break;
+                    arg = comma + 1;
+                }
+            } else {
+                preserve = ATTR_MODE | ATTR_OWNER | ATTR_TIMESTAMP;
+            }
+            break;
         case 'f':
             force = true;
             prompt = false;
@@ -71,6 +108,9 @@ int main(int argc, char* argv[]) {
         case 'i':
             force = false;
             prompt = true;
+            break;
+        case 'p':
+            preserve = ATTR_MODE | ATTR_OWNER | ATTR_TIMESTAMP;
             break;
         case 'r':
         case 'R':
@@ -171,6 +211,8 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
         status = 1;
         return;
     }
+
+    int newDestFd;
     if (S_ISDIR(sourceSt.st_mode)) {
         if (!recursive) {
             warnx("omitting directory '%s' because -R is not specified",
@@ -185,7 +227,7 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
             return;
         }
         if (!destExists) {
-            if (mkdirat(destFd, destName, S_IRWXU) < 0) {
+            if (mkdirat(destFd, destName, sourceSt.st_mode | S_IRWXU) < 0) {
                 warn("mkdir: '%s'", destPath);
                 status = 1;
                 return;
@@ -211,7 +253,7 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
             status = 1;
             return;
         }
-        int newDestFd = openat(destFd, destName, O_SEARCH | O_DIRECTORY);
+        newDestFd = openat(destFd, destName, O_SEARCH | O_DIRECTORY);
         if (newDestFd < 0) {
             warn("open: '%s'", destPath);
             closedir(dir);
@@ -252,9 +294,7 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
         }
 
         closedir(dir);
-        close(newDestFd);
     } else if (S_ISREG(sourceSt.st_mode)) {
-        int newDestFd;
         if (destExists) {
             if (prompt) {
                 fprintf(stderr, "%s: overwrite '%s'? ",
@@ -297,10 +337,26 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
         }
 
         copyFile(newSourceFd, sourcePath, newDestFd, destPath);
-        close(newDestFd);
         close(newSourceFd);
     } else {
         warnx("unsupported file type: '%s'", sourcePath);
         status = 1;
+        return;
     }
+
+    if (preserve & ATTR_MODE) {
+        if (fchmod(newDestFd, sourceSt.st_mode) < 0) {
+            warn("chmod: '%s'", destPath);
+        }
+    }
+    if (preserve & ATTR_OWNER) {
+        // TODO: Implement this when we have a fchown syscall.
+    }
+    if (preserve & ATTR_TIMESTAMP) {
+        struct timespec ts[2] = { sourceSt.st_atim, sourceSt.st_mtim };
+        if (futimens(newDestFd, ts) < 0) {
+            warn("futimens: '%s'", destPath);
+        }
+    }
+    close(newDestFd);
 }
