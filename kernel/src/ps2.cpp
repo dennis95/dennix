@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -44,7 +44,7 @@
 #define DEVICE_RESET 0xFF
 
 static void checkPort1();
-static void irqHandler(int irq);
+static void irqHandler(const InterruptContext* context);
 static uint8_t readDataPort();
 static void sendPS2Command(uint8_t command);
 static void sendPS2Command(uint8_t command, uint8_t data);
@@ -175,10 +175,8 @@ uint8_t PS2::sendDeviceCommand(uint8_t command, uint8_t data) {
     return response;
 }
 
-static void irqHandler(int irq) {
-    if (irq == 1 && ps2Device1) {
-        ps2Device1->irqHandler();
-    }
+static void irqHandler(const InterruptContext* /*context*/) {
+    ps2Device1->irqHandler();
 }
 
 static uint8_t readDataPort() {

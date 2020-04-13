@@ -22,6 +22,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/resource.h>
 #include <sys/stat.h>
 #include <dennix/fcntl.h>
 #include <dennix/wait.h>
@@ -79,6 +80,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_ALARM] =*/ (void*) Syscall::alarm,
     /*[SYSCALL_FCHMOD] =*/ (void*) Syscall::fchmod,
     /*[SYSCALL_FUTIMENS] =*/ (void*) Syscall::futimens,
+    /*[SYSCALL_GETRUSAGENS] =*/ (void*) Syscall::getrusagens,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -272,6 +274,20 @@ pid_t Syscall::getpgid(pid_t pid) {
     Process* process = Process::get(pid);
     if (!process) return -1;
     return process->pgid;
+}
+
+int Syscall::getrusagens(int who, struct rusagens* usage) {
+    if (who == RUSAGE_SELF) {
+        Process::current()->systemCpuClock.getTime(&usage->ru_stime);
+        Process::current()->userCpuClock.getTime(&usage->ru_utime);
+    } else if (who == RUSAGE_CHILDREN) {
+        Process::current()->childrenSystemCpuClock.getTime(&usage->ru_stime);
+        Process::current()->childrenUserCpuClock.getTime(&usage->ru_utime);
+    } else {
+        errno = EINVAL;
+        return -1;
+    }
+    return 0;
 }
 
 int Syscall::isatty(int fd) {

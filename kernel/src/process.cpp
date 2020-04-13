@@ -648,6 +648,11 @@ Process* Process::waitpid(pid_t pid, int flags) {
         }
     }
 
+    childrenSystemCpuClock.add(&process->systemCpuClock);
+    childrenSystemCpuClock.add(&process->childrenSystemCpuClock);
+    childrenUserCpuClock.add(&process->userCpuClock);
+    childrenUserCpuClock.add(&process->childrenUserCpuClock);
+
     kthread_mutex_lock(&childrenMutex);
     if (process->nextChild) {
         process->nextChild->prevChild = process->prevChild;

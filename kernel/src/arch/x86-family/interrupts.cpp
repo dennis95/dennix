@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -53,7 +53,7 @@
 #define EX_SIMD_FLOATING_POINT_EXCEPTION 19
 #define EX_VIRTUALIZATION_EXCEPTION 20
 
-void (*Interrupts::irqHandlers[16])(int) = {0};
+void (*Interrupts::irqHandlers[16])(const InterruptContext*) = {0};
 
 void Interrupts::initPic() {
     outb(PIC1_COMMAND, 0x11);
@@ -159,13 +159,13 @@ handleKernelException:
         PANIC(context, "Unexpected %s", exceptionName(context->interrupt));
     } else if (context->interrupt <= 47) { // IRQ
         int irq = context->interrupt - 32;
+        if (Interrupts::irqHandlers[irq]) {
+            Interrupts::irqHandlers[irq](context);
+        }
+
         if (irq == 0) {
             TerminalDisplay::display->update();
             newContext = Thread::schedule(context);
-        }
-
-        if (Interrupts::irqHandlers[irq]) {
-            Interrupts::irqHandlers[irq](irq);
         }
 
         // Send End of Interrupt

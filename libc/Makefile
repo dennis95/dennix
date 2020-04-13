@@ -248,6 +248,8 @@ LIBC_OBJ = \
 	sys/ioctl/ioctl \
 	sys/mman/mmap \
 	sys/mman/munmap \
+	sys/resource/getrusage \
+	sys/resource/getrusagens \
 	sys/stat/chmod \
 	sys/stat/fchmod \
 	sys/stat/fchmodat \

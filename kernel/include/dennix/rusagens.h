@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2020 Dennis Wölfing
+/* Copyright (c) 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,29 +13,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/clock.h
- * System clocks.
+/* kernel/include/dennix/rusagens.h
+ * Resource usage.
  */
 
-#ifndef KERNEL_CLOCK_H
-#define KERNEL_CLOCK_H
+#ifndef _DENNIX_RUSAGENS_H
+#define _DENNIX_RUSAGENS_H
 
-#include <time.h>
+#include <dennix/timespec.h>
 
-class Clock {
-public:
-    Clock();
-    void add(const Clock* clock);
-    int getTime(struct timespec* result);
-    int nanosleep(int flags, const struct timespec* requested,
-            struct timespec* remaining);
-    int setTime(struct timespec* newValue);
-    void tick(unsigned long nanoseconds);
-public:
-    static Clock* get(clockid_t clockid);
-    static void onTick(bool user, unsigned long nanoseconds);
-private:
-    struct timespec value;
+struct rusagens {
+    struct timespec ru_utime;
+    struct timespec ru_stime;
 };
 
 #endif

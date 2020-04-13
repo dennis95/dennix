@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -61,6 +61,10 @@ Clock::Clock() {
     value.tv_nsec = 0;
 }
 
+void Clock::add(const Clock* clock) {
+    value = timespecPlus(value, clock->value);
+}
+
 Clock* Clock::get(clockid_t clockid) {
     switch (clockid) {
     case CLOCK_MONOTONIC: return &monotonicClock;
@@ -118,9 +122,14 @@ void Clock::tick(unsigned long nanoseconds) {
     }
 }
 
-void Clock::onTick(unsigned long nanoseconds) {
+void Clock::onTick(bool user, unsigned long nanoseconds) {
     monotonicClock.tick(nanoseconds);
     realtimeClock.tick(nanoseconds);
     Process::current()->cpuClock.tick(nanoseconds);
+    if (user) {
+        Process::current()->userCpuClock.tick(nanoseconds);
+    } else {
+        Process::current()->systemCpuClock.tick(nanoseconds);
+    }
     Thread::current()->cpuClock.tick(nanoseconds);
 }

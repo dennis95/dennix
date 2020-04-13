@@ -55,6 +55,7 @@ int ftruncate(int fd, off_t length);
 int futimens(int fd, const struct timespec ts[2]);
 pid_t getpid();
 pid_t getpgid(pid_t pid);
+int getrusagens(int who, struct rusagens* usage);
 int isatty(int fd);
 int kill(pid_t pid, int signal);
 int linkat(int oldFd, const char* oldPath, int newFd, const char* newPath,

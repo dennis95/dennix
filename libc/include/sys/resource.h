@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2020 Dennis Wölfing
+/* Copyright (c) 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,29 +13,41 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/clock.h
- * System clocks.
+/* libc/include/sys/resource.h
+ * Resource operations.
  */
 
-#ifndef KERNEL_CLOCK_H
-#define KERNEL_CLOCK_H
+#ifndef _SYS_RESOURCE_H
+#define _SYS_RESOURCE_H
 
-#include <time.h>
+#include <sys/cdefs.h>
+#define __need_id_t
+#define __need_suseconds_t
+#define __need_time_t
+#include <bits/types.h>
+#include <bits/timeval.h>
+#include <dennix/resource.h>
+#if __USE_DENNIX
+#  include <dennix/rusagens.h>
+#endif
 
-class Clock {
-public:
-    Clock();
-    void add(const Clock* clock);
-    int getTime(struct timespec* result);
-    int nanosleep(int flags, const struct timespec* requested,
-            struct timespec* remaining);
-    int setTime(struct timespec* newValue);
-    void tick(unsigned long nanoseconds);
-public:
-    static Clock* get(clockid_t clockid);
-    static void onTick(bool user, unsigned long nanoseconds);
-private:
-    struct timespec value;
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+struct rusage {
+    struct timeval ru_utime;
+    struct timeval ru_stime;
 };
+
+int getrusage(int, struct rusage*);
+
+#if __USE_DENNIX
+int getrusagens(int, struct rusagens*);
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

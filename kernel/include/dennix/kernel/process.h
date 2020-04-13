@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -61,6 +61,8 @@ private:
     void terminate();
 public:
     AddressSpace* addressSpace;
+    Clock childrenSystemCpuClock;
+    Clock childrenUserCpuClock;
     Reference<Terminal> controllingTerminal;
     Clock cpuClock;
     Reference<FileDescription> cwdFd;
@@ -70,8 +72,10 @@ public:
     Reference<FileDescription> rootFd;
     struct sigaction sigactions[NSIG];
     vaddr_t sigreturn;
+    Clock systemCpuClock;
     siginfo_t terminationStatus;
     mode_t umask;
+    Clock userCpuClock;
 private:
     struct timespec alarmTime;
     kthread_mutex_t childrenMutex;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -35,7 +35,7 @@ static const unsigned int frequency = 100;
 static const uint16_t divider = PIT_FREQUENCY / frequency;
 static const unsigned long nanoseconds = 1000000000L / PIT_FREQUENCY * divider;
 
-static void irqHandler(int irq);
+static void irqHandler(const InterruptContext* context);
 
 void Pit::initialize() {
     Interrupts::irqHandlers[0] = irqHandler;
@@ -45,6 +45,6 @@ void Pit::initialize() {
     outb(PIT_PORT_CHANNEL0, (divider >> 8) & 0xFF);
 }
 
-static void irqHandler(int /*irq*/) {
-    Clock::onTick(nanoseconds);
+static void irqHandler(const InterruptContext* context) {
+    Clock::onTick(context->cs != 0x8, nanoseconds);
 }
