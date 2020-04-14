@@ -46,6 +46,7 @@ BIN_PROGRAMS = \
 	sleep \
 	snake \
 	tail \
+	time \
 	touch \
 	true \
 	uname
