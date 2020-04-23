@@ -93,8 +93,8 @@ static Reference<FileDescription> getRootFd(int fd, const char* path) {
     }
 }
 
-static Reference<Vnode> resolvePathExceptLastComponent(int fd, char* path,
-        char** lastComponent) {
+static Reference<Vnode> resolvePathExceptLastComponent(int fd, const char* path,
+        const char** lastComponent) {
     Reference<FileDescription> descr = getRootFd(fd, path);
     if (!descr) return nullptr;
     return resolvePathExceptLastComponent(descr->vnode, path, lastComponent);
@@ -310,18 +310,11 @@ int Syscall::linkat(int oldFd, const char* oldPath, int newFd,
         return -1;
     }
 
-    char* name;
-    char* path2Copy = strdup(newPath);
-    if (!path2Copy) return -1;
+    const char* name;
     Reference<Vnode> directory = resolvePathExceptLastComponent(newFd,
-            path2Copy, &name);
-    if (!directory) {
-        free(path2Copy);
-        return -1;
-    }
-    int result = directory->link(name, vnode);
-    free(path2Copy);
-    return result;
+            newPath, &name);
+    if (!directory) return -1;
+    return directory->link(name, vnode);
 }
 
 off_t Syscall::lseek(int fd, off_t offset, int whence) {
@@ -331,25 +324,15 @@ off_t Syscall::lseek(int fd, off_t offset, int whence) {
 }
 
 int Syscall::mkdirat(int fd, const char* path, mode_t mode) {
-    char* pathCopy = strdup(path);
-    if (!pathCopy) return -1;
-
-    char* name;
-    Reference<Vnode> vnode = resolvePathExceptLastComponent(fd, pathCopy,
-            &name);
-    if (!vnode) {
-        free(pathCopy);
-        return -1;
-    }
+    const char* name;
+    Reference<Vnode> vnode = resolvePathExceptLastComponent(fd, path, &name);
+    if (!vnode) return -1;
     if (!*name) {
-        free(pathCopy);
         errno = EEXIST;
         return -1;
     }
 
-    int result = vnode->mkdir(name, mode & ~Process::current()->umask);
-    free(pathCopy);
-    return result;
+    return vnode->mkdir(name, mode & ~Process::current()->umask);
 }
 
 static void* mmapImplementation(void* /*addr*/, size_t size,
@@ -470,44 +453,25 @@ pid_t Syscall::regfork(int flags, regfork_t* registers) {
 
 int Syscall::renameat(int oldFd, const char* oldPath, int newFd,
         const char* newPath) {
-    char* oldCopy = strdup(oldPath);
-    if (!oldCopy) return -1;
-
-    char* oldName;
+    const char* oldName;
     Reference<Vnode> oldDirectory = resolvePathExceptLastComponent(oldFd,
-            oldCopy, &oldName);
-    if (!oldDirectory) {
-        free(oldCopy);
-        return -1;
-    }
+            oldPath, &oldName);
+    if (!oldDirectory) return -1;
 
-    char* newCopy = strdup(newPath);
-    if (!newCopy) {
-        free(oldCopy);
-        return -1;
-    }
-
-    char* newName;
+    const char* newName;
     Reference<Vnode> newDirectory = resolvePathExceptLastComponent(newFd,
-            newCopy, &newName);
-    if (!newDirectory) {
-        free(oldCopy);
-        free(newCopy);
-        return -1;
-    }
+            newPath, &newName);
+    if (!newDirectory) return -1;
 
     if (strcmp(oldName, ".") == 0 || strcmp(oldName, "..") == 0 ||
-            strcmp(newName, ".") == 0 || strcmp(newName, "..") == 0) {
-        free(oldCopy);
-        free(newCopy);
+            strncmp(oldName, "./", 2) == 0 || strncmp(oldName, "../", 3) == 0 ||
+            strcmp(newName, ".") == 0 || strcmp(newName, "..") == 0 ||
+            strncmp(newName, "./", 2) == 0 || strncmp(newName, "../", 3) == 0) {
         errno = EINVAL;
         return -1;
     }
 
-    int result = newDirectory->rename(oldDirectory, oldName, newName);
-    free(oldCopy);
-    free(newCopy);
-    return result;
+    return newDirectory->rename(oldDirectory, oldName, newName);
 }
 
 int Syscall::setpgid(pid_t pid, pid_t pgid) {
@@ -540,27 +504,16 @@ int Syscall::symlinkat(const char* targetPath, int fd, const char* linkPath) {
         return -1;
     }
 
-    char* pathCopy = strdup(linkPath);
-    if (!pathCopy) return -1;
-
-    char* name;
-    Reference<Vnode> vnode = resolvePathExceptLastComponent(fd, pathCopy,
+    const char* name;
+    Reference<Vnode> vnode = resolvePathExceptLastComponent(fd, linkPath,
             &name);
-    if (!vnode) {
-        free(pathCopy);
-        return -1;
-    }
+    if (!vnode) return -1;
 
     Reference<Vnode> symlink = new SymlinkVnode(targetPath,
             vnode->stat().st_dev);
-    if (!symlink) {
-        free(pathCopy);
-        return -1;
-    }
+    if (!symlink) return -1;
 
-    int result = vnode->link(name, symlink);
-    free(pathCopy);
-    return result;
+    return vnode->link(name, symlink);
 }
 
 int Syscall::tcgetattr(int fd, struct termios* result) {
@@ -585,36 +538,23 @@ int Syscall::unlinkat(int fd, const char* path, int flags) {
     if (!(flags & (AT_REMOVEDIR | AT_REMOVEFILE))) {
         flags |= AT_REMOVEFILE;
     }
-    if (path[strlen(path) - 1] == '/') {
-        flags &= ~AT_REMOVEFILE;
-    }
 
-    char* pathCopy = strdup(path);
-    if (!pathCopy) return -1;
-
-    char* name;
-    Reference<Vnode> vnode = resolvePathExceptLastComponent(fd, pathCopy,
-            &name);
-    if (!vnode) {
-        free(pathCopy);
-        return -1;
-    }
+    const char* name;
+    Reference<Vnode> vnode = resolvePathExceptLastComponent(fd, path, &name);
+    if (!vnode) return -1;
 
     if (unlikely(!*name && vnode == Process::current()->rootFd->vnode)) {
-        free(pathCopy);
         errno = EBUSY;
         return -1;
     }
 
-    if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
-        free(pathCopy);
+    if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0 ||
+            strncmp(name, "./", 2) == 0 || strncmp(name, "../", 3) == 0) {
         errno = EINVAL;
         return -1;
     }
 
-    int result = vnode->unlink(name, flags);
-    free(pathCopy);
-    return result;
+    return vnode->unlink(name, flags);
 }
 
 int Syscall::utimensat(int fd, const char* path, const struct timespec ts[2],

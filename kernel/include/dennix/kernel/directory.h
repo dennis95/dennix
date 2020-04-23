@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,6 +28,7 @@ public:
             dev_t dev);
     ~DirectoryVnode();
     virtual Reference<Vnode> getChildNode(const char* name);
+    virtual Reference<Vnode> getChildNode(const char* path, size_t length);
     virtual int link(const char* name, const Reference<Vnode>& vnode);
     virtual int mkdir(const char* name, mode_t mode);
     virtual bool onUnlink();
@@ -36,8 +37,9 @@ public:
             const char* newName);
     virtual int unlink(const char* path, int flags);
 private:
-    Reference<Vnode> getChildNodeUnlocked(const char* name);
-    int linkUnlocked(const char* name, const Reference<Vnode>& vnode);
+    Reference<Vnode> getChildNodeUnlocked(const char* name, size_t length);
+    int linkUnlocked(const char* name, size_t length,
+            const Reference<Vnode>& vnode);
     int unlinkUnlocked(const char* path, int flags);
 public:
     size_t childCount;

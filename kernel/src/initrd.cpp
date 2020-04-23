@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -96,8 +96,12 @@ Reference<DirectoryVnode> Initrd::loadInitrd(vaddr_t initrd) {
                     sizeof(header->linkname), directory->stats.st_dev);
             header++;
         } else if (header->typeflag == LNKTYPE) {
-            newFile = resolvePath(root, header->linkname,
+            char* linkname = strndup(header->linkname,
                     sizeof(header->linkname));
+            if (!linkname || !(newFile = resolvePath(root, linkname))) {
+                PANIC("Could not create symlink '/%s'", path);
+            }
+            free(linkname);
             header++;
         } else {
             PANIC("Unknown typeflag '%c'", header->typeflag);

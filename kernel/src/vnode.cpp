@@ -48,13 +48,13 @@ Vnode::~Vnode() {
 }
 
 static Reference<Vnode> resolvePathExceptLastComponent(
-        const Reference<Vnode>& vnode, char* path, size_t& symlinksFollowed,
-        char*& lastComponent, bool& endsWithSlash);
+        const Reference<Vnode>& vnode, const char* path,
+        size_t& symlinksFollowed, const char*& lastComponent);
 
-static Reference<Vnode> followPath(Reference<Vnode>& vnode, char* name,
-        size_t& symlinksFollowed, bool followSymlink) {
+static Reference<Vnode> followPath(Reference<Vnode>& vnode, const char* name,
+        size_t nameLength, size_t& symlinksFollowed, bool followSymlink) {
     Reference<Vnode> currentVnode = vnode;
-    Reference<Vnode> nextVnode = currentVnode->getChildNode(name);
+    Reference<Vnode> nextVnode = currentVnode->getChildNode(name, nameLength);
     if (!nextVnode) return nullptr;
 
     while (S_ISLNK(nextVnode->stat().st_mode) && followSymlink) {
@@ -65,22 +65,16 @@ static Reference<Vnode> followPath(Reference<Vnode>& vnode, char* name,
         char* symlinkDestination = nextVnode->getLinkTarget();
         if (!symlinkDestination) return nullptr;
 
-        bool endsWithSlash;
-        char* lastComponent;
+        const char* lastComponent;
         currentVnode = resolvePathExceptLastComponent(currentVnode,
-                symlinkDestination, symlinksFollowed, lastComponent,
-                endsWithSlash);
-        if (!currentVnode) {
-            free(symlinkDestination);
-            return nullptr;
-        }
-
-        if (!*lastComponent) {
+                symlinkDestination, symlinksFollowed, lastComponent);
+        if (!currentVnode || !*lastComponent) {
             free(symlinkDestination);
             return currentVnode;
         }
 
-        nextVnode = currentVnode->getChildNode(lastComponent);
+        nextVnode = currentVnode->getChildNode(lastComponent,
+                strcspn(lastComponent, "/"));
         free(symlinkDestination);
         if (!nextVnode) return nullptr;
     }
@@ -89,8 +83,8 @@ static Reference<Vnode> followPath(Reference<Vnode>& vnode, char* name,
 }
 
 static Reference<Vnode> resolvePathExceptLastComponent(
-        const Reference<Vnode>& vnode, char* path, size_t& symlinksFollowed,
-        char*& lastComponent, bool& endsWithSlash) {
+        const Reference<Vnode>& vnode, const char* path,
+        size_t& symlinksFollowed, const char*& lastComponent) {
     Reference<Vnode> currentVnode = vnode;
 
     if (*path == '/') {
@@ -101,17 +95,17 @@ static Reference<Vnode> resolvePathExceptLastComponent(
     while (*lastComponent == '/') {
         lastComponent++;
     }
-    char* slash = strchr(lastComponent, '/');
+    const char* slash = strchr(lastComponent, '/');
 
     while (slash) {
-        *slash = '\0';
-        char* next = slash + 1;
+        size_t componentLength = slash - lastComponent;
+        const char* next = slash + 1;
         while (*next == '/') {
             next++;
         }
         if (!*next) break;
 
-        currentVnode = followPath(currentVnode, lastComponent,
+        currentVnode = followPath(currentVnode, lastComponent, componentLength,
                 symlinksFollowed, true);
         if (!currentVnode) return nullptr;
 
@@ -124,59 +118,42 @@ static Reference<Vnode> resolvePathExceptLastComponent(
         slash = strchr(lastComponent, '/');
     }
 
-    endsWithSlash = slash != nullptr;
-
     return currentVnode;
 }
 
 Reference<Vnode> resolvePathExceptLastComponent(const Reference<Vnode>& vnode,
-        char* path, char** lastComponent) {
-    bool endsWithSlash;
+        const char* path, const char** lastComponent) {
     size_t symlinksFollowed = 0;
     return resolvePathExceptLastComponent(vnode, path, symlinksFollowed,
-            *lastComponent, endsWithSlash);
+            *lastComponent);
 }
 
 Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
-        size_t pathSize, bool followFinalSymlink /*= true*/) {
+        bool followFinalSymlink /*= true*/) {
     if (!*path) {
         errno = ENOENT;
         return nullptr;
     }
 
-    char* pathCopy = strndup(path, pathSize);
-    if (!pathCopy) return nullptr;
-
-    char* lastComponent;
-    bool endsWithSlash;
+    const char* lastComponent;
     size_t symlinksFollowed = 0;
     Reference<Vnode> currentVnode = resolvePathExceptLastComponent(vnode,
-            pathCopy, symlinksFollowed, lastComponent, endsWithSlash);
-    if (!currentVnode) {
-        free(pathCopy);
-        return nullptr;
-    }
-
-    if (!*lastComponent) {
-        free(pathCopy);
+            path, symlinksFollowed, lastComponent);
+    if (!currentVnode || !*lastComponent) {
         return currentVnode;
     }
 
-    currentVnode = followPath(currentVnode, lastComponent, symlinksFollowed,
-            followFinalSymlink);
+    size_t nameLength = strcspn(lastComponent, "/");
+    currentVnode = followPath(currentVnode, lastComponent, nameLength,
+            symlinksFollowed, followFinalSymlink);
+    if (!currentVnode) return nullptr;
 
-    if (endsWithSlash && !S_ISDIR(currentVnode->stat().st_mode)) {
+    if (lastComponent[nameLength] && !S_ISDIR(currentVnode->stat().st_mode)) {
         errno = ENOTDIR;
         return nullptr;
     }
 
-    free(pathCopy);
     return currentVnode;
-}
-
-Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
-        bool followFinalSymlink /*= true*/) {
-    return resolvePath(vnode, path, SIZE_MAX, followFinalSymlink);
 }
 
 void Vnode::updateTimestamps(bool access, bool status, bool modification) {
@@ -213,6 +190,11 @@ int Vnode::ftruncate(off_t /*length*/) {
 }
 
 Reference<Vnode> Vnode::getChildNode(const char* /*path*/) {
+    errno = EBADF;
+    return nullptr;
+}
+
+Reference<Vnode> Vnode::getChildNode(const char* /*path*/, size_t /*length*/) {
     errno = EBADF;
     return nullptr;
 }

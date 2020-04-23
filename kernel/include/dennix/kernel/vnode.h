@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -32,6 +32,7 @@ public:
             int* restrict info);
     virtual int ftruncate(off_t length);
     virtual Reference<Vnode> getChildNode(const char* path);
+    virtual Reference<Vnode> getChildNode(const char* path, size_t length);
     virtual char* getLinkTarget();
     virtual int isatty();
     virtual bool isSeekable();
@@ -64,10 +65,8 @@ public:
 };
 
 Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
-        size_t pathSize, bool followFinalSymlink = true);
-Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
         bool followFinalSymlink = true);
 Reference<Vnode> resolvePathExceptLastComponent(const Reference<Vnode>& vnode,
-        char* path, char** lastComponent);
+        const char* path, const char** lastComponent);
 
 #endif
