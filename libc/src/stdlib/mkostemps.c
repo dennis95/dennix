@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -55,8 +55,6 @@ int mkostemps(char* template, int suffixLength, int flags) {
             value /= 64;
         }
 
-        // TODO: Because O_EXCL is not actually implemented, there is no
-        // guarantee that the file did not exist before.
         int fd = open(template, O_RDWR | O_CREAT | O_EXCL | flags, 0600);
         if (fd >= 0) return fd;
     } while (errno == EEXIST);

@@ -32,6 +32,7 @@ public:
     virtual int link(const char* name, const Reference<Vnode>& vnode);
     virtual int mkdir(const char* name, mode_t mode);
     virtual bool onUnlink();
+    virtual Reference<Vnode> open(const char* name, int flags, mode_t mode);
     virtual ssize_t readdir(unsigned long offset, void* buffer, size_t size);
     virtual int rename(Reference<Vnode>& oldDirectory, const char* oldName,
             const char* newName);

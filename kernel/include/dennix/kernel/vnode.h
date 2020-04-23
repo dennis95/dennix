@@ -41,6 +41,7 @@ public:
     virtual int mkdir(const char* name, mode_t mode);
     virtual void onLink();
     virtual bool onUnlink();
+    virtual Reference<Vnode> open(const char* name, int flags, mode_t mode);
     virtual ssize_t pread(void* buffer, size_t size, off_t offset);
     virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset);
     virtual ssize_t read(void* buffer, size_t size);
@@ -67,6 +68,7 @@ public:
 Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
         bool followFinalSymlink = true);
 Reference<Vnode> resolvePathExceptLastComponent(const Reference<Vnode>& vnode,
-        const char* path, const char** lastComponent);
+        const char* path, const char** lastComponent,
+        bool followFinalSymlink = false);
 
 #endif

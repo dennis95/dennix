@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -51,7 +51,8 @@
 #define O_NONBLOCK (1 << 10)
 #define O_SYNC (1 << 11)
 #define O_TRUNC (1 << 12)
-#define O_TTY_INIT (1 << 13)
+#define O_NOCLOBBER (1 << 13)
+#define O_TTY_INIT 0
 
 #define F_DUPFD 0
 #define F_DUPFD_CLOEXEC 1

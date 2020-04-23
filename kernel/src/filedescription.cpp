@@ -66,50 +66,35 @@ off_t FileDescription::lseek(off_t offset, int whence) {
 
 Reference<FileDescription> FileDescription::openat(const char* path, int flags,
         mode_t mode) {
-    Reference<Vnode> node = resolvePath(vnode, path);
-    if (!node) {
-        if (!(flags & O_CREAT)) return nullptr;
-        char* pathCopy = strdup(path);
-        if (!pathCopy) return nullptr;
+    const char* name;
+    Reference<Vnode> parentVnode = resolvePathExceptLastComponent(vnode, path,
+            &name, !(flags & O_NOFOLLOW));
+    if (!parentVnode) return nullptr;
+    Reference<Vnode> vnode = parentVnode;
+    if (!*name) name = ".";
+    vnode = parentVnode->open(name, flags, mode);
+    if (!vnode) return nullptr;
+    mode = vnode->stat().st_mode;
 
-        char* slash = strrchr(pathCopy, '/');
-        char* newFileName;
+    if (S_ISLNK(mode)) {
+        errno = ELOOP;
+        return nullptr;
+    }
 
-        if (!slash || slash == pathCopy) {
-            node = vnode;
-            newFileName = slash ? pathCopy + 1 : pathCopy;
-        } else {
-            *slash = '\0';
-            newFileName = slash + 1;
-            node = resolvePath(vnode, pathCopy);
-            if (!node) {
-                free(pathCopy);
-                return nullptr;
-            }
-        }
-
-        if (!S_ISDIR(node->stat().st_mode)) {
-            free(pathCopy);
-            errno = ENOTDIR;
-            return nullptr;
-        }
-
-        Reference<FileVnode> file = new FileVnode(nullptr, 0, mode & 07777,
-                vnode->stat().st_dev);
-        if (!file || node->link(newFileName, file) < 0) {
-            free(pathCopy);
-            return nullptr;
-        }
-
-        free(pathCopy);
-        node = file;
+    if (flags & O_CREAT && S_ISDIR(mode)) {
+        errno = EISDIR;
+        return nullptr;
+    }
+    if (flags & O_DIRECTORY && !S_ISDIR(mode)) {
+        errno = ENOTDIR;
+        return nullptr;
     }
 
     if (flags & O_TRUNC) {
-        node->ftruncate(0);
+        vnode->ftruncate(0);
     }
 
-    return new FileDescription(node, flags);
+    return new FileDescription(vnode, flags);
 }
 
 ssize_t FileDescription::read(void* buffer, size_t size) {

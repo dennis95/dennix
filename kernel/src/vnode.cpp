@@ -122,10 +122,27 @@ static Reference<Vnode> resolvePathExceptLastComponent(
 }
 
 Reference<Vnode> resolvePathExceptLastComponent(const Reference<Vnode>& vnode,
-        const char* path, const char** lastComponent) {
+        const char* path, const char** lastComponent,
+        bool followFinalSymlink /*= false*/) {
     size_t symlinksFollowed = 0;
-    return resolvePathExceptLastComponent(vnode, path, symlinksFollowed,
-            *lastComponent);
+    Reference<Vnode> result = resolvePathExceptLastComponent(vnode, path,
+            symlinksFollowed, *lastComponent);
+
+    while (result && followFinalSymlink) {
+        Reference<Vnode> link = result->getChildNode(*lastComponent,
+                strcspn(*lastComponent, "/"));
+        if (!link || !S_ISLNK(link->stat().st_mode)) return result;
+        if (++symlinksFollowed > SYMLOOP_MAX) {
+            errno = ELOOP;
+            return nullptr;
+        }
+        char* target = link->getLinkTarget();
+        if (!target) return nullptr;
+        result = resolvePathExceptLastComponent(result, target,
+                symlinksFollowed, *lastComponent);
+        free(target);
+    }
+    return result;
 }
 
 Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
@@ -239,6 +256,12 @@ bool Vnode::onUnlink() {
     updateTimestamps(false, true, false);
     stats.st_nlink--;
     return true;
+}
+
+Reference<Vnode> Vnode::open(const char* /*name*/, int /*flags*/,
+        mode_t /*mode*/) {
+    errno = ENOTDIR;
+    return nullptr;
 }
 
 ssize_t Vnode::pread(void* /*buffer*/, size_t /*size*/, off_t /*offset*/) {

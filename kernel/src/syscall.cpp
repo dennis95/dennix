@@ -188,13 +188,15 @@ NORETURN void Syscall::exit(int status) {
 int Syscall::fchdirat(int fd, const char* path) {
     Reference<FileDescription> descr = getRootFd(fd, path);
     if (!descr) return -1;
-    Reference<FileDescription> newCwd = descr->openat(path, 0, 0);
-    if (!newCwd) return -1;
-    if (!S_ISDIR(newCwd->vnode->stat().st_mode)) {
+    Reference<Vnode> vnode = resolvePath(descr->vnode, path);
+    if (!vnode) return -1;
+    if (!S_ISDIR(vnode->stat().st_mode)) {
         errno = ENOTDIR;
         return -1;
     }
 
+    Reference<FileDescription> newCwd = new FileDescription(vnode, O_SEARCH);
+    if (!newCwd) return -1;
     Process::current()->cwdFd = newCwd;
     return 0;
 }

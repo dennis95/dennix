@@ -24,6 +24,7 @@
 #include <dennix/dirent.h>
 #include <dennix/fcntl.h>
 #include <dennix/kernel/directory.h>
+#include <dennix/kernel/file.h>
 
 DirectoryVnode::DirectoryVnode(const Reference<DirectoryVnode>& parent,
         mode_t mode, dev_t dev) : Vnode(S_IFDIR | mode, dev), parent(parent) {
@@ -123,6 +124,31 @@ bool DirectoryVnode::onUnlink() {
         return false;
     }
     return Vnode::onUnlink();
+}
+
+Reference<Vnode> DirectoryVnode::open(const char* name, int flags,
+        mode_t mode) {
+    AutoLock lock(&mutex);
+
+    size_t length = strcspn(name, "/");
+    Reference<Vnode> vnode = getChildNodeUnlocked(name, length);
+    if (!vnode) {
+        if (!(flags & O_CREAT)) return nullptr;
+        vnode = new FileVnode(nullptr, 0, mode & 07777, stats.st_dev);
+        if (!vnode || linkUnlocked(name, length, vnode) < 0) {
+            return nullptr;
+        }
+    } else {
+        if (flags & O_EXCL) {
+            errno = EEXIST;
+            return nullptr;
+        } else if (flags & O_NOCLOBBER && S_ISREG(vnode->stats.st_mode)) {
+            errno = EEXIST;
+            return nullptr;
+        }
+    }
+
+    return vnode;
 }
 
 ssize_t DirectoryVnode::readdir(unsigned long offset, void* buffer,
