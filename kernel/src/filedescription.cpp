@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -68,7 +68,7 @@ Reference<FileDescription> FileDescription::openat(const char* path, int flags,
         mode_t mode) {
     const char* name;
     Reference<Vnode> parentVnode = resolvePathExceptLastComponent(vnode, path,
-            &name, !(flags & O_NOFOLLOW));
+            &name, !(flags & (O_EXCL | O_NOFOLLOW)));
     if (!parentVnode) return nullptr;
     Reference<Vnode> vnode = parentVnode;
     if (!*name) name = ".";
