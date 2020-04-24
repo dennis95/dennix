@@ -28,7 +28,8 @@ static char segmentsPage[PAGESIZE] ALIGNED(PAGESIZE) = {0};
 static kthread_mutex_t mutex = KTHREAD_MUTEX_INITIALIZER;
 
 static inline size_t getFreeSpaceAfter(MemorySegment* segment) {
-    return segment->next->address - (segment->address + segment->size);
+    vaddr_t nextAddress = segment->next ? segment->next->address : 0;
+    return nextAddress - (segment->address + segment->size);
 }
 
 MemorySegment::MemorySegment(vaddr_t address, size_t size, int flags,
@@ -105,23 +106,28 @@ void MemorySegment::removeSegment(MemorySegment* firstSegment, vaddr_t address,
         size_t size) {
     AutoLock lock(&mutex);
     MemorySegment* currentSegment = firstSegment;
+    vaddr_t endAddress = address + size;
 
-    while (currentSegment->address + currentSegment->size <= address) {
+    while (currentSegment &&
+            currentSegment->address + currentSegment->size <= address &&
+            currentSegment->address + currentSegment->size != 0) {
         currentSegment = currentSegment->next;
     }
 
-    while (size) {
+    while (size && currentSegment) {
+        if (currentSegment->address > address) {
+            if (currentSegment->address > endAddress && endAddress != 0) {
+                return;
+            }
+            size -= currentSegment->address - address;
+            address = currentSegment->address;
+        }
+
         if (currentSegment->address == address &&
                 currentSegment->size <= size) {
             // Delete the whole segment
             address += currentSegment->size;
             size -= currentSegment->size;
-
-            if (size < getFreeSpaceAfter(currentSegment)) {
-                size = 0;
-            } else {
-                size -= getFreeSpaceAfter(currentSegment);
-            }
 
             MemorySegment* next = currentSegment->next;
             if (next) {
@@ -139,8 +145,8 @@ void MemorySegment::removeSegment(MemorySegment* firstSegment, vaddr_t address,
             currentSegment->address += size;
             currentSegment->size -= size;
             size = 0;
-        } else if (currentSegment->address + currentSegment->size <=
-                address + size) {
+        } else if (size + (address - currentSegment->address) >=
+                currentSegment->size) {
             size_t diff = currentSegment->address + currentSegment->size -
                     address;
             currentSegment->size -= diff;
@@ -157,8 +163,8 @@ void MemorySegment::removeSegment(MemorySegment* firstSegment, vaddr_t address,
             size_t firstSize = address - currentSegment->address;
             size_t secondSize = currentSegment->size - firstSize - size;
 
-            MemorySegment* newSegment = allocateSegment(address + size,
-                    secondSize, currentSegment->flags);
+            MemorySegment* newSegment = allocateSegment(endAddress, secondSize,
+                    currentSegment->flags);
 
             newSegment->prev = currentSegment;
             newSegment->next = currentSegment->next;
@@ -170,28 +176,19 @@ void MemorySegment::removeSegment(MemorySegment* firstSegment, vaddr_t address,
             currentSegment->size = firstSize;
         }
 
-        if (size < getFreeSpaceAfter(currentSegment)) {
-            size = 0;
-        } else {
-            size -= getFreeSpaceAfter(currentSegment);
-        }
-
         currentSegment = currentSegment->next;
     }
 }
 
-vaddr_t MemorySegment::findFreeSegment(MemorySegment* firstSegment,
+MemorySegment* MemorySegment::findFreeSegment(MemorySegment* firstSegment,
         size_t size) {
     MemorySegment* currentSegment = firstSegment;
 
-    while (getFreeSpaceAfter(currentSegment) < size) {
+    while (currentSegment && getFreeSpaceAfter(currentSegment) < size) {
         currentSegment = currentSegment->next;
-        if (!currentSegment) {
-            return 0;
-        }
     }
 
-    return currentSegment->address + currentSegment->size;
+    return currentSegment;
 }
 
 vaddr_t MemorySegment::findAndAddNewSegment(MemorySegment* firstSegment,
@@ -199,8 +196,15 @@ vaddr_t MemorySegment::findAndAddNewSegment(MemorySegment* firstSegment,
     AutoLock lock(&mutex);
 
     if (!verifySegmentList()) return 0;
-    vaddr_t address = findFreeSegment(firstSegment, size);
-    if (!address) return 0;
+    MemorySegment* segment = findFreeSegment(firstSegment, size);
+    if (!segment) return 0;
+
+    vaddr_t address = segment->address + segment->size;
+    if (segment->flags == protection) {
+        segment->size += size;
+        return address;
+    }
+
     MemorySegment* newSegment = allocateSegment(address, size, protection);
     addSegment(firstSegment, newSegment);
     return address;
@@ -231,8 +235,9 @@ bool MemorySegment::verifySegmentList() {
     assert(freeSegmentSpaceFound > 0);
 
     if (freeSegmentSpaceFound == 1) {
-        vaddr_t address = findFreeSegment(kernelSpace->firstSegment, PAGESIZE);
-        if (!address) return false;
+        current = findFreeSegment(kernelSpace->firstSegment, PAGESIZE);
+        if (!current) return false;
+        vaddr_t address = current->address + current->size;
         paddr_t physical = PhysicalMemory::popPageFrame();
         if (!physical) return false;
         if (!kernelSpace->mapAt(address, physical, PROT_READ | PROT_WRITE)) {
@@ -243,10 +248,14 @@ bool MemorySegment::verifySegmentList() {
 
         memset(*nextPage, 0, PAGESIZE);
 
-        freeSegment->address = address;
-        freeSegment->size = PAGESIZE;
-        freeSegment->flags = PROT_READ | PROT_WRITE;
-        addSegment(kernelSpace->firstSegment, freeSegment);
+        if (current->flags == (PROT_READ | PROT_WRITE)) {
+            current->size += PAGESIZE;
+        } else {
+            freeSegment->address = address;
+            freeSegment->size = PAGESIZE;
+            freeSegment->flags = PROT_READ | PROT_WRITE;
+            addSegment(kernelSpace->firstSegment, freeSegment);
+        }
     }
 
     return true;

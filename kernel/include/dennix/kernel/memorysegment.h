@@ -47,7 +47,8 @@ private:
             MemorySegment* newSegment);
     static MemorySegment* allocateSegment(vaddr_t address, size_t size,
             int flags);
-    static vaddr_t findFreeSegment(MemorySegment* firstSegment, size_t size);
+    static MemorySegment* findFreeSegment(MemorySegment* firstSegment,
+            size_t size);
     static bool verifySegmentList();
 };
 
