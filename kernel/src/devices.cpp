@@ -18,6 +18,7 @@
  */
 
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 #include <dennix/kernel/devices.h>
 #include <dennix/kernel/panic.h>
@@ -62,13 +63,29 @@ public:
     }
 };
 
+class DevRandom : public Vnode {
+public:
+    DevRandom() : Vnode(S_IFCHR | 0666, 0) {}
+    virtual ssize_t read(void* buffer, size_t size) {
+        arc4random_buf(buffer, size);
+        return size;
+    }
+
+    virtual ssize_t write(const void* /*buffer*/, size_t size) {
+        return size;
+    }
+};
+
 void Devices::initialize(Reference<DirectoryVnode> rootDir) {
     Reference<DirectoryVnode> dev = xnew DirectoryVnode(rootDir, 0755, 0);
+    Reference<Vnode> random = xnew DevRandom();
     if (rootDir->link("dev", dev) < 0 ||
             dev->link("full", xnew DevFull()) < 0 ||
             dev->link("null", xnew DevNull()) < 0 ||
             dev->link("zero", xnew DevZero()) < 0 ||
-            dev->link("display", TerminalDisplay::display) < 0) {
+            dev->link("display", TerminalDisplay::display) < 0 ||
+            dev->link("random", random) < 0 ||
+            dev->link("urandom", random) < 0) {
         PANIC("Could not create /dev directory.");
     }
 }
