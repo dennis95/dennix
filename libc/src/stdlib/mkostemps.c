@@ -22,10 +22,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-#include <unistd.h>
 
-static uint64_t attempts = 0;
 static const char* letters =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
@@ -43,13 +40,8 @@ int mkostemps(char* template, int suffixLength, int flags) {
     }
 
     do {
-        struct timespec ts;
-        clock_gettime(CLOCK_REALTIME, &ts);
-
-        // Produce a value that is unlikely to be the same for multiple
-        // invocations. Only the least significant 36 bits matter.
-        uint64_t value = ts.tv_sec ^ ((uint64_t) ts.tv_nsec << 6) ^
-                ((uint64_t) getpid() << 16) ^ attempts++;
+        uint64_t value;
+        arc4random_buf(&value, sizeof(value));
         for (size_t i = 0; i < 6; i++) {
             xtemplate[i] = letters[value % 64];
             value /= 64;
