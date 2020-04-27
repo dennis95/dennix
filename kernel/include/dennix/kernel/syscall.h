@@ -53,6 +53,7 @@ int fstatat(int fd, const char* restrict path, struct stat* restrict result,
         int flags);
 int ftruncate(int fd, off_t length);
 int futimens(int fd, const struct timespec ts[2]);
+int getentropy(void* buffer, size_t size);
 pid_t getpid();
 pid_t getpgid(pid_t pid);
 int getrusagens(int who, struct rusagens* usage);

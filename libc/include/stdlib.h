@@ -25,6 +25,9 @@
 #define __need_size_t
 #define __need_wchar_t
 #include <bits/types.h>
+#if __USE_DENNIX
+#  include <stdint.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -98,6 +101,9 @@ int unsetenv(const char*);
 #endif
 
 #if __USE_DENNIX
+uint32_t arc4random(void);
+void arc4random_buf(void*, size_t);
+uint32_t arc4random_uniform(uint32_t);
 char* canonicalize_file_name(const char*);
 int mkostemp(char*, int);
 int mkostemps(char*, int, int);

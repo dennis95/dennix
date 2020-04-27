@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -61,6 +61,7 @@ char* strsignal(int);
 #endif
 
 #if __USE_DENNIX
+void explicit_bzero(void*, size_t);
 size_t strlcpy(char* __restrict, const char* __restrict, size_t);
 #endif
 

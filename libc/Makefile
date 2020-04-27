@@ -54,6 +54,9 @@ COMMON_OBJ = \
 	stdio/vsprintf \
 	stdio/vsscanf\
 	stdlib/abs \
+	stdlib/arc4random \
+	stdlib/arc4random_buf \
+	stdlib/arc4random_uniform \
 	stdlib/atoi \
 	stdlib/atol \
 	stdlib/atoll \
@@ -79,6 +82,7 @@ COMMON_OBJ = \
 	stdlib/strtoll \
 	stdlib/strtoul \
 	stdlib/strtoull \
+	string/explicit_bzero \
 	string/memchr \
 	string/memcmp \
 	string/memcpy \
@@ -299,6 +303,7 @@ LIBC_OBJ = \
 	unistd/fork \
 	unistd/ftruncate \
 	unistd/getcwd \
+	unistd/getentropy \
 	unistd/gethostname \
 	unistd/getlogin \
 	unistd/getpid \

@@ -57,6 +57,7 @@ OBJ = \
 	process.o \
 	ps2.o \
 	ps2keyboard.o \
+	random.o \
 	refcount.o \
 	rtc.o \
 	signal.o \

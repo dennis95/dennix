@@ -81,6 +81,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_FCHMOD] =*/ (void*) Syscall::fchmod,
     /*[SYSCALL_FUTIMENS] =*/ (void*) Syscall::futimens,
     /*[SYSCALL_GETRUSAGENS] =*/ (void*) Syscall::getrusagens,
+    /*[SYSCALL_GETENTROPY] =*/ (void*) Syscall::getentropy,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -263,6 +264,15 @@ int Syscall::futimens(int fd, const struct timespec ts[2]) {
     Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
     return descr->vnode->utimens(ts[0], ts[1]);
+}
+
+int Syscall::getentropy(void* buffer, size_t size) {
+    if (size > 256) {
+        errno = EIO;
+        return -1;
+    }
+    arc4random_buf(buffer, size);
+    return 0;
 }
 
 pid_t Syscall::getpid() {

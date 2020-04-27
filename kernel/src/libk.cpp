@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,6 +24,7 @@
 #include <dennix/kernel/panic.h>
 
 static kthread_mutex_t heapLock = KTHREAD_MUTEX_INITIALIZER;
+static kthread_mutex_t randomLock = KTHREAD_MUTEX_INITIALIZER;
 
 extern "C" NORETURN void abort(void) {
     PANIC("Abort was called");
@@ -38,12 +39,20 @@ extern "C" void __lockHeap(void) {
     kthread_mutex_lock(&heapLock);
 }
 
+extern "C" void __lockRandom(void) {
+    kthread_mutex_lock(&randomLock);
+}
+
 extern "C" void* __mapMemory(size_t size) {
     return (void*) kernelSpace->mapMemory(size, PROT_READ | PROT_WRITE);
 }
 
 extern "C" void __unlockHeap(void) {
     kthread_mutex_unlock(&heapLock);
+}
+
+extern "C" void __unlockRandom(void) {
+    kthread_mutex_unlock(&randomLock);
 }
 
 extern "C" void __unmapMemory(void* addr, size_t size) {
