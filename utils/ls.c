@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,6 +23,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <grp.h>
+#include <pwd.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -49,6 +51,8 @@ static void addEntry(struct DirListing* listing, int dirFd, const char* name);
 static void freeEntries(struct DirListing* listing);
 static void getColor(mode_t mode, const char** pre, const char** post);
 static bool getDirectoryEntries(struct DirListing* listing, const char* path);
+static const char* getGroupName(gid_t gid);
+static const char* getUserName(uid_t uid);
 static void list(struct DirListing* listing);
 static void printMode(mode_t mode);
 
@@ -335,6 +339,34 @@ static bool getDirectoryEntries(struct DirListing* listing, const char* path) {
     return true;
 }
 
+// On other operating systems getgrgid and getpwuid open a file on every call.
+// So cache the result to avoid that.
+static const char* getGroupName(gid_t gid) {
+    static const char* cachedName;
+    static gid_t cachedGid;
+    if (gid == cachedGid && cachedName) {
+        return cachedName;
+    } else {
+        cachedGid = gid;
+        struct group* group = getgrgid(gid);
+        cachedName = group ? group->gr_name : NULL;
+        return cachedName;
+    }
+}
+
+static const char* getUserName(uid_t uid) {
+    static const char* cachedName;
+    static uid_t cachedUid;
+    if (uid == cachedUid && cachedName) {
+        return cachedName;
+    } else {
+        cachedUid = uid;
+        struct passwd* user = getpwuid(uid);
+        cachedName = user ? user->pw_name : NULL;
+        return cachedName;
+    }
+}
+
 static void list(struct DirListing* listing) {
     if (!unsorted) {
         qsort(listing->entries, listing->numEntries, sizeof(struct DirEntry*),
@@ -469,13 +501,19 @@ static void outputLong(struct DirEntry** entries, size_t numEntries) {
             nlinkFieldLength = length;
         }
         if (!noOwner) {
-            length = snprintf(NULL, 0, "%ju", (uintmax_t) entry->stat.st_uid);
+            const char* name = numericUidGid ? NULL :
+                    getUserName(entry->stat.st_uid);
+            length = name ? (int) strlen(name) : snprintf(NULL, 0, "%ju",
+                    (uintmax_t) entry->stat.st_uid);
             if (length > ownerFieldLength) {
                 ownerFieldLength = length;
             }
         }
         if (!noGroup) {
-            length = snprintf(NULL, 0, "%ju", (uintmax_t) entry->stat.st_gid);
+            const char* name = numericUidGid ? NULL :
+                    getGroupName(entry->stat.st_gid);
+            length = name ? (int) strlen(name) : snprintf(NULL, 0, "%ju",
+                    (uintmax_t) entry->stat.st_gid);
             if (length > groupFieldLength) {
                groupFieldLength = length;
             }
@@ -506,14 +544,25 @@ static void outputLong(struct DirEntry** entries, size_t numEntries) {
         printMode(entry->stat.st_mode);
         printf(" %*ju ", nlinkFieldLength, (uintmax_t) entry->stat.st_nlink);
 
-        if (!numericUidGid) {
-            // TODO: print owner/group name instead of uid/gid.
-        }
         if (!noOwner) {
-            printf("%*ju ", ownerFieldLength, (uintmax_t) entry->stat.st_uid);
+            const char* name = numericUidGid ? NULL :
+                    getUserName(entry->stat.st_uid);
+            if (name) {
+                printf("%-*s ", ownerFieldLength, name);
+            } else {
+                printf("%*ju ", ownerFieldLength,
+                        (uintmax_t) entry->stat.st_uid);
+            }
         }
         if (!noGroup) {
-            printf("%*ju ", groupFieldLength, (uintmax_t) entry->stat.st_gid);
+            const char* name = numericUidGid ? NULL :
+                    getGroupName(entry->stat.st_gid);
+            if (name) {
+                printf("%-*s ", groupFieldLength, name);
+            } else {
+                printf("%*ju ", groupFieldLength,
+                        (uintmax_t) entry->stat.st_gid);
+            }
         }
         printf("%*ju ", sizeFieldLength, (uintmax_t) entry->stat.st_size);
 
