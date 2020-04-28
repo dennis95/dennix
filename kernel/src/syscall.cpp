@@ -82,6 +82,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_FUTIMENS] =*/ (void*) Syscall::futimens,
     /*[SYSCALL_GETRUSAGENS] =*/ (void*) Syscall::getrusagens,
     /*[SYSCALL_GETENTROPY] =*/ (void*) Syscall::getentropy,
+    /*[SYSCALL_FCHDIR] =*/ (void*) Syscall::fchdir,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -184,6 +185,20 @@ NORETURN void Syscall::exit(int status) {
     Process::current()->exit(status);
     sched_yield();
     __builtin_unreachable();
+}
+
+int Syscall::fchdir(int fd) {
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) return -1;
+    if (!S_ISDIR(descr->vnode->stat().st_mode)) {
+        errno = ENOTDIR;
+        return -1;
+    }
+    Reference<FileDescription> newCwd = new FileDescription(descr->vnode,
+            O_SEARCH);
+    if (!newCwd) return -1;
+    Process::current()->cwdFd = newCwd;
+    return 0;
 }
 
 int Syscall::fchdirat(int fd, const char* path) {

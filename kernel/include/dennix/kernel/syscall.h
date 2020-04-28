@@ -44,6 +44,7 @@ int devctl(int fd, int command, void* restrict data, size_t size,
 int dup3(int fd1, int fd2, int flags);
 int execve(const char* path, char* const argv[], char* const envp[]);
 NORETURN void exit(int status);
+int fchdir(int);
 int fchdirat(int fd, const char* path);
 int fchmod(int fd, mode_t mode);
 int fchmodat(int fd, const char* path, mode_t mode, int flags);

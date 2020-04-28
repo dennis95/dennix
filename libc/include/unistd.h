@@ -129,6 +129,7 @@ int execv(const char*, char* const[]);
 int execve(const char*, char* const[], char* const[]);
 int execvp(const char*, char* const[]);
 __noreturn void _exit(int);
+int fchdir(int);
 pid_t fork(void);
 int ftruncate(int, off_t);
 char* getcwd(char*, size_t);

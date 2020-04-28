@@ -300,6 +300,7 @@ LIBC_OBJ = \
 	unistd/execve \
 	unistd/execvp \
 	unistd/_exit \
+	unistd/fchdir \
 	unistd/fchdirat \
 	unistd/fork \
 	unistd/ftruncate \
