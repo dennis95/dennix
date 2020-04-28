@@ -13,32 +13,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/pwd/getpwnam.c
- * Get user information.
+/* libc/src/grp/getgrgid.c
+ * Get group information.
  */
 
-#include <pwd.h>
-#include <string.h>
+#include <grp.h>
+#include <stddef.h>
 
-// We currently do not support multiple users, so we just hardcode this entry.
-static const struct passwd userEntry = {
-    .pw_name = "user",
-    .pw_uid = 0,
-    .pw_gid = 0,
-    .pw_dir = "/home/user",
-    .pw_shell = "/bin/sh"
+// We don't support multiple users or groups, so we just hardcode this.
+static const char* const users[] = { "user", NULL };
+static const struct group usersGroup = {
+    .gr_name = "users",
+    .gr_gid = 0,
+    .gr_mem = (char**) users
 };
 
-struct passwd* getpwnam(const char* name) {
-    if (strcmp(name, "user") == 0) {
-        return (struct passwd*) &userEntry;
-    }
-    return NULL;
-}
-
-struct passwd* getpwuid(uid_t uid) {
-    if (uid == 0) {
-        return (struct passwd*) &userEntry;
+struct group* getgrgid(gid_t gid) {
+    if (gid == 0) {
+        return (struct group*) &usersGroup;
     }
     return NULL;
 }

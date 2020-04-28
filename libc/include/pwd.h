@@ -39,6 +39,7 @@ struct passwd {
 };
 
 struct passwd* getpwnam(const char*);
+struct passwd* getpwuid(uid_t);
 
 #ifdef __cplusplus
 }
