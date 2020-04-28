@@ -115,7 +115,11 @@ COMMON_OBJ = \
 	wchar/mbrtowc \
 	wchar/mbsinit \
 	wchar/mbsrtowcs \
-	wchar/wcrtomb
+	wchar/wcrtomb \
+	wchar/wcschr \
+	wchar/wcscmp \
+	wchar/wcscpy \
+	wchar/wcslen
 
 LIBC_OBJ = \
 	$(COMMON_OBJ) \

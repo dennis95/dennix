@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -56,6 +56,10 @@ int mbsinit(const mbstate_t*);
 size_t mbsrtowcs(wchar_t* __restrict, const char** __restrict, size_t,
         mbstate_t* __restrict);
 size_t wcrtomb(char* __restrict, wchar_t, mbstate_t* __restrict);
+wchar_t* wcschr(const wchar_t*, wchar_t);
+int wcscmp(const wchar_t*, const wchar_t*);
+wchar_t* wcscpy(wchar_t* __restrict, const wchar_t* __restrict);
+size_t wcslen(const wchar_t*);
 
 #ifdef __cplusplus
 }
