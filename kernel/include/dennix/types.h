@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,6 +25,7 @@ typedef long __blksize_t;
 typedef unsigned int __clockid_t;
 typedef unsigned long __dev_t;
 typedef __UINT64_TYPE__ __gid_t;
+typedef __UINT64_TYPE__ __id_t;
 typedef __UINTMAX_TYPE__ __ino_t;
 typedef int __mode_t;
 typedef unsigned int __nlink_t;

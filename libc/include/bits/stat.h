@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,5 +34,6 @@
 #define S_IXOTH 01
 #define S_ISUID 04000
 #define S_ISGID 02000
+#define S_ISVTX 01000
 
 #endif

@@ -107,6 +107,10 @@ extern "C" {
 /* #define _XOPEN_UNIX */
 /* #define _XOPEN_UUCP */
 
+#define STDIN_FILENO 0
+#define STDOUT_FILENO 1
+#define STDERR_FILENO 2
+
 #define F_OK 0
 #define R_OK (1 << 0)
 #define W_OK (1 << 1)

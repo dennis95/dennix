@@ -59,6 +59,11 @@ typedef __gid_t gid_t;
 #  define __gid_t_defined
 #endif
 
+#if defined(__need_id_t) && !defined(__id_t_defined)
+typedef __id_t id_t;
+#  define __id_t_defined
+#endif
+
 #if defined(__need_ino_t) && !defined(__ino_t_defined)
 typedef __ino_t ino_t;
 #  define __ino_t_defined
@@ -117,6 +122,7 @@ typedef __uid_t uid_t;
 #undef __need_FILE
 #undef __need_fpos_t
 #undef __need_gid_t
+#undef __need_id_t
 #undef __need_ino_t
 #undef __need_mode_t
 #undef __need_nlink_t
