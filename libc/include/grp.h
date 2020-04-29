@@ -36,6 +36,7 @@ struct group {
 };
 
 struct group* getgrgid(gid_t);
+struct group* getgrnam(const char*);
 
 #ifdef __cplusplus
 }

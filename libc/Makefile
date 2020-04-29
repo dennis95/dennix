@@ -310,10 +310,13 @@ LIBC_OBJ = \
 	unistd/ftruncate \
 	unistd/getcwd \
 	unistd/getentropy \
+	unistd/geteuid \
+	unistd/getgid \
 	unistd/gethostname \
 	unistd/getlogin \
 	unistd/getpid \
 	unistd/getpgid \
+	unistd/getuid \
 	unistd/isatty \
 	unistd/link \
 	unistd/linkat \

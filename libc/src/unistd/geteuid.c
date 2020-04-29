@@ -13,31 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/grp/getgrgid.c
- * Get group information.
+/* libc/src/unistd/geteuid.c
+ * Get the effective user id.
  */
 
-#include <grp.h>
-#include <string.h>
+#include <unistd.h>
 
-// We don't support multiple users or groups, so we just hardcode this.
-static const char* const users[] = { "user", NULL };
-static const struct group usersGroup = {
-    .gr_name = "users",
-    .gr_gid = 0,
-    .gr_mem = (char**) users
-};
-
-struct group* getgrgid(gid_t gid) {
-    if (gid == 0) {
-        return (struct group*) &usersGroup;
-    }
-    return NULL;
-}
-
-struct group* getgrnam(const char* name) {
-    if (strcmp(name, "users") == 0) {
-        return (struct group*) &usersGroup;
-    }
-    return NULL;
+uid_t geteuid(void) {
+    return 0;
 }
