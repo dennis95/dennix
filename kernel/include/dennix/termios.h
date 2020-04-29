@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,6 +23,7 @@
 #define ECHO (1 << 0)
 #define ICANON (1 << 1)
 #define ISIG (1 << 2)
+#define ECHONL (1 << 3)
 
 #define VEOF 0
 #define VEOL 1

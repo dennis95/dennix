@@ -79,7 +79,7 @@ void Terminal::handleCharacter(char c) {
     } else if (termio.c_lflag & ISIG && c == termio.c_cc[VSUSP]) {
 
     } else {
-        if (termio.c_lflag & ECHO) {
+        if (termio.c_lflag & ECHO || (termio.c_lflag & ECHONL && c == '\n')) {
             TerminalDisplay::printCharacterRaw(c);
         }
         terminalBuffer.write(c);
