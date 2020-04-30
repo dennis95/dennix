@@ -24,6 +24,7 @@
 #include <string.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
+#include <dennix/fchownat.h>
 #include <dennix/fcntl.h>
 #include <dennix/wait.h>
 #include <dennix/kernel/addressspace.h>
@@ -83,6 +84,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_GETRUSAGENS] =*/ (void*) Syscall::getrusagens,
     /*[SYSCALL_GETENTROPY] =*/ (void*) Syscall::getentropy,
     /*[SYSCALL_FCHDIR] =*/ (void*) Syscall::fchdir,
+    /*[SYSCALL_FCHOWNAT] =*/ (void*) Syscall::fchownat,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -232,6 +234,23 @@ int Syscall::fchmodat(int fd, const char* path, mode_t mode, int flags) {
     if (!vnode) return -1;
 
     return vnode->chmod(mode);
+}
+
+static int fchownatImpl(int fd, const char* path, uid_t uid, gid_t gid,
+        int flags) {
+    bool followFinalSymlink = !(flags & AT_SYMLINK_NOFOLLOW);
+    Reference<FileDescription> descr = getRootFd(fd, path);
+    if (!descr) return -1;
+    Reference<Vnode> vnode = resolvePath(descr->vnode, path,
+            followFinalSymlink);
+    if (!vnode) return -1;
+
+    return vnode->chown(uid, gid);
+}
+
+int Syscall::fchownat(struct fchownatParams* params) {
+    return fchownatImpl(params->fd, params->path, params->uid, params->gid,
+            params->flags);
 }
 
 int Syscall::fcntl(int fd, int cmd, int param) {

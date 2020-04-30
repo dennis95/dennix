@@ -27,6 +27,7 @@
 #include <dennix/timespec.h>
 #include <dennix/kernel/kernel.h>
 
+struct fchownatParams;
 struct __mmapRequest;
 struct stat;
 
@@ -48,6 +49,7 @@ int fchdir(int);
 int fchdirat(int fd, const char* path);
 int fchmod(int fd, mode_t mode);
 int fchmodat(int fd, const char* path, mode_t mode, int flags);
+int fchownat(struct fchownatParams* params);
 int fcntl(int fd, int cmd, int param);
 int fstat(int fd, struct stat* result);
 int fstatat(int fd, const char* restrict path, struct stat* restrict result,

@@ -293,6 +293,7 @@ LIBC_OBJ = \
 	unistd/access \
 	unistd/alarm \
 	unistd/chdir \
+	unistd/chown \
 	unistd/close \
 	unistd/confstr \
 	unistd/dup \
@@ -306,6 +307,7 @@ LIBC_OBJ = \
 	unistd/_exit \
 	unistd/fchdir \
 	unistd/fchdirat \
+	unistd/fchownat \
 	unistd/fork \
 	unistd/ftruncate \
 	unistd/getcwd \
@@ -318,6 +320,7 @@ LIBC_OBJ = \
 	unistd/getpgid \
 	unistd/getuid \
 	unistd/isatty \
+	unistd/lchown \
 	unistd/link \
 	unistd/linkat \
 	unistd/lseek \

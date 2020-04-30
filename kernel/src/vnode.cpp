@@ -195,6 +195,21 @@ int Vnode::chmod(mode_t mode) {
     return 0;
 }
 
+int Vnode::chown(uid_t uid, gid_t gid) {
+    AutoLock lock(&mutex);
+    if (uid != (uid_t) -1) {
+        stats.st_uid = uid;
+    }
+    if (gid != (gid_t) -1) {
+        stats.st_gid = gid;
+    }
+    if (stats.st_mode & 0111) {
+        stats.st_mode &= ~(S_ISUID | S_ISGID);
+    }
+    updateTimestamps(false, true, false);
+    return 0;
+}
+
 int Vnode::devctl(int /*command*/, void* restrict /*data*/, size_t /*size*/,
         int* restrict info) {
     *info = -1;
