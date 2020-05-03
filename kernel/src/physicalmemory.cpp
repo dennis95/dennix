@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,15 +18,18 @@
  */
 
 #include <assert.h>
+#include <dennix/meminfo.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/kthread.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/physicalmemory.h>
+#include <dennix/kernel/syscall.h>
 
 static char firstStackPage[PAGESIZE] ALIGNED(PAGESIZE);
 static size_t framesAvailable;
 static size_t framesReserved;
 static paddr_t* stack = (paddr_t*) firstStackPage + 1;
+static size_t totalFrames;
 static vaddr_t lastStackPage = (vaddr_t) firstStackPage;
 
 static kthread_mutex_t mutex = KTHREAD_MUTEX_INITIALIZER;
@@ -101,6 +104,7 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
             mmapEntry->addr + mmapEntry->len <= UINTPTR_MAX) {
             paddr_t addr = (paddr_t) mmapEntry->addr;
             for (uint64_t i = 0; i < mmapEntry->len; i += PAGESIZE) {
+                totalFrames++;
                 if (isUsedByModule(addr + i, modules, multiboot->mods_count) ||
                         isUsedByKernel(addr + i) ||
                         isUsedByMultiboot(addr + i, multiboot)) {
@@ -194,4 +198,10 @@ void PhysicalMemory::unreserveFrames(size_t frames) {
 
     assert(framesReserved >= frames);
     framesReserved -= frames;
+}
+
+void Syscall::meminfo(struct meminfo* info) {
+    AutoLock lock(&mutex);
+    info->mem_total = totalFrames * PAGESIZE;
+    info->mem_free = framesAvailable * PAGESIZE;
 }

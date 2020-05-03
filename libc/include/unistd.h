@@ -33,6 +33,7 @@
 #include <dennix/seek.h>
 #if __USE_DENNIX
 #  include <dennix/fork.h>
+#  include <dennix/meminfo.h>
 #endif
 
 #ifdef __cplusplus
@@ -172,6 +173,7 @@ typedef unsigned long useconds_t;
 int dup3(int, int, int);
 int fchdirat(int, const char*);
 int getentropy(void*, size_t);
+void meminfo(struct meminfo*);
 int pipe2(int[2], int);
 pid_t rfork(int);
 pid_t regfork(int, regfork_t*);

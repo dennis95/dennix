@@ -85,6 +85,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_GETENTROPY] =*/ (void*) Syscall::getentropy,
     /*[SYSCALL_FCHDIR] =*/ (void*) Syscall::fchdir,
     /*[SYSCALL_FCHOWNAT] =*/ (void*) Syscall::fchownat,
+    /*[SYSCALL_MEMINFO] =*/ (void*) Syscall::meminfo,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {

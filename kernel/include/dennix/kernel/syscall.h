@@ -28,6 +28,7 @@
 #include <dennix/kernel/kernel.h>
 
 struct fchownatParams;
+struct meminfo;
 struct __mmapRequest;
 struct stat;
 
@@ -65,6 +66,7 @@ int kill(pid_t pid, int signal);
 int linkat(int oldFd, const char* oldPath, int newFd, const char* newPath,
         int flags);
 off_t lseek(int fd, off_t offset, int whence);
+void meminfo(struct meminfo*);
 int mkdirat(int fd, const char* path, mode_t mode);
 void* mmap(__mmapRequest* request);
 int munmap(void* addr, size_t size);

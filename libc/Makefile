@@ -324,6 +324,7 @@ LIBC_OBJ = \
 	unistd/link \
 	unistd/linkat \
 	unistd/lseek \
+	unistd/meminfo \
 	unistd/pipe \
 	unistd/pipe2 \
 	unistd/read \
