@@ -134,6 +134,16 @@ AddressSpace::~AddressSpace() {
     }
 
     if (!__constructionFailed) {
+        // Free the page tables.
+        uintptr_t* mapped = (uintptr_t*) kernelSpace->mapAt(mappingArea,
+                pageDir, PROT_READ);
+        for (size_t i = 0; i < 768; i++) {
+            paddr_t pt = mapped[i] & ~PAGE_MISALIGN;
+            if (pt) {
+                PhysicalMemory::pushPageFrame(pt);
+            }
+        }
+        kernelSpace->unmap(mappingArea);
         MemorySegment::removeSegment(kernelSpace->firstSegment, mappingArea,
                 PAGESIZE);
     }

@@ -160,6 +160,32 @@ AddressSpace::~AddressSpace() {
     }
 
     if (!__constructionFailed) {
+        // Free the PDPTs, page directories and page tables.
+        uintptr_t* mapped = (uintptr_t*) kernelSpace->mapAt(mappingArea,
+                pml4, PROT_READ);
+        for (size_t i = 0; i < 256; i++) {
+            paddr_t pdpt = mapped[i] & ~PAGE_MISALIGN;
+            if (pdpt) {
+                kernelSpace->mapAt(mappingArea, pdpt, PROT_READ);
+                for (size_t j = 0; j < 512; j++) {
+                    paddr_t pd = mapped[j] & ~PAGE_MISALIGN;
+                    if (pd) {
+                        kernelSpace->mapAt(mappingArea, pd, PROT_READ);
+                        for (size_t k = 0; k < 512; k++) {
+                            paddr_t pt = mapped[k] & ~PAGE_MISALIGN;
+                            if (pt) {
+                                PhysicalMemory::pushPageFrame(pt);
+                            }
+                        }
+                        PhysicalMemory::pushPageFrame(pd);
+                        kernelSpace->mapAt(mappingArea, pdpt, PROT_READ);
+                    }
+                }
+                PhysicalMemory::pushPageFrame(pdpt);
+                kernelSpace->mapAt(mappingArea, pml4, PROT_READ);
+            }
+        }
+        kernelSpace->unmap(mappingArea);
         MemorySegment::removeSegment(kernelSpace->firstSegment, mappingArea,
                 PAGESIZE);
     }
