@@ -39,6 +39,7 @@ BIN_PROGRAMS = \
 	head \
 	ln \
 	ls \
+	meminfo \
 	mkdir \
 	mv \
 	pwd \
