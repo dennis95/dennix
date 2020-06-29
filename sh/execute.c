@@ -178,11 +178,8 @@ static int executePipeline(struct Pipeline* pipeline) {
 
 static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         bool subshell) {
-    int argc = simpleCommand->numWords;
     int result = 1;
 
-    char** arguments = calloc(argc + 1, sizeof(char*));
-    if (!arguments) err(1, "malloc");
     size_t numRedirections = simpleCommand->numRedirections;
     struct Redirection* redirections = calloc(numRedirections,
             sizeof(struct Redirection));
@@ -191,9 +188,22 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
     char** assignments = calloc(numAssignments, sizeof(char*));
     if (!assignments) err(1, "malloc");
 
-    for (int i = 0; i < argc; i++) {
-        arguments[i] = expandWord(simpleCommand->words[i]);
-        if (!arguments[i]) goto cleanup;
+    char** arguments = NULL;
+    size_t numArguments = 0;
+    for (size_t i = 0; i < simpleCommand->numWords; i++) {
+        char** fields;
+        ssize_t numFields = expand(simpleCommand->words[i], 0, &fields);
+        if (numFields < 0) goto cleanup;
+        if (!addMultipleToArray((void**) &arguments, &numArguments, fields,
+                sizeof(char*), numFields)) {
+            err(1, "malloc");
+        }
+        free(fields);
+    }
+
+    if (!addToArray((void**) &arguments, &numArguments, &(void*){NULL},
+            sizeof(char*))) {
+        err(1, "malloc");
     }
 
     for (size_t i = 0; i < numRedirections; i++) {
@@ -207,10 +217,9 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         if (!assignments[i]) goto cleanup;
     }
 
+    int argc = numArguments - 1;
     const char* command = arguments[0];
     if (!command) {
-        assert(numRedirections > 0 || numAssignments > 0);
-
         for (size_t i = 0; i < numAssignments; i++) {
             char* equals = strchr(assignments[i], '=');
             *equals = '\0';
@@ -247,7 +256,7 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
 
 cleanup:
     if (subshell) _Exit(result);
-    for (int i = 0; i < argc; i++) {
+    for (size_t i = 0; i < numArguments; i++) {
         free(arguments[i]);
     }
     free(arguments);

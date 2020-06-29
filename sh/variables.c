@@ -111,6 +111,7 @@ void initializeVariables(void) {
         variables[variablesAllocated].value = NULL;
         variablesAllocated++;
     }
+    setVariable("IFS", " \t\n", false);
 }
 
 bool isRegularVariableName(const char* s) {

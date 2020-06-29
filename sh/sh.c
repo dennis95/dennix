@@ -366,12 +366,17 @@ ssize_t readCommand(char** str, bool newCommand) {
 
 // Utility functions:
 
-bool addToArray(void** array, size_t* used, void* value, size_t size) {
-    void* newArray = reallocarray(*array, size, *used + 1);
+bool addToArray(void** array, size_t* used, const void* value, size_t size) {
+    return addMultipleToArray(array, used, value, size, 1);
+}
+
+bool addMultipleToArray(void** array, size_t* used, const void* values,
+        size_t size, size_t amount) {
+    void* newArray = reallocarray(*array, size, *used + amount);
     if (!newArray) return false;
     *array = newArray;
-    memcpy((void*) ((uintptr_t) *array + size * *used), value, size);
-    (*used)++;
+    memcpy((void*) ((uintptr_t) *array + size * *used), values, size * amount);
+    *used += amount;
     return true;
 }
 

@@ -54,8 +54,10 @@ extern struct ShellOptions shellOptions;
 extern struct termios termios;
 
 noreturn void executeScript(int argc, char** argv);
-NO_DISCARD bool addToArray(void** array, size_t* used, void* value,
+NO_DISCARD bool addToArray(void** array, size_t* used, const void* value,
         size_t size);
+NO_DISCARD bool addMultipleToArray(void** array, size_t* used,
+        const void* values, size_t size, size_t amount);
 NO_DISCARD bool moveFd(int old, int new);
 int printPrompt(bool newCommand);
 ssize_t readCommand(char** str, bool newCommand);
