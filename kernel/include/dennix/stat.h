@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,15 +23,20 @@
 #include <dennix/timespec.h>
 #include <dennix/types.h>
 
-#define S_IFBLK 010000
+/* We define these macros to their traditional values because some software
+   assumes these values. */
+#define S_IFIFO 010000
 #define S_IFCHR 020000
-#define S_IFIFO 030000
-#define S_IFREG 040000
-#define S_IFDIR 050000
-#define S_IFLNK 060000
-#define S_IFSOCK 070000
+#define S_IFDIR 040000
+#define S_IFBLK 060000
+#define S_IFREG 0100000
+#define S_IFLNK 0120000
+#define S_IFSOCK 0140000
+/* The following values are unused and can be used for new file types:
+   030000 050000 070000 080000 090000 0130000 0150000 0160000 0170000
+   The value 0110000 is reserved for contiguous files. */
 
-#define S_IFMT 070000
+#define S_IFMT 0170000
 
 #define UTIME_NOW (-1)
 #define UTIME_OMIT (-2)
