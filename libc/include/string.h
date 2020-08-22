@@ -54,6 +54,7 @@ size_t strxfrm(char* __restrict, const char* __restrict, size_t);
 
 #if __USE_DENNIX || __USE_POSIX
 char* stpcpy(char* __restrict, const char* __restrict);
+char* stpncpy(char* __restrict, const char* __restrict, size_t);
 char* strdup(const char*);
 char* strndup(const char*, size_t);
 size_t strnlen(const char*, size_t);

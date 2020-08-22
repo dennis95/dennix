@@ -89,6 +89,7 @@ COMMON_OBJ = \
 	string/memmove \
 	string/memset \
 	string/stpcpy \
+	string/stpncpy \
 	string/strcat \
 	string/strchr \
 	string/strcmp \
