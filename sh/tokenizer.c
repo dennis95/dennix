@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -118,7 +118,9 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
         }
 
         if (!escaped) {
-            if (tokenizer->tokenStatus != TOKEN_SINGLE_QUOTED && c == '\'') {
+            if (tokenizer->tokenStatus != TOKEN_SINGLE_QUOTED &&
+                    tokenizer->tokenStatus != TOKEN_DOUBLE_QUOTED &&
+                    c == '\'') {
                 if (!nest(tokenizer, TOKEN_SINGLE_QUOTED)) {
                     return TOKENIZER_ERROR;
                 }
