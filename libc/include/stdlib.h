@@ -26,6 +26,7 @@
 #define __need_wchar_t
 #include <bits/types.h>
 #if __USE_DENNIX
+#  include <dennix/oflags.h>
 #  include <stdint.h>
 #endif
 

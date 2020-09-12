@@ -34,6 +34,7 @@
 #if __USE_DENNIX
 #  include <dennix/fork.h>
 #  include <dennix/meminfo.h>
+#  include <dennix/oflags.h>
 #endif
 
 #ifdef __cplusplus

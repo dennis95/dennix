@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,6 +27,7 @@
 #include <bits/types.h>
 #include <bits/stat.h>
 #include <dennix/fcntl.h>
+#include <dennix/oflags.h>
 #include <dennix/seek.h>
 
 #ifdef __cplusplus
