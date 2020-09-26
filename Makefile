@@ -39,7 +39,10 @@ install-headers $(INCLUDE_DIR):
 	$(MAKE) -C kernel install-headers
 	$(MAKE) -C libc install-headers
 
-install-libc $(LIB_DIR): $(INCLUDE_DIR)
+install-libc: $(INCLUDE_DIR)
+	$(MAKE) -C libc install-libs
+
+$(LIB_DIR):
 	$(MAKE) -C libc install-libs
 
 install-ports $(DXPORT_DIR): $(INCLUDE_DIR) $(LIB_DIR)
