@@ -350,7 +350,7 @@ int printPrompt(bool newCommand) {
     }
 }
 
-ssize_t readCommand(char** str, bool newCommand) {
+void readCommand(const char** str, bool newCommand) {
     if (interactiveInput) {
         return readCommandInteractive(str, newCommand);
     }
@@ -361,7 +361,7 @@ ssize_t readCommand(char** str, bool newCommand) {
     ssize_t length = getline(&buffer, &bufferSize, inputFile);
     if (length < 0 && !feof(inputFile)) err(1, "getline");
     *str = buffer;
-    return length;
+    if (length < 0) *str = "";
 }
 
 // Utility functions:

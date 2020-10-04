@@ -25,6 +25,6 @@
 
 void freeInteractive(void);
 void initializeInteractive(void);
-ssize_t readCommandInteractive(char** str, bool newCommand);
+void readCommandInteractive(const char** str, bool newCommand);
 
 #endif

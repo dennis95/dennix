@@ -61,18 +61,18 @@ bool initParser(struct Parser* parser) {
 
 static enum ParserResult getNextLine(struct Parser* parser, bool newCommand) {
     enum TokenizerResult tokenResult;
-    char* str;
-    ssize_t length = readCommand(&str, newCommand);
+    const char* str;
+    readCommand(&str, newCommand);
 
 continue_tokenizing:
-    tokenResult = splitTokens(&parser->tokenizer, length < 0 ? "" : str);
+    tokenResult = splitTokens(&parser->tokenizer, str);
     if (tokenResult == TOKENIZER_ERROR) {
         return PARSER_ERROR;
     } else if (tokenResult == TOKENIZER_PREMATURE_EOF) {
         syntaxError(NULL);
         return PARSER_SYNTAX;
     } else if (tokenResult == TOKENIZER_NEED_INPUT) {
-        length = readCommand(&str, false);
+        readCommand(&str, false);
         goto continue_tokenizing;
     }
 
