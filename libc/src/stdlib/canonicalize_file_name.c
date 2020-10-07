@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,10 +26,10 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-static char* getEntryName(DIR* dir, dev_t dev, ino_t ino) {
+static char* getEntryName(DIR* dir, ino_t ino) {
     struct dirent* dirent = readdir(dir);
     while (dirent) {
-        if (dirent->d_dev == dev && dirent->d_ino == ino) {
+        if (dirent->d_ino == ino) {
             return dirent->d_name;
         }
 
@@ -133,7 +133,7 @@ char* canonicalize_file_name(const char* path) {
             free(name);
             return NULL;
         }
-        char* filename = getEntryName(dir, st.st_dev, st.st_ino);
+        char* filename = getEntryName(dir, st.st_ino);
         if (!filename) {
             closedir(dir);
             free(name);
