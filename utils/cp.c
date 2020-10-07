@@ -45,6 +45,7 @@ static void copyFile(int sourceFd, const char* sourcePath, int destFd,
 static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
         int destFd, const char* destName, const char* destPath, bool force,
         bool prompt, bool recursive);
+static bool isDescendantOf(int dirFd, const struct stat* possibleParentStat);
 
 int main(int argc, char* argv[]) {
     struct option longopts[] = {
@@ -237,10 +238,9 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
                 status = 1;
                 return;
             }
-            destExists = true;
         }
 
-        int newSourceFd = openat(sourceFd, sourceName, O_SEARCH | O_DIRECTORY);
+        int newSourceFd = openat(sourceFd, sourceName, O_RDONLY | O_DIRECTORY);
         if (newSourceFd < 0) {
             warn("open: '%s'", sourcePath);
             status = 1;
@@ -260,6 +260,15 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
             status = 1;
             return;
         }
+
+        if (isDescendantOf(newDestFd, &sourceSt)) {
+            warnx("cannot copy directory '%s' into itself '%s'", sourcePath,
+                    destPath);
+            closedir(dir);
+            status = 1;
+            return;
+        }
+
         struct dirent* dirent = readdir(dir);
         while (dirent) {
             if (strcmp(dirent->d_name, ".") == 0 ||
@@ -278,14 +287,8 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
             if (!newDestPath) err(1, "malloc");
             stpcpy(stpcpy(stpcpy(newDestPath, destPath), "/"), dirent->d_name);
 
-            if (destExists && dirent->d_dev == destSt.st_dev &&
-                    dirent->d_ino == destSt.st_ino) {
-                warnx("cannot copy directory '%s' into itself '%s'",
-                        newSourcePath, destPath);
-            } else {
-                copy(newSourceFd, dirent->d_name, newSourcePath, newDestFd,
-                    dirent->d_name, newDestPath, force, prompt, recursive);
-            }
+            copy(newSourceFd, dirent->d_name, newSourcePath, newDestFd,
+                dirent->d_name, newDestPath, force, prompt, recursive);
 
             free(newSourcePath);
             free(newDestPath);
@@ -359,4 +362,36 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
         }
     }
     close(newDestFd);
+}
+
+static bool isDescendantOf(int dirFd, const struct stat* possibleParentStat) {
+    // If any of these functions fail, assume that the directory is not a
+    // descendant.
+    int fd = openat(dirFd, "..", O_SEARCH | O_DIRECTORY);
+    if (fd < 0) return false;
+    struct stat oldStat = *possibleParentStat;
+    while (true) {
+        struct stat st;
+        if (fstat(fd, &st) < 0) {
+            close(fd);
+            return false;
+        }
+        if (st.st_dev == possibleParentStat->st_dev &&
+                st.st_ino == possibleParentStat->st_ino) {
+            close(fd);
+            return true;
+        }
+
+        if (st.st_dev == oldStat.st_dev && st.st_ino == oldStat.st_ino) {
+            // We have reached the root directory.
+            close(fd);
+            return false;
+        }
+
+        int newFd = openat(fd, "..", O_SEARCH | O_DIRECTORY);
+        close(fd);
+        if (newFd < 0) return false;
+        fd = newFd;
+        oldStat = st;
+    }
 }
