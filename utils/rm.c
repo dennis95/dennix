@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,8 +29,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
-
-static int exitStatus = 0;
 
 static bool getConfirmation(void);
 static bool removeFile(const char* filename, bool force, bool prompt,
@@ -80,6 +78,7 @@ int main(int argc, char* argv[]) {
 
     if (optind >= argc) errx(1, "missing operand");
 
+    int exitStatus = 0;
     for (int i = optind; i < argc; i++) {
         char* nameCopy = strdup(argv[i]);
         if (!nameCopy) err(1, "strdup");
@@ -97,7 +96,9 @@ int main(int argc, char* argv[]) {
             continue;
         }
         free(nameCopy);
-        removeFile(argv[i], force, prompt, recursive);
+        if (!removeFile(argv[i], force, prompt, recursive)) {
+            exitStatus = 1;
+        }
     }
     return exitStatus;
 }
@@ -118,7 +119,6 @@ static bool removeFile(const char* filename, bool force, bool prompt,
     if (lstat(filename, &st) < 0) {
         if (force && errno == ENOENT) return true;
         warn("cannot remove '%s'", filename);
-        exitStatus = 1;
         return false;
     }
 
@@ -126,13 +126,12 @@ static bool removeFile(const char* filename, bool force, bool prompt,
         if (!recursive) {
             errno = EISDIR;
             warn("'%s'", filename);
-            exitStatus = 1;
             return false;
         }
         if (prompt /* || TODO: no write permission */) {
             fprintf(stderr, "%s: descend into directory '%s'? ",
                     program_invocation_short_name, filename);
-            if (!getConfirmation()) return false;
+            if (!getConfirmation()) return true;
         }
 
         bool result = removeRecursively(filename, force, prompt);
@@ -140,11 +139,10 @@ static bool removeFile(const char* filename, bool force, bool prompt,
         if (prompt) {
             fprintf(stderr, "%s: remove directory '%s'? ",
                     program_invocation_short_name, filename);
-            if (!getConfirmation()) return false;
+            if (!getConfirmation()) return true;
         }
         if (rmdir(filename) < 0) {
             warn("cannot remove '%s'", filename);
-            exitStatus = 1;
             return false;
         }
         return result;
@@ -152,11 +150,10 @@ static bool removeFile(const char* filename, bool force, bool prompt,
         if (prompt /* || TODO: no write permission */) {
             fprintf(stderr, "%s: remove file '%s'? ",
                     program_invocation_short_name, filename);
-            if (!getConfirmation()) return false;
+            if (!getConfirmation()) return true;
         }
         if (unlink(filename) < 0) {
             warn("cannot remove '%s'", filename);
-            exitStatus = 1;
             return false;
         }
         return true;
@@ -167,11 +164,11 @@ static bool removeRecursively(const char* dirname, bool force, bool prompt) {
     DIR* dir = opendir(dirname);
     if (!dir) {
         warn("fopendir: '%s'", dirname);
-        exitStatus = 1;
         return false;
     }
 
     size_t dirnameLength = strlen(dirname);
+    bool result = true;
     errno = 0;
     struct dirent* dirent = readdir(dir);
     while (dirent) {
@@ -184,20 +181,9 @@ static bool removeRecursively(const char* dirname, bool force, bool prompt) {
         if (!name) err(1, "malloc");
         stpcpy(stpcpy(stpcpy(name, dirname), "/"), dirent->d_name);
 
-        bool result = removeFile(name, force, prompt, true);
+        result &= removeFile(name, force, prompt, true);
         free(name);
 
-        if (!result) {
-            // If a file was not deleted we must not try to delete it again.
-            // Otherwise we could get into an infinite loop. Unfortunately
-            // there is no easy way to keep track of which files to ignore so
-            // we just stop recursing that case.
-            // TODO: POSIX requires us to continue.
-            closedir(dir);
-            return false;
-        }
-
-        rewinddir(dir);
         errno = 0;
         dirent = readdir(dir);
     }
@@ -205,9 +191,8 @@ static bool removeRecursively(const char* dirname, bool force, bool prompt) {
     if (errno) {
         warn("readdir: '%s'", dirname);
         closedir(dir);
-        exitStatus = 1;
         return false;
     }
     closedir(dir);
-    return true;
+    return result;
 }
