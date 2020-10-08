@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,10 +22,7 @@
 #include <unistd.h>
 
 int closedir(DIR* dir) {
-    if (close(dir->fd) == -1) return -1;
-    if (dir->dirent) {
-        free(dir->dirent);
-    }
+    int fd = dir->fd;
     free(dir);
-    return 0;
+    return close(fd);
 }

@@ -47,7 +47,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_EXECVE] =*/ (void*) Syscall::execve,
     /*[SYSCALL_WAITPID] =*/ (void*) Syscall::waitpid,
     /*[SYSCALL_FSTATAT] =*/ (void*) Syscall::fstatat,
-    /*[SYSCALL_READDIR] =*/ (void*) Syscall::readdir,
+    /*[SYSCALL_GETDENTS] =*/ (void*) Syscall::getdents,
     /*[SYSCALL_CLOCK_NANOSLEEP] =*/ (void*) Syscall::clock_nanosleep,
     /*[SYSCALL_TCGETATTR] =*/ (void*) Syscall::tcgetattr,
     /*[SYSCALL_TCSETATTR] =*/ (void*) Syscall::tcsetattr,
@@ -301,6 +301,12 @@ int Syscall::futimens(int fd, const struct timespec ts[2]) {
     return descr->vnode->utimens(ts[0], ts[1]);
 }
 
+ssize_t Syscall::getdents(int fd, void* buffer, size_t size, int flags) {
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) return -1;
+    return descr->getdents(buffer, size, flags);
+}
+
 int Syscall::getentropy(void* buffer, size_t size) {
     if (size > 256) {
         errno = EIO;
@@ -466,13 +472,6 @@ ssize_t Syscall::read(int fd, void* buffer, size_t size) {
     Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
     return descr->read(buffer, size);
-}
-
-ssize_t Syscall::readdir(int fd, unsigned long offset, void* buffer,
-        size_t size) {
-    Reference<FileDescription> descr = Process::current()->getFd(fd);
-    if (!descr) return -1;
-    return descr->readdir(offset, buffer, size);
 }
 
 ssize_t Syscall::readlinkat(int fd, const char* restrict path,

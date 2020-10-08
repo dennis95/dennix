@@ -187,6 +187,12 @@ void Vnode::updateTimestamps(bool access, bool status, bool modification) {
     }
 }
 
+void Vnode::updateTimestampsLocked(bool access, bool status,
+        bool modification) {
+    AutoLock lock(&mutex);
+    updateTimestamps(access, status, modification);
+}
+
 // Default implementation. Inheriting classes will override these functions.
 int Vnode::chmod(mode_t mode) {
     AutoLock lock(&mutex);
@@ -229,6 +235,12 @@ Reference<Vnode> Vnode::getChildNode(const char* /*path*/) {
 Reference<Vnode> Vnode::getChildNode(const char* /*path*/, size_t /*length*/) {
     errno = EBADF;
     return nullptr;
+}
+
+size_t Vnode::getDirectoryEntries(void** buffer) {
+    *buffer = nullptr;
+    errno = ENOTDIR;
+    return 0;
 }
 
 char* Vnode::getLinkTarget() {
@@ -291,12 +303,6 @@ ssize_t Vnode::pwrite(const void* /*buffer*/, size_t /*size*/,
 }
 
 ssize_t Vnode::read(void* /*buffer*/, size_t /*size*/) {
-    errno = EBADF;
-    return -1;
-}
-
-ssize_t Vnode::readdir(unsigned long /*offset*/, void* /*buffer*/,
-        size_t /*size*/) {
     errno = EBADF;
     return -1;
 }

@@ -89,6 +89,11 @@ typedef __pid_t pid_t;
 #  define __pid_t_defined
 #endif
 
+#if defined(__need_reclen_t) && !defined(__reclen_t_defined)
+typedef __reclen_t reclen_t;
+#  define __reclen_t_defined
+#endif
+
 #if defined(__need_NULL) || defined(__need_ptrdiff_t) || \
     defined(__need_size_t) || defined(__need_wchar_t) || defined(__need_wint_t)
 #  include <stddef.h>
@@ -128,6 +133,7 @@ typedef __uid_t uid_t;
 #undef __need_nlink_t
 #undef __need_off_t
 #undef __need_pid_t
+#undef __need_reclen_t
 #undef __need_ssize_t
 #undef __need_suseconds_t
 #undef __need_time_t

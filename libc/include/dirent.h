@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,19 +21,38 @@
 #define _DIRENT_H
 
 #include <sys/cdefs.h>
-#include <dennix/dirent.h>
+#define __need_ino_t
+#define __need_reclen_t
+#define __need_size_t
+#define __need_ssize_t
+#include <bits/types.h>
+#if __USE_DENNIX
+#  include <dennix/dent.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Our code assumes that this struct matches exactly struct posix_dent. */
+struct dirent {
+    ino_t d_ino;
+    reclen_t d_reclen;
+    unsigned char d_type;
+    __extension__ char d_name[];
+};
+
+#define _DIRENT_HAVE_D_RECLEN
+#define _DIRENT_HAVE_D_TYPE
 
 typedef struct __DIR DIR;
 
 #ifdef __is_dennix_libc
 struct __DIR {
     int fd;
-    struct dirent* dirent;
-    unsigned long offset;
+    size_t bufferFilled;
+    size_t offsetInBuffer;
+    char buffer[32768];
 };
 #endif
 
@@ -45,6 +64,13 @@ struct dirent* readdir(DIR*);
 void rewinddir(DIR*);
 int scandir(const char*, struct dirent***, int (*)(const struct dirent*),
         int (*)(const struct dirent**, const struct dirent**));
+
+#if __USE_DENNIX
+#  define IFTODT(mode) _IFTODT(mode)
+#  define DTTOIF(type) _DTTOIF(type)
+
+ssize_t posix_getdents(int, void*, size_t, int);
+#endif
 
 #ifdef __cplusplus
 }

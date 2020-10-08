@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,11 +19,15 @@
 
 #include <dirent.h>
 #include <fcntl.h>
-#include <stddef.h>
+#include <unistd.h>
 
 DIR* opendir(const char* path) {
-    int fd = open(path, O_SEARCH | O_CLOEXEC | O_DIRECTORY);
+    int fd = open(path, O_RDONLY | O_CLOEXEC | O_DIRECTORY);
     if (fd < 0) return NULL;
 
-    return fdopendir(fd);
+    DIR* result = fdopendir(fd);
+    if (!result) {
+        close(fd);
+    }
+    return result;
 }

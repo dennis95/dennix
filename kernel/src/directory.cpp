@@ -17,12 +17,13 @@
  * Directory Vnode.
  */
 
+#include <dirent.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <dennix/dirent.h>
 #include <dennix/fcntl.h>
+#include <dennix/seek.h>
 #include <dennix/kernel/directory.h>
 #include <dennix/kernel/file.h>
 
@@ -118,6 +119,72 @@ int DirectoryVnode::mkdir(const char* name, mode_t mode) {
     return 0;
 }
 
+size_t DirectoryVnode::getDirectoryEntries(void** buffer) {
+    AutoLock lock(&mutex);
+
+    size_t size = ALIGNUP(offsetof(struct posix_dent, d_name) + 2, // .
+            alignof(struct posix_dent)) +
+            ALIGNUP(offsetof(struct posix_dent, d_name) + 3, // ..
+            alignof(struct posix_dent));
+
+    for (size_t i = 0; i < childCount; i++) {
+        size += ALIGNUP(offsetof(struct posix_dent, d_name) +
+                strlen(fileNames[i]) + 1, alignof(struct posix_dent));
+    }
+    *buffer = malloc(size);
+    if (!*buffer) return 0;
+
+    void* p = *buffer;
+
+    for (size_t i = 0; i < childCount + 2; i++) {
+        struct stat st;
+        const char* name;
+        if (i == 0) {
+            st = stats;
+            name = ".";
+        } else if (i == 1) {
+            st = parent ? parent->stat() : stats;
+            name = "..";
+        } else {
+            st = childNodes[i - 2]->stat();
+            name = fileNames[i - 2];
+        }
+
+        posix_dent* dent = (posix_dent*) p;
+        dent->d_ino = st.st_ino;
+        dent->d_reclen = ALIGNUP(offsetof(struct posix_dent, d_name) +
+                strlen(name) + 1, alignof(struct posix_dent));
+        dent->d_type = IFTODT(st.st_mode);
+        strcpy(dent->d_name, name);
+
+        p = (void*) ((uintptr_t) p + dent->d_reclen);
+    }
+
+    return size;
+}
+
+off_t DirectoryVnode::lseek(off_t offset, int whence) {
+    AutoLock lock(&mutex);
+    off_t base;
+
+    if (whence == SEEK_SET || whence == SEEK_CUR) {
+        base = 0;
+    } else if (whence == SEEK_END) {
+        base = childCount;
+    } else {
+        errno = EINVAL;
+        return -1;
+    }
+
+    off_t result;
+    if (__builtin_add_overflow(base, offset, &result) || result < 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return result;
+}
+
 bool DirectoryVnode::onUnlink() {
     if (childCount > 0) {
         errno = ENOTEMPTY;
@@ -149,40 +216,6 @@ Reference<Vnode> DirectoryVnode::open(const char* name, int flags,
     }
 
     return vnode;
-}
-
-ssize_t DirectoryVnode::readdir(unsigned long offset, void* buffer,
-        size_t size) {
-    AutoLock lock(&mutex);
-    const char* name;
-    struct stat vnodeStat;
-
-    if (offset == 0) {
-        name = ".";
-        vnodeStat = stats;
-    } else if (offset == 1) {
-        name = "..";
-        vnodeStat = parent ? parent->stat() : stats;
-    } else if (offset - 2 < childCount) {
-        name = fileNames[offset - 2];
-        vnodeStat = childNodes[offset - 2]->stat();
-    } else if (offset - 2  == childCount) {
-        return 0;
-    } else {
-        return -1;
-    }
-
-    size_t structSize = sizeof(struct dirent) + strlen(name) + 1;
-    if (size >= structSize) {
-        struct dirent* entry = (struct dirent*) buffer;
-        entry->d_dev = vnodeStat.st_dev;
-        entry->d_ino = vnodeStat.st_ino;
-        entry->d_reclen = size;
-        strcpy(entry->d_name, name);
-    }
-
-    updateTimestamps(true, false, false);
-    return structSize;
 }
 
 int DirectoryVnode::rename(Reference<Vnode>& oldDirectory, const char* oldName,

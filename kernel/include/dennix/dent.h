@@ -13,28 +13,38 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/dirent/readdir.c
- * Read directory entries.
+/* kernel/include/dennix/dent.h
+ * Directory entries.
  */
 
-#include <dirent.h>
-#include <stddef.h>
-#include <stdint.h>
+#ifndef _DENNIX_DENT_H
+#define _DENNIX_DENT_H
 
-struct dirent* readdir(DIR* dir) {
-    if (dir->offsetInBuffer >= dir->bufferFilled) {
-        ssize_t size = posix_getdents(dir->fd, dir->buffer, sizeof(dir->buffer),
-                0);
-        if (size <= 0) {
-            dir->bufferFilled = 0;
-            return NULL;
-        }
-        dir->bufferFilled = size;
-        dir->offsetInBuffer = 0;
-    }
+#include <dennix/types.h>
 
-    struct dirent* result = (struct dirent*)
-            ((uintptr_t) dir->buffer + dir->offsetInBuffer);
-    dir->offsetInBuffer += result->d_reclen;
-    return result;
-}
+struct posix_dent {
+    __ino_t d_ino;
+    __reclen_t d_reclen;
+    unsigned char d_type;
+    __extension__ char d_name[];
+};
+
+#define _IFTODT(mode) (((mode) & 0170000) >> 12)
+#define _DTTOIF(type) (((type) & 017) << 12)
+
+#define DT_FIFO 01
+#define DT_CHR 02
+#define DT_DIR 04
+#define DT_BLK 06
+#define DT_REG 010
+#define DT_LNK 012
+#define DT_SOCK 014
+#define DT_UNKNOWN 0
+
+#define DT_MQ 020
+#define DT_SEM 020
+#define DT_SHM 020
+
+#define DT_FORCE_TYPE 0
+
+#endif

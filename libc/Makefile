@@ -130,6 +130,7 @@ LIBC_OBJ = \
 	dirent/closedir \
 	dirent/fdopendir \
 	dirent/opendir \
+	dirent/posix_getdents \
 	dirent/readdir \
 	dirent/rewinddir \
 	dirent/scandir \

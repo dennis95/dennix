@@ -34,6 +34,7 @@ public:
     virtual int ftruncate(off_t length);
     virtual Reference<Vnode> getChildNode(const char* path);
     virtual Reference<Vnode> getChildNode(const char* path, size_t length);
+    virtual size_t getDirectoryEntries(void** buffer);
     virtual char* getLinkTarget();
     virtual int isatty();
     virtual bool isSeekable();
@@ -46,7 +47,6 @@ public:
     virtual ssize_t pread(void* buffer, size_t size, off_t offset);
     virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset);
     virtual ssize_t read(void* buffer, size_t size);
-    virtual ssize_t readdir(unsigned long offset, void* buffer, size_t size);
     virtual ssize_t readlink(char* buffer, size_t size);
     virtual int rename(Reference<Vnode>& oldDirectory, const char* oldName,
             const char* newName);
@@ -55,6 +55,7 @@ public:
     virtual int tcgetattr(struct termios* result);
     virtual int tcsetattr(int flags, const struct termios* termio);
     virtual int unlink(const char* name, int flags);
+    void updateTimestampsLocked(bool access, bool status, bool modification);
     virtual int utimens(struct timespec atime, struct timespec mtime);
     virtual ssize_t write(const void* buffer, size_t size);
     virtual ~Vnode();

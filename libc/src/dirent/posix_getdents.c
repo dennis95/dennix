@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,20 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/dirent.h
- * Directory definitions.
+/* libc/src/dirent/posix_getdents.c
+ * Read directory entries.
  */
 
-#ifndef _DENNIX_DIRENT_H
-#define _DENNIX_DIRENT_H
+#include <dirent.h>
+#include <sys/syscall.h>
 
-#include <dennix/types.h>
-
-struct dirent {
-    __dev_t d_dev;
-    __ino_t d_ino;
-    __SIZE_TYPE__ d_reclen;
-    __extension__ char d_name[];
-};
-
-#endif
+DEFINE_SYSCALL_GLOBAL(SYSCALL_GETDENTS, ssize_t, posix_getdents,
+        (int, void*, size_t, int));

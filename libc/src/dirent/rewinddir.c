@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,7 +18,9 @@
  */
 
 #include <dirent.h>
+#include <unistd.h>
 
 void rewinddir(DIR* dir) {
-    dir->offset = 0;
+    dir->bufferFilled = 0;
+    lseek(dir->fd, 0, SEEK_SET);
 }

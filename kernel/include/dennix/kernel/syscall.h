@@ -57,6 +57,7 @@ int fstatat(int fd, const char* restrict path, struct stat* restrict result,
         int flags);
 int ftruncate(int fd, off_t length);
 int futimens(int fd, const struct timespec ts[2]);
+ssize_t getdents(int fd, void* buffer, size_t size, int flags);
 int getentropy(void* buffer, size_t size);
 pid_t getpid();
 pid_t getpgid(pid_t pid);
@@ -73,7 +74,6 @@ int munmap(void* addr, size_t size);
 int openat(int fd, const char* path, int flags, mode_t mode);
 int pipe2(int fd[2], int flags);
 ssize_t read(int fd, void* buffer, size_t size);
-ssize_t readdir(int fd, unsigned long offset, void* buffer, size_t size);
 ssize_t readlinkat(int fd, const char* restrict path, char* restrict buffer,
         size_t size);
 int renameat(int oldFd, const char* oldPath, int newFd, const char* newPath);

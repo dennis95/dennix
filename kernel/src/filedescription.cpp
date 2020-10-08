@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <dennix/dent.h>
 #include <dennix/fcntl.h>
 #include <dennix/seek.h>
 #include <dennix/kernel/directory.h>
@@ -33,6 +34,12 @@ FileDescription::FileDescription(const Reference<Vnode>& vnode, int flags)
         : vnode(vnode) {
     offset = 0;
     this->flags = flags & (O_ACCMODE | FILE_STATUS_FLAGS);
+    dents = nullptr;
+    dentsSize = 0;
+}
+
+FileDescription::~FileDescription() {
+    free(dents);
 }
 
 int FileDescription::fcntl(int cmd, int param) {
@@ -48,6 +55,49 @@ int FileDescription::fcntl(int cmd, int param) {
     }
 }
 
+ssize_t FileDescription::getdents(void* buffer, size_t size, int flags) {
+    if (flags) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (!dents) {
+        dentsSize = vnode->getDirectoryEntries(&dents);
+        if (!dents) return -1;
+    }
+
+    size_t byteOffset = 0;
+    for (off_t i = 0; i < offset; i++) {
+        if (byteOffset + sizeof(struct posix_dent) > dentsSize) break;
+        posix_dent* dent = (posix_dent*) ((uintptr_t) dents + byteOffset);
+        byteOffset += dent->d_reclen;
+    }
+
+    void* copyBegin = (void*) ((uintptr_t) dents + byteOffset);
+    // Determine the number of bytes to copy.
+    size_t copySize = 0;
+    if (size > SSIZE_MAX) size = SSIZE_MAX;
+    while (true) {
+        if (byteOffset + copySize + sizeof(struct posix_dent) > dentsSize) {
+            break;
+        }
+        posix_dent* dent = (posix_dent*) ((uintptr_t) copyBegin + copySize);
+        if (copySize + dent->d_reclen > size) break;
+        copySize += dent->d_reclen;
+        offset++;
+    }
+
+    if (copySize == 0) {
+        if (byteOffset == dentsSize) return 0;
+        errno = EINVAL;
+        return -1;
+    }
+
+    memcpy(buffer, copyBegin, copySize);
+    vnode->updateTimestampsLocked(true, false, false);
+    return copySize;
+}
+
 off_t FileDescription::lseek(off_t offset, int whence) {
     if (whence == SEEK_CUR) {
         if (__builtin_add_overflow(offset, this->offset, &offset)) {
@@ -57,8 +107,12 @@ off_t FileDescription::lseek(off_t offset, int whence) {
     }
 
     off_t result = vnode->lseek(offset, whence);
-
     if (result < 0) return -1;
+    if (result == 0 && dents) {
+        free(dents);
+        dents = nullptr;
+        dentsSize = 0;
+    }
 
     this->offset = result;
     return result;
@@ -107,11 +161,6 @@ ssize_t FileDescription::read(void* buffer, size_t size) {
         return result;
     }
     return vnode->read(buffer, size);
-}
-
-ssize_t FileDescription::readdir(unsigned long offset, void* buffer,
-        size_t size) {
-    return vnode->readdir(offset, buffer, size);
 }
 
 int FileDescription::tcgetattr(struct termios* result) {
