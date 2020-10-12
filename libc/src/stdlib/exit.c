@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,9 +20,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+__attribute__((weak)) void __callAtexitHandlers(void) {}
 extern void _fini(void);
 
 __noreturn void exit(int status) {
+    __callAtexitHandlers();
     _fini();
     fflush(NULL);
     _Exit(status);

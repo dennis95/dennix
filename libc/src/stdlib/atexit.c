@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -33,7 +33,6 @@ int atexit(void (*func)(void)) {
     return -1;
 }
 
-__attribute__((destructor))
 void __callAtexitHandlers(void) {
     for (ssize_t i = ATEXIT_MAX - 1; i >= 0; i--) {
         if (atexitHandlers[i]) {
