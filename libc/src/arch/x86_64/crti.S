@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,11 +17,28 @@
  * Provides _init and _fini symbols to call global ctors/dtors.
  */
 
+# We are currently transitioning to init_array/fini_array. For now we support
+# both the old and the new method of calling global constructors/destructors.
+# Once we fully switch to init_array we can rewrite this code in C.
+
 .section .init
 .global _init
 _init:
     push %rbp
     mov %rsp, %rbp
+    push %rbx
+    push %r12
+
+    mov $__init_array_start, %rbx
+    mov $__init_array_end, %r12
+1:  cmp %rbx, %r12
+    je 2f
+    call *(%rbx)
+    add $8, %rbx
+    jmp 1b
+
+2:  pop %r12
+    pop %rbx
     # GCC will call global constructors here
 
 .section .fini
@@ -29,4 +46,17 @@ _init:
 _fini:
     push %rbp
     mov %rsp, %rbp
+    push %rbx
+    push %r12
+
+    mov $__fini_array_start, %rbx
+    mov $__fini_array_end, %r12
+1:  cmp %rbx, %r12
+    je 2f
+    call *(%rbx)
+    add $8, %rbx
+    jmp 1b
+
+2:  pop %r12
+    pop %rbx
     # GCC will call global destructors here

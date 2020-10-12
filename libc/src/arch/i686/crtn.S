@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,10 +19,14 @@
 
 .section .init
     # GCC will call global constructors here
+    pop %esi
+    pop %ebx
     pop %ebp
     ret
 
 .section .fini
     # GCC will call global destructors here
+    pop %esi
+    pop %ebx
     pop %ebp
     ret

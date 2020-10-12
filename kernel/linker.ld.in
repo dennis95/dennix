@@ -75,6 +75,20 @@ SECTIONS {
         *(.data)
     }
 
+    .init_array : AT(ADDR(.init_array) - KERNEL_VIRTUAL) {
+        __init_array_start = .;
+        KEEP(*(SORT_BY_INIT_PRIORITY(.init_array.*)))
+        KEEP(*(.init_array))
+        __init_array_end = .;
+    }
+
+    .fini_array : AT(ADDR(.fini_array) - KERNEL_VIRTUAL) {
+        __fini_array_start = .;
+        KEEP(*(SORT_BY_INIT_PRIORITY(.fini_array.*)))
+        KEEP(*(.fini_array))
+        __fini_array_end = .;
+    }
+
     .ctors : AT(ADDR(.ctors) - KERNEL_VIRTUAL) {
         *(.ctors)
     }
