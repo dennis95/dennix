@@ -151,6 +151,7 @@ LIBC_OBJ = \
 	fcntl/open \
 	fcntl/openat \
 	grp/getgrgid \
+	langinfo/nl_langinfo \
 	locale/localeconv \
 	locale/setlocale \
 	pwd/getpwnam \
