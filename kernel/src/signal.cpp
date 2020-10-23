@@ -61,12 +61,6 @@ static inline bool isMoreImportantSignalThan(int signal1, int signal2) {
     return signal1 <= signal2;
 }
 
-static bool timespecLess(struct timespec ts1, struct timespec ts2) {
-    if (ts1.tv_sec < ts2.tv_sec) return true;
-    if (ts1.tv_sec > ts2.tv_sec) return false;
-    return ts1.tv_nsec < ts2.tv_nsec;
-}
-
 void Thread::checkSigalarm(bool scheduling) {
     if (!scheduling) {
         Interrupts::disable();
@@ -367,4 +361,65 @@ int Syscall::sigprocmask(int how, const sigset_t* restrict set,
     }
 
     return 0;
+}
+
+int Thread::sigtimedwait(const sigset_t* set, siginfo_t* info,
+        const struct timespec* timeout) {
+    AutoLock lock(&signalMutex);
+    struct timespec endTime;
+    endTime.tv_nsec = -1;
+
+    while (true) {
+        PendingSignal* foundSignal = nullptr;
+        if (pendingSignals && sigismember(set,
+                pendingSignals->siginfo.si_signo)) {
+            foundSignal = pendingSignals;
+            pendingSignals = foundSignal->next;
+        } else if (pendingSignals) {
+            PendingSignal* currentSignal = pendingSignals;
+            while (currentSignal->next && !sigismember(set,
+                    currentSignal->next->siginfo.si_signo)) {
+                currentSignal = currentSignal->next;
+            }
+            if (currentSignal->next) {
+                foundSignal = currentSignal->next;
+                currentSignal->next = foundSignal->next;
+            }
+        }
+
+        if (foundSignal) {
+            updatePendingSignals();
+            siginfo_t siginfo = foundSignal->siginfo;
+            delete foundSignal;
+            if (info) {
+                *info = siginfo;
+            }
+            return siginfo.si_signo;
+        }
+
+        if (timeout) {
+            struct timespec now;
+            Clock::get(CLOCK_MONOTONIC)->getTime(&now);
+            if (endTime.tv_nsec == -1) {
+                if (timeout->tv_nsec < 0 || timeout->tv_nsec >= 1000000000L) {
+                    errno = EINVAL;
+                    return -1;
+                }
+                endTime = timespecPlus(now, *timeout);
+            }
+            if (!timespecLess(now, endTime)) {
+                errno = EAGAIN;
+                return -1;
+            }
+        }
+
+        if (Signal::isPending()) {
+            errno = EINTR;
+            return -1;
+        }
+
+        kthread_mutex_unlock(&signalMutex);
+        sched_yield();
+        kthread_mutex_lock(&signalMutex);
+    }
 }

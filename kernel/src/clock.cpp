@@ -26,7 +26,7 @@
 static Clock monotonicClock;
 static Clock realtimeClock;
 
-static struct timespec timespecPlus(struct timespec ts1, struct timespec ts2) {
+struct timespec timespecPlus(struct timespec ts1, struct timespec ts2) {
     struct timespec result;
     result.tv_sec = ts1.tv_sec + ts2.tv_sec;
     result.tv_nsec = ts1.tv_nsec + ts2.tv_nsec;
@@ -50,7 +50,7 @@ static struct timespec timespecMinus(struct timespec ts1, struct timespec ts2) {
     return result;
 }
 
-static bool timespecLess(struct timespec ts1, struct timespec ts2) {
+bool timespecLess(struct timespec ts1, struct timespec ts2) {
     if (ts1.tv_sec < ts2.tv_sec) return true;
     if (ts1.tv_sec > ts2.tv_sec) return false;
     return ts1.tv_nsec < ts2.tv_nsec;

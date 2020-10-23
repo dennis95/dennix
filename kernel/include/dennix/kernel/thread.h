@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -39,6 +39,8 @@ public:
     ~Thread();
     InterruptContext* handleSignal(InterruptContext* context);
     void raiseSignal(siginfo_t siginfo);
+    int sigtimedwait(const sigset_t* set, siginfo_t* info,
+            const struct timespec* timeout);
     void updateContext(vaddr_t newKernelStack, InterruptContext* newContext,
             const __fpu_t* newFpuEnv);
     void updatePendingSignals();

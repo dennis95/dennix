@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2017, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -56,6 +56,10 @@ int sigemptyset(sigset_t*);
 int sigfillset(sigset_t*);
 int sigismember(const sigset_t*, int);
 int sigprocmask(int, const sigset_t* __restrict, sigset_t* __restrict);
+int sigtimedwait(const sigset_t* __restrict, siginfo_t* __restrict,
+        const struct timespec* __restrict);
+int sigwait(const sigset_t* __restrict, int* __restrict);
+int sigwaitinfo(const sigset_t* __restrict, siginfo_t* __restrict);
 #endif
 
 #if __USE_DENNIX

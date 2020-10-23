@@ -159,6 +159,9 @@ LIBC_OBJ = \
 	signal/sigaction \
 	signal/signal \
 	signal/sigprocmask \
+	signal/sigtimedwait \
+	signal/sigwait \
+	signal/sigwaitinfo \
 	stdio/__file_read \
 	stdio/__file_seek \
 	stdio/__file_write \

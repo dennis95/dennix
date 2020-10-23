@@ -38,4 +38,7 @@ private:
     struct timespec value;
 };
 
+struct timespec timespecPlus(struct timespec ts1, struct timespec ts2);
+bool timespecLess(struct timespec ts1, struct timespec ts2);
+
 #endif

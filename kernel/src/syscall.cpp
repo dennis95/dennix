@@ -86,6 +86,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_FCHDIR] =*/ (void*) Syscall::fchdir,
     /*[SYSCALL_FCHOWNAT] =*/ (void*) Syscall::fchownat,
     /*[SYSCALL_MEMINFO] =*/ (void*) Syscall::meminfo,
+    /*[SYSCALL_SIGTIMEDWAIT] =*/ (void*) Syscall::sigtimedwait,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -542,6 +543,11 @@ int Syscall::setpgid(pid_t pid, pid_t pgid) {
     }
 
     return process->setpgid(pgid);
+}
+
+int Syscall::sigtimedwait(const sigset_t* set, siginfo_t* info,
+        const struct timespec* timeout) {
+    return Thread::current()->sigtimedwait(set, info, timeout);
 }
 
 int Syscall::symlinkat(const char* targetPath, int fd, const char* linkPath) {

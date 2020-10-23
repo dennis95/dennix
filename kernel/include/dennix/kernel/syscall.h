@@ -82,6 +82,8 @@ int setpgid(pid_t pid, pid_t pgid);
 int sigaction(int signal, const struct sigaction* restrict action,
         struct sigaction* restrict old);
 int sigprocmask(int how, const sigset_t* restrict set, sigset_t* restrict old);
+int sigtimedwait(const sigset_t* set, siginfo_t* info,
+        const struct timespec* timeout);
 int symlinkat(const char* targetPath, int fd, const char* linkPath);
 int tcgetattr(int fd, struct termios* result);
 int tcsetattr(int fd, int flags, const struct termios* termio);
