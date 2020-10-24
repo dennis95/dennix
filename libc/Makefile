@@ -263,6 +263,7 @@ LIBC_OBJ = \
 	sys/ioctl/ioctl \
 	sys/mman/mmap \
 	sys/mman/munmap \
+	sys/resource/getrlimit \
 	sys/resource/getrusage \
 	sys/resource/getrusagens \
 	sys/stat/chmod \

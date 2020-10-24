@@ -35,12 +35,33 @@
 extern "C" {
 #endif
 
+#define RLIM_INFINITY __UINTMAX_MAX__
+#define RLIM_SAVED_MAX RLIM_INFINITY
+#define RLIM_SAVED_CUR RLIM_INFINITY
+
+#define RLIMIT_CORE 0
+#define RLIMIT_CPU 1
+#define RLIMIT_DATA 2
+#define RLIMIT_FSIZE 3
+#define RLIMIT_NOFILE 4
+#define RLIMIT_STACK 5
+#define RLIMIT_AS 6
+
+typedef __UINTMAX_TYPE__ rlim_t;
+
+struct rlimit {
+    rlim_t rlim_cur;
+    rlim_t rlim_max;
+};
+
 struct rusage {
     struct timeval ru_utime;
     struct timeval ru_stime;
 };
 
+int getrlimit(int, struct rlimit*);
 int getrusage(int, struct rusage*);
+int setrlimit(int, const struct rlimit*);
 
 #if __USE_DENNIX
 int getrusagens(int, struct rusagens*);
