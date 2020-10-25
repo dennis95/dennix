@@ -435,6 +435,7 @@ int Syscall::openat(int fd, const char* path, int flags, mode_t mode) {
 
     int fdFlags = 0;
     if (flags & O_CLOEXEC) fdFlags |= FD_CLOEXEC;
+    if (flags & O_CLOFORK) fdFlags |= FD_CLOFORK;
 
     return Process::current()->addFileDescriptor(result, fdFlags);
 }
@@ -453,6 +454,7 @@ int Syscall::pipe2(int fd[2], int flags) {
 
     int fdFlags = 0;
     if (flags & O_CLOEXEC) fdFlags |= FD_CLOEXEC;
+    if (flags & O_CLOFORK) fdFlags |= FD_CLOFORK;
 
     int fd0 = Process::current()->addFileDescriptor(readDescr, fdFlags);
     if (fd0 < 0) return -1;

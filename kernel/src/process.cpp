@@ -229,6 +229,7 @@ int Process::dup3(int fd1, int fd2, int flags) {
 
     int fdFlags = 0;
     if (flags & O_CLOEXEC) fdFlags |= FD_CLOEXEC;
+    if (flags & O_CLOFORK) fdFlags |= FD_CLOFORK;
 
     return fdTable.insert(fd2, { fdTable[fd1].descr, fdFlags });
 }
@@ -362,6 +363,8 @@ int Process::fcntl(int fd, int cmd, int param) {
             return fdTable.addAt(param, { entry.descr, 0 });
         case F_DUPFD_CLOEXEC:
             return fdTable.addAt(param, { entry.descr, FD_CLOEXEC });
+        case F_DUPFD_CLOFORK:
+            return fdTable.addAt(param, { entry.descr, FD_CLOFORK });
         case F_GETFD:
             return entry.flags;
         case F_SETFD:
@@ -430,8 +433,9 @@ Process* Process::regfork(int /*flags*/, regfork_t* registers) {
         return nullptr;
     }
 
-    // Copy the file descriptor table
+    // Copy the file descriptor table except for fds with FD_CLOFORK set.
     for (int i = fdTable.next(-1); i >= 0; i = fdTable.next(i)) {
+        if (fdTable[i].flags & FD_CLOFORK) continue;
         if (process->fdTable.insert(i, fdTable[i]) < 0) {
             process->terminate();
             delete process;

@@ -39,6 +39,7 @@
 #define O_SYNC (1 << 11)
 #define O_TRUNC (1 << 12)
 #define O_NOCLOBBER (1 << 13)
+#define O_CLOFORK (1 << 14)
 #define O_TTY_INIT 0
 
 #endif

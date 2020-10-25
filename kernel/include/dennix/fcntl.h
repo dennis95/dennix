@@ -39,7 +39,9 @@
 #define F_SETFD 3
 #define F_GETFL 4
 #define F_SETFL 5
+#define F_DUPFD_CLOFORK 6
 
 #define FD_CLOEXEC (1 << 0)
+#define FD_CLOFORK (1 << 1)
 
 #endif
