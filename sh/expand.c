@@ -47,7 +47,7 @@ struct Context {
 static ssize_t doParameterSubstitution(const char* word, bool doubleQuoted,
         struct StringBuffer* sb, struct Context* context);
 static char* doSubstitutions(const char* word, struct Context* context);
-static ssize_t splitFields(char* word, struct Context* context, char*** result);
+static size_t splitFields(char* word, struct Context* context, char*** result);
 static void removeQuotes(char** fields, struct Context* context,
         size_t numFields);
 
@@ -78,20 +78,11 @@ ssize_t expand(const char* word, int flags, char*** result) {
     ssize_t numFields;
     if (flags & EXPAND_NO_FIELD_SPLIT) {
         fields = malloc(sizeof(char*));
-        if (!fields) {
-            free(context.substitutions);
-            free(str);
-            return -1;
-        }
+        if (!fields) err(1, "malloc");
         fields[0] = str;
         numFields = 1;
     } else {
         numFields = splitFields(str, &context, &fields);
-        if (numFields < 0) {
-            free(context.substitutions);
-            free(str);
-            return -1;
-        }
     }
 
     removeQuotes(fields, &context, numFields);
@@ -127,11 +118,9 @@ static void substitute(const char* value, struct StringBuffer* sb,
     info.end = info.begin + strlen(value);
     info.applyFieldSplitting = !doubleQuoted;
     info.splitAtEnd = splitAtEnd;
-    if (!addToArray((void**) &context->substitutions,
-            &context->numSubstitutions, &info, sizeof(info)) ||
-            !appendStringToStringBuffer(sb, value)) {
-        err(1, "malloc");
-    }
+    addToArray((void**) &context->substitutions, &context->numSubstitutions,
+            &info, sizeof(info));
+    appendStringToStringBuffer(sb, value);
 }
 
 static void substituteExpansion(const char* word, struct StringBuffer* sb,
@@ -146,7 +135,7 @@ static void substituteExpansion(const char* word, struct StringBuffer* sb,
         substitute(fields[i], sb, context, true, i < numFields - 1);
         free(fields[i]);
         if (i < numFields - 1) {
-            if (!appendToStringBuffer(sb, ' ')) err(1, "stringbuffer");
+            appendToStringBuffer(sb, ' ');
         }
     }
     free(fields);
@@ -290,7 +279,7 @@ static ssize_t doParameterSubstitution(const char* word, bool doubleQuoted,
             substitute(arguments[i], sb, context, doubleQuoted,
                     i != numArguments && (splitting || c == '@'));
             if (i != numArguments && sep) {
-                if (!appendToStringBuffer(sb, sep)) err(1, "stringbuffer");
+                appendToStringBuffer(sb, sep);
             }
         }
         word++;
@@ -311,7 +300,7 @@ static ssize_t doParameterSubstitution(const char* word, bool doubleQuoted,
         substitute(value, sb, context, doubleQuoted, false);
         word += nameLength;
     } else {
-        if (!appendToStringBuffer(sb, '$')) err(1, "stringbuffer");
+        appendToStringBuffer(sb, '$');
     }
 
     return word - begin;
@@ -319,7 +308,7 @@ static ssize_t doParameterSubstitution(const char* word, bool doubleQuoted,
 
 static char* doSubstitutions(const char* word, struct Context* context) {
     struct StringBuffer sb;
-    if (!initStringBuffer(&sb)) err(1, "initStringBuffer");
+    initStringBuffer(&sb);
 
     bool escaped = false;
     bool singleQuote = false;
@@ -346,14 +335,14 @@ static char* doSubstitutions(const char* word, struct Context* context) {
             continue;
         }
 
-        if (!appendToStringBuffer(&sb, c)) err(1, "stringbuffer");
+        appendToStringBuffer(&sb, c);
         escaped = escaped && c == '\\';
     }
 
     return finishStringBuffer(&sb);
 }
 
-static ssize_t splitFields(char* word, struct Context* context,
+static size_t splitFields(char* word, struct Context* context,
         char*** result) {
     const char* ifs = getVariable("IFS");
     if (!ifs) ifs = " \t\n";
@@ -375,10 +364,7 @@ static ssize_t splitFields(char* word, struct Context* context,
             if (fieldOffset + length >= subst->end) break;
             if (fieldOffset + length != 0) {
                 char* field = word + fieldOffset;
-                if (!addToArray((void**) &fields, &numFields, &field,
-                        sizeof(char*))) {
-                    err(1, "malloc");
-                }
+                addToArray((void**) &fields, &numFields, &field, sizeof(char*));
             }
             fieldOffset += length;
             bool nonWhitespace = !isspace(word[fieldOffset]);
@@ -390,10 +376,8 @@ static ssize_t splitFields(char* word, struct Context* context,
                     if (nonWhitespace) {
                         word[fieldOffset + j] = '\0';
                         char* field = word + fieldOffset + j;
-                        if (!addToArray((void**) &fields, &numFields, &field,
-                                sizeof(char*))) {
-                            err(1, "malloc");
-                        }
+                        addToArray((void**) &fields, &numFields, &field,
+                                sizeof(char*));
                     } else {
                         nonWhitespace = true;
                     }
@@ -406,10 +390,7 @@ static ssize_t splitFields(char* word, struct Context* context,
 
         if (subst->splitAtEnd) {
             char* field = word + fieldOffset;
-            if (!addToArray((void**) &fields, &numFields, &field,
-                    sizeof(char*))) {
-                err(1, "malloc");
-            }
+            addToArray((void**) &fields, &numFields, &field, sizeof(char*));
             fieldOffset += subst->end;
             word[fieldOffset++] = '\0';
         }
@@ -417,9 +398,7 @@ static ssize_t splitFields(char* word, struct Context* context,
 
     if (fieldOffset != wordLength) {
         char* field = word + fieldOffset;
-        if (!addToArray((void**) &fields, &numFields, &field, sizeof(char*))) {
-            err(1, "malloc");
-        }
+        addToArray((void**) &fields, &numFields, &field, sizeof(char*));
     }
 
     *result = fields;
@@ -437,7 +416,7 @@ static void removeQuotes(char** fields, struct Context* context,
 
     for (size_t i = 0; i < numFields; i++) {
         struct StringBuffer buffer;
-        if (!initStringBuffer(&buffer)) err(1, "initStringBuffer");
+        initStringBuffer(&buffer);
         const char* word = fields[i];
 
         for (size_t j = 0; word[j]; j++) {
@@ -468,9 +447,8 @@ static void removeQuotes(char** fields, struct Context* context,
             }
 
             escaped = false;
-            if (!appendToStringBuffer(&buffer, c)) err(1, "stringbuffer");
+            appendToStringBuffer(&buffer, c);
         }
         fields[i] = finishStringBuffer(&buffer);
-        if (!fields[i]) err(1, "stringbuffer");
     }
 }

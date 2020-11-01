@@ -159,12 +159,10 @@ int main(int argc, char* argv[]) {
             exit(0);
         }
 
-        if (!initParser(&parser)) err(1, "initParser");
+        initParser(&parser);
         enum ParserResult parserResult = parse(&parser, &command);
 
-        if (parserResult == PARSER_ERROR) {
-            err(1, "Parser error");
-        } else if (parserResult == PARSER_MATCH) {
+        if (parserResult == PARSER_MATCH) {
             lastStatus = execute(&command);
             freeCompleteCommand(&command);
         } else if (parserResult == PARSER_SYNTAX) {
@@ -366,18 +364,17 @@ void readCommand(const char** str, bool newCommand) {
 
 // Utility functions:
 
-bool addToArray(void** array, size_t* used, const void* value, size_t size) {
-    return addMultipleToArray(array, used, value, size, 1);
+void addToArray(void** array, size_t* used, const void* value, size_t size) {
+    addMultipleToArray(array, used, value, size, 1);
 }
 
-bool addMultipleToArray(void** array, size_t* used, const void* values,
+void addMultipleToArray(void** array, size_t* used, const void* values,
         size_t size, size_t amount) {
     void* newArray = reallocarray(*array, size, *used + amount);
-    if (!newArray) return false;
+    if (!newArray) err(1, "realloc");
     *array = newArray;
     memcpy((void*) ((uintptr_t) *array + size * *used), values, size * amount);
     *used += amount;
-    return true;
 }
 
 bool moveFd(int old, int new) {

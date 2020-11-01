@@ -194,17 +194,13 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         char** fields;
         ssize_t numFields = expand(simpleCommand->words[i], 0, &fields);
         if (numFields < 0) goto cleanup;
-        if (!addMultipleToArray((void**) &arguments, &numArguments, fields,
-                sizeof(char*), numFields)) {
-            err(1, "malloc");
-        }
+        addMultipleToArray((void**) &arguments, &numArguments, fields,
+                sizeof(char*), numFields);
         free(fields);
     }
 
-    if (!addToArray((void**) &arguments, &numArguments, &(void*){NULL},
-            sizeof(char*))) {
-        err(1, "malloc");
-    }
+    addToArray((void**) &arguments, &numArguments, &(void*){NULL},
+            sizeof(char*));
 
     for (size_t i = 0; i < numRedirections; i++) {
         redirections[i] = simpleCommand->redirections[i];

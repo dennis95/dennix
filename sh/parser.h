@@ -71,14 +71,13 @@ struct Parser {
 enum ParserResult {
     PARSER_MATCH,
     PARSER_SYNTAX,
-    PARSER_ERROR,
     PARSER_NO_CMD,
     // The following results are only used internally.
     PARSER_BACKTRACK,
 };
 
 void freeParser(struct Parser* parser);
-NO_DISCARD bool initParser(struct Parser* parser);
+void initParser(struct Parser* parser);
 enum ParserResult parse(struct Parser* parser,
         struct CompleteCommand* command);
 void freeCompleteCommand(struct CompleteCommand* command);

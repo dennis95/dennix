@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,35 +17,33 @@
  * String buffer.
  */
 
+#include <err.h>
 #include <stdlib.h>
 
 #include "stringbuffer.h"
 
-bool initStringBuffer(struct StringBuffer* buffer) {
+void initStringBuffer(struct StringBuffer* buffer) {
     buffer->buffer = malloc(80);
-    if (!buffer->buffer) return false;
+    if (!buffer->buffer) err(1, "malloc");
     buffer->used = 0;
     buffer->allocated = 80;
-    return true;
 }
 
-bool appendToStringBuffer(struct StringBuffer* buffer, char c) {
+void appendToStringBuffer(struct StringBuffer* buffer, char c) {
     if (buffer->used + 1 >= buffer->allocated) {
         void* newBuffer = reallocarray(buffer->buffer, 2, buffer->allocated);
-        if (!newBuffer) return false;
+        if (!newBuffer) err(1, "realloc");
         buffer->buffer = newBuffer;
         buffer->allocated *= 2;
     }
     buffer->buffer[buffer->used++] = c;
-    return true;
 }
 
-bool appendStringToStringBuffer(struct StringBuffer* buffer, const char* s) {
+void appendStringToStringBuffer(struct StringBuffer* buffer, const char* s) {
     while (*s) {
-        if (!appendToStringBuffer(buffer, *s)) return false;
+        appendToStringBuffer(buffer, *s);
         s++;
     }
-    return true;
 }
 
 char* finishStringBuffer(struct StringBuffer* buffer) {

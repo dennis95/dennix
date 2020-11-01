@@ -54,9 +54,9 @@ void freeParser(struct Parser* parser) {
     freeTokenizer(&parser->tokenizer);
 }
 
-bool initParser(struct Parser* parser) {
+void initParser(struct Parser* parser) {
     parser->offset = 0;
-    return initTokenizer(&parser->tokenizer);
+    initTokenizer(&parser->tokenizer);
 }
 
 static enum ParserResult getNextLine(struct Parser* parser, bool newCommand) {
@@ -66,9 +66,7 @@ static enum ParserResult getNextLine(struct Parser* parser, bool newCommand) {
 
 continue_tokenizing:
     tokenResult = splitTokens(&parser->tokenizer, str);
-    if (tokenResult == TOKENIZER_ERROR) {
-        return PARSER_ERROR;
-    } else if (tokenResult == TOKENIZER_PREMATURE_EOF) {
+    if (tokenResult == TOKENIZER_PREMATURE_EOF) {
         syntaxError(NULL);
         return PARSER_SYNTAX;
     } else if (tokenResult == TOKENIZER_NEED_INPUT) {
@@ -117,17 +115,10 @@ static enum ParserResult parseList(struct Parser* parser, struct List* list) {
         result = parsePipeline(parser, &pipeline);
         if (result != PARSER_MATCH) goto fail;
 
-        if (!addToArray((void**) &list->pipelines, &list->numPipelines,
-                &pipeline, sizeof(pipeline))) {
-            result = PARSER_ERROR;
-            goto fail;
-        }
-        void* newSeperators = realloc(list->separators, list->numPipelines);
-        if (!newSeperators) {
-            result = PARSER_ERROR;
-            goto fail;
-        }
-        list->separators = newSeperators;
+        addToArray((void**) &list->pipelines, &list->numPipelines, &pipeline,
+                sizeof(pipeline));
+        list->separators = realloc(list->separators, list->numPipelines);
+        if (!list->separators) err(1, "realloc");
         list->separators[list->numPipelines - 1] = LIST_SEMI;
 
         struct Token* token = getToken(parser);
@@ -183,11 +174,8 @@ static enum ParserResult parsePipeline(struct Parser* parser,
         result = parseSimpleCommand(parser, &command);
         if (result != PARSER_MATCH) goto fail;
 
-        if (!addToArray((void**) &pipeline->commands, &pipeline->numCommands,
-                &command, sizeof(command))) {
-            result = PARSER_ERROR;
-            goto fail;
-        }
+        addToArray((void**) &pipeline->commands, &pipeline->numCommands,
+                &command, sizeof(command));
 
         token = getToken(parser);
         if (!token) return PARSER_MATCH;
@@ -254,31 +242,22 @@ static enum ParserResult parseSimpleCommand(struct Parser* parser,
 
             if (result != PARSER_MATCH) goto fail;
 
-            if (!addToArray((void**) &command->redirections,
+            addToArray((void**) &command->redirections,
                     &command->numRedirections, &redirection,
-                    sizeof(redirection))) {
-                result = PARSER_ERROR;
-                goto fail;
-            }
+                    sizeof(redirection));
         } else {
             assert(token->type == TOKEN);
 
             const char* equals = strchr(token->text, '=');
             if (!hadNonAssignmentWord && equals && equals != token->text &&
                     isName(token->text, equals - token->text)) {
-                if (!addToArray((void**) &command->assignmentWords,
+                addToArray((void**) &command->assignmentWords,
                         &command->numAssignmentWords, &token->text,
-                        sizeof(char*))) {
-                    result = PARSER_ERROR;
-                    goto fail;
-                }
+                        sizeof(char*));
             } else {
                 hadNonAssignmentWord = true;
-                if (!addToArray((void**) &command->words, &command->numWords,
-                        &token->text, sizeof(char*))) {
-                    result = PARSER_ERROR;
-                    goto fail;
-                }
+                addToArray((void**) &command->words, &command->numWords,
+                        &token->text, sizeof(char*));
             }
             parser->offset++;
         }

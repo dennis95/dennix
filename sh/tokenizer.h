@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -58,7 +58,6 @@ enum WordStatus {
 enum TokenizerResult {
     TOKENIZER_DONE,
     TOKENIZER_NEED_INPUT,
-    TOKENIZER_ERROR,
     TOKENIZER_PREMATURE_EOF,
 };
 
@@ -77,7 +76,7 @@ struct Tokenizer {
     enum WordStatus wordStatus;
 };
 
-NO_DISCARD bool initTokenizer(struct Tokenizer* tokenizer);
+void initTokenizer(struct Tokenizer* tokenizer);
 enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
         const char* input);
 void freeTokenizer(struct Tokenizer* tokenizer);
