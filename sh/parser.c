@@ -29,16 +29,26 @@
 
 #define BACKTRACKING // specify that a function might return PARSER_BACKTRACK.
 
+static enum ParserResult parseCommand(struct Parser* parser,
+        struct Command* command);
+static enum ParserResult parseCompoundListWithTerminator(struct Parser* parser,
+        struct List* list, const char* terminator);
+static enum ParserResult parseForClause(struct Parser* parser,
+        struct ForClause* clause);
+static enum ParserResult parseIfClause(struct Parser* parser,
+        struct IfClause* clause);
 static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
         int fd, struct Redirection* result);
 static enum ParserResult parseLinebreak(struct Parser* parser);
-static enum ParserResult parseList(struct Parser* parser, struct List* list);
+static enum ParserResult parseList(struct Parser* parser, struct List* list,
+        bool compound);
 static enum ParserResult parsePipeline(struct Parser* parser,
         struct Pipeline* pipeline);
 static enum ParserResult parseSimpleCommand(struct Parser* parser,
         struct SimpleCommand* command);
 static void syntaxError(struct Token* token);
 
+static void freeCommand(struct Command* command);
 static void freeList(struct List* list);
 static void freePipeline(struct Pipeline* pipeline);
 static void freeSimpleCommand(struct SimpleCommand* command);
@@ -77,6 +87,29 @@ continue_tokenizing:
     return PARSER_MATCH;
 }
 
+static bool isReservedWord(const char* word) {
+    static const char* reservedWords[]= { "!", "{", "}", "case", "do", "done",
+            "elif", "else", "esac", "fi", "for", "if", "in", "then", "until",
+            "while", NULL };
+    size_t i = 0;
+    while (reservedWords[i]) {
+        if (strcmp(word, reservedWords[i]) == 0) return true;
+        i++;
+    }
+    return false;
+}
+
+static bool isCompoundListTerminator(const char* word) {
+    static const char* terminators[]= { ")", "}", ";;", "do", "done", "elif",
+            "else", "esac", "fi", "then", NULL };
+    size_t i = 0;
+    while (terminators[i]) {
+        if (strcmp(word, terminators[i]) == 0) return true;
+        i++;
+    }
+    return false;
+}
+
 enum ParserResult parse(struct Parser* parser,
         struct CompleteCommand* command) {
     enum ParserResult result = getNextLine(parser, true);
@@ -88,7 +121,7 @@ enum ParserResult parse(struct Parser* parser,
         return PARSER_NO_CMD;
     }
 
-    result = parseList(parser, &command->list);
+    result = parseList(parser, &command->list, false);
     assert(result != PARSER_BACKTRACK);
 
     if (result == PARSER_MATCH &&
@@ -104,12 +137,18 @@ enum ParserResult parse(struct Parser* parser,
     return result;
 }
 
-static enum ParserResult parseList(struct Parser* parser, struct List* list) {
+static enum ParserResult parseList(struct Parser* parser, struct List* list,
+        bool compound) {
     list->numPipelines = 0;
     list->pipelines = NULL;
     list->separators = NULL;
 
     enum ParserResult result;
+    if (compound) {
+        result = parseLinebreak(parser);
+        if (result != PARSER_MATCH) goto fail;
+    }
+
     while (true) {
         struct Pipeline pipeline;
         result = parsePipeline(parser, &pipeline);
@@ -133,6 +172,13 @@ static enum ParserResult parseList(struct Parser* parser, struct List* list) {
             if (result != PARSER_MATCH) goto fail;
         } else if (strcmp(token->text, ";") == 0) {
             parser->offset++;
+            if (compound) {
+                result = parseLinebreak(parser);
+                if (result != PARSER_MATCH) goto fail;
+            }
+        } else if (compound && strcmp(token->text, "\n") == 0) {
+            result = parseLinebreak(parser);
+            if (result != PARSER_MATCH) goto fail;
         } else {
             // TODO: Implement asynchronous lists.
             return PARSER_MATCH;
@@ -140,8 +186,14 @@ static enum ParserResult parseList(struct Parser* parser, struct List* list) {
 
         token = getToken(parser);
 
-        if (list->separators[list->numPipelines - 1] == LIST_SEMI && (!token ||
-                (token->type == OPERATOR && strcmp(token->text, "\n") == 0))) {
+        if (compound && list->separators[list->numPipelines - 1] == LIST_SEMI) {
+            if (!token) return PARSER_SYNTAX;
+            if (isCompoundListTerminator(token->text)) {
+                return PARSER_MATCH;
+            }
+        } else if (list->separators[list->numPipelines - 1] == LIST_SEMI &&
+                (!token || (token->type == OPERATOR &&
+                strcmp(token->text, "\n") == 0))) {
             return PARSER_MATCH;
         }
     }
@@ -170,8 +222,8 @@ static enum ParserResult parsePipeline(struct Parser* parser,
     }
 
     while (true) {
-        struct SimpleCommand command;
-        result = parseSimpleCommand(parser, &command);
+        struct Command command;
+        result = parseCommand(parser, &command);
         if (result != PARSER_MATCH) goto fail;
 
         addToArray((void**) &pipeline->commands, &pipeline->numCommands,
@@ -195,6 +247,69 @@ static enum ParserResult parsePipeline(struct Parser* parser,
 fail:
     freePipeline(pipeline);
     return result;
+}
+
+static enum ParserResult parseCompoundListWithTerminator(struct Parser* parser,
+        struct List* list, const char* terminator) {
+    enum ParserResult result = parseList(parser, list, true);
+    if (result != PARSER_MATCH) return result;
+    struct Token* token = getToken(parser);
+    if (!token || strcmp(token->text, terminator) != 0) return PARSER_SYNTAX;
+    parser->offset++;
+    return PARSER_MATCH;
+}
+
+static enum ParserResult parseCommand(struct Parser* parser,
+        struct Command* command) {
+    // TODO: Implement case conditional construct.
+    // TODO: Implement redirections for compound commands.
+    struct Token* token = getToken(parser);
+    if (!isReservedWord(token->text) && strcmp(token->text, "(") != 0) {
+        command->type = COMMAND_SIMPLE;
+        return parseSimpleCommand(parser, &command->simpleCommand);
+    } else if (strcmp(token->text, "(") == 0) {
+        command->type = COMMAND_SUBSHELL;
+        parser->offset++;
+        return parseCompoundListWithTerminator(parser, &command->compoundList,
+                ")");
+    } else if (strcmp(token->text, "{") == 0) {
+        command->type = COMMAND_BRACE_GROUP;
+        parser->offset++;
+        return parseCompoundListWithTerminator(parser, &command->compoundList,
+                "}");
+    } else if (strcmp(token->text, "for") == 0) {
+        command->type = COMMAND_FOR;
+        return parseForClause(parser, &command->forClause);
+    } else if (strcmp(token->text, "if") == 0) {
+        command->type = COMMAND_IF;
+        return parseIfClause(parser, &command->ifClause);
+    } else if (strcmp(token->text, "while") == 0) {
+        command->type = COMMAND_WHILE;
+        parser->offset++;
+        enum ParserResult result = parseCompoundListWithTerminator(parser,
+                &command->loop.condition, "do");
+        if (result != PARSER_MATCH) return result;
+        result = parseCompoundListWithTerminator(parser, &command->loop.body,
+                "done");
+        if (result != PARSER_MATCH) {
+            freeList(&command->loop.condition);
+        }
+        return result;
+    } else if (strcmp(token->text, "until") == 0) {
+        command->type = COMMAND_UNTIL;
+        parser->offset++;
+        enum ParserResult result = parseCompoundListWithTerminator(parser,
+                &command->loop.condition, "do");
+        if (result != PARSER_MATCH) return result;
+        result = parseCompoundListWithTerminator(parser, &command->loop.body,
+                "done");
+        if (result != PARSER_MATCH) {
+            freeList(&command->loop.condition);
+        }
+        return result;
+    } else {
+        return PARSER_SYNTAX;
+    }
 }
 
 static bool isName(const char* s, size_t length) {
@@ -316,12 +431,133 @@ static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
     return PARSER_MATCH;
 }
 
-static enum ParserResult parseLinebreak(struct Parser* parser) {
+static enum ParserResult parseForClause(struct Parser* parser,
+        struct ForClause* clause) {
+    clause->words = NULL;
+    clause->numWords = 0;
+    parser->offset++;
     struct Token* token = getToken(parser);
-    if (!token) {
-        syntaxError(NULL);
+    if (!token || !isName(token->text, strlen(token->text))) {
         return PARSER_SYNTAX;
     }
+    clause->name = token->text;
+    parser->offset++;
+    token = getToken(parser);
+    if (!token) return PARSER_SYNTAX;
+    if (strcmp(token->text, "in") == 0) {
+        parser->offset++;
+        token = getToken(parser);
+        if (!token) return PARSER_SYNTAX;
+        while (token->type == TOKEN) {
+            addToArray((void**) &clause->words, &clause->numWords, &token->text,
+                    sizeof(char*));
+            parser->offset++;
+            token = getToken(parser);
+            if (!token) goto syntax;
+        }
+        if (strcmp(token->text, ";") == 0) {
+            parser->offset++;
+        } else if (strcmp(token->text, "\n") != 0) {
+            goto syntax;
+        }
+    } else {
+        const char* word = "\"$@\"";
+        addToArray((void**) &clause->words, &clause->numWords, &word,
+                sizeof(char*));
+        if (strcmp(token->text, ";") == 0) {
+            parser->offset++;
+        }
+    }
+    enum ParserResult result = parseLinebreak(parser);
+    if (result != PARSER_MATCH) goto syntax;
+
+    token = getToken(parser);
+    if (!token || strcmp(token->text, "do") != 0) goto syntax;
+    parser->offset++;
+    result = parseCompoundListWithTerminator(parser, &clause->body, "done");
+    if (result == PARSER_MATCH) return PARSER_MATCH;
+
+syntax:
+    free(clause->words);
+    return PARSER_SYNTAX;
+}
+
+static enum ParserResult parseIfClause(struct Parser* parser,
+        struct IfClause* clause) {
+    clause->numConditions = 0;
+    clause->conditions = NULL;
+    clause->bodies = NULL;
+
+    struct Token* token;
+    enum ParserResult result;
+    do {
+        parser->offset++;
+        struct List condition;
+        result = parseCompoundListWithTerminator(parser, &condition, "then");
+        if (result != PARSER_MATCH) goto fail;
+        struct List body;
+        result = parseList(parser, &body, true);
+        if (result != PARSER_MATCH) {
+            freeList(&condition);
+            goto fail;
+        }
+        token = getToken(parser);
+        if (!token) {
+            result = PARSER_SYNTAX;
+            freeList(&condition);
+            freeList(&body);
+            goto fail;
+        }
+
+        struct List* newLists = reallocarray(clause->conditions,
+                clause->numConditions + 1, sizeof(struct List));
+        if (!newLists) err(1, "realloc");
+
+        clause->conditions = newLists;
+        clause->conditions[clause->numConditions] = condition;
+        newLists = reallocarray(clause->bodies, clause->numConditions + 1,
+                sizeof(struct List));
+        if (!newLists) err(1, "realloc");
+
+        clause->bodies = newLists;
+        clause->bodies[clause->numConditions] = body;
+        clause->numConditions++;
+    } while (strcmp(token->text, "elif") == 0);
+
+    if (strcmp(token->text, "else") == 0) {
+        parser->offset++;
+        clause->hasElse = true;
+        struct List body;
+        result = parseCompoundListWithTerminator(parser, &body, "fi");
+        if (result != PARSER_MATCH) {
+            goto fail;
+        }
+        struct List* newLists = reallocarray(clause->bodies,
+                clause->numConditions + 1, sizeof(struct List));
+        if (!newLists) err(1, "realloc");
+        clause->bodies = newLists;
+        clause->bodies[clause->numConditions] = body;
+    } else {
+        if (strcmp(token->text, "fi") != 0) {
+            result = PARSER_SYNTAX;
+            goto fail;
+        }
+        clause->hasElse = false;
+        parser->offset++;
+    }
+    return PARSER_MATCH;
+
+fail:
+    for (size_t i = 0; i < clause->numConditions; i++) {
+        freeList(&clause->conditions[i]);
+        freeList(&clause->bodies[i]);
+    }
+    return result;
+}
+
+static enum ParserResult parseLinebreak(struct Parser* parser) {
+    struct Token* token = getToken(parser);
+    if (!token) return PARSER_SYNTAX;
 
     while (token->type == OPERATOR && strcmp(token->text, "\n") == 0) {
         parser->offset++;
@@ -330,10 +566,7 @@ static enum ParserResult parseLinebreak(struct Parser* parser) {
             enum ParserResult result = getNextLine(parser, false);
             if (result != PARSER_MATCH) return result;
             token = getToken(parser);
-            if (!token) {
-                syntaxError(NULL);
-                return PARSER_SYNTAX;
-            }
+            if (!token) return PARSER_SYNTAX;
         }
     }
     return PARSER_MATCH;
@@ -363,9 +596,40 @@ static void freeList(struct List* list) {
 
 static void freePipeline(struct Pipeline* pipeline) {
     for (size_t i = 0; i < pipeline->numCommands; i++) {
-        freeSimpleCommand(&pipeline->commands[i]);
+        freeCommand(&pipeline->commands[i]);
     }
     free(pipeline->commands);
+}
+
+static void freeCommand(struct Command* command) {
+    switch (command->type) {
+    case COMMAND_SIMPLE:
+        freeSimpleCommand(&command->simpleCommand);
+        break;
+    case COMMAND_SUBSHELL:
+    case COMMAND_BRACE_GROUP:
+        freeList(&command->compoundList);
+        break;
+    case COMMAND_FOR:
+        free(command->forClause.words);
+        freeList(&command->forClause.body);
+        break;
+    case COMMAND_IF:
+        for (size_t i = 0; i < command->ifClause.numConditions; i++) {
+            freeList(&command->ifClause.conditions[i]);
+            freeList(&command->ifClause.bodies[i]);
+        }
+        if (command->ifClause.hasElse) {
+            freeList(&command->ifClause.bodies[
+                    command->ifClause.numConditions]);
+        }
+        break;
+    case COMMAND_WHILE:
+    case COMMAND_UNTIL:
+        freeList(&command->loop.condition);
+        freeList(&command->loop.body);
+        break;
+    }
 }
 
 static void freeSimpleCommand(struct SimpleCommand* command) {

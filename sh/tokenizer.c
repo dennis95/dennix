@@ -43,9 +43,7 @@ void initTokenizer(struct Tokenizer* tokenizer) {
 
 static inline bool isShellOrCommandSubstitution(struct Tokenizer* tokenizer) {
     return tokenizer->tokenStatus == TOKEN_TOPLEVEL ||
-            tokenizer->tokenStatus == TOKEN_SUBSHELL ||
-            tokenizer->tokenStatus == TOKEN_COMMAND_SUBS ||
-            tokenizer->tokenStatus == TOKEN_CMD_SUBSHELL;
+            tokenizer->tokenStatus == TOKEN_COMMAND_SUBS;
 }
 
 enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
@@ -104,8 +102,7 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
                     tokenizer->buffer.used, c)) {
                 goto appendAndNext;
             } else {
-                if (tokenizer->tokenStatus == TOKEN_TOPLEVEL ||
-                        tokenizer->tokenStatus == TOKEN_SUBSHELL) {
+                if (tokenizer->tokenStatus == TOKEN_TOPLEVEL) {
                     delimit(tokenizer, OPERATOR);
                 }
                 tokenizer->wordStatus = WORDSTATUS_NONE;
@@ -174,35 +171,9 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
                 goto appendAndNext;
             }
 
-            if (isShellOrCommandSubstitution(tokenizer) && c == '(') {
-                if (tokenizer->tokenStatus == TOKEN_TOPLEVEL ||
-                        tokenizer->tokenStatus == TOKEN_SUBSHELL) {
-                    delimit(tokenizer, OPERATOR);
-                    nest(tokenizer, TOKEN_SUBSHELL);
-                } else if (tokenizer->tokenStatus == TOKEN_COMMAND_SUBS ||
-                        tokenizer->tokenStatus == TOKEN_CMD_SUBSHELL) {
-                    nest(tokenizer, TOKEN_CMD_SUBSHELL);
-                }
-
-                tokenizer->wordStatus = WORDSTATUS_OPERATOR;
-                goto appendAndNext;
-            }
-
-            if ((tokenizer->tokenStatus == TOKEN_SUBSHELL ||
-                    tokenizer->tokenStatus == TOKEN_CMD_SUBSHELL)
-                    && c == ')') {
-                if (tokenizer->tokenStatus == TOKEN_SUBSHELL) {
-                    delimit(tokenizer, OPERATOR);
-                }
-                unnest(tokenizer);
-                tokenizer->wordStatus = WORDSTATUS_OPERATOR;
-                goto appendAndNext;
-            }
-
             if (isShellOrCommandSubstitution(tokenizer)
                     && canBeginOperator(c)) {
-                if (tokenizer->tokenStatus == TOKEN_TOPLEVEL ||
-                        tokenizer->tokenStatus == TOKEN_SUBSHELL) {
+                if (tokenizer->tokenStatus == TOKEN_TOPLEVEL) {
                     enum TokenType type = (tokenizer->wordStatus ==
                             WORDSTATUS_NUMBER) ? IO_NUMBER : TOKEN;
                     delimit(tokenizer, type);
@@ -214,8 +185,7 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
 
             if (isShellOrCommandSubstitution(tokenizer) && isblank(c)) {
                 tokenizer->wordStatus = WORDSTATUS_NONE;
-                if (tokenizer->tokenStatus == TOKEN_TOPLEVEL ||
-                        tokenizer->tokenStatus == TOKEN_SUBSHELL) {
+                if (tokenizer->tokenStatus == TOKEN_TOPLEVEL) {
                     delimit(tokenizer, TOKEN);
                     continue;
                 }
@@ -264,7 +234,7 @@ void freeTokenizer(struct Tokenizer* tokenizer) {
 }
 
 static bool canBeginOperator(char c) {
-    return c == '\n' || c == '&' || /*c == '(' ||*/ c == ')' || c == ';'
+    return c == '\n' || c == '&' || c == '(' || c == ')' || c == ';'
             || c == '<' || c == '>' || c == '|';
 }
 
@@ -289,8 +259,7 @@ static bool canContinueOperator(const char* s, size_t opLength, char c) {
 }
 
 static void delimit(struct Tokenizer* tokenizer, enum TokenType type) {
-    assert(tokenizer->tokenStatus == TOKEN_TOPLEVEL ||
-            tokenizer->tokenStatus == TOKEN_SUBSHELL);
+    assert(tokenizer->tokenStatus == TOKEN_TOPLEVEL);
 
     if (tokenizer->buffer.used == 0) return;
 

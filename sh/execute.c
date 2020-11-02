@@ -44,6 +44,8 @@ static void sigusr1Handler(int signum) {
     pipelineReady = 1;
 }
 
+static int executeCommand(struct Command* command, bool subshell);
+static int executeFor(struct ForClause* clause);
 static int executeList(struct List* list);
 static int executePipeline(struct Pipeline* pipeline);
 static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
@@ -75,7 +77,7 @@ static int executeList(struct List* list) {
 
 static int executePipeline(struct Pipeline* pipeline) {
     if (pipeline->numCommands <= 1) {
-        return executeSimpleCommand(&pipeline->commands[0], false);
+        return executeCommand(&pipeline->commands[0], false);
     }
 
     int inputFd = -1;
@@ -132,7 +134,7 @@ static int executePipeline(struct Pipeline* pipeline) {
             }
 
             resetSignals();
-            executeSimpleCommand(&pipeline->commands[i], true);
+            exit(executeCommand(&pipeline->commands[i], true));
         } else {
             if (!lastInPipeline) {
                 close(pipeFds[1]);
@@ -174,6 +176,84 @@ static int executePipeline(struct Pipeline* pipeline) {
     }
 
     assert(false); // This should be unreachable.
+}
+
+static int executeCommand(struct Command* command, bool subshell) {
+    if (subshell) {
+        shellOptions.monitor = false;
+    }
+
+    int status = 0;
+    switch (command->type) {
+    case COMMAND_SIMPLE:
+        return executeSimpleCommand(&command->simpleCommand, subshell);
+    case COMMAND_SUBSHELL:
+        if (!subshell) {
+            pid_t pid = fork();
+            if (pid < 0) {
+                err(1, "fork");
+            } else if (pid == 0) {
+                exit(executeList(&command->compoundList));
+            } else {
+                return waitForCommand(pid);
+            }
+        }
+        return executeList(&command->compoundList);
+    case COMMAND_BRACE_GROUP:
+        return executeList(&command->compoundList);
+    case COMMAND_FOR:
+        return executeFor(&command->forClause);
+    case COMMAND_IF:
+        for (size_t i = 0; i < command->ifClause.numConditions; i++) {
+            if (executeList(&command->ifClause.conditions[i]) == 0) {
+                return executeList(&command->ifClause.bodies[i]);
+            }
+        }
+        if (command->ifClause.hasElse) {
+            return executeList(&command->ifClause.bodies[
+                    command->ifClause.numConditions]);
+        }
+        return 0;
+    case COMMAND_WHILE:
+        while (executeList(&command->loop.condition) == 0) {
+            status = executeList(&command->loop.body);
+        }
+        return status;
+    case COMMAND_UNTIL:
+        while (executeList(&command->loop.condition) != 0) {
+            status = executeList(&command->loop.body);
+        }
+        return status;
+    }
+    assert(false);
+}
+
+static int executeFor(struct ForClause* clause) {
+    char** items = NULL;
+    size_t numItems = 0;
+    for (size_t i = 0; i < clause->numWords; i++) {
+        char** fields;
+        ssize_t numFields = expand(clause->words[i], 0, &fields);
+        if (numFields < 0) {
+            for (size_t j = 0; j < numItems; j++) {
+                free(items[j]);
+            }
+            free(items);
+            return 1;
+        }
+        addMultipleToArray((void**) &items, &numItems, fields, sizeof(char*),
+                numFields);
+        free(fields);
+    }
+
+    int status = 0;
+    for (size_t i = 0; i < numItems; i++) {
+        setVariable(clause->name, items[i], false);
+        status = executeList(&clause->body);
+        free(items[i]);
+    }
+    free(items);
+    return status;
 }
 
 static int executeSimpleCommand(struct SimpleCommand* simpleCommand,

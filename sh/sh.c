@@ -163,7 +163,7 @@ int main(int argc, char* argv[]) {
         enum ParserResult parserResult = parse(&parser, &command);
 
         if (parserResult == PARSER_MATCH) {
-            lastStatus = execute(&command);
+            execute(&command);
             freeCompleteCommand(&command);
         } else if (parserResult == PARSER_SYNTAX) {
             lastStatus = 1;

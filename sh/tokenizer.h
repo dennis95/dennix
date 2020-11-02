@@ -42,9 +42,6 @@ enum TokenStatus {
     TOKEN_COMMENT,
     TOKEN_SINGLE_QUOTED,
     TOKEN_BACKTICK,
-
-    TOKEN_SUBSHELL,
-    TOKEN_CMD_SUBSHELL,
 };
 
 enum WordStatus {

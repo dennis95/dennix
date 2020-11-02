@@ -41,12 +41,6 @@ struct SimpleCommand {
     size_t numWords;
 };
 
-struct Pipeline {
-    struct SimpleCommand* commands;
-    size_t numCommands;
-    bool bang;
-};
-
 struct List {
     struct Pipeline* pipelines;
     char* separators;
@@ -57,6 +51,52 @@ enum {
     LIST_AND,
     LIST_OR,
     LIST_SEMI,
+};
+
+struct ForClause {
+    char* name;
+    char** words;
+    size_t numWords;
+    struct List body;
+};
+
+struct IfClause {
+    struct List* conditions;
+    struct List* bodies;
+    size_t numConditions;
+    bool hasElse;
+};
+
+struct Loop {
+    struct List condition;
+    struct List body;
+};
+
+enum CommandType {
+    COMMAND_SIMPLE,
+    COMMAND_SUBSHELL,
+    COMMAND_BRACE_GROUP,
+    COMMAND_FOR,
+    COMMAND_IF,
+    COMMAND_WHILE,
+    COMMAND_UNTIL,
+};
+
+struct Command {
+    union {
+        struct SimpleCommand simpleCommand;
+        struct List compoundList;
+        struct ForClause forClause;
+        struct IfClause ifClause;
+        struct Loop loop;
+    };
+    enum CommandType type;
+};
+
+struct Pipeline {
+    struct Command* commands;
+    size_t numCommands;
+    bool bang;
 };
 
 struct CompleteCommand {
