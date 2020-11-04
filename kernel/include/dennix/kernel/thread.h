@@ -51,6 +51,7 @@ public:
     Clock cpuClock;
     __fpu_t fpuEnv;
     Process* process;
+    sigset_t returnSignalMask;
     sigset_t signalMask;
 private:
     bool contextChanged;

@@ -291,6 +291,10 @@ Reference<Vnode> Vnode::open(const char* /*name*/, int /*flags*/,
     return nullptr;
 }
 
+short Vnode::poll() {
+    return 0;
+}
+
 ssize_t Vnode::pread(void* /*buffer*/, size_t /*size*/, off_t /*offset*/) {
     errno = ESPIPE;
     return -1;

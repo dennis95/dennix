@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,27 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/file.h
- * File Vnode.
+/* libc/src/poll/ppoll.c
+ * Polling files.
  */
 
-#ifndef KERNEL_FILE_H
-#define KERNEL_FILE_H
+#include <poll.h>
+#include <sys/syscall.h>
 
-#include <dennix/kernel/vnode.h>
-
-class FileVnode : public Vnode, public ConstructorMayFail {
-public:
-    FileVnode(const void* data, size_t size, mode_t mode, dev_t dev);
-    ~FileVnode();
-    virtual int ftruncate(off_t length);
-    virtual bool isSeekable();
-    virtual off_t lseek(off_t offset, int whence);
-    virtual short poll();
-    virtual ssize_t pread(void* buffer, size_t size, off_t offset);
-    virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset);
-public:
-    char* data;
-};
-
-#endif
+DEFINE_SYSCALL_GLOBAL(SYSCALL_PPOLL, int, ppoll, (struct pollfd[], nfds_t,
+        const struct timespec* restrict, const sigset_t* restrict));

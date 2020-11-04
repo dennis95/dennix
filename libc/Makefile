@@ -154,6 +154,8 @@ LIBC_OBJ = \
 	langinfo/nl_langinfo \
 	locale/localeconv \
 	locale/setlocale \
+	poll/poll \
+	poll/ppoll \
 	pwd/getpwnam \
 	signal/kill \
 	signal/raise \

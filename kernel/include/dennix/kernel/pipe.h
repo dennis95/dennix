@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -32,6 +32,7 @@ private:
     class WriteEnd;
 public:
     PipeVnode(Reference<Vnode>& readPipe, Reference<Vnode>& writePipe);
+    virtual short poll();
     virtual ssize_t read(void* buffer, size_t size);
     virtual ssize_t write(const void* buffer, size_t size);
     virtual ~PipeVnode();

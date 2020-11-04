@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,27 +13,30 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/file.h
- * File Vnode.
+/* kernel/include/dennix/poll.h
+ * Polling files.
  */
 
-#ifndef KERNEL_FILE_H
-#define KERNEL_FILE_H
+#ifndef _DENNIX_POLL_H
+#define _DENNIX_POLL_H
 
-#include <dennix/kernel/vnode.h>
-
-class FileVnode : public Vnode, public ConstructorMayFail {
-public:
-    FileVnode(const void* data, size_t size, mode_t mode, dev_t dev);
-    ~FileVnode();
-    virtual int ftruncate(off_t length);
-    virtual bool isSeekable();
-    virtual off_t lseek(off_t offset, int whence);
-    virtual short poll();
-    virtual ssize_t pread(void* buffer, size_t size, off_t offset);
-    virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset);
-public:
-    char* data;
+struct pollfd {
+    int fd;
+    short events;
+    short revents;
 };
+
+typedef unsigned int nfds_t;
+
+#define POLLIN (1 << 0)
+#define POLLRDNORM (1 << 1)
+#define POLLRDBAND (1 << 2)
+#define POLLPRI (1 << 3)
+#define POLLOUT (1 << 4)
+#define POLLWRNORM (1 << 5)
+#define POLLWRBAND (1 << 6)
+#define POLLERR (1 << 7)
+#define POLLHUP (1 << 8)
+#define POLLNVAL (1 << 9)
 
 #endif

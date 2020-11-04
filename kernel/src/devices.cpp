@@ -20,13 +20,25 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dennix/poll.h>
 #include <dennix/kernel/devices.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/terminaldisplay.h>
 
-class DevFull : public Vnode {
+class CharDevice : public Vnode {
 public:
-    DevFull() : Vnode(S_IFCHR | 0666, 0) {}
+    CharDevice() : Vnode(S_IFCHR | 0666, 0) {}
+    virtual short poll() {
+        return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM;
+    }
+
+    virtual ssize_t write(const void* /*buffer*/, size_t size) {
+        return size;
+    }
+};
+
+class DevFull : public CharDevice {
+public:
     virtual ssize_t read(void* /*buffer*/, size_t /*size*/) {
         return 0;
     }
@@ -38,40 +50,25 @@ public:
     }
 };
 
-class DevNull : public Vnode {
+class DevNull : public CharDevice {
 public:
-    DevNull() : Vnode(S_IFCHR | 0666, 0) {}
     virtual ssize_t read(void* /*buffer*/, size_t /*size*/) {
         return 0;
     }
-
-    virtual ssize_t write(const void* /*buffer*/, size_t size) {
-        return size;
-    }
 };
 
-class DevZero : public Vnode {
+class DevZero : public CharDevice {
 public:
-    DevZero() : Vnode(S_IFCHR | 0666, 0) {}
     virtual ssize_t read(void* buffer, size_t size) {
         memset(buffer, 0, size);
         return size;
     }
-
-    virtual ssize_t write(const void* /*buffer*/, size_t size) {
-        return size;
-    }
 };
 
-class DevRandom : public Vnode {
+class DevRandom : public CharDevice {
 public:
-    DevRandom() : Vnode(S_IFCHR | 0666, 0) {}
     virtual ssize_t read(void* buffer, size_t size) {
         arc4random_buf(buffer, size);
-        return size;
-    }
-
-    virtual ssize_t write(const void* /*buffer*/, size_t size) {
         return size;
     }
 };

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,6 +22,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dennix/poll.h>
 #include <dennix/seek.h>
 #include <dennix/stat.h>
 #include <dennix/kernel/file.h>
@@ -89,6 +90,10 @@ off_t FileVnode::lseek(off_t offset, int whence) {
     }
 
     return result;
+}
+
+short FileVnode::poll() {
+    return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM;
 }
 
 ssize_t FileVnode::pread(void* buffer, size_t size, off_t offset) {

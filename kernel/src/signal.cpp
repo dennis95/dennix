@@ -149,7 +149,7 @@ InterruptContext* Thread::handleSignal(InterruptContext* context) {
     frame->siginfo = siginfo;
 
     frame->ucontext.uc_link = nullptr;
-    frame->ucontext.uc_sigmask = signalMask;
+    frame->ucontext.uc_sigmask = returnSignalMask;
     frame->ucontext.uc_stack.ss_sp = nullptr;
     frame->ucontext.uc_stack.ss_size = 0;
     frame->ucontext.uc_stack.ss_flags = SS_DISABLE;
@@ -357,6 +357,7 @@ int Syscall::sigprocmask(int how, const sigset_t* restrict set,
     }
 
     if (set) {
+        Thread::current()->returnSignalMask = Thread::current()->signalMask;
         Thread::current()->updatePendingSignals();
     }
 

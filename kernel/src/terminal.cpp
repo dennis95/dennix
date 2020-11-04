@@ -22,6 +22,7 @@
 #include <sched.h>
 #include <signal.h>
 #include <dennix/devctls.h>
+#include <dennix/poll.h>
 #include <dennix/kernel/kernel.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/signal.h>
@@ -191,6 +192,13 @@ int Terminal::devctl(int command, void* restrict data, size_t size,
 
 int Terminal::isatty() {
     return 1;
+}
+
+short Terminal::poll() {
+    AutoLock lock(&mutex);
+    short result = POLLOUT | POLLWRNORM;
+    if (terminalBuffer.available()) result |= POLLIN | POLLRDNORM;
+    return result;
 }
 
 void Terminal::raiseSignal(int signal) {

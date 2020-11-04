@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <sched.h>
 #include <sys/stat.h>
+#include <dennix/poll.h>
 #include <dennix/kernel/pipe.h>
 #include <dennix/kernel/signal.h>
 #include <dennix/kernel/thread.h>
@@ -37,6 +38,7 @@ protected:
 class PipeVnode::ReadEnd : public Endpoint {
 public:
     ReadEnd(const Reference<PipeVnode>& pipe) : Endpoint(pipe) {}
+    virtual short poll();
     virtual ssize_t read(void* buffer, size_t size);
     virtual ~ReadEnd();
 };
@@ -44,6 +46,7 @@ public:
 class PipeVnode::WriteEnd : public Endpoint {
 public:
     WriteEnd(const Reference<PipeVnode>& pipe) : Endpoint(pipe) {}
+    virtual short poll();
     virtual ssize_t write(const void* buffer, size_t size);
     virtual ~WriteEnd();
 };
@@ -74,6 +77,10 @@ int PipeVnode::Endpoint::stat(struct stat* result) {
     return pipe->stat(result);
 }
 
+short PipeVnode::ReadEnd::poll() {
+    return pipe->poll() & (POLLIN | POLLRDNORM | POLLHUP);
+}
+
 ssize_t PipeVnode::ReadEnd::read(void* buffer, size_t size) {
     return pipe->read(buffer, size);
 }
@@ -83,6 +90,10 @@ PipeVnode::ReadEnd::~ReadEnd() {
     pipe->readEnd = nullptr;
 }
 
+short PipeVnode::WriteEnd::poll() {
+    return pipe->poll() & (POLLOUT | POLLWRNORM | POLLHUP);
+}
+
 ssize_t PipeVnode::WriteEnd::write(const void* buffer, size_t size) {
     return pipe->write(buffer, size);
 }
@@ -90,6 +101,15 @@ ssize_t PipeVnode::WriteEnd::write(const void* buffer, size_t size) {
 PipeVnode::WriteEnd::~WriteEnd() {
     AutoLock lock(&pipe->mutex);
     pipe->writeEnd = nullptr;
+}
+
+short PipeVnode::poll() {
+    AutoLock lock(&mutex);
+    short result = 0;
+    if (bytesAvailable) result |= POLLIN | POLLRDNORM;
+    if (writeEnd && bytesAvailable < PIPE_BUF) result |= POLLOUT | POLLWRNORM;
+    if (!readEnd || !writeEnd) result |= POLLHUP;
+    return result;
 }
 
 ssize_t PipeVnode::read(void* buffer, size_t size) {

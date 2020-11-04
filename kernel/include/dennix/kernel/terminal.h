@@ -49,6 +49,7 @@ public:
     virtual int devctl(int command, void* restrict data, size_t size,
             int* restrict info);
     virtual int isatty();
+    virtual short poll();
     void raiseSignal(int signal);
     virtual ssize_t read(void* buffer, size_t size);
     virtual int tcgetattr(struct termios* result);

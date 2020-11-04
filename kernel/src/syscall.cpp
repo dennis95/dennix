@@ -32,6 +32,7 @@
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/pipe.h>
 #include <dennix/kernel/process.h>
+#include <dennix/kernel/signal.h>
 #include <dennix/kernel/symlink.h>
 #include <dennix/kernel/syscall.h>
 
@@ -87,6 +88,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_FCHOWNAT] =*/ (void*) Syscall::fchownat,
     /*[SYSCALL_MEMINFO] =*/ (void*) Syscall::meminfo,
     /*[SYSCALL_SIGTIMEDWAIT] =*/ (void*) Syscall::sigtimedwait,
+    /*[SYSCALL_PPOLL] =*/ (void*) Syscall::ppoll,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -469,6 +471,72 @@ int Syscall::pipe2(int fd[2], int flags) {
     fd[0] = fd0;
     fd[1] = fd1;
     return 0;
+}
+
+int Syscall::ppoll(struct pollfd fds[], nfds_t nfds,
+        const struct timespec* timeout, const sigset_t* sigmask) {
+    struct timespec endTime;
+    if (timeout) {
+        if (timeout->tv_nsec < 0 || timeout->tv_nsec >= 1000000000L) {
+            errno = EINVAL;
+            return -1;
+        }
+        struct timespec now;
+        Clock::get(CLOCK_MONOTONIC)->getTime(&now);
+        endTime = timespecPlus(now, *timeout);
+    }
+
+    sigset_t oldMask;
+    if (sigmask) {
+        sigprocmask(SIG_SETMASK, sigmask, &oldMask);
+    }
+
+    int events = 0;
+    while (true) {
+        for (nfds_t i = 0; i < nfds; i++) {
+            int fd = fds[i].fd;
+            if (fd < 0) {
+                fds[i].revents = 0;
+                continue;
+            }
+            Reference<FileDescription> descr = Process::current()->getFd(fd);
+            if (!descr) {
+                fds[i].revents = POLLNVAL;
+                events++;
+                continue;
+            }
+            fds[i].revents = descr->vnode->poll() &
+                    (fds[i].events | POLLERR | POLLHUP);
+            if (fds[i].revents) events++;
+        }
+
+        if (events) {
+            if (sigmask) {
+                sigprocmask(SIG_SETMASK, &oldMask, nullptr);
+            }
+            return events;
+        }
+        if (timeout) {
+            struct timespec now;
+            Clock::get(CLOCK_MONOTONIC)->getTime(&now);
+            if (!timespecLess(now, endTime)) {
+                if (sigmask) {
+                    sigprocmask(SIG_SETMASK, &oldMask, nullptr);
+                }
+                return 0;
+            }
+        }
+
+        if (Signal::isPending()) {
+            if (sigmask) {
+                Thread::current()->returnSignalMask = oldMask;
+            }
+            errno = EINTR;
+            return -1;
+        }
+
+        sched_yield();
+    }
 }
 
 ssize_t Syscall::read(int fd, void* buffer, size_t size) {

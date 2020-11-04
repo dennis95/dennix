@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,27 +13,33 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/file.h
- * File Vnode.
+/* libc/include/poll.h
+ * Polling files.
  */
 
-#ifndef KERNEL_FILE_H
-#define KERNEL_FILE_H
+#ifndef _POLL_H
+#define _POLL_H
 
-#include <dennix/kernel/vnode.h>
+#include <sys/cdefs.h>
+#include <dennix/poll.h>
+#if __USE_DENNIX
+#  include <dennix/sigset.h>
+#  include <dennix/timespec.h>
+#endif
 
-class FileVnode : public Vnode, public ConstructorMayFail {
-public:
-    FileVnode(const void* data, size_t size, mode_t mode, dev_t dev);
-    ~FileVnode();
-    virtual int ftruncate(off_t length);
-    virtual bool isSeekable();
-    virtual off_t lseek(off_t offset, int whence);
-    virtual short poll();
-    virtual ssize_t pread(void* buffer, size_t size, off_t offset);
-    virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset);
-public:
-    char* data;
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int poll(struct pollfd[], nfds_t, int);
+
+#if __USE_DENNIX
+int ppoll(struct pollfd[], nfds_t, const struct timespec* __restrict,
+        const sigset_t* __restrict);
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

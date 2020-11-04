@@ -23,6 +23,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <dennix/fork.h>
+#include <dennix/poll.h>
 #include <dennix/syscall.h>
 #include <dennix/timespec.h>
 #include <dennix/kernel/kernel.h>
@@ -73,6 +74,8 @@ void* mmap(__mmapRequest* request);
 int munmap(void* addr, size_t size);
 int openat(int fd, const char* path, int flags, mode_t mode);
 int pipe2(int fd[2], int flags);
+int ppoll(struct pollfd fds[], nfds_t nfds, const struct timespec* timeout,
+        const sigset_t* sigmask);
 ssize_t read(int fd, void* buffer, size_t size);
 ssize_t readlinkat(int fd, const char* restrict path, char* restrict buffer,
         size_t size);
