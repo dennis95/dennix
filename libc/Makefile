@@ -252,6 +252,7 @@ LIBC_OBJ = \
 	stdlib/mkostemps \
 	stdlib/mkstemp \
 	stdlib/mkstemps \
+	stdlib/realpath \
 	stdlib/setenv \
 	stdlib/strtod \
 	stdlib/strtof \

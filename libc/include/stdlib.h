@@ -97,6 +97,7 @@ unsigned long long strtoull(const char* __restrict, char** __restrict, int);
 #if __USE_DENNIX || __USE_POSIX
 char* mkdtemp(char*);
 int mkstemp(char*);
+char* realpath(const char* __restrict, char* __restrict);
 int setenv(const char*, const char*, int);
 int unsetenv(const char*);
 #endif
