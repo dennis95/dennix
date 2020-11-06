@@ -120,7 +120,8 @@ COMMON_OBJ = \
 	wchar/wcschr \
 	wchar/wcscmp \
 	wchar/wcscpy \
-	wchar/wcslen
+	wchar/wcslen \
+	wchar/wcwidth
 
 LIBC_OBJ = \
 	$(COMMON_OBJ) \

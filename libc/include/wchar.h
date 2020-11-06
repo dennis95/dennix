@@ -61,6 +61,10 @@ int wcscmp(const wchar_t*, const wchar_t*);
 wchar_t* wcscpy(wchar_t* __restrict, const wchar_t* __restrict);
 size_t wcslen(const wchar_t*);
 
+#if __USE_DENNIX || __USE_POSIX
+int wcwidth(wchar_t);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
