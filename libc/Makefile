@@ -336,6 +336,7 @@ LIBC_OBJ = \
 	unistd/linkat \
 	unistd/lseek \
 	unistd/meminfo \
+	unistd/pathconf \
 	unistd/pipe \
 	unistd/pipe2 \
 	unistd/read \

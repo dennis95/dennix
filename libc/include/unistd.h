@@ -109,9 +109,21 @@ extern "C" {
 /* #define _XOPEN_UNIX */
 /* #define _XOPEN_UUCP */
 
+#define _POSIX2_SYMLINKS 1
+
+#define _PC_FILESIZEBITS 0
+#define _PC_NAME_MAX 1
+#define _PC_PATH_MAX 2
+#define _PC_PIPE_BUF 3
+#define _PC_2_SYMLINKS 4
+#define _PC_NO_TRUNC 5
+#define _PC_VDISABLE 6
+
 #define STDIN_FILENO 0
 #define STDOUT_FILENO 1
 #define STDERR_FILENO 2
+
+#define _POSIX_VDISABLE '\0'
 
 #define F_OK 0
 #define R_OK (1 << 0)
@@ -154,6 +166,7 @@ int lchown(const char*, uid_t, gid_t);
 int link(const char*, const char*);
 int linkat(int, const char*, int, const char*, int);
 off_t lseek(int, off_t, int);
+long pathconf(const char*, int);
 int pipe(int[2]);
 ssize_t read(int, void*, size_t);
 ssize_t readlink(const char* __restrict, char* __restrict, size_t);
