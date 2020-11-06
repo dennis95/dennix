@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,7 +27,7 @@
 static const wchar_t KBLAYOUT_US[] = {
     // no modifiers, shift, caps, unused
     0, 0, 0, 0,
-    0, 0, 0, 0, // Escape
+    L'\e', L'\e', L'\e', L'\e',
     L'1', L'!', L'1', 0,
     L'2', L'@', L'2', 0,
     L'3', L'#', L'3', 0,

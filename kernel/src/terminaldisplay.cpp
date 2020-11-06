@@ -52,22 +52,29 @@ static const Color defaultColor = {
     .bgColor = vgaColors[0],
     .vgaColor = 0x07
 };
+static bool alternateBuffer = false;
 static Color color = defaultColor;
+static Color savedColor = defaultColor;
+static Color alternateSavedColor = defaultColor;
 static bool fgIsVgaColor = true;
 static CharPos cursorPos;
 static CharPos savedPos;
+static CharPos alternateSavedPos;
 
 static bool endOfLine;
 static unsigned int params[MAX_PARAMS];
 static bool paramSpecified[MAX_PARAMS];
 static size_t paramIndex;
 static mbstate_t ps;
+static bool questionMarkModifier;
 static const unsigned int tabsize = 8;
 
 static enum {
     NORMAL,
     ESCAPED,
     CSI,
+    OSC,
+    OSC_ESCAPED,
 } status = NORMAL;
 
 void TerminalDisplay::backspace() {
@@ -185,6 +192,9 @@ void TerminalDisplay::printCharacter(char c) {
                 paramSpecified[i] = false;
             }
             paramIndex = 0;
+            questionMarkModifier = false;
+        } else if (c == ']') { // OSC - Operating System Command
+            status = OSC;
         } else if (c == 'c') { // RIS - Reset to Initial State
             color = defaultColor;
             endOfLine = false;
@@ -194,6 +204,18 @@ void TerminalDisplay::printCharacter(char c) {
             cursorPos = {0, 0};
             savedPos = {0, 0};
             status = NORMAL;
+        } else if (c == '7') { // Save cursor
+            if (alternateBuffer) {
+                alternateSavedColor = color;
+                alternateSavedPos = cursorPos;
+            } else {
+                savedColor = color;
+                savedPos = cursorPos;
+            }
+        } else if (c == '8') { // Restore cursor
+            color = alternateBuffer ? alternateSavedColor : savedColor;
+            cursorPos = alternateBuffer ? alternateSavedPos : savedPos;
+            endOfLine = false;
         } else {
             // Unknown escape sequence, ignore.
             status = NORMAL;
@@ -202,6 +224,8 @@ void TerminalDisplay::printCharacter(char c) {
         if (c >= '0' && c <= '9') {
             params[paramIndex] = params[paramIndex] * 10 + c - '0';
             paramSpecified[paramIndex] = true;
+        } else if (c == '?') {
+            questionMarkModifier = true;
         } else if (c == ';') {
             paramIndex++;
             if (paramIndex >= MAX_PARAMS) {
@@ -316,22 +340,74 @@ void TerminalDisplay::printCharacter(char c) {
                     cursorPos.y = param - 1;
                 }
             } break;
+            case 'h': // SM - Set Mode
+                if (!questionMarkModifier) break;
+                switch (params[0]) {
+                case 25: // Show cursor
+                    display->setCursorVisibility(true);
+                    break;
+                case 1049: // Enable alternate screen buffer
+                    if (!alternateBuffer) {
+                        savedPos = cursorPos;
+                        savedColor = color;
+                        cursorPos = alternateSavedPos;
+                        color = alternateSavedColor;
+                        display->switchBuffer(color);
+                        alternateBuffer = true;
+                    }
+                    break;
+                }
+                break;
+            case 'l': // RM - Reset Mode
+                if (!questionMarkModifier) break;
+                switch (params[0]) {
+                case 25: // Hide cursor
+                    display->setCursorVisibility(false);
+                    break;
+                case 1049: // Disable alternate screen buffer
+                    if (alternateBuffer) {
+                        alternateSavedPos = cursorPos;
+                        alternateSavedColor = color;
+                        cursorPos = savedPos;
+                        color = savedColor;
+                        display->switchBuffer(color);
+                        alternateBuffer = false;
+                    }
+                    break;
+                }
+                break;
             case 'm': { // SGR - Select Graphic Rendition
                 setGraphicsRendition();
             } break;
-            case 's': { // SCP - Save Cursor Position
-                savedPos = cursorPos;
-            } break;
-            case 'u': { // RCP - Restore Cursor Position
-                cursorPos = savedPos;
+            case 's': // SCP - Save Cursor Position
+                if (alternateBuffer) {
+                    alternateSavedPos = cursorPos;
+                } else {
+                    savedPos = cursorPos;
+                }
+                break;
+            case 'u': // RCP - Restore Cursor Position
+                cursorPos = alternateBuffer ? alternateSavedPos : savedPos;
                 endOfLine = false;
-            } break;
+                break;
             default:
                 // Unknown command, ignore
                 // TODO: Implement more escape sequences when needed
                 break;
             }
             status = NORMAL;
+        }
+    } else if (status == OSC) {
+        if (c == '\e') {
+            status = OSC_ESCAPED;
+        } else if (c == '\7') {
+            status = NORMAL;
+        }
+    } else if (status == OSC_ESCAPED) {
+        if (c == '\\') {
+            status = NORMAL;
+        } else {
+            status = OSC;
         }
     }
 }

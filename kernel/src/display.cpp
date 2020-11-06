@@ -53,7 +53,10 @@ Display::Display(video_mode mode, char* buffer, size_t pitch)
     }
     this->pitch = pitch;
     cursorPos = {0, 0};
+    cursorVisible = true;
     doubleBuffer = nullptr;
+    primaryBuffer = nullptr;
+    alternateBuffer = nullptr;
     invalidated = false;
     renderingText = true;
     haveOldBuffer = true;
@@ -90,9 +93,13 @@ void Display::clear(CharPos from, CharPos to, Color color) {
 }
 
 void Display::initialize() {
-    doubleBuffer = (CharBufferEntry*) malloc(rows * columns *
+    primaryBuffer = (CharBufferEntry*) malloc(rows * columns *
             sizeof(CharBufferEntry));
-    if (!doubleBuffer) PANIC("Allocation failure");
+    if (!primaryBuffer) PANIC("Allocation failure");
+    alternateBuffer = (CharBufferEntry*) malloc(rows * columns *
+            sizeof(CharBufferEntry));
+    if (!alternateBuffer) PANIC("Allocation failure");
+    doubleBuffer = primaryBuffer;
     Color defaultColor = { RGB(170, 170, 170), RGB(0, 0, 0), 0x07 };
     clear({0, 0}, {columns - 1, rows - 1}, defaultColor);
 }
@@ -141,7 +148,7 @@ void Display::redraw(CharPos position, CharBufferEntry* entry) {
     for (size_t i = 0; i < 16; i++) {
         for (size_t j = 0; j < 8; j++) {
             bool pixelFg = charFont[i] & (1 << (7 - j)) ||
-                    (position == cursorPos && i >= 14);
+                    (cursorVisible && position == cursorPos && i >= 14);
             uint32_t rgbColor = pixelFg ? foreground : background;
             setPixelColor(&addr[j * mode.video_bpp / 8], rgbColor);
         }
@@ -203,6 +210,22 @@ void Display::setCursorPos(CharPos position) {
     }
 }
 
+void Display::setCursorVisibility(bool visible) {
+    cursorVisible = visible;
+    if (mode.video_bpp == 0) {
+        if (visible) {
+            outb(0x3D4, 0x0A);
+            outb(0x3D5, 14);
+        } else {
+            outb(0x3D4, 0x0A);
+            outb(0x3D5, 0x20);
+        }
+    } else {
+        if (unlikely(!doubleBuffer)) return;
+        doubleBuffer[cursorPos.x + cursorPos.y * columns].modified = true;
+    }
+}
+
 int Display::setVideoMode(video_mode* videoMode) {
     if (!graphicsDriver->isSupportedMode(*videoMode)) return ENOTSUP;
 
@@ -212,10 +235,16 @@ int Display::setVideoMode(video_mode* videoMode) {
     size_t oldSize = rows * columns;
 
     if (newSize > oldSize) {
-        CharBufferEntry* newDoubleBuffer = (CharBufferEntry*)
-                reallocarray(doubleBuffer, newSize, sizeof(CharBufferEntry));
-        if (!newDoubleBuffer) return ENOMEM;
-        doubleBuffer = newDoubleBuffer;
+        bool primary = doubleBuffer == primaryBuffer;
+        CharBufferEntry* newPrimaryBuffer = (CharBufferEntry*)
+                reallocarray(primaryBuffer, newSize, sizeof(CharBufferEntry));
+        if (!newPrimaryBuffer) return ENOMEM;
+        primaryBuffer = newPrimaryBuffer;
+        CharBufferEntry* newAlternateBuffer = (CharBufferEntry*)
+                reallocarray(alternateBuffer, newSize, sizeof(CharBufferEntry));
+        if (!newAlternateBuffer) return ENOMEM;
+        alternateBuffer = newAlternateBuffer;
+        doubleBuffer = primary ? primaryBuffer : alternateBuffer;
     }
 
     vaddr_t framebuffer = graphicsDriver->setVideoMode(videoMode);
@@ -289,6 +318,16 @@ int Display::setVideoMode(video_mode* videoMode) {
 
     invalidated = true;
     return 0;
+}
+
+void Display::switchBuffer(Color color) {
+    if (doubleBuffer == primaryBuffer) {
+        doubleBuffer = alternateBuffer;
+        clear({0, 0}, {columns - 1, rows - 1}, color);
+    } else {
+        doubleBuffer = primaryBuffer;
+    }
+    invalidated = true;
 }
 
 void Display::update() {
@@ -503,7 +542,8 @@ static uint8_t unicodeToCp437(wchar_t wc) {
     case L'░': return 0xB0;
     case L'▒': return 0xB1;
     case L'▓': return 0xB2;
-    case L'│': return 0xB3;
+    case L'│': return 0xB3; // U+2502 BOX DRAWINGS LIGHT VERTICAL
+    case L'▏': return 0xB3; // U+258F LEFT ONE EIGHTH BLOCK
     case L'┤': return 0xB4;
     case L'╡': return 0xB5;
     case L'╢': return 0xB6;

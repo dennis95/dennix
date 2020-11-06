@@ -61,6 +61,8 @@ public:
     void putCharacter(CharPos position, wchar_t c, Color color);
     void scroll(unsigned int lines, Color color, bool up = true);
     void setCursorPos(CharPos position);
+    void setCursorVisibility(bool visible);
+    void switchBuffer(Color color);
     void update();
 private:
     char* charAddress(CharPos position);
@@ -76,7 +78,10 @@ private:
     video_mode mode;
     size_t pitch;
     CharPos cursorPos;
+    bool cursorVisible;
     CharBufferEntry* doubleBuffer;
+    CharBufferEntry* primaryBuffer;
+    CharBufferEntry* alternateBuffer;
     bool invalidated;
     bool renderingText;
     bool haveOldBuffer;
