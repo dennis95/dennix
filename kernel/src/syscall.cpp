@@ -348,7 +348,7 @@ int Syscall::getrusagens(int who, struct rusagens* usage) {
 
 int Syscall::isatty(int fd) {
     Reference<FileDescription> descr = Process::current()->getFd(fd);
-    if (!descr) return -1;
+    if (!descr) return 0;
     return descr->vnode->isatty();
 }
 
