@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -80,6 +80,7 @@ int main(int argc, char* argv[]) {
     tcgetwinsize(1, &winsize);
 
     initializeWorld();
+    fputs("\e[?25l\e[?1049h", stdout);
 
     while (true) {
         // Game loop
@@ -92,7 +93,7 @@ int main(int argc, char* argv[]) {
         move(snakeHead);
 
         if (checkCollision()) {
-            printf("\e[2JGame Over. Your score is: %u\n", score);
+            printf("\e[?25h\e[?1049lGame Over. Your score is: %u\n", score);
             return 0;
         }
     }
@@ -122,7 +123,7 @@ static void checkFood(void) {
     if (food.row == snakeHead->row && food.col == snakeHead->col) {
         struct SnakeSegment* newSegment = malloc(sizeof(struct SnakeSegment));
         if (!newSegment) {
-            puts("\e[2Jsnake: allocation failure");
+            puts("\e[?25h\e[?1049lsnake: allocation failure");
             exit(1);
         }
 
@@ -156,14 +157,14 @@ static void drawScreen(void) {
         current = current->next;
     }
 
-    printf("\e[%d;%dH\e[41m \e[49m\e[H", food.row + 1, food.col + 1);
+    printf("\e[%d;%dH\e[41m \e[49m", food.row + 1, food.col + 1);
 }
 
 static void handleInput(void) {
     char key;
     if (read(0, &key, 1)) {
         if (key == 'q') {
-            printf("\e[2J");
+            fputs("\e[?25h\e[?1049l", stdout);
             exit(0);
         }
         enum Direction newDirection = snakeHead->direction;

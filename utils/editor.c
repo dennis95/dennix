@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,12 +20,12 @@
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
-#ifndef __dennix__
-#  include <locale.h>
-#endif
+#include <locale.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdnoreturn.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
@@ -72,6 +72,7 @@ static void backspace(void);
 static void delete(void);
 static void drawLine(size_t y);
 static void drawLines(void);
+static noreturn void error(const char* msg, ...);
 static void getInput(void);
 static void handleKey(char c);
 static void handleSequence(char c);
@@ -86,9 +87,7 @@ static bool updateLinePos(void);
 static void updateLogicalPos(void);
 
 int main(int argc, char* argv[]) {
-#ifndef __dennix__
     setlocale(LC_ALL, "");
-#endif
 
     if (argc >= 2) {
         filename = argv[1];
@@ -117,7 +116,7 @@ int main(int argc, char* argv[]) {
     setbuf(stdout, NULL);
 
     readFile(filename);
-    fputs("\e[2J", stdout);
+    fputs("\e[?1049h", stdout);
     drawLines();
     updateCursorPosition();
     while (true) {
@@ -131,7 +130,7 @@ static struct line* addLine(size_t lineNumber) {
             linesAllocated = 16;
         }
         lines = reallocarray(lines, linesAllocated, 2 * sizeof(struct line));
-        if (!lines) err(1, "reallocarray");
+        if (!lines) error("reallocarray");
         linesAllocated *= 2;
     }
 
@@ -140,7 +139,7 @@ static struct line* addLine(size_t lineNumber) {
 
     struct line* newLine = &lines[lineNumber];
     newLine->buffer = malloc(80 * sizeof(wchar_t));
-    if (!newLine->buffer) err(1, "malloc");
+    if (!newLine->buffer) error("malloc");
     newLine->bufferSize = 80;
     newLine->length = 0;
 
@@ -224,6 +223,13 @@ static void drawLines(void) {
     }
 }
 
+static noreturn void error(const char* msg, ...) {
+    fputs("\e[?1049l", stdout);
+    va_list ap;
+    va_start(ap, msg);
+    verr(1, msg, ap);
+}
+
 static enum {
     NORMAL,
     ESCAPED,
@@ -266,7 +272,7 @@ static void handleKey(char c) {
     if (c == '\e') {
         state = ESCAPED;
     } else if (c == CTRL('Q')) {
-        fputs("\e[H\e[2J", stdout);
+        fputs("\e[?1049l", stdout);
         exit(0);
     } else if (c == CTRL('S')) {
         saveFile(filename);
@@ -353,7 +359,7 @@ static void newline(void) {
     if (newLine->bufferSize < currentLine->length - linePos) {
         newLine->buffer = reallocarray(newLine->buffer,
                 currentLine->length - linePos, sizeof(wchar_t));
-        if (!newLine->buffer) err(1, "reallocarray");
+        if (!newLine->buffer) error("reallocarray");
         newLine->bufferSize = currentLine->length - linePos;
     }
 
@@ -380,7 +386,7 @@ static void putCharacter(wchar_t wc) {
     if (line->length + 1 == line->bufferSize) {
         line->buffer = reallocarray(line->buffer,
                 line->bufferSize * sizeof(wchar_t), 2);
-        if (!line->buffer) err(1, "reallocarray");
+        if (!line->buffer) error("reallocarray");
         line->bufferSize *= 2;
     }
     memmove(line->buffer + linePos + 1, line->buffer + linePos,
@@ -402,7 +408,7 @@ static void putCharacter(wchar_t wc) {
 static void readFile(const char* filename) {
     FILE* file = fopen(filename, "r");
     if (!file) {
-        if (errno != ENOENT) err(1, "'%s'", filename);
+        if (errno != ENOENT) error("'%s'", filename);
         addLine(0);
         linesUsed = 1;
         return;
@@ -437,7 +443,7 @@ static void readFile(const char* filename) {
                 if (line->length >= line->bufferSize) {
                     wchar_t* newBuffer = reallocarray(line->buffer, 2,
                             line->bufferSize * sizeof(wchar_t));
-                    if (!newBuffer) err(1, "reallocarray");
+                    if (!newBuffer) error("reallocarray");
                     line->buffer = newBuffer;
                     line->bufferSize *= 2;
                 }
@@ -455,7 +461,7 @@ static void readFile(const char* filename) {
             }
         } while (wc != L'\n');
 
-        if (ferror(file)) err(1, "'%s'", filename);
+        if (ferror(file)) error("'%s'", filename);
         linesUsed++;
     }
 
@@ -478,7 +484,7 @@ static void removeAt(size_t y, size_t position) {
         if (line->bufferSize < line->length + next->length) {
             line->buffer = reallocarray(line->buffer,
                     line->length + next->length, sizeof(wchar_t));
-            if (!line->buffer) err(1, "realloc");
+            if (!line->buffer) error("realloc");
             line->bufferSize = line->length + next->length;
         }
         memcpy(line->buffer + line->length, next->buffer,
@@ -498,7 +504,7 @@ static void restoreTermios(void) {
 
 static void saveFile(const char* filename) {
     FILE* file = fopen(filename, "w");
-    if (!file) err(1, "'%s'", filename);
+    if (!file) error("'%s'", filename);
 
     for (size_t i = 0; i < linesUsed; i++) {
         struct line* line = &lines[i];
@@ -520,10 +526,10 @@ static void saveFile(const char* filename) {
         int errnum = errno;
         fclose(file);
         errno = errnum;
-        err(1, "'%s'", filename);
+        error("'%s'", filename);
     }
     if (fclose(file)) {
-        err(1, "'%s'", filename);
+        error("'%s'", filename);
     }
 }
 
