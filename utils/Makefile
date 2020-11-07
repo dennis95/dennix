@@ -46,6 +46,7 @@ BIN_PROGRAMS = \
 	rm \
 	sleep \
 	snake \
+	test \
 	tail \
 	time \
 	touch \
@@ -64,6 +65,7 @@ install: install-bin install-sbin
 install-bin: $(addprefix $(BUILD)/, $(BIN_PROGRAMS))
 	@mkdir -p $(BIN_DIR)
 	cp -f $^ $(BIN_DIR)
+	ln -f $(BIN_DIR)/test $(BIN_DIR)/[
 	touch $(SYSROOT)
 
 install-sbin: $(addprefix $(BUILD)/, $(SBIN_PROGRAMS))
