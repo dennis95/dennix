@@ -39,6 +39,8 @@
 #define NCCS 11
 
 #define TCSAFLUSH 0
+#define TCSANOW 1
+#define TCSADRAIN 2
 
 typedef unsigned char cc_t;
 typedef unsigned int tcflag_t;

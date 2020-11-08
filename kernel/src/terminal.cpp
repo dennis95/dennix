@@ -268,12 +268,22 @@ int Terminal::tcgetattr(struct termios* result) {
 }
 
 int Terminal::tcsetattr(int flags, const struct termios* termio) {
-    this->termio = *termio;
-
-    if (flags == TCSAFLUSH) {
+    if (flags == TCSANOW || flags == TCSADRAIN) {
+        // TCSANOW and TCSADRAIN are identical because output is always
+        // transmitted immediately.
+        this->termio = *termio;
+        if (!(termio->c_lflag & ICANON)) {
+            terminalBuffer.endLine();
+        }
+    } else if (flags == TCSAFLUSH) {
+        this->termio = *termio;
         terminalBuffer.reset();
         numEof = 0;
+    } else {
+        errno = EINVAL;
+        return -1;
     }
+
     return 0;
 }
 
