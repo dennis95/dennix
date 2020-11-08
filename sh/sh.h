@@ -51,7 +51,6 @@ extern bool endOfFileReached;
 extern bool inputIsTerminal;
 extern int lastStatus;
 extern struct ShellOptions shellOptions;
-extern struct termios termios;
 
 noreturn void executeScript(int argc, char** argv);
 void addToArray(void** array, size_t* used, const void* value, size_t size);

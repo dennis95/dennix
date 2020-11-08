@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include <stdnoreturn.h>
 #include <string.h>
-#include <termios.h>
 #include <unistd.h>
 #include <sys/wait.h>
 
@@ -492,10 +491,6 @@ static int waitForCommand(pid_t pid) {
     }
 
     if (WIFSIGNALED(status)) {
-        if (shellOptions.interactive && inputIsTerminal) {
-            tcsetattr(0, TCSAFLUSH, &termios);
-        }
-
         int signum = WTERMSIG(status);
         if (shellOptions.interactive && signum == SIGINT) {
             fputc('\n', stderr);

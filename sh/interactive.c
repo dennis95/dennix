@@ -40,6 +40,7 @@ struct HistoryEntry {
     size_t bufferUsed; // not including newline
 };
 
+static struct termios currentTermios;
 static struct HistoryEntry* history;
 static size_t historySize;
 static size_t position;
@@ -80,11 +81,12 @@ void readCommandInteractive(const char** str, bool newCommand) {
     size_t historyPosition = historySize;
     bool historyEdited = false;
 
-    struct termios oldTermios;
-    tcgetattr(0, &oldTermios);
-    struct termios termios = oldTermios;
+    if (!(lastStatus > 128)) {
+        tcgetattr(0, &currentTermios);
+    }
+    struct termios termios = currentTermios;
     termios.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(0, TCSAFLUSH, &termios);
+    tcsetattr(0, TCSANOW, &termios);
 
     tcgetwinsize(2, &winsize);
     prefixLength = printPrompt(newCommand);
@@ -241,7 +243,7 @@ void readCommandInteractive(const char** str, bool newCommand) {
         addHistoryEntry(*entry);
     }
 
-    tcsetattr(0, TCSAFLUSH, &oldTermios);
+    tcsetattr(0, TCSANOW, &currentTermios);
 }
 
 static void addHistoryEntry(struct HistoryEntry entry) {

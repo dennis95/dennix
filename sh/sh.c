@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <termios.h>
 #include <unistd.h>
 
 #include "builtins.h"
@@ -44,7 +43,6 @@ bool endOfFileReached;
 bool inputIsTerminal;
 int lastStatus;
 struct ShellOptions shellOptions;
-struct termios termios;
 
 static char* buffer;
 static size_t bufferSize;
@@ -140,7 +138,6 @@ int main(int argc, char* argv[]) {
             interactiveInput = true;
             initializeInteractive();
         }
-        tcgetattr(0, &termios);
     }
 
     username = getlogin();
