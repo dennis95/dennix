@@ -38,6 +38,8 @@ public:
     vaddr_t mapMemory(size_t size, int protection);
     vaddr_t mapMemory(vaddr_t virtualAddress, size_t size, int protection);
     vaddr_t mapPhysical(paddr_t physicalAddress, size_t size, int protection);
+    vaddr_t mapUnaligned(paddr_t physicalAddress, size_t size, int protection,
+            vaddr_t& mapping, size_t& mapSize);
     void unmapMemory(vaddr_t virtualAddress, size_t size);
     void unmapPhysical(vaddr_t firstVirtualAddress, size_t size);
 private:

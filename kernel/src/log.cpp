@@ -45,12 +45,11 @@ void Log::earlyInitialize(multiboot_info* multiboot) {
     } else if (multiboot->framebuffer_type == MULTIBOOT_RGB &&
             (multiboot->framebuffer_bpp == 24 ||
             multiboot->framebuffer_bpp == 32)) {
-        paddr_t lfbAligned = multiboot->framebuffer_addr & ~PAGE_MISALIGN;
-        size_t lfbOffset = multiboot->framebuffer_addr - lfbAligned;
-        size_t lfbSize = ALIGNUP(multiboot->framebuffer_height *
-                multiboot->framebuffer_pitch + lfbOffset, PAGESIZE);
-        vaddr_t lfb = kernelSpace->mapPhysical(lfbAligned, lfbSize,
-                PROT_READ | PROT_WRITE) + lfbOffset;
+        vaddr_t lfbMapping;
+        size_t mapSize;
+        vaddr_t lfb = kernelSpace->mapUnaligned(multiboot->framebuffer_addr,
+                multiboot->framebuffer_height * multiboot->framebuffer_pitch,
+                PROT_READ | PROT_WRITE, lfbMapping, mapSize);
         if (!lfb) {
             // This shouldn't fail in practise as enough memory should be
             // available.

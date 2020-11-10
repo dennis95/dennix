@@ -172,6 +172,17 @@ vaddr_t AddressSpace::mapPhysical(paddr_t physicalAddress, size_t size,
     return virtualAddress;
 }
 
+vaddr_t AddressSpace::mapUnaligned(paddr_t physicalAddress, size_t size,
+        int protection, vaddr_t& mapping, size_t& mapSize) {
+    paddr_t physAligned = physicalAddress & ~PAGE_MISALIGN;
+    size_t offset = physicalAddress - physAligned;
+    mapSize = ALIGNUP(offset + size, PAGESIZE);
+
+    mapping = mapPhysical(physAligned, mapSize, protection);
+    if (!mapping) return 0;
+    return mapping + offset;
+}
+
 void AddressSpace::unmap(vaddr_t virtualAddress) {
     mapAt(virtualAddress, 0, 0);
 }

@@ -50,7 +50,7 @@ static inline bool isUsedByKernel(paddr_t physicalAddress) {
 }
 
 static inline bool isUsedByModule(paddr_t physicalAddress,
-        multiboot_mod_list* modules, uint32_t moduleCount) {
+        const multiboot_mod_list* modules, uint32_t moduleCount) {
     for (size_t i = 0; i < moduleCount; i++) {
         if (physicalAddress >= modules[i].mod_start &&
                 physicalAddress < modules[i].mod_end) {
@@ -72,30 +72,21 @@ static inline bool isUsedByMultiboot(paddr_t physicalAddress,
 }
 
 void PhysicalMemory::initialize(multiboot_info* multiboot) {
-    paddr_t mmapPhys = (paddr_t) multiboot->mmap_addr;
-    paddr_t mmapAligned = mmapPhys & ~PAGE_MISALIGN;
-    ptrdiff_t mmapOffset = mmapPhys - mmapAligned;
-    size_t mmapSize = ALIGNUP(mmapOffset + multiboot->mmap_length, PAGESIZE);
-
-    // Map the module list so we can check which addresses are used by modules
-    paddr_t modulesPhys = (paddr_t) multiboot->mods_addr;
-    paddr_t modulesAligned = modulesPhys & ~PAGE_MISALIGN;
-    ptrdiff_t modulesOffset = modulesPhys - modulesAligned;
-    size_t modulesSize = ALIGNUP(modulesOffset +
-            multiboot->mods_count * sizeof(multiboot_mod_list), PAGESIZE);
-
-    vaddr_t mmapMapped = kernelSpace->mapPhysical(mmapAligned, mmapSize,
-            PROT_READ);
-    if (!mmapMapped) PANIC("Failed to map multiboot mmap");
-    vaddr_t modulesMapped = kernelSpace->mapPhysical(modulesAligned,
-            modulesSize, PROT_READ);
-    if (!modulesMapped) PANIC("Failed to map multiboot modules");
-
-    vaddr_t mmap = mmapMapped + mmapOffset;
+    vaddr_t mmapMapping;
+    size_t mmapSize;
+    vaddr_t mmap = kernelSpace->mapUnaligned(multiboot->mmap_addr,
+            multiboot->mmap_length, PROT_READ, mmapMapping, mmapSize);
+    if (!mmap) PANIC("Failed to map multiboot mmap");
     vaddr_t mmapEnd = mmap + multiboot->mmap_length;
 
-    multiboot_mod_list* modules =
-            (multiboot_mod_list*) (modulesMapped + modulesOffset);
+    // Map the module list so we can check which addresses are used by modules
+    vaddr_t modulesMapping;
+    size_t modulesSize;
+    const multiboot_mod_list* modules = (const multiboot_mod_list*)
+            kernelSpace->mapUnaligned(multiboot->mods_addr,
+            multiboot->mods_count * sizeof(multiboot_mod_list), PROT_READ,
+            modulesMapping, modulesSize);
+    if (!modules) PANIC("Failed to map multiboot modules");
 
     while (mmap < mmapEnd) {
         multiboot_mmap_entry* mmapEntry = (multiboot_mmap_entry*) mmap;
@@ -118,8 +109,8 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
         mmap += mmapEntry->size + 4;
     }
 
-    kernelSpace->unmapPhysical(mmapMapped, mmapSize);
-    kernelSpace->unmapPhysical(modulesMapped, modulesSize);
+    kernelSpace->unmapPhysical(mmapMapping, mmapSize);
+    kernelSpace->unmapPhysical(modulesMapping, modulesSize);
 }
 
 void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
