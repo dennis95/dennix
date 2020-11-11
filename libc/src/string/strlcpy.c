@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,7 +26,9 @@ size_t strlcpy(char* restrict dest, const char* restrict source, size_t size) {
         if (source[i] == '\0') return i;
     }
 
-    dest[i] = '\0';
+    if (size != 0) {
+        dest[i] = '\0';
+    }
 
     while (source[i] != '\0') {
         i++;
