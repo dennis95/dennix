@@ -4,7 +4,7 @@ Dennix. It is licensed under the MIT license compatible to the ISC license used
 by Dennix. Some code is licensed under other permissive terms as noted in the
 individual files.
 
-The current version is based on commit f5eee489f7662b08ad1bba4b1267e34eb9565bba
+The current version is based on commit d91a6cf6e369a79587c5665fce9635e5634ca201
 of musl.
 
 The math library is not built as a separate libm.a libary but is built is part
