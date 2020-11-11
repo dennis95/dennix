@@ -24,6 +24,8 @@
 FILE* fopen(const char* restrict path, const char* restrict mode) {
     int flags = __fmodeflags(mode);
     if (flags == -1) return NULL;
+    // Ignore x when not creating a file.
+    if (!(flags & O_CREAT)) flags &= ~O_EXCL;
 
     int fd = open(path, flags,
             S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
