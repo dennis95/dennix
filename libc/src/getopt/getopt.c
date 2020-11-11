@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,10 +20,6 @@
 #include <getopt.h>
 #include <unistd.h>
 
-static struct option emptyOptions[] = {
-    { 0, 0, 0, 0 }
-};
-
 int getopt(int argc, char* const argv[], const char* optstring) {
-    return getopt_long(argc, argv, optstring, emptyOptions, NULL);
+    return getopt_long(argc, argv, optstring, NULL, NULL);
 }
