@@ -311,8 +311,8 @@ ssize_t Syscall::getdents(int fd, void* buffer, size_t size, int flags) {
 }
 
 int Syscall::getentropy(void* buffer, size_t size) {
-    if (size > 256) {
-        errno = EIO;
+    if (size > GETENTROPY_MAX) {
+        errno = EINVAL;
         return -1;
     }
     arc4random_buf(buffer, size);

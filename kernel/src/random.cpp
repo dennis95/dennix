@@ -36,7 +36,7 @@ static void initialize(void) {
 }
 
 extern "C" int getentropy(void* buffer, size_t size) {
-    assert(size <= 256);
+    assert(size <= GETENTROPY_MAX);
     if (!initialized) {
         initialize();
     }
