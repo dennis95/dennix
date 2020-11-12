@@ -73,7 +73,7 @@ $(INITRD): $(SYSROOT)
 	cd $(SYSROOT) && tar cJf ../$(INITRD) --format=ustar *
 
 qemu: $(ISO)
-	qemu-system-$(BASE_ARCH) -cdrom $^ -m 512M
+	qemu-system-$(BASE_ARCH) -cdrom $^ -m 512M -cpu host -enable-kvm
 
 sh: $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C sh
