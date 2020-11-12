@@ -308,14 +308,6 @@ int Display::setVideoMode(video_mode* videoMode) {
         }
     }
 
-    if (newSize < oldSize) {
-        CharBufferEntry* newDoubleBuffer = (CharBufferEntry*)
-                reallocarray(doubleBuffer, newSize, sizeof(CharBufferEntry));
-        if (newDoubleBuffer) {
-            doubleBuffer = newDoubleBuffer;
-        }
-    }
-
     invalidated = true;
     return 0;
 }
