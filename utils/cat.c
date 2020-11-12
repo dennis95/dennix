@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,7 +42,7 @@ static void cat(const char* path) {
     }
 
     while (true) {
-        char buffer[1];
+        char buffer[4096];
         ssize_t readSize = read(fd, buffer, sizeof(buffer));
         if (readSize < 0) {
             warn("'%s'", path);
