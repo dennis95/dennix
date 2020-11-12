@@ -82,6 +82,8 @@ int main(int argc, char* argv[]) {
         case 't':
             timeString = optarg;
             break;
+        case '?':
+            return 1;
         }
     }
 
