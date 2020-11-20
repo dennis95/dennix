@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
+#include <poll.h>
 #include <sched.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -33,6 +34,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <dennix/display.h>
+#include <dennix/mouse.h>
 
 #define min(x, y) ((x < y) ? (x) : (y))
 #define max(x, y) ((x > y) ? (x) : (y))
@@ -53,6 +55,7 @@ static const uint32_t ballColor = RGB(255, 0, 0);
 static const double ballSpeed = 0.00000002;
 static const double brickHeight = 5.0;
 static const double brickWidth = 10.0;
+static const double mousePaddleSpeed = 0.08;
 static const double paddleLength = 5.0;
 static const double paddleSpeed = 0.9;
 static const double paddleY = 105.0;
@@ -60,6 +63,7 @@ static const double pickupSpeed = 0.00000003;
 
 static int displayFd;
 static struct display_draw draw;
+static int mouseFd;
 static int oldMode;
 static struct termios oldTermios;
 static struct display_resolution res;
@@ -257,17 +261,40 @@ static void drawLevel(void) {
 }
 
 static void handleInput(void) {
-    char key;
-    if (read(0, &key, 1)) {
-        if (key == 'q' || key == 'Q') {
-            exit(0);
-        } else if (key == 'a' || key == 'A') {
-            updatePaddle(-paddleSpeed);
-        } else if (key == 'd' || key == 'D') {
-            updatePaddle(paddleSpeed);
-        } else if (preparing && key == ' ') {
-            ballAngle = atan2(55.0 - paddlePos, paddleY - ballY);
-            preparing = false;
+    struct pollfd pfd[2];
+    pfd[0].fd = 0;
+    pfd[0].events = POLLIN;
+    pfd[1].fd = mouseFd;
+    pfd[1].events = POLLIN;
+
+    while (poll(pfd, 2, 0) >= 1) {
+        if (pfd[0].revents & POLLIN) {
+            char key;
+            read(0, &key, 1);
+            if (key == 'q' || key == 'Q') {
+                exit(0);
+            } else if (key == 'a' || key == 'A') {
+                updatePaddle(-paddleSpeed);
+            } else if (key == 'd' || key == 'D') {
+                updatePaddle(paddleSpeed);
+            } else if (preparing && key == ' ') {
+                ballAngle = atan2(55.0 - paddlePos, paddleY - ballY);
+                preparing = false;
+            }
+        }
+
+        if (pfd[1].revents & POLLIN) {
+            struct mouse_data data;
+            read(mouseFd, &data, sizeof(data));
+
+            if (data.mouse_x) {
+                updatePaddle(data.mouse_x * mousePaddleSpeed);
+            }
+
+            if (preparing && data.mouse_flags & MOUSE_LEFT) {
+                ballAngle = atan2(55.0 - paddlePos, paddleY - ballY);
+                preparing = false;
+            }
         }
     }
 }
@@ -340,8 +367,19 @@ static void setup(void) {
 
     struct termios newTermios = oldTermios;
     newTermios.c_lflag &= ~(ECHO | ICANON);
-    newTermios.c_cc[VMIN] = 0;
     tcsetattr(0, TCSAFLUSH, &newTermios);
+
+    mouseFd = open("/dev/mouse", O_RDONLY);
+    if (mouseFd >= 0) {
+        // Discard any mouse data that has been buffered.
+        struct pollfd pfd[1];
+        pfd[0].fd = mouseFd;
+        pfd[0].events = POLLIN;
+        while (poll(pfd, 1, 0) == 1) {
+            struct mouse_data data[256];
+            read(mouseFd, data, sizeof(data));
+        }
+    }
 
     posix_devctl(displayFd, DISPLAY_GET_RESOLUTION, &res, sizeof(res), NULL);
 
