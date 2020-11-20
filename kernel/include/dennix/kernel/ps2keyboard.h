@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,12 +25,14 @@
 
 class PS2Keyboard : public PS2Device {
 public:
-    PS2Keyboard();
+    PS2Keyboard(bool secondPort);
     virtual void irqHandler();
 private:
     void handleKey(int keycode);
 public:
     KeyboardListener* listener;
+private:
+    bool secondPort;
 };
 
 #endif

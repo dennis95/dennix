@@ -49,6 +49,7 @@ OBJ = \
 	libk.o \
 	log.o \
 	memorysegment.o \
+	mouse.o \
 	panic.o \
 	pci.o \
 	physicalmemory.o \
@@ -57,6 +58,7 @@ OBJ = \
 	process.o \
 	ps2.o \
 	ps2keyboard.o \
+	ps2mouse.o \
 	random.o \
 	refcount.o \
 	rtc.o \

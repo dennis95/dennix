@@ -22,6 +22,7 @@
 #include <string.h>
 #include <dennix/poll.h>
 #include <dennix/kernel/devices.h>
+#include <dennix/kernel/mouse.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/terminaldisplay.h>
 
@@ -82,7 +83,8 @@ void Devices::initialize(Reference<DirectoryVnode> rootDir) {
             dev->link("zero", xnew DevZero()) < 0 ||
             dev->link("display", TerminalDisplay::display) < 0 ||
             dev->link("random", random) < 0 ||
-            dev->link("urandom", random) < 0) {
+            dev->link("urandom", random) < 0 ||
+            (mouseDevice && dev->link("mouse", mouseDevice) < 0)) {
         PANIC("Could not create /dev directory.");
     }
 }

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2020 Dennis Wölfing
+/* Copyright (c) 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,27 +13,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/ps2.h
- * PS/2 Controller.
+/* kernel/include/dennix/mouse.h
+ * Mouse data.
  */
 
-#ifndef KERNEL_PS2_H
-#define KERNEL_PS2_H
+#ifndef _DENNIX_MOUSE_H
+#define _DENNIX_MOUSE_H
 
 #include <stdint.h>
 
-namespace PS2 {
-void initialize();
-uint8_t readDataPort();
-uint8_t sendDeviceCommand(bool secondPort, uint8_t command);
-uint8_t sendDeviceCommand(bool secondPort, uint8_t command, uint8_t data,
-        bool ackBeforeData);
-}
+#define MOUSE_LEFT (1 << 0)
+#define MOUSE_RIGHT (1 << 1)
+#define MOUSE_MIDDLE (1 << 2)
+#define MOUSE_SCROLL_UP (1 << 3)
+#define MOUSE_SCROLL_DOWN (1 << 4)
 
-class PS2Device {
-public:
-    virtual void irqHandler() = 0;
-    virtual ~PS2Device() {}
+struct mouse_data {
+    int16_t mouse_x;
+    int16_t mouse_y;
+    uint8_t mouse_flags;
 };
 
 #endif

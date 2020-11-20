@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,12 +21,10 @@
 #include <dennix/kernel/portio.h>
 #include <dennix/kernel/ps2keyboard.h>
 
-#define KEYBOARD_ENABLE_SCANNING 0xF4
 #define KEYBOARD_SET_LED 0xED
 
-PS2Keyboard::PS2Keyboard() {
+PS2Keyboard::PS2Keyboard(bool secondPort) : secondPort(secondPort) {
     listener = nullptr;
-    PS2::sendDeviceCommand(KEYBOARD_ENABLE_SCANNING);
     Log::printf("PS/2 Keyboard found.\n");
 }
 
@@ -72,7 +70,7 @@ void PS2Keyboard::handleKey(int keycode) {
     if (newLed != ledState) {
         ledState = newLed;
 
-        PS2::sendDeviceCommand(KEYBOARD_SET_LED, ledState);
+        PS2::sendDeviceCommand(secondPort, KEYBOARD_SET_LED, ledState, false);
     }
 
     if (listener) {

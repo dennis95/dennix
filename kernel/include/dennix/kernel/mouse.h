@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2020 Dennis Wölfing
+/* Copyright (c) 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,27 +13,28 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/ps2.h
- * PS/2 Controller.
+/* kernel/include/dennix/kernel/mouse.h
+ * Mouse device.
  */
 
-#ifndef KERNEL_PS2_H
-#define KERNEL_PS2_H
+#ifndef KERNEL_MOUSE_H
+#define KERNEL_MOUSE_H
 
-#include <stdint.h>
+#include <dennix/mouse.h>
+#include <dennix/kernel/vnode.h>
 
-namespace PS2 {
-void initialize();
-uint8_t readDataPort();
-uint8_t sendDeviceCommand(bool secondPort, uint8_t command);
-uint8_t sendDeviceCommand(bool secondPort, uint8_t command, uint8_t data,
-        bool ackBeforeData);
-}
-
-class PS2Device {
+class MouseDevice : public Vnode {
 public:
-    virtual void irqHandler() = 0;
-    virtual ~PS2Device() {}
+    MouseDevice();
+    void addPacket(mouse_data data);
+    virtual short poll();
+    virtual ssize_t read(void* buffer, size_t size);
+private:
+    mouse_data mouseBuffer[256];
+    size_t readIndex;
+    size_t available;
 };
+
+extern Reference<MouseDevice> mouseDevice;
 
 #endif
