@@ -1,0 +1,35 @@
+name: Continuous Integration
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [i686, x86_64]
+    env:
+      ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install toolchain dependencies
+        run: sudo apt-get -qy install bison flex libgmp-dev libmpfr-dev libmpc-dev texinfo grub-pc-bin xorriso
+
+      - name: Set PATH
+        run: echo ~/dennix-toolchain >> $GITHUB_PATH
+
+      - name: Check for toolchain versions
+        run: echo "$(git ls-remote https://github.com/dennis95/dennix-binutils.git HEAD | cut -c 1-40)-$(git ls-remote https://github.com/dennis95/dennix-gcc.git HEAD | cut -c 1-40)" > toolchain-commit
+
+      - name: Cache cross toolchain
+        uses: actions/cache@v2
+        id: cache
+        with:
+          path: ~/dennix-toolchain
+          key: toolchain-${{ matrix.arch }}-${{ hashFiles('toolchain-commit') }}
+
+      - name: Install cross toolchain
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: make install-toolchain
+
+      - name: Build
+        run: make
