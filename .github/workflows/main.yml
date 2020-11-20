@@ -6,6 +6,7 @@ jobs:
     strategy:
       matrix:
         arch: [i686, x86_64]
+      fail-fast: false
     env:
       ARCH: ${{ matrix.arch }}
     steps:
@@ -15,7 +16,7 @@ jobs:
         run: sudo apt-get -qy install bison flex libgmp-dev libmpfr-dev libmpc-dev texinfo grub-pc-bin xorriso
 
       - name: Set PATH
-        run: echo ~/dennix-toolchain >> $GITHUB_PATH
+        run: echo ~/dennix-toolchain/bin >> $GITHUB_PATH
 
       - name: Check for toolchain versions
         run: echo "$(git ls-remote https://github.com/dennis95/dennix-binutils.git HEAD | cut -c 1-40)-$(git ls-remote https://github.com/dennis95/dennix-gcc.git HEAD | cut -c 1-40)" > toolchain-commit
