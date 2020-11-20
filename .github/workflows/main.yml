@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install toolchain dependencies
-        run: sudo apt-get -qy install bison flex libgmp-dev libmpfr-dev libmpc-dev texinfo grub-pc-bin xorriso
+        run: sudo apt-get -qy install bison flex libgmp-dev libmpfr-dev libmpc-dev texinfo grub-pc-bin xorriso mtools
 
       - name: Set PATH
         run: echo ~/dennix-toolchain/bin >> $GITHUB_PATH
