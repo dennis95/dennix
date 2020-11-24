@@ -77,8 +77,6 @@ all: $(BUILD)/kernel
 OBJ := $(addprefix $(BUILD)/, $(OBJ))
 -include $(OBJ:.o=.d)
 
-OBJ := $(START_OBJ) $(OBJ) $(END_OBJ)
-
 install-headers:
 	@mkdir -p $(INCLUDE_DIR)
 	cp -rf --preserve=timestamp include/. $(INCLUDE_DIR)

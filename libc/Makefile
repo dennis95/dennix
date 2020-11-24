@@ -29,6 +29,8 @@ LIBC_FLAGS += -D__is_dennix_libc
 LIBK_FLAGS += -D__is_dennix_libk
 
 COMMON_OBJ = \
+	crt/init \
+	crt/fini \
 	ctype/ctype \
 	errno/errno \
 	getopt/getopt \

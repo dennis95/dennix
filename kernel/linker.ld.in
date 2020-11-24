@@ -46,19 +46,11 @@ SECTIONS {
     kernelVirtualBegin = ALIGN(4096);
     kernelPhysicalBegin = kernelVirtualBegin - KERNEL_VIRTUAL;
 
-    .init ALIGN(4096) : AT(ADDR(.init) - KERNEL_VIRTUAL) {
-        *(.init)
-    }
-
     .text : AT(ADDR(.text) - KERNEL_VIRTUAL) {
         *(.text.unlikely)
         *(.text.exit)
         *(.text.startup)
         *(.text*)
-    }
-
-    .fini : AT(ADDR(.fini) - KERNEL_VIRTUAL) {
-        *(.fini)
     }
 
     kernelExecEnd = ALIGN(4096);
@@ -87,14 +79,6 @@ SECTIONS {
         KEEP(*(SORT_BY_INIT_PRIORITY(.fini_array.*)))
         KEEP(*(.fini_array))
         __fini_array_end = .;
-    }
-
-    .ctors : AT(ADDR(.ctors) - KERNEL_VIRTUAL) {
-        *(.ctors)
-    }
-
-    .dtors : AT(ADDR(.dtors) - KERNEL_VIRTUAL) {
-        *(.dtors)
     }
 
     .bss ALIGN(4096) : AT(ADDR(.bss) - KERNEL_VIRTUAL) {

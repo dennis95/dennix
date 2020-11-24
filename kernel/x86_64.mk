@@ -1,4 +1,4 @@
-# Copyright (c) 2019 Dennis Wölfing
+# Copyright (c) 2019, 2020 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -15,14 +15,6 @@
 include x86-family.mk
 
 CXXFLAGS += -mcmodel=kernel -mno-red-zone -mno-mmx -mno-sse -mno-sse2
-
-CRTI_O = $(shell $(CXX) $(CXXFLAGS) -print-file-name=crti.o)
-CRTBEGIN_O = $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtbegin.o)
-CRTEND_O = $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtend.o)
-CRTN_O = $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtn.o)
-
-START_OBJ = $(CRTI_O) $(CRTBEGIN_O)
-END_OBJ = $(CRTEND_O) $(CRTN_O)
 
 OBJ += \
 	arch/x86_64/addressspace.o \
