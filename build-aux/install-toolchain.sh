@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# Copyright (c) 2016, 2019 Dennis Wölfing
+# Copyright (c) 2016, 2019, 2020 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -44,19 +44,6 @@ gcc_repo=https://github.com/dennis95/dennix-gcc.git
 
 [ -z "$SYSROOT" ] && echo "Error: \$SYSROOT not set" && exit 1
 
-if [ "$CONTINUOUS_INTEGRATION" = true ]
-then
-    # When built by Travis CI check whether the toolchain needs to be rebuilt.
-    current_binutils=$(cat "$PREFIX/binutils-commit" || echo Not installed)
-    current_gcc=$(cat "$PREFIX/gcc-commit" || echo Not installed)
-    latest_binutils=$(git ls-remote $binutils_repo HEAD | cut -c 1-40)
-    latest_gcc=$(git ls-remote $gcc_repo HEAD | cut -c 1-40)
-    [ "$current_binutils" = "$latest_binutils" ] && \
-        [ "$current_gcc" = "$latest_gcc" ] && \
-        echo Cached Toolchain is already up to date. && exit
-    rm -rf "$PREFIX"
-fi
-
 # Make $SYSROOT an absolute path
 SYSROOT="$(cd "$SYSROOT" && pwd)"
 
@@ -86,13 +73,5 @@ cd "$BUILDDIR/build-gcc"
   --with-sysroot="$SYSROOT" --enable-languages=c,c++ --disable-nls
 make all-gcc all-target-libgcc
 make install-gcc install-target-libgcc
-
-if [ "$CONTINUOUS_INTEGRATION" = true ]
-then
-    cd "$SRCDIR/dennix-binutils"
-    git rev-parse HEAD > "$PREFIX/binutils-commit"
-    cd "$SRCDIR/dennix-gcc"
-    git rev-parse HEAD > "$PREFIX/gcc-commit"
-fi
 
 echo Installation completed.
