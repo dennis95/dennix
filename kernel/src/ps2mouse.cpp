@@ -35,6 +35,8 @@
 
 PS2Mouse::PS2Mouse(bool secondPort) : secondPort(secondPort) {
     hasMouseWheel = false;
+    index = 0;
+
     PS2::sendDeviceCommand(secondPort, MOUSE_GET_ID);
     uint8_t id = PS2::readDataPort();
     if (id == 0x00) {
