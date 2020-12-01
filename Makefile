@@ -25,7 +25,7 @@ LICENSE = $(LICENSES_DIR)/dennix/LICENSE
 DXPORT = ./ports/dxport --host=$(ARCH)-dennix --builddir=$(BUILD_DIR)/ports
 DXPORT += --sysroot=$(SYSROOT)
 
-all: libc kernel sh utils iso
+all: libc kernel sh utils gui-demo iso
 
 kernel $(KERNEL): $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C kernel
@@ -45,6 +45,9 @@ install-libc: $(INCLUDE_DIR)
 $(LIB_DIR):
 	$(MAKE) -C libc install-libs
 
+install-gui-demo: $(INCLUDE_DIR) $(LIB_DIR)
+	$(MAKE) -C gui-demo install
+
 install-ports $(DXPORT_DIR): $(INCLUDE_DIR) $(LIB_DIR)
 ifneq ($(wildcard ./ports/dxport),)
 	-$(DXPORT) install -k all
@@ -58,6 +61,9 @@ install-toolchain: install-headers
 
 install-utils: $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C utils install
+
+gui-demo:
+	$(MAKE) -C gui-demo
 
 iso: $(ISO)
 
@@ -87,6 +93,7 @@ $(SYSROOT): $(SYSROOT)/share/fonts/vgafont $(SYSROOT)/home/user $(DXPORT_DIR)
 $(BIN_DIR):
 	$(MAKE) -C sh install
 	$(MAKE) -C utils install
+	$(MAKE) -C gui-demo install
 
 $(LICENSE): LICENSE
 	@mkdir -p $(LICENSES_DIR)/dennix
@@ -112,4 +119,5 @@ distclean:
 
 .PHONY: all kernel libc install-all install-headers install-libc install-ports
 .PHONY: install-sh install-toolchain install-utils iso qemu sh utils clean
+.PHONY: gui-demo install-gui-demo
 .PHONY: distclean

@@ -8,4 +8,6 @@ RemoteSystemsTempFiles/
 build/
 ports/
 sysroot/
+/gui-demo/*.png
+/gui-demo/*.svg
 *.iso
