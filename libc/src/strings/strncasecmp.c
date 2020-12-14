@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,8 +25,8 @@ int strncasecmp(const char* str1, const char* str2, size_t length) {
     const unsigned char* s2 = (const unsigned char*) str2;
 
     for (size_t i = 0; i < length; i++) {
-        unsigned char c1 = tolower(*s1);
-        unsigned char c2 = tolower(*s2);
+        unsigned char c1 = tolower(s1[i]);
+        unsigned char c2 = tolower(s2[i]);
 
         if (c1 < c2) {
             return -1;
