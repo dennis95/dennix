@@ -39,6 +39,7 @@ Thread::Thread(Process* process) {
     returnSignalMask = 0;
     signalMask = 0;
     signalMutex = KTHREAD_MUTEX_INITIALIZER;
+    signalCond = KTHREAD_COND_INITIALIZER;
 }
 
 Thread::~Thread() {

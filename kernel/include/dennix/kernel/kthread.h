@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2017, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,9 +20,29 @@
 #ifndef KERNEL_KTHREAD_H
 #define KERNEL_KTHREAD_H
 
+#include <dennix/kernel/clock.h>
+
 typedef bool kthread_mutex_t;
 #define KTHREAD_MUTEX_INITIALIZER false
 
+struct kthread_cond_waiter {
+    kthread_cond_waiter* prev;
+    kthread_cond_waiter* next;
+    bool blocked;
+};
+
+typedef struct {
+    kthread_mutex_t mutex;
+    kthread_cond_waiter* first;
+    kthread_cond_waiter* last;
+} kthread_cond_t;
+#define KTHREAD_COND_INITIALIZER { KTHREAD_MUTEX_INITIALIZER, nullptr, nullptr }
+
+int kthread_cond_broadcast(kthread_cond_t* cond);
+int kthread_cond_sigclockwait(kthread_cond_t* cond, kthread_mutex_t* mutex,
+        clockid_t clock, const struct timespec* endTime);
+int kthread_cond_signal(kthread_cond_t* cond);
+int kthread_cond_sigwait(kthread_cond_t* cond, kthread_mutex_t* mutex);
 int kthread_mutex_lock(kthread_mutex_t* mutex);
 int kthread_mutex_trylock(kthread_mutex_t* mutex);
 int kthread_mutex_unlock(kthread_mutex_t* mutex);

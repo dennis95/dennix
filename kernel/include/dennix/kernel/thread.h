@@ -61,6 +61,7 @@ private:
     PendingSignal* pendingSignals;
     Thread* prev;
     kthread_mutex_t signalMutex;
+    kthread_cond_t signalCond;
 public:
     static void addThread(Thread* thread);
     static Thread* current() { return _current; }

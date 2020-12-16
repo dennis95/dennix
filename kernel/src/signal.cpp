@@ -246,6 +246,8 @@ void Thread::raiseSignalUnlocked(siginfo_t siginfo) {
         pending->next = current->next;
         current->next = pending;
     }
+
+    kthread_cond_broadcast(&signalCond);
 }
 
 void Thread::updatePendingSignals() {
@@ -398,29 +400,24 @@ int Thread::sigtimedwait(const sigset_t* set, siginfo_t* info,
             return siginfo.si_signo;
         }
 
-        if (timeout) {
+        if (timeout && endTime.tv_nsec == -1) {
             struct timespec now;
             Clock::get(CLOCK_MONOTONIC)->getTime(&now);
-            if (endTime.tv_nsec == -1) {
-                if (timeout->tv_nsec < 0 || timeout->tv_nsec >= 1000000000L) {
-                    errno = EINVAL;
-                    return -1;
-                }
-                endTime = timespecPlus(now, *timeout);
-            }
-            if (!timespecLess(now, endTime)) {
-                errno = EAGAIN;
+            if (timeout->tv_nsec < 0 || timeout->tv_nsec >= 1000000000L) {
+                errno = EINVAL;
                 return -1;
             }
+            endTime = timespecPlus(now, *timeout);
         }
 
-        if (Signal::isPending()) {
+        int status = kthread_cond_sigclockwait(&signalCond, &signalMutex,
+                CLOCK_MONOTONIC, timeout ? &endTime : nullptr);
+        if (status == ETIMEDOUT) {
+            errno = EAGAIN;
+            return -1;
+        } else if (status == EINTR) {
             errno = EINTR;
             return -1;
         }
-
-        kthread_mutex_unlock(&signalMutex);
-        sched_yield();
-        kthread_mutex_lock(&signalMutex);
     }
 }

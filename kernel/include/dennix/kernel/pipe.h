@@ -42,6 +42,8 @@ private:
     char pipeBuffer[PIPE_BUF];
     size_t bufferIndex;
     size_t bytesAvailable;
+    kthread_cond_t readCond;
+    kthread_cond_t writeCond;
 };
 
 #endif

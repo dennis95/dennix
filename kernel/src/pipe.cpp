@@ -64,6 +64,8 @@ PipeVnode::PipeVnode(Reference<Vnode>& readPipe, Reference<Vnode>& writePipe)
     bufferIndex = 0;
     bytesAvailable = 0;
 
+    readCond = KTHREAD_COND_INITIALIZER;
+    writeCond = KTHREAD_COND_INITIALIZER;
     readPipe = readEnd;
     writePipe = writeEnd;
 }
@@ -88,6 +90,7 @@ ssize_t PipeVnode::ReadEnd::read(void* buffer, size_t size) {
 PipeVnode::ReadEnd::~ReadEnd() {
     AutoLock lock(&pipe->mutex);
     pipe->readEnd = nullptr;
+    kthread_cond_broadcast(&pipe->writeCond);
 }
 
 short PipeVnode::WriteEnd::poll() {
@@ -101,6 +104,7 @@ ssize_t PipeVnode::WriteEnd::write(const void* buffer, size_t size) {
 PipeVnode::WriteEnd::~WriteEnd() {
     AutoLock lock(&pipe->mutex);
     pipe->writeEnd = nullptr;
+    kthread_cond_broadcast(&pipe->readCond);
 }
 
 short PipeVnode::poll() {
@@ -119,14 +123,10 @@ ssize_t PipeVnode::read(void* buffer, size_t size) {
     while (bytesAvailable == 0) {
         if (!writeEnd) return 0;
 
-        if (Signal::isPending()) {
+        if (kthread_cond_sigwait(&readCond, &mutex) == EINTR) {
             errno = EINTR;
             return -1;
         }
-
-        kthread_mutex_unlock(&mutex);
-        sched_yield();
-        kthread_mutex_lock(&mutex);
     }
 
     size_t bytesRead = 0;
@@ -139,6 +139,7 @@ ssize_t PipeVnode::read(void* buffer, size_t size) {
         bytesRead++;
     }
 
+    kthread_cond_broadcast(&writeCond);
     updateTimestamps(true, false, false);
     return bytesRead;
 }
@@ -149,14 +150,10 @@ ssize_t PipeVnode::write(const void* buffer, size_t size) {
 
     if (size <= PIPE_BUF) {
         while (PIPE_BUF - bytesAvailable < size && readEnd) {
-            if (Signal::isPending()) {
+            if (kthread_cond_sigwait(&writeCond, &mutex) == EINTR) {
                 errno = EINTR;
                 return -1;
             }
-
-            kthread_mutex_unlock(&mutex);
-            sched_yield();
-            kthread_mutex_lock(&mutex);
         }
     }
 
@@ -165,7 +162,7 @@ ssize_t PipeVnode::write(const void* buffer, size_t size) {
 
     while (written < size) {
         while (PIPE_BUF - bytesAvailable == 0 && readEnd) {
-            if (Signal::isPending()) {
+            if (kthread_cond_sigwait(&writeCond, &mutex) == EINTR) {
                 if (written) {
                     updateTimestamps(false, true, true);
                     return written;
@@ -173,10 +170,6 @@ ssize_t PipeVnode::write(const void* buffer, size_t size) {
                 errno = EINTR;
                 return -1;
             }
-
-            kthread_mutex_unlock(&mutex);
-            sched_yield();
-            kthread_mutex_lock(&mutex);
         }
 
         if (!readEnd) {
@@ -194,6 +187,7 @@ ssize_t PipeVnode::write(const void* buffer, size_t size) {
             written++;
             bytesAvailable++;
         }
+        kthread_cond_broadcast(&readCond);
     }
 
     updateTimestamps(false, true, true);
