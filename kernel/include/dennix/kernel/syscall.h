@@ -21,6 +21,7 @@
 #define KERNEL_SYSCALL_H
 
 #include <signal.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <dennix/fork.h>
 #include <dennix/poll.h>
@@ -36,12 +37,15 @@ struct stat;
 namespace Syscall {
 
 NORETURN void abort();
+int accept4(int fd, struct sockaddr* address, socklen_t* length, int flags);
 unsigned int alarm(unsigned int seconds);
+int bind(int fd, const struct sockaddr* address, socklen_t length);
 int clock_gettime(clockid_t clockid, struct timespec* result);
 int clock_nanosleep(clockid_t clockid, int flags,
         const struct timespec* requested, struct timespec* remaining);
 int close(int fd);
 size_t confstr(int name, char* buffer, size_t size);
+int connect(int fd, const struct sockaddr* address, socklen_t length);
 int devctl(int fd, int command, void* restrict data, size_t size,
         int* restrict info);
 int dup3(int fd1, int fd2, int flags);
@@ -67,6 +71,7 @@ int isatty(int fd);
 int kill(pid_t pid, int signal);
 int linkat(int oldFd, const char* oldPath, int newFd, const char* newPath,
         int flags);
+int listen(int fd, int backlog);
 off_t lseek(int fd, off_t offset, int whence);
 void meminfo(struct meminfo*);
 int mkdirat(int fd, const char* path, mode_t mode);
@@ -87,6 +92,7 @@ int sigaction(int signal, const struct sigaction* restrict action,
 int sigprocmask(int how, const sigset_t* restrict set, sigset_t* restrict old);
 int sigtimedwait(const sigset_t* set, siginfo_t* info,
         const struct timespec* timeout);
+int socket(int domain, int type, int protocol);
 int symlinkat(const char* targetPath, int fd, const char* linkPath);
 int tcgetattr(int fd, struct termios* result);
 int tcsetattr(int fd, int flags, const struct termios* termio);

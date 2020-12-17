@@ -33,6 +33,7 @@
 #include <dennix/kernel/pipe.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/signal.h>
+#include <dennix/kernel/streamsocket.h>
 #include <dennix/kernel/symlink.h>
 #include <dennix/kernel/syscall.h>
 
@@ -89,6 +90,11 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_MEMINFO] =*/ (void*) Syscall::meminfo,
     /*[SYSCALL_SIGTIMEDWAIT] =*/ (void*) Syscall::sigtimedwait,
     /*[SYSCALL_PPOLL] =*/ (void*) Syscall::ppoll,
+    /*[SYSCALL_SOCKET] =*/ (void*) Syscall::socket,
+    /*[SYSCALL_BIND] =*/ (void*) Syscall::bind,
+    /*[SYSCALL_LISTEN] =*/ (void*) Syscall::listen,
+    /*[SYSCALL_CONNECT] =*/ (void*) Syscall::connect,
+    /*[SYSCALL_ACCEPT4] =*/ (void*) Syscall::accept4,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -125,8 +131,30 @@ NORETURN void Syscall::abort() {
     __builtin_unreachable();
 }
 
+int Syscall::accept4(int fd, struct sockaddr* address, socklen_t* length,
+        int flags) {
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) return -1;
+    Reference<Vnode> socket = descr->vnode->accept(address, length);
+    if (!socket) return -1;
+
+    descr = new FileDescription(socket, O_RDWR);
+    if (!descr) return -1;
+
+    int fdFlags = 0;
+    if (flags & SOCK_CLOEXEC) fdFlags |= FD_CLOEXEC;
+    if (flags & SOCK_CLOFORK) fdFlags |= FD_CLOFORK;
+    return Process::current()->addFileDescriptor(descr, fdFlags);
+}
+
 unsigned int Syscall::alarm(unsigned int seconds) {
     return Process::current()->alarm(seconds);
+}
+
+int Syscall::bind(int fd, const struct sockaddr* address, socklen_t length) {
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) return -1;
+    return descr->vnode->bind(address, length);
 }
 
 int Syscall::clock_gettime(clockid_t clockid, struct timespec* result) {
@@ -152,6 +180,12 @@ int Syscall::clock_nanosleep(clockid_t clockid, int flags,
 
 int Syscall::close(int fd) {
     return Process::current()->close(fd);
+}
+
+int Syscall::connect(int fd, const struct sockaddr* address, socklen_t length) {
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) return -1;
+    return descr->vnode->connect(address, length);
 }
 
 int Syscall::devctl(int fd, int command, void* restrict data, size_t size,
@@ -371,6 +405,12 @@ int Syscall::linkat(int oldFd, const char* oldPath, int newFd,
             newPath, &name);
     if (!directory) return -1;
     return directory->link(name, vnode);
+}
+
+int Syscall::listen(int fd, int backlog) {
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) return -1;
+    return descr->vnode->listen(backlog);
 }
 
 off_t Syscall::lseek(int fd, off_t offset, int whence) {
@@ -618,6 +658,36 @@ int Syscall::setpgid(pid_t pid, pid_t pgid) {
 int Syscall::sigtimedwait(const sigset_t* set, siginfo_t* info,
         const struct timespec* timeout) {
     return Thread::current()->sigtimedwait(set, info, timeout);
+}
+
+int Syscall::socket(int domain, int type, int protocol) {
+    Reference<Vnode> socket;
+
+    if (domain == AF_UNIX) {
+        if ((type & ~_SOCK_FLAGS) == SOCK_STREAM) {
+            if (protocol != 0) {
+                errno = EPROTONOSUPPORT;
+                return -1;
+            }
+
+            socket = new StreamSocket(0666 & ~Process::current()->umask);
+            if (!socket) return -1;
+        } else {
+            errno = ESOCKTNOSUPPORT;
+            return -1;
+        }
+    } else {
+        errno = EAFNOSUPPORT;
+        return -1;
+    }
+
+    Reference<FileDescription> descr = new FileDescription(socket, O_RDWR);
+    if (!descr) return -1;
+
+    int fdFlags = 0;
+    if (type & SOCK_CLOEXEC) fdFlags |= FD_CLOEXEC;
+    if (type & SOCK_CLOFORK) fdFlags |= FD_CLOFORK;
+    return Process::current()->addFileDescriptor(descr, fdFlags);
 }
 
 int Syscall::symlinkat(const char* targetPath, int fd, const char* linkPath) {

@@ -63,6 +63,7 @@ OBJ = \
 	refcount.o \
 	rtc.o \
 	signal.o \
+	streamsocket.o \
 	symlink.o \
 	syscall.o \
 	terminal.o \

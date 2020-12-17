@@ -94,9 +94,19 @@ typedef __reclen_t reclen_t;
 #  define __reclen_t_defined
 #endif
 
+#if defined(__need_sa_family_t) && !defined(__sa_family_t_defined)
+typedef __sa_family_t sa_family_t;
+#  define __sa_family_t_defined
+#endif
+
 #if defined(__need_NULL) || defined(__need_ptrdiff_t) || \
     defined(__need_size_t) || defined(__need_wchar_t) || defined(__need_wint_t)
 #  include <stddef.h>
+#endif
+
+#if defined(__need_socklen_t) && !defined(__socklen_t_defined)
+typedef __socklen_t socklen_t;
+#  define __socklen_t_defined
 #endif
 
 #if defined(__need_ssize_t) && !defined(__ssize_t_defined)
@@ -134,6 +144,8 @@ typedef __uid_t uid_t;
 #undef __need_off_t
 #undef __need_pid_t
 #undef __need_reclen_t
+#undef __need_sa_family_t
+#undef __need_socklen_t
 #undef __need_ssize_t
 #undef __need_suseconds_t
 #undef __need_time_t

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -93,6 +93,7 @@ char* strerror(int errnum) {
     case EPROTOTYPE: return "Protocol wrong type for socket";
     case ERANGE: return "Result too large";
     case EROFS: return "Read-only file system";
+    case ESOCKTNOSUPPORT: return "Socket type not supported";
     case ESPIPE: return "Invalid seek";
     case ESRCH: return "No such process";
     case ESTALE: return "Stale file handle";

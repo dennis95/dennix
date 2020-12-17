@@ -194,6 +194,17 @@ void Vnode::updateTimestampsLocked(bool access, bool status,
 }
 
 // Default implementation. Inheriting classes will override these functions.
+Reference<Vnode> Vnode::accept(struct sockaddr* /*address*/,
+        socklen_t* /*length*/) {
+    errno = ENOTSOCK;
+    return nullptr;
+}
+
+int Vnode::bind(const struct sockaddr* /*address*/, socklen_t /*length*/) {
+    errno = ENOTSOCK;
+    return -1;
+}
+
 int Vnode::chmod(mode_t mode) {
     AutoLock lock(&mutex);
     stats.st_mode = (stats.st_mode & ~07777) | (mode & 07777);
@@ -214,6 +225,11 @@ int Vnode::chown(uid_t uid, gid_t gid) {
     }
     updateTimestamps(false, true, false);
     return 0;
+}
+
+int Vnode::connect(const struct sockaddr* /*address*/, socklen_t /*length*/) {
+    errno = ENOTSOCK;
+    return -1;
 }
 
 int Vnode::devctl(int /*command*/, void* restrict /*data*/, size_t /*size*/,
@@ -259,6 +275,11 @@ bool Vnode::isSeekable() {
 
 int Vnode::link(const char* /*name*/, const Reference<Vnode>& /*vnode*/) {
     errno = ENOTDIR;
+    return -1;
+}
+
+int Vnode::listen(int /*backlog*/) {
+    errno = ENOTSOCK;
     return -1;
 }
 

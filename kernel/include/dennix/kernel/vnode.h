@@ -20,6 +20,7 @@
 #ifndef KERNEL_VNODE_H
 #define KERNEL_VNODE_H
 
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <dennix/stat.h>
 #include <dennix/kernel/kthread.h>
@@ -27,8 +28,12 @@
 
 class Vnode : public ReferenceCounted {
 public:
+    virtual Reference<Vnode> accept(struct sockaddr* address,
+            socklen_t* length);
+    virtual int bind(const struct sockaddr* address, socklen_t length);
     virtual int chmod(mode_t mode);
     virtual int chown(uid_t uid, gid_t gid);
+    virtual int connect(const struct sockaddr* address, socklen_t length);
     virtual int devctl(int command, void* restrict data, size_t size,
             int* restrict info);
     virtual int ftruncate(off_t length);
@@ -39,6 +44,7 @@ public:
     virtual int isatty();
     virtual bool isSeekable();
     virtual int link(const char* name, const Reference<Vnode>& vnode);
+    virtual int listen(int backlog);
     virtual off_t lseek(off_t offset, int whence);
     virtual int mkdir(const char* name, mode_t mode);
     virtual void onLink();

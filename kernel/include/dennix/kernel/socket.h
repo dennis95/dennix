@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2020 Dennis Wölfing
+/* Copyright (c) 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,28 +13,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/types.h
- * Data types.
+/* kernel/include/dennix/kernel/socket.h
+ * Sockets.
  */
 
-#ifndef _DENNIX_TYPES_H
-#define _DENNIX_TYPES_H
+#ifndef KERNEL_SOCKET_H
+#define KERNEL_SOCKET_H
 
-typedef __INTMAX_TYPE__ __blkcnt_t;
-typedef long __blksize_t;
-typedef unsigned int __clockid_t;
-typedef unsigned long __dev_t;
-typedef __UINT64_TYPE__ __gid_t;
-typedef __UINT64_TYPE__ __id_t;
-typedef __UINTMAX_TYPE__ __ino_t;
-typedef int __mode_t;
-typedef unsigned int __nlink_t;
-typedef __INTMAX_TYPE__ __off_t;
-typedef int __pid_t;
-typedef __SIZE_TYPE__ __reclen_t;
-typedef unsigned char __sa_family_t;
-typedef int __socklen_t;
-typedef __INT64_TYPE__ __time_t;
-typedef __UINT64_TYPE__ __uid_t;
+#include <dennix/kernel/vnode.h>
+
+class Socket : public Vnode {
+protected:
+    Socket(int type, mode_t mode) : Vnode(S_IFSOCK | mode, 0), type(type) {};
+public:
+    const int type;
+};
 
 #endif

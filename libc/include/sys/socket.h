@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2020 Dennis Wölfing
+/* Copyright (c) 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,28 +13,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/types.h
- * Data types.
+/* libc/include/sys/socket.h
+ * Sockets.
  */
 
-#ifndef _DENNIX_TYPES_H
-#define _DENNIX_TYPES_H
+#ifndef _SYS_SOCKET_H
+#define _SYS_SOCKET_H
 
-typedef __INTMAX_TYPE__ __blkcnt_t;
-typedef long __blksize_t;
-typedef unsigned int __clockid_t;
-typedef unsigned long __dev_t;
-typedef __UINT64_TYPE__ __gid_t;
-typedef __UINT64_TYPE__ __id_t;
-typedef __UINTMAX_TYPE__ __ino_t;
-typedef int __mode_t;
-typedef unsigned int __nlink_t;
-typedef __INTMAX_TYPE__ __off_t;
-typedef int __pid_t;
-typedef __SIZE_TYPE__ __reclen_t;
-typedef unsigned char __sa_family_t;
-typedef int __socklen_t;
-typedef __INT64_TYPE__ __time_t;
-typedef __UINT64_TYPE__ __uid_t;
+#include <sys/cdefs.h>
+#define __need_sa_family_t
+#define __need_size_t
+#define __need_socklen_t
+#define __need_ssize_t
+#include <bits/types.h>
+#include <dennix/socket.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int accept(int, struct sockaddr* __restrict, socklen_t* __restrict);
+int bind(int, const struct sockaddr*, socklen_t);
+int connect(int, const struct sockaddr*, socklen_t);
+int listen(int, int);
+int socket(int, int, int);
+
+#if __USE_DENNIX
+int accept4(int, struct sockaddr* __restrict, socklen_t* __restrict, int);
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -272,6 +272,12 @@ LIBC_OBJ = \
 	sys/resource/getrlimit \
 	sys/resource/getrusage \
 	sys/resource/getrusagens \
+	sys/socket/accept \
+	sys/socket/accept4 \
+	sys/socket/bind \
+	sys/socket/connect \
+	sys/socket/listen \
+	sys/socket/socket \
 	sys/stat/chmod \
 	sys/stat/fchmod \
 	sys/stat/fchmodat \
