@@ -25,8 +25,8 @@
 class BgaDevice : public GraphicsDriver {
 public:
     BgaDevice(uint16_t version, uint8_t bus, uint8_t device, uint8_t function);
-    virtual bool isSupportedMode(video_mode mode);
-    virtual vaddr_t setVideoMode(video_mode* mode);
+    bool isSupportedMode(video_mode mode) override;
+    vaddr_t setVideoMode(video_mode* mode) override;
 public:
     static void initialize(uint8_t bus, uint8_t device, uint8_t function);
 private:

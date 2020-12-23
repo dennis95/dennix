@@ -30,7 +30,7 @@ class PipeVnode::Endpoint : public Vnode {
 public:
     Endpoint(const Reference<PipeVnode>& pipe)
             : Vnode(S_IFIFO | S_IRUSR | S_IWUSR, 0), pipe(pipe) {}
-    virtual int stat(struct stat* result);
+    int stat(struct stat* result) override;
 protected:
     Reference<PipeVnode> pipe;
 };
@@ -38,16 +38,16 @@ protected:
 class PipeVnode::ReadEnd : public Endpoint {
 public:
     ReadEnd(const Reference<PipeVnode>& pipe) : Endpoint(pipe) {}
-    virtual short poll();
-    virtual ssize_t read(void* buffer, size_t size);
+    short poll() override;
+    ssize_t read(void* buffer, size_t size) override;
     virtual ~ReadEnd();
 };
 
 class PipeVnode::WriteEnd : public Endpoint {
 public:
     WriteEnd(const Reference<PipeVnode>& pipe) : Endpoint(pipe) {}
-    virtual short poll();
-    virtual ssize_t write(const void* buffer, size_t size);
+    short poll() override;
+    ssize_t write(const void* buffer, size_t size) override;
     virtual ~WriteEnd();
 };
 

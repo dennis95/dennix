@@ -32,9 +32,9 @@ private:
     class WriteEnd;
 public:
     PipeVnode(Reference<Vnode>& readPipe, Reference<Vnode>& writePipe);
-    virtual short poll();
-    virtual ssize_t read(void* buffer, size_t size);
-    virtual ssize_t write(const void* buffer, size_t size);
+    short poll() override;
+    ssize_t read(void* buffer, size_t size) override;
+    ssize_t write(const void* buffer, size_t size) override;
     virtual ~PipeVnode();
 private:
     Vnode* readEnd;

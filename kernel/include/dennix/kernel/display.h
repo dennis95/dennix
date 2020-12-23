@@ -55,8 +55,8 @@ class Display : public Vnode {
 public:
     Display(video_mode mode, char* buffer, size_t pitch);
     void clear(CharPos from, CharPos to, Color color);
-    virtual int devctl(int command, void* restrict data, size_t size,
-            int* restrict info);
+    int devctl(int command, void* restrict data, size_t size,
+            int* restrict info) override;
     void initialize();
     void putCharacter(CharPos position, wchar_t c, Color color);
     void scroll(unsigned int lines, Color color, bool up = true);

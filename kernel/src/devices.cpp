@@ -29,22 +29,22 @@
 class CharDevice : public Vnode {
 public:
     CharDevice() : Vnode(S_IFCHR | 0666, 0) {}
-    virtual short poll() {
+    short poll() override {
         return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM;
     }
 
-    virtual ssize_t write(const void* /*buffer*/, size_t size) {
+    ssize_t write(const void* /*buffer*/, size_t size) override {
         return size;
     }
 };
 
 class DevFull : public CharDevice {
 public:
-    virtual ssize_t read(void* /*buffer*/, size_t /*size*/) {
+    ssize_t read(void* /*buffer*/, size_t /*size*/) override {
         return 0;
     }
 
-    virtual ssize_t write(const void* /*buffer*/, size_t size) {
+    ssize_t write(const void* /*buffer*/, size_t size) override {
         if (size == 0) return 0;
         errno = ENOSPC;
         return -1;
@@ -53,14 +53,14 @@ public:
 
 class DevNull : public CharDevice {
 public:
-    virtual ssize_t read(void* /*buffer*/, size_t /*size*/) {
+    ssize_t read(void* /*buffer*/, size_t /*size*/) override {
         return 0;
     }
 };
 
 class DevZero : public CharDevice {
 public:
-    virtual ssize_t read(void* buffer, size_t size) {
+    ssize_t read(void* buffer, size_t size) override {
         memset(buffer, 0, size);
         return size;
     }
@@ -68,7 +68,7 @@ public:
 
 class DevRandom : public CharDevice {
 public:
-    virtual ssize_t read(void* buffer, size_t size) {
+    ssize_t read(void* buffer, size_t size) override {
         arc4random_buf(buffer, size);
         return size;
     }

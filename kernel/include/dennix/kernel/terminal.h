@@ -46,19 +46,19 @@ private:
 class Terminal : public Vnode, public KeyboardListener {
 public:
     Terminal();
-    virtual int devctl(int command, void* restrict data, size_t size,
-            int* restrict info);
-    virtual int isatty();
-    virtual short poll();
+    int devctl(int command, void* restrict data, size_t size,
+            int* restrict info) override;
+    int isatty() override;
+    short poll() override;
     void raiseSignal(int signal);
-    virtual ssize_t read(void* buffer, size_t size);
-    virtual int tcgetattr(struct termios* result);
-    virtual int tcsetattr(int flags, const struct termios* termios);
-    virtual ssize_t write(const void* buffer, size_t size);
+    ssize_t read(void* buffer, size_t size) override;
+    int tcgetattr(struct termios* result) override;
+    int tcsetattr(int flags, const struct termios* termios) override;
+    ssize_t write(const void* buffer, size_t size) override;
 private:
     void handleCharacter(char c);
     void handleSequence(const char* sequence);
-    virtual void onKeyboardEvent(int key);
+    void onKeyboardEvent(int key) override;
 private:
     pid_t foregroundGroup;
     TerminalBuffer terminalBuffer;

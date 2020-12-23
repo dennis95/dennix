@@ -27,17 +27,17 @@ public:
     DirectoryVnode(const Reference<DirectoryVnode>& parent, mode_t mode,
             dev_t dev);
     ~DirectoryVnode();
-    virtual Reference<Vnode> getChildNode(const char* name);
-    virtual Reference<Vnode> getChildNode(const char* path, size_t length);
-    virtual size_t getDirectoryEntries(void** buffer);
-    virtual int link(const char* name, const Reference<Vnode>& vnode);
-    virtual off_t lseek(off_t offset, int whence);
-    virtual int mkdir(const char* name, mode_t mode);
-    virtual bool onUnlink();
-    virtual Reference<Vnode> open(const char* name, int flags, mode_t mode);
-    virtual int rename(Reference<Vnode>& oldDirectory, const char* oldName,
-            const char* newName);
-    virtual int unlink(const char* path, int flags);
+    Reference<Vnode> getChildNode(const char* name) override;
+    Reference<Vnode> getChildNode(const char* path, size_t length) override;
+    size_t getDirectoryEntries(void** buffer) override;
+    int link(const char* name, const Reference<Vnode>& vnode) override;
+    off_t lseek(off_t offset, int whence) override;
+    int mkdir(const char* name, mode_t mode) override;
+    bool onUnlink() override;
+    Reference<Vnode> open(const char* name, int flags, mode_t mode) override;
+    int rename(Reference<Vnode>& oldDirectory, const char* oldName,
+            const char* newName) override;
+    int unlink(const char* path, int flags) override;
 private:
     Reference<Vnode> getChildNodeUnlocked(const char* name, size_t length);
     int linkUnlocked(const char* name, size_t length,

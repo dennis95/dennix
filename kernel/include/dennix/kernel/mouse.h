@@ -27,8 +27,8 @@ class MouseDevice : public Vnode {
 public:
     MouseDevice();
     void addPacket(mouse_data data);
-    virtual short poll();
-    virtual ssize_t read(void* buffer, size_t size);
+    short poll() override;
+    ssize_t read(void* buffer, size_t size) override;
 private:
     mouse_data mouseBuffer[256];
     size_t readIndex;

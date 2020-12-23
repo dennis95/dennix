@@ -26,7 +26,7 @@
 class PS2Keyboard : public PS2Device {
 public:
     PS2Keyboard(bool secondPort);
-    virtual void irqHandler();
+    void irqHandler() override;
 private:
     void handleKey(int keycode);
 public:

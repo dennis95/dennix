@@ -25,7 +25,7 @@
 class PS2Mouse : public PS2Device {
 public:
     PS2Mouse(bool secondPort);
-    virtual void irqHandler();
+    void irqHandler() override;
 private:
     uint8_t buffer[4];
     bool hasMouseWheel;
