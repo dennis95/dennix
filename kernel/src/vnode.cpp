@@ -195,12 +195,13 @@ void Vnode::updateTimestampsLocked(bool access, bool status,
 
 // Default implementation. Inheriting classes will override these functions.
 Reference<Vnode> Vnode::accept(struct sockaddr* /*address*/,
-        socklen_t* /*length*/) {
+        socklen_t* /*length*/, int /*fileFlags*/) {
     errno = ENOTSOCK;
     return nullptr;
 }
 
-int Vnode::bind(const struct sockaddr* /*address*/, socklen_t /*length*/) {
+int Vnode::bind(const struct sockaddr* /*address*/, socklen_t /*length*/,
+        int /*flags*/) {
     errno = ENOTSOCK;
     return -1;
 }
@@ -227,7 +228,8 @@ int Vnode::chown(uid_t uid, gid_t gid) {
     return 0;
 }
 
-int Vnode::connect(const struct sockaddr* /*address*/, socklen_t /*length*/) {
+int Vnode::connect(const struct sockaddr* /*address*/, socklen_t /*length*/,
+        int /*flags*/) {
     errno = ENOTSOCK;
     return -1;
 }
@@ -316,18 +318,19 @@ short Vnode::poll() {
     return 0;
 }
 
-ssize_t Vnode::pread(void* /*buffer*/, size_t /*size*/, off_t /*offset*/) {
+ssize_t Vnode::pread(void* /*buffer*/, size_t /*size*/, off_t /*offset*/,
+        int /*flags*/) {
     errno = ESPIPE;
     return -1;
 }
 
 ssize_t Vnode::pwrite(const void* /*buffer*/, size_t /*size*/,
-        off_t /*offset*/) {
+        off_t /*offset*/, int /*flags*/) {
     errno = ESPIPE;
     return -1;
 }
 
-ssize_t Vnode::read(void* /*buffer*/, size_t /*size*/) {
+ssize_t Vnode::read(void* /*buffer*/, size_t /*size*/, int /*flags*/) {
     errno = EBADF;
     return -1;
 }
@@ -396,7 +399,7 @@ int Vnode::utimens(struct timespec atime, struct timespec mtime) {
     return 0;
 }
 
-ssize_t Vnode::write(const void* /*buffer*/, size_t /*size*/) {
+ssize_t Vnode::write(const void* /*buffer*/, size_t /*size*/, int /*flags*/) {
     errno = EBADF;
     return -1;
 }

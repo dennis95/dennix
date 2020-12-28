@@ -33,7 +33,7 @@
 FileDescription::FileDescription(const Reference<Vnode>& vnode, int flags)
         : vnode(vnode) {
     offset = 0;
-    this->flags = flags & (O_ACCMODE | FILE_STATUS_FLAGS);
+    fileFlags = flags & (O_ACCMODE | FILE_STATUS_FLAGS);
     dents = nullptr;
     dentsSize = 0;
 }
@@ -42,12 +42,29 @@ FileDescription::~FileDescription() {
     free(dents);
 }
 
+Reference<FileDescription> FileDescription::accept4(struct sockaddr* address,
+        socklen_t* length, int flags) {
+    Reference<Vnode> socket = vnode->accept(address, length, fileFlags);
+    if (!socket) return nullptr;
+    int socketFileFlags = O_RDWR;
+    if (flags & SOCK_NONBLOCK) socketFileFlags |= O_NONBLOCK;
+    return new FileDescription(socket, socketFileFlags);
+}
+
+int FileDescription::bind(const struct sockaddr* address, socklen_t length) {
+    return vnode->bind(address, length, fileFlags);
+}
+
+int FileDescription::connect(const struct sockaddr* address, socklen_t length) {
+    return vnode->connect(address, length, fileFlags);
+}
+
 int FileDescription::fcntl(int cmd, int param) {
     switch (cmd) {
     case F_GETFL:
-        return flags;
+        return fileFlags;
     case F_SETFL:
-        flags = (param & FILE_STATUS_FLAGS) | (flags & O_ACCMODE);
+        fileFlags = (param & FILE_STATUS_FLAGS) | (fileFlags & O_ACCMODE);
         return 0;
     default:
         errno = EINVAL;
@@ -153,14 +170,14 @@ Reference<FileDescription> FileDescription::openat(const char* path, int flags,
 
 ssize_t FileDescription::read(void* buffer, size_t size) {
     if (vnode->isSeekable()) {
-        ssize_t result = vnode->pread(buffer, size, offset);
+        ssize_t result = vnode->pread(buffer, size, offset, fileFlags);
 
         if (result != -1) {
             offset += result;
         }
         return result;
     }
-    return vnode->read(buffer, size);
+    return vnode->read(buffer, size, fileFlags);
 }
 
 int FileDescription::tcgetattr(struct termios* result) {
@@ -173,12 +190,12 @@ int FileDescription::tcsetattr(int flags, const struct termios* termio) {
 
 ssize_t FileDescription::write(const void* buffer, size_t size) {
     if (vnode->isSeekable()) {
-        bool append = flags & O_APPEND;
-        ssize_t result = vnode->pwrite(buffer, size, append ? -1 : offset);
+        ssize_t result = vnode->pwrite(buffer, size, offset, fileFlags);
         if (result != -1) {
-            offset = append ? vnode->stat().st_size : offset + result;
+            offset = fileFlags & O_APPEND ? vnode->stat().st_size :
+                    offset + result;
         }
         return result;
     }
-    return vnode->write(buffer, size);
+    return vnode->write(buffer, size, fileFlags);
 }

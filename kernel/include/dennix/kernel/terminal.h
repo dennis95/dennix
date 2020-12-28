@@ -51,10 +51,10 @@ public:
     int isatty() override;
     short poll() override;
     void raiseSignal(int signal);
-    ssize_t read(void* buffer, size_t size) override;
+    ssize_t read(void* buffer, size_t size, int flags) override;
     int tcgetattr(struct termios* result) override;
     int tcsetattr(int flags, const struct termios* termios) override;
-    ssize_t write(const void* buffer, size_t size) override;
+    ssize_t write(const void* buffer, size_t size, int flags) override;
 private:
     void handleCharacter(char c);
     void handleSequence(const char* sequence);

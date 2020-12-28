@@ -214,25 +214,23 @@ void Terminal::raiseSignal(int signal) {
     }
 }
 
-ssize_t Terminal::read(void* buffer, size_t size) {
+ssize_t Terminal::read(void* buffer, size_t size, int flags) {
     if (size == 0) return 0;
     char* buf = (char*) buffer;
     size_t readSize = 0;
 
+    size_t min = termio.c_lflag & ICANON ? 1 : termio.c_cc[VMIN];
     while (readSize < size) {
-        while (!terminalBuffer.available() && !numEof) {
-            if (termio.c_lflag & ICANON) {
-                if (readSize) {
-                    updateTimestamps(true, false, false);
-                    return readSize;
-                }
-            } else {
-                if (readSize >= termio.c_cc[VMIN]) {
-                    updateTimestamps(true, false, false);
-                    return readSize;
-                }
+        while (terminalBuffer.available() < min && !numEof) {
+            if (readSize) {
+                updateTimestamps(true, false, false);
+                return readSize;
             }
-            sched_yield();
+
+            if (flags & O_NONBLOCK) {
+                errno = EAGAIN;
+                return -1;
+            }
 
             if (Signal::isPending()) {
                 if (readSize) {
@@ -242,7 +240,9 @@ ssize_t Terminal::read(void* buffer, size_t size) {
                 errno = EINTR;
                 return -1;
             }
+            sched_yield();
         }
+        min = 1;
 
         if (numEof) {
             if (readSize) {
@@ -251,7 +251,10 @@ ssize_t Terminal::read(void* buffer, size_t size) {
             }
             numEof--;
             return 0;
+        } else if (terminalBuffer.available() == 0) {
+            return 0;
         }
+
         char c = terminalBuffer.read();
         buf[readSize] = c;
         readSize++;
@@ -287,7 +290,7 @@ int Terminal::tcsetattr(int flags, const struct termios* termio) {
     return 0;
 }
 
-ssize_t Terminal::write(const void* buffer, size_t size) {
+ssize_t Terminal::write(const void* buffer, size_t size, int /*flags*/) {
     if (size == 0) return 0;
     AutoLock lock(&mutex);
     const char* buf = (const char*) buffer;

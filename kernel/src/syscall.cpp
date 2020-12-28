@@ -135,10 +135,8 @@ int Syscall::accept4(int fd, struct sockaddr* address, socklen_t* length,
         int flags) {
     Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
-    Reference<Vnode> socket = descr->vnode->accept(address, length);
-    if (!socket) return -1;
 
-    descr = new FileDescription(socket, O_RDWR);
+    descr = descr->accept4(address, length, flags);
     if (!descr) return -1;
 
     int fdFlags = 0;
@@ -154,7 +152,7 @@ unsigned int Syscall::alarm(unsigned int seconds) {
 int Syscall::bind(int fd, const struct sockaddr* address, socklen_t length) {
     Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
-    return descr->vnode->bind(address, length);
+    return descr->bind(address, length);
 }
 
 int Syscall::clock_gettime(clockid_t clockid, struct timespec* result) {
@@ -185,7 +183,7 @@ int Syscall::close(int fd) {
 int Syscall::connect(int fd, const struct sockaddr* address, socklen_t length) {
     Reference<FileDescription> descr = Process::current()->getFd(fd);
     if (!descr) return -1;
-    return descr->vnode->connect(address, length);
+    return descr->connect(address, length);
 }
 
 int Syscall::devctl(int fd, int command, void* restrict data, size_t size,
@@ -681,7 +679,9 @@ int Syscall::socket(int domain, int type, int protocol) {
         return -1;
     }
 
-    Reference<FileDescription> descr = new FileDescription(socket, O_RDWR);
+    int fileFlags = O_RDWR;
+    if (type & SOCK_NONBLOCK) fileFlags |= O_NONBLOCK;
+    Reference<FileDescription> descr = new FileDescription(socket, fileFlags);
     if (!descr) return -1;
 
     int fdFlags = 0;

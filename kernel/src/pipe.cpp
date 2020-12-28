@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <sched.h>
 #include <sys/stat.h>
 #include <dennix/poll.h>
@@ -39,7 +40,7 @@ class PipeVnode::ReadEnd : public Endpoint {
 public:
     ReadEnd(const Reference<PipeVnode>& pipe) : Endpoint(pipe) {}
     short poll() override;
-    ssize_t read(void* buffer, size_t size) override;
+    ssize_t read(void* buffer, size_t size, int flags) override;
     virtual ~ReadEnd();
 };
 
@@ -47,7 +48,7 @@ class PipeVnode::WriteEnd : public Endpoint {
 public:
     WriteEnd(const Reference<PipeVnode>& pipe) : Endpoint(pipe) {}
     short poll() override;
-    ssize_t write(const void* buffer, size_t size) override;
+    ssize_t write(const void* buffer, size_t size, int flags) override;
     virtual ~WriteEnd();
 };
 
@@ -83,8 +84,8 @@ short PipeVnode::ReadEnd::poll() {
     return pipe->poll() & (POLLIN | POLLRDNORM | POLLHUP);
 }
 
-ssize_t PipeVnode::ReadEnd::read(void* buffer, size_t size) {
-    return pipe->read(buffer, size);
+ssize_t PipeVnode::ReadEnd::read(void* buffer, size_t size, int flags) {
+    return pipe->read(buffer, size, flags);
 }
 
 PipeVnode::ReadEnd::~ReadEnd() {
@@ -97,8 +98,8 @@ short PipeVnode::WriteEnd::poll() {
     return pipe->poll() & (POLLOUT | POLLWRNORM | POLLHUP);
 }
 
-ssize_t PipeVnode::WriteEnd::write(const void* buffer, size_t size) {
-    return pipe->write(buffer, size);
+ssize_t PipeVnode::WriteEnd::write(const void* buffer, size_t size, int flags) {
+    return pipe->write(buffer, size, flags);
 }
 
 PipeVnode::WriteEnd::~WriteEnd() {
@@ -116,12 +117,17 @@ short PipeVnode::poll() {
     return result;
 }
 
-ssize_t PipeVnode::read(void* buffer, size_t size) {
+ssize_t PipeVnode::read(void* buffer, size_t size, int flags) {
     if (size == 0) return 0;
     AutoLock lock(&mutex);
 
     while (bytesAvailable == 0) {
         if (!writeEnd) return 0;
+
+        if (flags & O_NONBLOCK) {
+            errno = EAGAIN;
+            return -1;
+        }
 
         if (kthread_cond_sigwait(&readCond, &mutex) == EINTR) {
             errno = EINTR;
@@ -144,12 +150,17 @@ ssize_t PipeVnode::read(void* buffer, size_t size) {
     return bytesRead;
 }
 
-ssize_t PipeVnode::write(const void* buffer, size_t size) {
+ssize_t PipeVnode::write(const void* buffer, size_t size, int flags) {
     if (size == 0) return 0;
     AutoLock lock(&mutex);
 
     if (size <= PIPE_BUF) {
         while (PIPE_BUF - bytesAvailable < size && readEnd) {
+            if (flags & O_NONBLOCK) {
+                errno = EAGAIN;
+                return -1;
+            }
+
             if (kthread_cond_sigwait(&writeCond, &mutex) == EINTR) {
                 errno = EINTR;
                 return -1;
@@ -162,6 +173,15 @@ ssize_t PipeVnode::write(const void* buffer, size_t size) {
 
     while (written < size) {
         while (PIPE_BUF - bytesAvailable == 0 && readEnd) {
+            if (flags & O_NONBLOCK) {
+                if (written) {
+                    updateTimestamps(false, true, true);
+                    return written;
+                }
+                errno = EAGAIN;
+                return -1;
+            }
+
             if (kthread_cond_sigwait(&writeCond, &mutex) == EINTR) {
                 if (written) {
                     updateTimestamps(false, true, true);

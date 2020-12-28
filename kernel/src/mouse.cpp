@@ -18,6 +18,7 @@
  */
 
 #include <errno.h>
+#include <fcntl.h>
 #include <sched.h>
 #include <dennix/poll.h>
 #include <dennix/kernel/mouse.h>
@@ -51,7 +52,7 @@ short MouseDevice::poll() {
 
 // TODO: Reading from the mouse device should be atomic.
 
-ssize_t MouseDevice::read(void* buffer, size_t size) {
+ssize_t MouseDevice::read(void* buffer, size_t size, int flags) {
     // We only allow reads of whole packets to prevent synchronization issues.
     size_t packets = size / sizeof(mouse_data);
     mouse_data* buf = (mouse_data*) buffer;
@@ -59,6 +60,12 @@ ssize_t MouseDevice::read(void* buffer, size_t size) {
     for (size_t i = 0; i < packets; i++) {
         while (!available) {
             if (i > 0) return i * sizeof(mouse_data);
+
+            if (flags & O_NONBLOCK) {
+                errno = EAGAIN;
+                return -1;
+            }
+
             if (Signal::isPending()) {
                 errno = EINTR;
                 return -1;

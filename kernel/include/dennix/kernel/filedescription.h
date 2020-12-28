@@ -26,6 +26,10 @@ class FileDescription : public ReferenceCounted {
 public:
     FileDescription(const Reference<Vnode>& vnode, int flags);
     ~FileDescription();
+    Reference<FileDescription> accept4(struct sockaddr* address,
+            socklen_t* length, int flags);
+    int bind(const struct sockaddr* address, socklen_t length);
+    int connect(const struct sockaddr* address, socklen_t length);
     int fcntl(int cmd, int param);
     ssize_t getdents(void* buffer, size_t size, int flags);
     off_t lseek(off_t offset, int whence);
@@ -41,7 +45,7 @@ private:
     void* dents;
     size_t dentsSize;
     off_t offset;
-    int flags;
+    int fileFlags;
 };
 
 #endif

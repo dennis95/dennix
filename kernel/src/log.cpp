@@ -84,5 +84,5 @@ void Log::vprintf(const char* format, va_list ap) {
 }
 
 static size_t callback(void*, const char* s, size_t nBytes) {
-    return (size_t) terminal->write(s, nBytes);
+    return terminal->write(s, nBytes, 0);
 }

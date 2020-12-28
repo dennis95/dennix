@@ -96,7 +96,8 @@ short FileVnode::poll() {
     return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM;
 }
 
-ssize_t FileVnode::pread(void* buffer, size_t size, off_t offset) {
+ssize_t FileVnode::pread(void* buffer, size_t size, off_t offset,
+        int /*flags*/) {
     if (offset < 0) {
         errno = EINVAL;
         return -1;
@@ -118,12 +119,12 @@ ssize_t FileVnode::pread(void* buffer, size_t size, off_t offset) {
     return size;
 }
 
-ssize_t FileVnode::pwrite(const void* buffer, size_t size, off_t offset) {
+ssize_t FileVnode::pwrite(const void* buffer, size_t size, off_t offset,
+        int flags) {
     if (size == 0) return 0;
 
     AutoLock lock(&mutex);
-    if (offset == -1) {
-        // Offset -1 is used by the kernel for O_APPEND.
+    if (flags & O_APPEND) {
         offset = stats.st_size;
     }
     assert(offset >= 0);

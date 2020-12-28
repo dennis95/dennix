@@ -37,8 +37,9 @@ struct sockaddr_storage {
 
 #define SOCK_CLOEXEC (1 << 0)
 #define SOCK_CLOFORK (1 << 1)
+#define SOCK_NONBLOCK (1 << 2)
 
-#define _SOCK_FLAGS (SOCK_CLOEXEC | SOCK_CLOFORK)
+#define _SOCK_FLAGS (SOCK_CLOEXEC | SOCK_CLOFORK | SOCK_NONBLOCK)
 
 #define SOCK_STREAM (1 << 3)
 

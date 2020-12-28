@@ -78,7 +78,7 @@ StreamSocket::~StreamSocket() {
 }
 
 Reference<Vnode> StreamSocket::accept(struct sockaddr* address,
-        socklen_t* length) {
+        socklen_t* length, int fileFlags) {
     AutoLock lock(&socketMutex);
 
     if (!isListening) {
@@ -87,6 +87,11 @@ Reference<Vnode> StreamSocket::accept(struct sockaddr* address,
     }
 
     while (!firstConnection) {
+        if (fileFlags & O_NONBLOCK) {
+            errno = EWOULDBLOCK;
+            return nullptr;
+        }
+
         if (kthread_cond_sigwait(&acceptCond, &socketMutex) == EINTR) {
             errno = EINTR;
             return nullptr;
@@ -154,7 +159,8 @@ bool StreamSocket::addConnection(const Reference<StreamSocket>& socket) {
     return true;
 }
 
-int StreamSocket::bind(const struct sockaddr* address, socklen_t length) {
+int StreamSocket::bind(const struct sockaddr* address, socklen_t length,
+        int /*flags*/) {
     AutoLock lock(&socketMutex);
 
     if (!address) {
@@ -216,7 +222,8 @@ int StreamSocket::bind(const struct sockaddr* address, socklen_t length) {
     return 0;
 }
 
-int StreamSocket::connect(const struct sockaddr* address, socklen_t length) {
+int StreamSocket::connect(const struct sockaddr* address, socklen_t length,
+        int flags) {
     AutoLock lock(&socketMutex);
 
     if (isConnecting) {
@@ -286,6 +293,11 @@ int StreamSocket::connect(const struct sockaddr* address, socklen_t length) {
 
     isConnecting = true;
     while (isConnecting) {
+        if (flags & O_NONBLOCK) {
+            errno = EINPROGRESS;
+            return -1;
+        }
+
         if (kthread_cond_sigwait(&connectCond, &socketMutex) == EINTR) {
             // The connection will be established asynchronously.
             errno = EINTR;
@@ -343,11 +355,16 @@ short StreamSocket::poll() {
     return result;
 }
 
-ssize_t StreamSocket::read(void* buffer, size_t size) {
+ssize_t StreamSocket::read(void* buffer, size_t size, int flags) {
     {
         AutoLock lock(&socketMutex);
 
         while (isConnecting) {
+            if (flags & O_NONBLOCK) {
+                errno = EWOULDBLOCK;
+                return -1;
+            }
+
             if (kthread_cond_sigwait(&connectCond, &socketMutex) == EINTR) {
                 errno = EINTR;
                 return -1;
@@ -365,6 +382,11 @@ ssize_t StreamSocket::read(void* buffer, size_t size) {
     while (bytesAvailable == 0) {
         if (!peer) {
             errno = ECONNRESET;
+            return -1;
+        }
+
+        if (flags & O_NONBLOCK) {
+            errno = EWOULDBLOCK;
             return -1;
         }
 
@@ -392,11 +414,16 @@ ssize_t StreamSocket::read(void* buffer, size_t size) {
     return bytesRead;
 }
 
-ssize_t StreamSocket::write(const void* buffer, size_t size) {
+ssize_t StreamSocket::write(const void* buffer, size_t size, int flags) {
     {
         AutoLock lock(&socketMutex);
 
         while (isConnecting) {
+            if (flags & O_NONBLOCK) {
+                errno = EWOULDBLOCK;
+                return -1;
+            }
+
             if (kthread_cond_sigwait(&connectCond, &socketMutex) == EINTR) {
                 errno = EINTR;
                 return -1;
@@ -415,6 +442,11 @@ ssize_t StreamSocket::write(const void* buffer, size_t size) {
 
     while (written < size) {
         while (peer && peer->bufferSize - peer->bytesAvailable == 0) {
+            if (flags & O_NONBLOCK) {
+                errno = EWOULDBLOCK;
+                return -1;
+            }
+
             if (kthread_cond_sigwait(&sendCond, &connectionMutex->mutex) ==
                     EINTR) {
                 if (written) {

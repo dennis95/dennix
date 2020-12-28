@@ -33,8 +33,8 @@ private:
 public:
     PipeVnode(Reference<Vnode>& readPipe, Reference<Vnode>& writePipe);
     short poll() override;
-    ssize_t read(void* buffer, size_t size) override;
-    ssize_t write(const void* buffer, size_t size) override;
+    ssize_t read(void* buffer, size_t size, int flags) override;
+    ssize_t write(const void* buffer, size_t size, int flags) override;
     virtual ~PipeVnode();
 private:
     Vnode* readEnd;

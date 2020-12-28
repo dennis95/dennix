@@ -33,14 +33,16 @@ public:
     StreamSocket(mode_t mode, const Reference<StreamSocket>& peer,
             const Reference<ConnectionMutex>& connection);
     ~StreamSocket();
-    Reference<Vnode> accept(struct sockaddr* address, socklen_t* length)
+    Reference<Vnode> accept(struct sockaddr* address, socklen_t* length,
+            int fileFlags) override;
+    int bind(const struct sockaddr* address, socklen_t length, int flags)
             override;
-    int bind(const struct sockaddr* address, socklen_t length) override;
-    int connect(const struct sockaddr* address, socklen_t length) override;
+    int connect(const struct sockaddr* address, socklen_t length, int flags)
+            override;
     int listen(int backlog) override;
     short poll() override;
-    ssize_t read(void* buffer, size_t size) override;
-    ssize_t write(const void* buffer, size_t size) override;
+    ssize_t read(void* buffer, size_t size, int flags) override;
+    ssize_t write(const void* buffer, size_t size, int flags) override;
 private:
     bool addConnection(const Reference<StreamSocket>& socket);
 private:

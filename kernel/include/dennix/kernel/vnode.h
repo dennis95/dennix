@@ -29,11 +29,13 @@
 class Vnode : public ReferenceCounted {
 public:
     virtual Reference<Vnode> accept(struct sockaddr* address,
-            socklen_t* length);
-    virtual int bind(const struct sockaddr* address, socklen_t length);
+            socklen_t* length, int fileFlags);
+    virtual int bind(const struct sockaddr* address, socklen_t length,
+            int flags);
     virtual int chmod(mode_t mode);
     virtual int chown(uid_t uid, gid_t gid);
-    virtual int connect(const struct sockaddr* address, socklen_t length);
+    virtual int connect(const struct sockaddr* address, socklen_t length,
+            int flags);
     virtual int devctl(int command, void* restrict data, size_t size,
             int* restrict info);
     virtual int ftruncate(off_t length);
@@ -51,9 +53,10 @@ public:
     virtual bool onUnlink();
     virtual Reference<Vnode> open(const char* name, int flags, mode_t mode);
     virtual short poll();
-    virtual ssize_t pread(void* buffer, size_t size, off_t offset);
-    virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset);
-    virtual ssize_t read(void* buffer, size_t size);
+    virtual ssize_t pread(void* buffer, size_t size, off_t offset, int flags);
+    virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset,
+                int flags);
+    virtual ssize_t read(void* buffer, size_t size, int flags);
     virtual ssize_t readlink(char* buffer, size_t size);
     virtual int rename(Reference<Vnode>& oldDirectory, const char* oldName,
             const char* newName);
@@ -64,7 +67,7 @@ public:
     virtual int unlink(const char* name, int flags);
     void updateTimestampsLocked(bool access, bool status, bool modification);
     virtual int utimens(struct timespec atime, struct timespec mtime);
-    virtual ssize_t write(const void* buffer, size_t size);
+    virtual ssize_t write(const void* buffer, size_t size, int flags);
     virtual ~Vnode();
 protected:
     Vnode(mode_t mode, dev_t dev);

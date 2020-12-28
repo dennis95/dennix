@@ -33,18 +33,18 @@ public:
         return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM;
     }
 
-    ssize_t write(const void* /*buffer*/, size_t size) override {
+    ssize_t write(const void* /*buffer*/, size_t size, int /*flags*/) override {
         return size;
     }
 };
 
 class DevFull : public CharDevice {
 public:
-    ssize_t read(void* /*buffer*/, size_t /*size*/) override {
+    ssize_t read(void* /*buffer*/, size_t /*size*/, int /*flags*/) override {
         return 0;
     }
 
-    ssize_t write(const void* /*buffer*/, size_t size) override {
+    ssize_t write(const void* /*buffer*/, size_t size, int /*flags*/) override {
         if (size == 0) return 0;
         errno = ENOSPC;
         return -1;
@@ -53,14 +53,14 @@ public:
 
 class DevNull : public CharDevice {
 public:
-    ssize_t read(void* /*buffer*/, size_t /*size*/) override {
+    ssize_t read(void* /*buffer*/, size_t /*size*/, int /*flags*/) override {
         return 0;
     }
 };
 
 class DevZero : public CharDevice {
 public:
-    ssize_t read(void* buffer, size_t size) override {
+    ssize_t read(void* buffer, size_t size, int /*flags*/) override {
         memset(buffer, 0, size);
         return size;
     }
@@ -68,7 +68,7 @@ public:
 
 class DevRandom : public CharDevice {
 public:
-    ssize_t read(void* buffer, size_t size) override {
+    ssize_t read(void* buffer, size_t size, int /*flags*/) override {
         arc4random_buf(buffer, size);
         return size;
     }
