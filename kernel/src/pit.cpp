@@ -30,8 +30,8 @@
 #define PIT_MODE_RATE_GENERATOR 0x4
 #define PIT_MODE_LOBYTE_HIBYTE 0x30
 
-// This should fire the timer approximately every 10 ms.
-static const unsigned int frequency = 100;
+// This should fire the timer approximately every millisecond.
+static const unsigned int frequency = 1000;
 static const uint16_t divider = PIT_FREQUENCY / frequency;
 static const unsigned long nanoseconds = 1000000000L / PIT_FREQUENCY * divider;
 
