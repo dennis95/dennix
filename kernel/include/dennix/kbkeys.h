@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,6 +19,8 @@
 
 #ifndef _DENNIX_KBKEYS_H
 #define _DENNIX_KBKEYS_H
+
+#include <stddef.h>
 
 #define KB_ESCAPE 0x01
 #define KB_1 0x02
@@ -122,5 +124,10 @@
 #define KB_PAGEDOWN 0xD1
 #define KB_INSERT 0xD2
 #define KB_DELETE 0xD3
+
+struct kbwc {
+    int kb;
+    wchar_t wc;
+};
 
 #endif

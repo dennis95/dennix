@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019, 2020 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,7 +23,7 @@
 #include <dennix/kernel/kernel.h>
 
 namespace Keyboard {
-size_t getUtf8FromKey(int key, char* buffer);
+wchar_t getWideCharFromKey(int key);
 const char* getSequenceFromKey(int key);
 }
 

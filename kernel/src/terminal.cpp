@@ -21,7 +21,9 @@
 #include <limits.h>
 #include <sched.h>
 #include <signal.h>
+#include <wchar.h>
 #include <dennix/devctls.h>
+#include <dennix/kbkeys.h>
 #include <dennix/poll.h>
 #include <dennix/kernel/kernel.h>
 #include <dennix/kernel/process.h>
@@ -103,9 +105,24 @@ void Terminal::handleSequence(const char* sequence) {
 }
 
 void Terminal::onKeyboardEvent(int key) {
-    char buffer[MB_CUR_MAX];
-    size_t bytes = Keyboard::getUtf8FromKey(key, buffer);
-    if (bytes != (size_t) -1) {
+    wchar_t wc = Keyboard::getWideCharFromKey(key);
+
+    if (termio.c_lflag & _KBWC) {
+        struct kbwc kbwc;
+        kbwc.kb = key;
+        kbwc.wc = wc;
+        const char* bytes = (const char*) &kbwc;
+
+        for (size_t i = 0; i < sizeof(kbwc); i++) {
+            terminalBuffer.write(bytes[i]);
+        }
+        terminalBuffer.endLine();
+        return;
+    }
+
+    if (wc != L'\0') {
+        char buffer[MB_CUR_MAX];
+        size_t bytes = wcrtomb(buffer, wc, nullptr);
         for (size_t i = 0; i < bytes; i++) {
             handleCharacter(buffer[i]);
         }

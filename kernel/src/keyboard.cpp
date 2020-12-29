@@ -147,7 +147,7 @@ static const struct {
     { 0, 0 }
 };
 
-size_t Keyboard::getUtf8FromKey(int key, char* buffer) {
+wchar_t Keyboard::getWideCharFromKey(int key) {
     static bool leftShift = false;
     static bool rightShift = false;
     static bool capsLock = false;
@@ -174,7 +174,7 @@ size_t Keyboard::getUtf8FromKey(int key, char* buffer) {
         rightControl = false;
     }
 
-    if (key < 0) return -1;
+    if (key < 0) return L'\0';
 
     wchar_t wc = L'\0';
     if ((size_t) key < sizeof(KBLAYOUT) / sizeof(wchar_t) / 4) {
@@ -204,8 +204,7 @@ size_t Keyboard::getUtf8FromKey(int key, char* buffer) {
         wc = L'\x7F';
     }
 
-    if (!wc) return -1;
-    return wcrtomb(buffer, wc, nullptr);
+    return wc;
 }
 
 const char* Keyboard::getSequenceFromKey(int key) {

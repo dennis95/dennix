@@ -20,10 +20,15 @@
 #ifndef _DENNIX_TERMIOS_H
 #define _DENNIX_TERMIOS_H
 
+/* Local modes */
 #define ECHO (1 << 0)
 #define ICANON (1 << 1)
 #define ISIG (1 << 2)
 #define ECHONL (1 << 3)
+/* Non-standard flag that causes the terminal to transmit key-codepoint pairs
+   instead of bytes. See struct kbwc in <dennix/kbkeys.h>. Disables most
+   terminal-specific processing of input. */
+#define _KBWC (1 << 4)
 
 #define VEOF 0
 #define VEOL 1
