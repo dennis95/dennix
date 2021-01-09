@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,11 +26,9 @@
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/vnode.h>
 
-static ino_t nextIno = 0;
-
 Vnode::Vnode(mode_t mode, dev_t dev) {
     stats.st_dev = dev;
-    stats.st_ino = nextIno++;
+    stats.st_ino = (uintptr_t) this;
     stats.st_mode = mode;
     stats.st_nlink = 0;
     stats.st_uid = 0;
@@ -340,8 +338,8 @@ ssize_t Vnode::readlink(char* /*buffer*/, size_t /*size*/) {
     return -1;
 }
 
-int Vnode::rename(Reference<Vnode>& /*oldDirectory*/, const char* /*oldName*/,
-        const char* /*newName*/) {
+int Vnode::rename(const Reference<Vnode>& /*oldDirectory*/,
+        const char* /*oldName*/, const char* /*newName*/) {
     errno = EBADF;
     return -1;
 }

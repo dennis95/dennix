@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -35,7 +35,7 @@ public:
     int mkdir(const char* name, mode_t mode) override;
     bool onUnlink() override;
     Reference<Vnode> open(const char* name, int flags, mode_t mode) override;
-    int rename(Reference<Vnode>& oldDirectory, const char* oldName,
+    int rename(const Reference<Vnode>& oldDirectory, const char* oldName,
             const char* newName) override;
     int unlink(const char* path, int flags) override;
 private:
@@ -48,6 +48,7 @@ public:
 private:
     Reference<Vnode>* childNodes;
     char** fileNames;
+protected:
     Reference<DirectoryVnode> parent;
 };
 

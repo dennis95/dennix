@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,6 +17,7 @@
  * PS/2 mouse driver.
  */
 
+#include <dennix/kernel/devices.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/mouse.h>
 #include <dennix/kernel/portio.h>
@@ -52,6 +53,7 @@ PS2Mouse::PS2Mouse(bool secondPort) : secondPort(secondPort) {
     }
     PS2::sendDeviceCommand(secondPort, MOUSE_SET_SAMPLE_RATE, 40, true);
     mouseDevice = xnew MouseDevice();
+    devFS->addDevice("mouse", mouseDevice);
     Log::printf("PS/2 mouse found\n");
 }
 

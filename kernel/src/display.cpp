@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/devices.h>
 #include <dennix/kernel/display.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/portio.h>
@@ -41,7 +42,9 @@ static const size_t charWidth = 9;
 static uint8_t unicodeToCp437(wchar_t wc);
 
 Display::Display(video_mode mode, char* buffer, size_t pitch)
-        : Vnode(S_IFCHR | 0666, 0) {
+        : Vnode(S_IFCHR | 0666, devFS->stats.st_dev) {
+    stats.st_rdev = (uintptr_t) this;
+
     this->buffer = buffer;
     this->mode = mode;
     if (mode.video_bpp == 0) {

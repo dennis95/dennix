@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,8 +22,19 @@
 
 #include <dennix/kernel/directory.h>
 
-namespace Devices {
-void initialize(Reference<DirectoryVnode> rootDir);
-}
+class DevFS : public DirectoryVnode {
+public:
+    DevFS();
+    void addDevice(const char* name, const Reference<Vnode>& vnode);
+    void initialize(const Reference<DirectoryVnode>& rootDir);
+    int link(const char* name, const Reference<Vnode>& vnode) override;
+    int mkdir(const char* name, mode_t mode) override;
+    Reference<Vnode> open(const char* name, int flags, mode_t mode) override;
+    int rename(const Reference<Vnode>& oldDirectory, const char* oldName,
+            const char* newName) override;
+    int unlink(const char* path, int flags) override;
+};
+
+extern Reference<DevFS> devFS;
 
 #endif

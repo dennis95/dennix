@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,6 +20,7 @@
 #ifndef KERNEL_PS2MOUSE_H
 #define KERNEL_PS2MOUSE_H
 
+#include <dennix/kernel/mouse.h>
 #include <dennix/kernel/ps2.h>
 
 class PS2Mouse : public PS2Device {
@@ -31,6 +32,7 @@ private:
     bool hasMouseWheel;
     unsigned char index;
     bool secondPort;
+    Reference<MouseDevice> mouseDevice;
 };
 
 #endif

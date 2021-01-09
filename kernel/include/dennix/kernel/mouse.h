@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,7 +34,5 @@ private:
     size_t readIndex;
     size_t available;
 };
-
-extern Reference<MouseDevice> mouseDevice;
 
 #endif

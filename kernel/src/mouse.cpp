@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,15 +21,16 @@
 #include <fcntl.h>
 #include <sched.h>
 #include <dennix/poll.h>
+#include <dennix/kernel/devices.h>
 #include <dennix/kernel/mouse.h>
 #include <dennix/kernel/signal.h>
 
 #define BUFFER_ITEMS (sizeof(mouseBuffer) / sizeof(mouse_data))
-Reference<MouseDevice> mouseDevice;
 
-MouseDevice::MouseDevice() : Vnode(S_IFCHR | 0666, 0) {
+MouseDevice::MouseDevice() : Vnode(S_IFCHR | 0666, devFS->stats.st_dev) {
     readIndex = 0;
     available = 0;
+    stats.st_rdev = (uintptr_t) this;
 }
 
 void MouseDevice::addPacket(mouse_data data) {
