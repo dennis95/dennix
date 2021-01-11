@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -33,6 +33,7 @@ LIBS += -lk -lgcc
 
 OBJ = \
 	addressspace.o \
+	ata.o \
 	bga.o \
 	clock.o \
 	conf.o \

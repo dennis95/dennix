@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,6 +17,7 @@
  * Interrupt handling.
  */
 
+#include <assert.h>
 #include <signal.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/portio.h>
@@ -53,7 +54,14 @@
 #define EX_SIMD_FLOATING_POINT_EXCEPTION 19
 #define EX_VIRTUALIZATION_EXCEPTION 20
 
-void (*Interrupts::irqHandlers[16])(const InterruptContext*) = {0};
+static IrqHandler* irqHandlers[16] = {0};
+
+void Interrupts::addIrqHandler(unsigned int irq, IrqHandler* handler) {
+    assert(irq < 16);
+
+    handler->next = irqHandlers[irq];
+    irqHandlers[irq] = handler;
+}
 
 void Interrupts::initPic() {
     outb(PIC1_COMMAND, 0x11);
@@ -159,8 +167,10 @@ handleKernelException:
         PANIC(context, "Unexpected %s", exceptionName(context->interrupt));
     } else if (context->interrupt <= 47) { // IRQ
         int irq = context->interrupt - 32;
-        if (Interrupts::irqHandlers[irq]) {
-            Interrupts::irqHandlers[irq](context);
+        IrqHandler* handler = irqHandlers[irq];
+        while (handler) {
+            handler->func(handler->user, context);
+            handler = handler->next;
         }
 
         if (irq == 0) {
