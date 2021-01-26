@@ -52,6 +52,7 @@ OBJ = \
 	memorysegment.o \
 	mouse.o \
 	panic.o \
+	partition.o \
 	pci.o \
 	physicalmemory.o \
 	pipe.o \

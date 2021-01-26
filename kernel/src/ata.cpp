@@ -24,6 +24,7 @@
 #include <dennix/poll.h>
 #include <dennix/kernel/ata.h>
 #include <dennix/kernel/devices.h>
+#include <dennix/kernel/partition.h>
 #include <dennix/kernel/pci.h>
 #include <dennix/kernel/portio.h>
 
@@ -176,6 +177,8 @@ void AtaChannel::identifyDevice(bool secondary) {
     char name[32];
     snprintf(name, sizeof(name), "ata%zu", numAtaDevices++);
     devFS->addDevice(name, device);
+
+    Partition::scanPartitions(device, name, sectorSize);
 }
 
 static void onAtaIrq(void* user, const InterruptContext* context) {
