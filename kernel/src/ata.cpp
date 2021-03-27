@@ -39,6 +39,8 @@
 #define REGISTER_STATUS 7
 #define REGISTER_COMMAND 7
 
+#define REGISTER_BUSMASTER_STATUS 2
+
 #define COMMAND_FLUSH_CACHE 0xE7
 #define COMMAND_IDENTIFY_DEVICE 0xEC
 #define COMMAND_READ_SECTORS 0x20
@@ -57,6 +59,7 @@ static void onAtaIrq(void* user, const InterruptContext* context);
 void AtaController::initialize(uint8_t bus, uint8_t device, uint8_t function) {
     uint8_t progIf = Pci::readConfig(bus, device, function,
             offsetof(PciHeader, progIf));
+    if (!(progIf & 0x80)) return;
 
     uint16_t iobase1 = 0x1F0;
     uint16_t ctrlbase1 = 0x3F6;
@@ -95,18 +98,26 @@ void AtaController::initialize(uint8_t bus, uint8_t device, uint8_t function) {
         }
     }
 
-    AtaChannel* channel1 = xnew AtaChannel(iobase1, ctrlbase1, irq1);
-    AtaChannel* channel2 = xnew AtaChannel(iobase2, ctrlbase2, irq2);
+    uint32_t bar4 = Pci::readConfig(bus, device, function,
+            offsetof(PciHeader, bar4));
+    uint16_t busmasterBase = bar4 & 0xFFFC;
+
+    AtaChannel* channel1 = xnew AtaChannel(iobase1, ctrlbase1, busmasterBase,
+            irq1);
+    AtaChannel* channel2 = xnew AtaChannel(iobase2, ctrlbase2,
+            busmasterBase + 8, irq2);
     channel1->identifyDevice(false);
     channel1->identifyDevice(true);
     channel2->identifyDevice(false);
     channel2->identifyDevice(true);
 }
 
-AtaChannel::AtaChannel(uint16_t iobase, uint16_t ctrlbase, unsigned int irq) {
+AtaChannel::AtaChannel(uint16_t iobase, uint16_t ctrlbase,
+        uint16_t busmasterBase, unsigned int irq) {
     mutex = KTHREAD_MUTEX_INITIALIZER;
     this->iobase = iobase;
     this->ctrlbase = ctrlbase;
+    this->busmasterBase = busmasterBase;
 
     irqHandler.func = onAtaIrq;
     irqHandler.user = this;
@@ -187,6 +198,10 @@ static void onAtaIrq(void* user, const InterruptContext* context) {
 }
 
 void AtaChannel::onIrq(const InterruptContext* /*context*/) {
+    uint8_t busmasterStatus = inb(busmasterBase + REGISTER_BUSMASTER_STATUS);
+    if (!(busmasterStatus & (1 << 2))) return;
+    // Clear the interrupt bit by writing it back.
+    outb(busmasterBase + 2, busmasterStatus);
     inb(iobase + REGISTER_STATUS);
 }
 

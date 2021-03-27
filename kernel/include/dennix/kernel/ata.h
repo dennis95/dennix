@@ -26,7 +26,8 @@ namespace AtaController {
 
 class AtaChannel {
 public:
-    AtaChannel(uint16_t iobase, uint16_t ctrlbase, unsigned int irq);
+    AtaChannel(uint16_t iobase, uint16_t ctrlbase, uint16_t busmasterBase,
+            unsigned int irq);
     bool flushCache(bool secondary);
     void identifyDevice(bool secondary);
     void onIrq(const InterruptContext* context);
@@ -38,6 +39,7 @@ private:
     kthread_mutex_t mutex;
     uint16_t iobase;
     uint16_t ctrlbase;
+    uint16_t busmasterBase;
     IrqHandler irqHandler;
 };
 
