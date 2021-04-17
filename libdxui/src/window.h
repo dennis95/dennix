@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,36 +13,36 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* gui/connection.h
- * Connection.
+/* libdxui/src/window.h
+ * Windows.
  */
 
-#ifndef CONNECTION_H
-#define CONNECTION_H
+#ifndef WINDOW_H
+#define WINDOW_H
 
-#include <stdbool.h>
-#include <sys/guimsg.h>
+#include "control.h"
 
-struct Window;
-
-struct Connection {
-    int fd;
-    size_t index;
-    struct Window** windows;
-    size_t windowsAllocated;
-    struct gui_msg_header headerBuffer;
-    size_t headerReceived;
-    char* messageBuffer;
-    size_t messageReceived;
-    char* outputBuffer;
-    size_t outputBuffered;
-    size_t outputBufferOffset;
-    size_t outputBufferSize;
+typedef struct dxui_internal_window Window;
+struct dxui_internal_window {
+    union {
+        Control control;
+        Container container;
+        dxui_control* dxui_as_control;
+        dxui_container* dxui_as_container;
+        dxui_window* dxui_as_window;
+    };
+    dxui_context* context;
+    Window* prev;
+    Window* next;
+    unsigned int id;
+    bool idAssigned;
+    dxui_dim lfbDim;
+    uint32_t* lfb;
+    bool redraw;
+    bool updateInProgress;
+    bool visible;
 };
 
-bool flushConnectionBuffer(struct Connection* conn);
-bool receiveMessage(struct Connection* conn);
-void sendEvent(struct Connection* conn, unsigned int type, size_t length,
-        void* msg);
+#define DXUI_AS_WINDOW(window) ((window)->dxui_as_window)
 
 #endif

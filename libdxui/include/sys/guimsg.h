@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,12 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* gui/guimsg.h
+/* libdxui/include/sys/guimsg.h
  * GUI messages.
  */
 
-#ifndef GUIMSG_H
-#define GUIMSG_H
+#ifndef _SYS_GUIMSG_H
+#define _SYS_GUIMSG_H
 
 #include <stddef.h>
 #include <stdint.h>

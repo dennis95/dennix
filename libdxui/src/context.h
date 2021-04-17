@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,36 +13,22 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* gui/connection.h
- * Connection.
+/* libdxui/src/context.h
+ * dxui context.
  */
 
-#ifndef CONNECTION_H
-#define CONNECTION_H
+#ifndef CONTEXT_H
+#define CONTEXT_H
 
-#include <stdbool.h>
-#include <sys/guimsg.h>
+#include "window.h"
 
-struct Window;
-
-struct Connection {
-    int fd;
-    size_t index;
-    struct Window** windows;
-    size_t windowsAllocated;
-    struct gui_msg_header headerBuffer;
-    size_t headerReceived;
-    char* messageBuffer;
-    size_t messageReceived;
-    char* outputBuffer;
-    size_t outputBuffered;
-    size_t outputBufferOffset;
-    size_t outputBufferSize;
+struct dxui_context {
+    int socket;
+    Window* firstWindow;
+    dxui_dim displayDim;
+    dxui_pos mouseDownPos;
+    bool mouseDown;
+    char vgafont[4096];
 };
-
-bool flushConnectionBuffer(struct Connection* conn);
-bool receiveMessage(struct Connection* conn);
-void sendEvent(struct Connection* conn, unsigned int type, size_t length,
-        void* msg);
 
 #endif

@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -25,7 +25,7 @@ LICENSE = $(LICENSES_DIR)/dennix/LICENSE
 DXPORT = ./ports/dxport --host=$(ARCH)-dennix --builddir=$(BUILD_DIR)/ports
 DXPORT += --sysroot=$(SYSROOT)
 
-all: libc kernel gui sh utils iso
+all: libc kernel libdxui gui sh utils iso
 
 gui: $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C gui
@@ -36,8 +36,11 @@ kernel $(KERNEL): $(INCLUDE_DIR) $(LIB_DIR)
 libc: $(INCLUDE_DIR)
 	$(MAKE) -C libc
 
-install-all: install-headers install-libc install-gui install-sh install-utils
-install-all: install-ports
+libdxui: $(INCLUDE_DIR)
+	$(MAKE) -C libdxui
+
+install-all: install-headers install-libc install-libdxui install-gui
+install-all: install-sh install-utils install-ports
 
 install-gui:
 	$(MAKE) -C gui install
@@ -45,12 +48,17 @@ install-gui:
 install-headers $(INCLUDE_DIR):
 	$(MAKE) -C kernel install-headers
 	$(MAKE) -C libc install-headers
+	$(MAKE) -C libdxui install-headers
 
 install-libc: $(INCLUDE_DIR)
 	$(MAKE) -C libc install-libs
 
+install-libdxui: $(INCLUDE_DIR)
+	$(MAKE) -C libdxui install-lib
+
 $(LIB_DIR):
 	$(MAKE) -C libc install-libs
+	$(MAKE) -C libdxui install-lib
 
 install-ports $(DXPORT_DIR): $(INCLUDE_DIR) $(LIB_DIR)
 ifneq ($(wildcard ./ports/dxport),)
@@ -118,6 +126,6 @@ distclean:
 	rm -rf build sysroot
 	rm -f *.iso
 
-.PHONY: all gui kernel libc install-all install-gui install-headers
-.PHONY: install-libc install-ports install-sh install-toolchain install-utils
-.PHONY: iso qemu sh utils clean distclean
+.PHONY: all gui kernel libc libdxui install-all install-gui install-headers
+.PHONY: install-libc install-libdxui install-ports install-sh install-toolchain
+.PHONY: install-utils iso qemu sh utils clean distclean

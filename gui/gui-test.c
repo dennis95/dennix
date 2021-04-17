@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,10 +25,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/guimsg.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <dennix/display.h>
-#include "guimsg.h"
 
 struct Window {
     struct Window* prev;
