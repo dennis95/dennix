@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -210,6 +210,7 @@ int Syscall::dup3(int fd1, int fd2, int flags) {
 int Syscall::execve(const char* path, char* const argv[], char* const envp[]) {
     Reference<FileDescription> descr = getRootFd(AT_FDCWD, path);
     Reference<Vnode> vnode = resolvePath(descr->vnode, path);
+    descr = nullptr;
 
     if (!vnode || Process::current()->execute(vnode, argv, envp) == -1) {
         return -1;

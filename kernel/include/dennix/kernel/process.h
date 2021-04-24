@@ -45,7 +45,7 @@ public:
     int close(int fd);
     int dup3(int fd1, int fd2, int flags);
     void exit(int status);
-    int execute(const Reference<Vnode>& vnode, char* const argv[],
+    int execute(Reference<Vnode>& vnode, char* const argv[],
             char* const envp[]);
     int fcntl(int fd, int cmd, int param);
     Reference<FileDescription> getFd(int fd);

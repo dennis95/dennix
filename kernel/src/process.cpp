@@ -253,7 +253,7 @@ int Process::dup3(int fd1, int fd2, int flags) {
     return fdTable.insert(fd2, { fdTable[fd1].descr, fdFlags });
 }
 
-int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
+int Process::execute(Reference<Vnode>& vnode, char* const argv[],
         char* const envp[]) {
     mode_t mode = vnode->stat().st_mode;
     if (!S_ISREG(mode) || !(mode & 0111)) {
@@ -269,6 +269,7 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
         delete newAddressSpace;
         return -1;
     }
+    vnode = nullptr;
 
     size_t sigreturnSize = (uintptr_t) &endSigreturn -
             (uintptr_t) &beginSigreturn;
