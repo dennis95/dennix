@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,13 +20,24 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #ifndef DENNIX_VERSION
 #  define DENNIX_VERSION ""
 #endif
 
 #define UNUSED __attribute__((unused))
+
+static UNUSED bool getConfirmation(void) {
+    char* buffer = NULL;
+    size_t size = 0;
+    if (getline(&buffer, &size, stdin) <= 0) return false;
+    bool result = (*buffer == 'y' || *buffer == 'Y');
+    free(buffer);
+    return result;
+}
 
 static UNUSED int help(const char* argv0, const char* helpstr) {
     printf("Usage: %s ", argv0);

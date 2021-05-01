@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2020 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,11 +27,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/stat.h>
 
-static bool getConfirmation(void);
 static bool move(int sourceFd, const char* sourceName, const char* sourcePath,
         int destFd, const char* destName, const char* destPath, bool prompt);
+
+#define MV
+#include "cp.c"
+#include "rm.c"
 
 int main(int argc, char* argv[]) {
     struct option longopts[] = {
@@ -104,15 +108,6 @@ int main(int argc, char* argv[]) {
     return success ? 0 : 1;
 }
 
-static bool getConfirmation(void) {
-    char* buffer = NULL;
-    size_t size = 0;
-    if (getline(&buffer, &size, stdin) <= 0) return false;
-    bool result = (*buffer == 'y' || *buffer == 'Y');
-    free(buffer);
-    return result;
-}
-
 static bool move(int sourceFd, const char* sourceName, const char* sourcePath,
         int destFd, const char* destName, const char* destPath, bool prompt) {
     struct stat sourceSt, destSt;
@@ -148,8 +143,23 @@ static bool move(int sourceFd, const char* sourceName, const char* sourcePath,
         return false;
     }
 
-    // TODO: Manually move the file to the other file system.
-    warnx("cannot move '%s' to '%s': moving between file systems is not yet"
-            " implemented");
-    return false;
+    if (destExists && S_ISDIR(destSt.st_mode) != S_ISDIR(sourceSt.st_mode)) {
+        warnx("cannot overwrite '%s' by '%s'", destPath, sourcePath);
+        return false;
+    }
+
+    if (destExists) {
+        if (unlinkat(destFd, destName,
+                S_ISDIR(destSt.st_mode) ? AT_REMOVEDIR : 0) < 0) {
+            warn("cannot unlink '%s'", destPath);
+            return false;
+        }
+    }
+
+    if (!copy(sourceFd, sourceName, sourcePath, destFd, destName, destPath,
+            false, false, true, ATTR_MODE | ATTR_OWNER | ATTR_TIMESTAMP)) {
+        return false;
+    }
+
+    return removeFile(sourcePath, false, false, true);
 }

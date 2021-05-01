@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -30,11 +30,11 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-static bool getConfirmation(void);
 static bool removeFile(const char* filename, bool force, bool prompt,
         bool recursive);
 static bool removeRecursively(const char* dirname, bool force, bool prompt);
 
+#ifndef MV
 int main(int argc, char* argv[]) {
     struct option longopts[] = {
         { "force", no_argument, 0, 'f' },
@@ -102,16 +102,7 @@ int main(int argc, char* argv[]) {
     }
     return exitStatus;
 }
-
-
-static bool getConfirmation(void) {
-    char* buffer = NULL;
-    size_t size = 0;
-    if (getline(&buffer, &size, stdin) <= 0) return false;
-    bool result = (*buffer == 'y' || *buffer == 'Y');
-    free(buffer);
-    return result;
-}
+#endif
 
 static bool removeFile(const char* filename, bool force, bool prompt,
         bool recursive) {
