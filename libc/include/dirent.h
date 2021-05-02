@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -58,6 +58,7 @@ struct __DIR {
 
 int alphasort(const struct dirent**, const struct dirent**);
 int closedir(DIR*);
+int dirfd(DIR*);
 DIR* fdopendir(int);
 DIR* opendir(const char*);
 struct dirent* readdir(DIR*);

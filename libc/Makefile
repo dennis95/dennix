@@ -131,6 +131,7 @@ LIBC_OBJ = \
 	devctl/posix_devctl \
 	dirent/alphasort \
 	dirent/closedir \
+	dirent/dirfd \
 	dirent/fdopendir \
 	dirent/opendir \
 	dirent/posix_getdents \
