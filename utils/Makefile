@@ -54,7 +54,9 @@ BIN_PROGRAMS = \
 	uname
 
 SBIN_PROGRAMS = \
-	init
+	init \
+	mount \
+	umount
 
 PROGRAMS = $(BIN_PROGRAMS) $(SBIN_PROGRAMS)
 
