@@ -27,6 +27,7 @@
 #include <dennix/kernel/directory.h>
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/filesystem.h>
+#include <dennix/kernel/symlink.h>
 
 DirectoryVnode::DirectoryVnode(const Reference<DirectoryVnode>& parent,
         mode_t mode, dev_t dev) : Vnode(S_IFDIR | mode, dev), parent(parent) {
@@ -51,6 +52,11 @@ int DirectoryVnode::link(const char* name, const Reference<Vnode>& vnode) {
 
 int DirectoryVnode::linkUnlocked(const char* name, size_t length,
         const Reference<Vnode>& vnode) {
+    if (vnode->stat().st_dev != stats.st_dev) {
+        errno = EXDEV;
+        return -1;
+    }
+
     if (getChildNodeUnlocked(name, length)) {
         errno = EEXIST;
         return -1;
@@ -121,7 +127,7 @@ int DirectoryVnode::mkdir(const char* name, mode_t mode) {
     return 0;
 }
 
-size_t DirectoryVnode::getDirectoryEntries(void** buffer) {
+size_t DirectoryVnode::getDirectoryEntries(void** buffer, int /*flags*/) {
     AutoLock lock(&mutex);
 
     size_t size = ALIGNUP(offsetof(struct posix_dent, d_name) + 2, // .
@@ -148,7 +154,7 @@ size_t DirectoryVnode::getDirectoryEntries(void** buffer) {
             st = parent ? parent->stat() : stats;
             name = "..";
         } else {
-            st = childNodes[i - 2]->stat();
+            st = childNodes[i - 2]->resolve()->stat();
             name = fileNames[i - 2];
         }
 
@@ -199,15 +205,15 @@ int DirectoryVnode::mount(FileSystem* filesystem) {
     return 0;
 }
 
-bool DirectoryVnode::onUnlink() {
+bool DirectoryVnode::onUnlink(bool force) {
     AutoLock lock(&mutex);
 
-    if (mounted) {
+    if (!force && mounted) {
         errno = EBUSY;
         return false;
     }
 
-    if (childCount > 0) {
+    if (!force && childCount > 0) {
         errno = ENOTEMPTY;
         return false;
     }
@@ -311,6 +317,14 @@ Reference<Vnode> DirectoryVnode::resolve() {
     return this;
 }
 
+int DirectoryVnode::symlink(const char* linkTarget, const char* name) {
+    AutoLock lock(&mutex);
+
+    Reference<Vnode> symlink = new SymlinkVnode(linkTarget, stats.st_dev);
+    if (!symlink) return -1;
+    return linkUnlocked(name, strcspn(name, "/"), symlink);
+}
+
 int DirectoryVnode::unlink(const char* name, int flags) {
     AutoLock lock(&mutex);
     return unlinkUnlocked(name, flags);
@@ -338,11 +352,9 @@ int DirectoryVnode::unlinkUnlocked(const char* name, int flags) {
                     return -1;
                 }
 
-                if (!vnode->onUnlink()) return -1;
+                if (!vnode->onUnlink(false)) return -1;
             } else {
-                // DirectoryVnode::onUnlink fails if the directory is not empty.
-                // Directly call the one from Vnode to prevent this failure.
-                vnode->Vnode::onUnlink();
+                vnode->onUnlink(true);
             }
 
             if (S_ISDIR(vnode->stat().st_mode)) {

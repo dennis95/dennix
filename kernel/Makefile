@@ -41,6 +41,8 @@ OBJ = \
 	devices.o \
 	directory.o \
 	display.o \
+	ext234fs.o \
+	ext234vnode.o \
 	file.o \
 	filedescription.o \
 	initrd.o \

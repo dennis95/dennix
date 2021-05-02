@@ -43,7 +43,7 @@ public:
     virtual int ftruncate(off_t length);
     virtual Reference<Vnode> getChildNode(const char* path);
     virtual Reference<Vnode> getChildNode(const char* path, size_t length);
-    virtual size_t getDirectoryEntries(void** buffer);
+    virtual size_t getDirectoryEntries(void** buffer, int flags);
     virtual char* getLinkTarget();
     virtual int isatty();
     virtual bool isSeekable();
@@ -53,7 +53,7 @@ public:
     virtual int mkdir(const char* name, mode_t mode);
     virtual int mount(FileSystem* filesystem);
     virtual void onLink();
-    virtual bool onUnlink();
+    virtual bool onUnlink(bool force);
     virtual Reference<Vnode> open(const char* name, int flags, mode_t mode);
     virtual short poll();
     virtual ssize_t pread(void* buffer, size_t size, off_t offset, int flags);
@@ -66,6 +66,7 @@ public:
     virtual Reference<Vnode> resolve();
     virtual int stat(struct stat* result);
     struct stat stat();
+    virtual int symlink(const char* linkTarget, const char* name);
     virtual int tcgetattr(struct termios* result);
     virtual int tcsetattr(int flags, const struct termios* termio);
     virtual int unlink(const char* name, int flags);
@@ -76,7 +77,7 @@ public:
     virtual ~Vnode();
 protected:
     Vnode(mode_t mode, dev_t dev);
-    void updateTimestamps(bool access, bool status, bool modification);
+    virtual void updateTimestamps(bool access, bool status, bool modification);
 public:
     kthread_mutex_t mutex;
     struct stat stats;

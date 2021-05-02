@@ -255,7 +255,7 @@ Reference<Vnode> Vnode::getChildNode(const char* /*path*/, size_t /*length*/) {
     return nullptr;
 }
 
-size_t Vnode::getDirectoryEntries(void** buffer) {
+size_t Vnode::getDirectoryEntries(void** buffer, int /*flags*/) {
     *buffer = nullptr;
     errno = ENOTDIR;
     return 0;
@@ -306,7 +306,7 @@ void Vnode::onLink() {
     stats.st_nlink++;
 }
 
-bool Vnode::onUnlink() {
+bool Vnode::onUnlink(bool /*force*/) {
     AutoLock lock(&mutex);
     updateTimestamps(false, true, false);
     stats.st_nlink--;
@@ -366,6 +366,11 @@ struct stat Vnode::stat() {
     struct stat result;
     stat(&result);
     return result;
+}
+
+int Vnode::symlink(const char* /*linkTarget*/, const char* /*name*/) {
+    errno = ENOTDIR;
+    return -1;
 }
 
 int Vnode::tcgetattr(struct termios* /*result*/) {

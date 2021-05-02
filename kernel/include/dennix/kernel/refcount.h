@@ -27,7 +27,8 @@ public:
     ReferenceCounted();
     virtual ~ReferenceCounted();
     void addReference() const;
-    void removeReference() const;
+    virtual void removeReference() const;
+    size_t getRefCount() const { return refcount; }
 private:
     mutable size_t refcount;
 };
@@ -60,6 +61,11 @@ public:
         return Reference<T2>((T2*) object);
     }
 
+    Reference(Reference&& ref) {
+        object = ref.object;
+        ref.object = nullptr;
+    }
+
     ~Reference() {
         if (object) {
             object->removeReference();
@@ -78,6 +84,20 @@ public:
             object->removeReference();
         }
         object = (T2*) ref;
+        if (object) {
+            object->addReference();
+        }
+
+        return *this;
+    }
+
+    Reference& operator=(T* const& obj) {
+        if (object == obj) return *this;
+
+        if (object) {
+            object->removeReference();
+        }
+        object = obj;
         if (object) {
             object->addReference();
         }

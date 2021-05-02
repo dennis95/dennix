@@ -29,16 +29,17 @@ public:
     ~DirectoryVnode();
     Reference<Vnode> getChildNode(const char* name) override;
     Reference<Vnode> getChildNode(const char* path, size_t length) override;
-    size_t getDirectoryEntries(void** buffer) override;
+    size_t getDirectoryEntries(void** buffer, int flags) override;
     int link(const char* name, const Reference<Vnode>& vnode) override;
     off_t lseek(off_t offset, int whence) override;
     int mkdir(const char* name, mode_t mode) override;
     int mount(FileSystem* filesystem) override;
-    bool onUnlink() override;
+    bool onUnlink(bool force) override;
     Reference<Vnode> open(const char* name, int flags, mode_t mode) override;
     int rename(const Reference<Vnode>& oldDirectory, const char* oldName,
             const char* newName) override;
     Reference<Vnode> resolve() override;
+    int symlink(const char* linkTarget, const char* name) override;
     int unlink(const char* path, int flags) override;
     int unmount() override;
 private:

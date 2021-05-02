@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,40 +13,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/dent.h
- * Directory entries.
+/* kernel/include/dennix/kernel/ext234.h
+ * ext2/ext3/ext4 filesystem.
  */
 
-#ifndef _DENNIX_DENT_H
-#define _DENNIX_DENT_H
+#ifndef KERNEL_EXT234_H
+#define KERNEL_EXT234_H
 
-#include <dennix/types.h>
+#include <dennix/kernel/filesystem.h>
 
-struct posix_dent {
-    __ino_t d_ino;
-    __reclen_t d_reclen;
-    unsigned char d_type;
-    __extension__ char d_name[];
-};
-
-#define _IFTODT(mode) (((mode) & 0170000) >> 12)
-#define _DTTOIF(type) (((type) & 017) << 12)
-
-#define DT_FIFO 01
-#define DT_CHR 02
-#define DT_DIR 04
-#define DT_BLK 06
-#define DT_REG 010
-#define DT_LNK 012
-#define DT_SOCK 014
-#define DT_UNKNOWN 0
-
-#define DT_MQ 020
-#define DT_SEM 020
-#define DT_SHM 020
-
-#define DT_FORCE_TYPE (1 << 0)
-
-#define _DT_FLAGS DT_FORCE_TYPE
+namespace Ext234 {
+FileSystem* initialize(const Reference<Vnode>& device,
+        const Reference<Vnode>& mountPoint, const char* mountPath, int flags);
+}
 
 #endif

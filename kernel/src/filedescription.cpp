@@ -73,13 +73,13 @@ int FileDescription::fcntl(int cmd, int param) {
 }
 
 ssize_t FileDescription::getdents(void* buffer, size_t size, int flags) {
-    if (flags) {
+    if (flags & ~_DT_FLAGS) {
         errno = EINVAL;
         return -1;
     }
 
     if (!dents) {
-        dentsSize = vnode->getDirectoryEntries(&dents);
+        dentsSize = vnode->getDirectoryEntries(&dents, flags);
         if (!dents) return -1;
     }
 

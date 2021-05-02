@@ -29,7 +29,7 @@
 #include <dennix/wait.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/clock.h>
-#include <dennix/kernel/filesystem.h>
+#include <dennix/kernel/ext234.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/pipe.h>
 #include <dennix/kernel/process.h>
@@ -476,8 +476,14 @@ int Syscall::mount(const char* filename, const char* mountPath,
     }
 
     FileSystem* fs = nullptr;
-    (void) filesystem; (void) flags;
-    errno = EINVAL;
+    if (strcmp(filesystem, "ext234") == 0 || strcmp(filesystem, "ext2") == 0 ||
+            strcmp(filesystem, "ext3") == 0 ||
+            strcmp(filesystem, "ext4") == 0) {
+        fs = Ext234::initialize(file, mountpoint, mountPath, flags);
+    } else {
+        errno = EINVAL;
+    }
+
     if (!fs) return -1;
 
     int result = mountpoint->mount(fs);
