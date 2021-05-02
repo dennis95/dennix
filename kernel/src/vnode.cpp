@@ -33,7 +33,7 @@ Vnode::Vnode(mode_t mode, dev_t dev) {
     stats.st_nlink = 0;
     stats.st_uid = 0;
     stats.st_gid = 0;
-    stats.st_rdev = 0;
+    stats.st_rdev = (uintptr_t) this;
     stats.st_size = 0;
     updateTimestamps(true, true, true);
     stats.st_blksize = 0x1000;
@@ -106,6 +106,7 @@ static Reference<Vnode> resolvePathExceptLastComponent(
         currentVnode = followPath(currentVnode, lastComponent, componentLength,
                 symlinksFollowed, true);
         if (!currentVnode) return nullptr;
+        currentVnode = currentVnode->resolve();
 
         if (!S_ISDIR(currentVnode->stat().st_mode)) {
             errno = ENOTDIR;
@@ -162,6 +163,7 @@ Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
     currentVnode = followPath(currentVnode, lastComponent, nameLength,
             symlinksFollowed, followFinalSymlink);
     if (!currentVnode) return nullptr;
+    currentVnode = currentVnode->resolve();
 
     if (lastComponent[nameLength] && !S_ISDIR(currentVnode->stat().st_mode)) {
         errno = ENOTDIR;
@@ -293,6 +295,11 @@ int Vnode::mkdir(const char* /*name*/, mode_t /*mode*/) {
     return -1;
 }
 
+int Vnode::mount(FileSystem* /*filesystem*/) {
+    errno = ENOTDIR;
+    return -1;
+}
+
 void Vnode::onLink() {
     AutoLock lock(&mutex);
     updateTimestamps(false, true, false);
@@ -344,6 +351,10 @@ int Vnode::rename(const Reference<Vnode>& /*oldDirectory*/,
     return -1;
 }
 
+Reference<Vnode> Vnode::resolve() {
+    return this;
+}
+
 int Vnode::stat(struct stat* result) {
     AutoLock lock(&mutex);
     *result = stats;
@@ -368,6 +379,11 @@ int Vnode::tcsetattr(int /*flags*/, const struct termios* /*termio*/) {
 }
 
 int Vnode::unlink(const char* /*name*/, int /*flags*/) {
+    errno = ENOTDIR;
+    return -1;
+}
+
+int Vnode::unmount() {
     errno = ENOTDIR;
     return -1;
 }

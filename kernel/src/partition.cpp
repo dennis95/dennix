@@ -75,7 +75,7 @@ void Partition::scanPartitions(const Reference<Vnode>& device,
                     char name[32];
                     snprintf(name, sizeof(name), "%sp%zu", deviceName,
                             partitionsFound);
-                    devFS->addDevice(name, partition);
+                    devFS.addDevice(name, partition);
                 }
             }
         }
@@ -85,11 +85,11 @@ void Partition::scanPartitions(const Reference<Vnode>& device,
 }
 
 Partition::Partition(const Reference<Vnode>& device, off_t offset, size_t size)
-        : Vnode(S_IFBLK | 0644, devFS->stats.st_dev), device(device) {
+        : Vnode(S_IFBLK | 0644, devFS.getRootDir()->stat().st_dev),
+        device(device) {
     partitionOffset = offset;
     stats.st_size = size;
     stats.st_blksize = device->stat().st_blksize;
-    stats.st_rdev = (uintptr_t) this;
 }
 
 bool Partition::isSeekable() {

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -145,6 +145,8 @@ Reference<FileDescription> FileDescription::openat(const char* path, int flags,
     if (!*name) name = ".";
     vnode = parentVnode->open(name, flags, mode);
     if (!vnode) return nullptr;
+    vnode = vnode->resolve();
+
     mode = vnode->stat().st_mode;
 
     if (S_ISLNK(mode)) {

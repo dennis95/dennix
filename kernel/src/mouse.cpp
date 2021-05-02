@@ -27,10 +27,10 @@
 
 #define BUFFER_ITEMS (sizeof(mouseBuffer) / sizeof(mouse_data))
 
-MouseDevice::MouseDevice() : Vnode(S_IFCHR | 0666, devFS->stats.st_dev) {
+MouseDevice::MouseDevice() : Vnode(S_IFCHR | 0666,
+        devFS.getRootDir()->stat().st_dev) {
     readIndex = 0;
     available = 0;
-    stats.st_rdev = (uintptr_t) this;
 }
 
 void MouseDevice::addPacket(mouse_data data) {

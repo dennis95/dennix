@@ -187,7 +187,7 @@ void AtaChannel::identifyDevice(bool secondary) {
             sectorSize, lba48Supported);
     char name[32];
     snprintf(name, sizeof(name), "ata%zu", numAtaDevices++);
-    devFS->addDevice(name, device);
+    devFS.addDevice(name, device);
 
     Partition::scanPartitions(device, name, sectorSize);
 }
@@ -319,7 +319,7 @@ bool AtaChannel::writeSectors(const char* buffer, size_t sectorCount,
 
 AtaDevice::AtaDevice(AtaChannel* channel, bool secondary, uint64_t sectors,
         uint64_t sectorSize, bool lba48Supported) : Vnode(S_IFBLK | 0644,
-        devFS->stats.st_dev) {
+        devFS.getRootDir()->stat().st_dev) {
     this->channel = channel;
     this->secondary = secondary;
     this->sectors = sectors;
@@ -328,7 +328,6 @@ AtaDevice::AtaDevice(AtaChannel* channel, bool secondary, uint64_t sectors,
 
     stats.st_size = sectors * sectorSize;
     stats.st_blksize = sectorSize;
-    stats.st_rdev = (uintptr_t) this;
     tempBuffer = xnew char[sectorSize];
 }
 

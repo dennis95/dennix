@@ -42,9 +42,7 @@ static const size_t charWidth = 9;
 static uint8_t unicodeToCp437(wchar_t wc);
 
 Display::Display(video_mode mode, char* buffer, size_t pitch)
-        : Vnode(S_IFCHR | 0666, devFS->stats.st_dev) {
-    stats.st_rdev = (uintptr_t) this;
-
+        : Vnode(S_IFCHR | 0666, devFS.getRootDir()->stat().st_dev) {
     this->buffer = buffer;
     this->mode = mode;
     if (mode.video_bpp == 0) {

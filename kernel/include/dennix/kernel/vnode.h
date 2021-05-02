@@ -26,6 +26,8 @@
 #include <dennix/kernel/kthread.h>
 #include <dennix/kernel/refcount.h>
 
+class FileSystem;
+
 class Vnode : public ReferenceCounted {
 public:
     virtual Reference<Vnode> accept(struct sockaddr* address,
@@ -49,6 +51,7 @@ public:
     virtual int listen(int backlog);
     virtual off_t lseek(off_t offset, int whence);
     virtual int mkdir(const char* name, mode_t mode);
+    virtual int mount(FileSystem* filesystem);
     virtual void onLink();
     virtual bool onUnlink();
     virtual Reference<Vnode> open(const char* name, int flags, mode_t mode);
@@ -60,11 +63,13 @@ public:
     virtual ssize_t readlink(char* buffer, size_t size);
     virtual int rename(const Reference<Vnode>& oldDirectory,
             const char* oldName, const char* newName);
+    virtual Reference<Vnode> resolve();
     virtual int stat(struct stat* result);
     struct stat stat();
     virtual int tcgetattr(struct termios* result);
     virtual int tcsetattr(int flags, const struct termios* termio);
     virtual int unlink(const char* name, int flags);
+    virtual int unmount();
     void updateTimestampsLocked(bool access, bool status, bool modification);
     virtual int utimens(struct timespec atime, struct timespec mtime);
     virtual ssize_t write(const void* buffer, size_t size, int flags);

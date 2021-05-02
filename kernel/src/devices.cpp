@@ -27,14 +27,25 @@
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/terminaldisplay.h>
 
-static DevFS devFs;
-Reference<DevFS> devFS(&devFs);
+class DevDir : public DirectoryVnode {
+public:
+    DevDir();
+    int link(const char* name, const Reference<Vnode>& vnode) override;
+    int mkdir(const char* name, mode_t mode) override;
+    Reference<Vnode> open(const char* name, int flags, mode_t mode) override;
+    int rename(const Reference<Vnode>& oldDirectory, const char* oldName,
+            const char* newName) override;
+    void setParent(const Reference<DirectoryVnode>& dir);
+    int unlink(const char* path, int flags) override;
+};
+
+static DevDir _devDir;
+static Reference<DevDir> devDir(&_devDir);
+DevFS devFS;
 
 class CharDevice : public Vnode {
 public:
-    CharDevice() : Vnode(S_IFCHR | 0666, devFS->stats.st_dev) {
-        stats.st_rdev = (uintptr_t) this;
-    }
+    CharDevice() : Vnode(S_IFCHR | 0666, devDir->stats.st_dev) {}
 
     short poll() override {
         return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM;
@@ -81,20 +92,22 @@ public:
     }
 };
 
-DevFS::DevFS() : DirectoryVnode(nullptr, 0755, (uintptr_t) this) {
-
-}
-
 void DevFS::addDevice(const char* name, const Reference<Vnode>& vnode) {
-    if (DirectoryVnode::link(name, vnode) < 0) {
+    if (devDir->DirectoryVnode::link(name, vnode) < 0) {
         PANIC("Could not add device '/dev/%s'", name);
     }
 }
 
+Reference<Vnode> DevFS::getRootDir() {
+    return devDir;
+}
+
 void DevFS::initialize(const Reference<DirectoryVnode>& rootDir) {
-    parent = rootDir;
-    if (rootDir->link("dev", this) < 0) {
-        PANIC("Could not create /dev directory.");
+    devDir->setParent(rootDir);
+    rootDir->mkdir("dev", 0755);
+    Reference<Vnode> dir = rootDir->getChildNode("dev");
+    if (!dir || dir->mount(this) < 0) {
+        PANIC("Could not mount /dev filesystem.");
     }
     addDevice("full", xnew DevFull());
     addDevice("null", xnew DevNull());
@@ -108,19 +121,28 @@ void DevFS::initialize(const Reference<DirectoryVnode>& rootDir) {
     TerminalDisplay::display->updateTimestampsLocked(true, true, true);
 }
 
+bool DevFS::onUnmount() {
+    errno = EBUSY;
+    return false;
+}
+
+DevDir::DevDir() : DirectoryVnode(nullptr, 0755, (uintptr_t) this) {
+
+}
+
 // Prevent the user from deleting devices or otherwise modifying /dev.
 
-int DevFS::link(const char* /*name*/, const Reference<Vnode>& /*vnode*/) {
+int DevDir::link(const char* /*name*/, const Reference<Vnode>& /*vnode*/) {
     errno = EROFS;
     return -1;
 }
 
-int DevFS::mkdir(const char* /*name*/, mode_t /*mode*/) {
+int DevDir::mkdir(const char* /*name*/, mode_t /*mode*/) {
     errno = EROFS;
     return -1;
 }
 
-Reference<Vnode> DevFS::open(const char* name, int flags, mode_t /*mode*/) {
+Reference<Vnode> DevDir::open(const char* name, int flags, mode_t /*mode*/) {
     size_t length = strcspn(name, "/");
     Reference<Vnode> vnode = getChildNode(name, length);
     if (!vnode) {
@@ -138,13 +160,17 @@ Reference<Vnode> DevFS::open(const char* name, int flags, mode_t /*mode*/) {
     return vnode;
 }
 
-int DevFS::rename(const Reference<Vnode>& /*oldDirectory*/,
+int DevDir::rename(const Reference<Vnode>& /*oldDirectory*/,
         const char* /*oldName*/, const char* /*newName*/) {
     errno = EROFS;
     return -1;
 }
 
-int DevFS::unlink(const char* /*path*/, int /*flags*/) {
+void DevDir::setParent(const Reference<DirectoryVnode>& dir) {
+    parent = dir;
+}
+
+int DevDir::unlink(const char* /*path*/, int /*flags*/) {
     errno = EROFS;
     return -1;
 }

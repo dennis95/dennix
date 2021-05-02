@@ -29,6 +29,7 @@
 #include <dennix/wait.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/clock.h>
+#include <dennix/kernel/filesystem.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/pipe.h>
 #include <dennix/kernel/process.h>
@@ -95,6 +96,8 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_LISTEN] =*/ (void*) Syscall::listen,
     /*[SYSCALL_CONNECT] =*/ (void*) Syscall::connect,
     /*[SYSCALL_ACCEPT4] =*/ (void*) Syscall::accept4,
+    /*[SYSCALL_MOUNT] =*/ (void*) Syscall::mount,
+    /*[SYSCALL_UNMOUNT] =*/ (void*) Syscall::unmount,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -454,6 +457,36 @@ void* Syscall::mmap(__mmapRequest* request) {
             request->_offset);
 }
 
+int Syscall::mount(const char* filename, const char* mountPath,
+        const char* filesystem, int flags) {
+    Reference<Vnode> file = resolvePath(getRootFd(AT_FDCWD, filename)->vnode,
+            filename);
+    if (!file) return -1;
+
+    const char* lastComponent;
+    Reference<Vnode> mountpoint = resolvePathExceptLastComponent(AT_FDCWD,
+            mountPath, &lastComponent);
+    if (!mountpoint) return -1;
+    mountpoint = mountpoint->getChildNode(lastComponent);
+    if (!mountpoint) return -1;
+
+    if (!S_ISDIR(mountpoint->stat().st_mode)) {
+        errno = ENOTDIR;
+        return -1;
+    }
+
+    FileSystem* fs = nullptr;
+    (void) filesystem; (void) flags;
+    errno = EINVAL;
+    if (!fs) return -1;
+
+    int result = mountpoint->mount(fs);
+    if (result < 0) {
+        delete fs;
+    }
+    return result;
+}
+
 int Syscall::munmap(void* addr, size_t size) {
     if (size == 0 || !PAGE_ALIGNED((vaddr_t) addr)) {
         errno = EINVAL;
@@ -748,6 +781,17 @@ int Syscall::unlinkat(int fd, const char* path, int flags) {
     }
 
     return vnode->unlink(name, flags);
+}
+
+int Syscall::unmount(const char* mountPath) {
+    const char* lastComponent;
+    Reference<Vnode> mountpoint = resolvePathExceptLastComponent(AT_FDCWD,
+            mountPath, &lastComponent);
+    if (!mountpoint) return -1;
+    mountpoint = mountpoint->getChildNode(lastComponent);
+    if (!mountpoint) return -1;
+
+    return mountpoint->unmount();
 }
 
 int Syscall::utimensat(int fd, const char* path, const struct timespec ts[2],

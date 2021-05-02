@@ -33,11 +33,14 @@ public:
     int link(const char* name, const Reference<Vnode>& vnode) override;
     off_t lseek(off_t offset, int whence) override;
     int mkdir(const char* name, mode_t mode) override;
+    int mount(FileSystem* filesystem) override;
     bool onUnlink() override;
     Reference<Vnode> open(const char* name, int flags, mode_t mode) override;
     int rename(const Reference<Vnode>& oldDirectory, const char* oldName,
             const char* newName) override;
+    Reference<Vnode> resolve() override;
     int unlink(const char* path, int flags) override;
+    int unmount() override;
 private:
     Reference<Vnode> getChildNodeUnlocked(const char* name, size_t length);
     int linkUnlocked(const char* name, size_t length,
@@ -48,6 +51,7 @@ public:
 private:
     Reference<Vnode>* childNodes;
     char** fileNames;
+    FileSystem* mounted;
 protected:
     Reference<DirectoryVnode> parent;
 };

@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2021 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,24 +13,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/devices.h
- * Devices.
+/* libc/src/sys/fs/unmount.c
+ * Unmount a filesystem.
  */
 
-#ifndef KERNEL_DEVICES_H
-#define KERNEL_DEVICES_H
+#include <sys/fs.h>
+#include <sys/syscall.h>
 
-#include <dennix/kernel/directory.h>
-#include <dennix/kernel/filesystem.h>
-
-class DevFS : public FileSystem {
-public:
-    void addDevice(const char* name, const Reference<Vnode>& vnode);
-    Reference<Vnode> getRootDir() override;
-    void initialize(const Reference<DirectoryVnode>& rootDir);
-    bool onUnmount() override;
-};
-
-extern DevFS devFS;
-
-#endif
+DEFINE_SYSCALL_GLOBAL(SYSCALL_UNMOUNT, int, unmount, (const char*));

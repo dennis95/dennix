@@ -53,7 +53,7 @@ PS2Mouse::PS2Mouse(bool secondPort) : secondPort(secondPort) {
     }
     PS2::sendDeviceCommand(secondPort, MOUSE_SET_SAMPLE_RATE, 40, true);
     mouseDevice = xnew MouseDevice();
-    devFS->addDevice("mouse", mouseDevice);
+    devFS.addDevice("mouse", mouseDevice);
     Log::printf("PS/2 mouse found\n");
 }
 

@@ -26,6 +26,7 @@
 #include <dennix/seek.h>
 #include <dennix/kernel/directory.h>
 #include <dennix/kernel/file.h>
+#include <dennix/kernel/filesystem.h>
 
 DirectoryVnode::DirectoryVnode(const Reference<DirectoryVnode>& parent,
         mode_t mode, dev_t dev) : Vnode(S_IFDIR | mode, dev), parent(parent) {
@@ -34,6 +35,7 @@ DirectoryVnode::DirectoryVnode(const Reference<DirectoryVnode>& parent,
     fileNames = nullptr;
     // st_nlink must also count the . and .. entries.
     stats.st_nlink += parent ? 1 : 2;
+    mounted = nullptr;
 }
 
 DirectoryVnode::~DirectoryVnode() {
@@ -185,12 +187,34 @@ off_t DirectoryVnode::lseek(off_t offset, int whence) {
     return result;
 }
 
+int DirectoryVnode::mount(FileSystem* filesystem) {
+    AutoLock lock(&mutex);
+
+    if (mounted) {
+        errno = EBUSY;
+        return -1;
+    }
+
+    mounted = filesystem;
+    return 0;
+}
+
 bool DirectoryVnode::onUnlink() {
+    AutoLock lock(&mutex);
+
+    if (mounted) {
+        errno = EBUSY;
+        return false;
+    }
+
     if (childCount > 0) {
         errno = ENOTEMPTY;
         return false;
     }
-    return Vnode::onUnlink();
+
+    updateTimestamps(false, true, false);
+    stats.st_nlink--;
+    return true;
 }
 
 Reference<Vnode> DirectoryVnode::open(const char* name, int flags,
@@ -280,6 +304,13 @@ int DirectoryVnode::rename(const Reference<Vnode>& oldDirectory,
     return 0;
 }
 
+Reference<Vnode> DirectoryVnode::resolve() {
+    AutoLock lock(&mutex);
+
+    if (mounted) return mounted->getRootDir();
+    return this;
+}
+
 int DirectoryVnode::unlink(const char* name, int flags) {
     AutoLock lock(&mutex);
     return unlinkUnlocked(name, flags);
@@ -345,4 +376,19 @@ int DirectoryVnode::unlinkUnlocked(const char* name, int flags) {
 
     errno = ENOENT;
     return -1;
+}
+
+int DirectoryVnode::unmount() {
+    AutoLock lock(&mutex);
+
+    if (!mounted) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (!mounted->onUnmount()) return -1;
+
+    delete mounted;
+    mounted = nullptr;
+    return 0;
 }
