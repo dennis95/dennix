@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -77,6 +77,8 @@ double strtod(const char* __restrict, char** __restrict);
 long strtol(const char* __restrict, char** __restrict, int);
 unsigned long strtoul(const char* __restrict, char** __restrict, int);
 int system(const char*);
+size_t wcstombs(char* __restrict, const wchar_t* __restrict, size_t);
+int wctomb(char*, wchar_t);
 
 #if __USE_C >= 1999 || __USE_DENNIX
 typedef struct {

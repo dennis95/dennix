@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -60,6 +60,8 @@ wchar_t* wcschr(const wchar_t*, wchar_t);
 int wcscmp(const wchar_t*, const wchar_t*);
 wchar_t* wcscpy(wchar_t* __restrict, const wchar_t* __restrict);
 size_t wcslen(const wchar_t*);
+size_t wcsrtombs(char* __restrict, const wchar_t** __restrict, size_t,
+        mbstate_t* __restrict);
 
 #if __USE_DENNIX || __USE_POSIX
 int wcwidth(wchar_t);

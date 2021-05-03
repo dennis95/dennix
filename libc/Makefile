@@ -84,6 +84,8 @@ COMMON_OBJ = \
 	stdlib/strtoll \
 	stdlib/strtoul \
 	stdlib/strtoull \
+	stdlib/wcstombs \
+	stdlib/wctomb \
 	string/explicit_bzero \
 	string/memchr \
 	string/memcmp \
@@ -123,6 +125,7 @@ COMMON_OBJ = \
 	wchar/wcscmp \
 	wchar/wcscpy \
 	wchar/wcslen \
+	wchar/wcsrtombs \
 	wchar/wcwidth
 
 LIBC_OBJ = \
