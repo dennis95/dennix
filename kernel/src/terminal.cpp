@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -39,8 +39,8 @@ Reference<Terminal> terminal(&_terminal);
 Terminal::Terminal() : Vnode(S_IFCHR, 0) {
     termio.c_iflag = 0;
     termio.c_oflag = 0;
-    termio.c_cflag = 0;
-    termio.c_lflag = ECHO | ICANON | ISIG;
+    termio.c_cflag = CREAD | CS8;
+    termio.c_lflag = ECHO | ECHOE | ECHOK | ICANON | ISIG;
 
     termio.c_cc[VEOF] = CTRL('D');
     termio.c_cc[VEOL] = 0;
@@ -66,13 +66,20 @@ void Terminal::handleCharacter(char c) {
             numEof++;
         }
     } else if (termio.c_lflag & ICANON && c == termio.c_cc[VERASE]) {
-        if (terminalBuffer.backspace() && (termio.c_lflag & ECHO)) {
+        if (terminalBuffer.backspace() && (termio.c_lflag & ECHOE)) {
             TerminalDisplay::backspace();
         }
     } else if (termio.c_lflag & ISIG && c == termio.c_cc[VINTR]) {
+        if (!(termio.c_lflag & NOFLSH)) {
+            terminalBuffer.endLine();
+        }
         raiseSignal(SIGINT);
     } else if (termio.c_lflag & ICANON && c == termio.c_cc[VKILL]) {
-
+        while (terminalBuffer.backspace()) {
+            if (termio.c_lflag & ECHOK) {
+                TerminalDisplay::backspace();
+            }
+        }
     } else if (termio.c_lflag & ISIG && c == termio.c_cc[VQUIT]) {
         raiseSignal(SIGQUIT);
     } else if (/* IXON */ false && c == termio.c_cc[VSTART]) {
@@ -106,6 +113,7 @@ void Terminal::handleSequence(const char* sequence) {
 
 void Terminal::onKeyboardEvent(int key) {
     wchar_t wc = Keyboard::getWideCharFromKey(key);
+    if (!(termio.c_cflag & CREAD)) return;
 
     if (termio.c_lflag & _KBWC) {
         struct kbwc kbwc;
