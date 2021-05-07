@@ -164,6 +164,10 @@ LIBC_OBJ = \
 	poll/poll \
 	poll/ppoll \
 	pwd/getpwnam \
+	search/tdelete \
+	search/tfind \
+	search/tsearch \
+	search/twalk \
 	signal/kill \
 	signal/raise \
 	signal/sigaction \
