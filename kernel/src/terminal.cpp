@@ -209,6 +209,28 @@ int Terminal::devctl(int command, void* restrict data, size_t size,
         *info = 0;
         return 0;
     } break;
+    case TCFLSH: {
+        if (size != 0 && size != sizeof(int)) {
+            *info = -1;
+            return EINVAL;
+        }
+
+        const int* selector = (const int*) data;
+        switch (*selector) {
+        case TCIFLUSH:
+        case TCIOFLUSH:
+            terminalBuffer.reset();
+            break;
+        case TCOFLUSH:
+            // Output is always transmitted immediately.
+            break;
+        default:
+            *info = -1;
+            return EINVAL;
+        }
+        *info = 0;
+        return 0;
+    } break;
     default:
         *info = -1;
         return EINVAL;
