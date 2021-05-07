@@ -98,6 +98,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_ACCEPT4] =*/ (void*) Syscall::accept4,
     /*[SYSCALL_MOUNT] =*/ (void*) Syscall::mount,
     /*[SYSCALL_UNMOUNT] =*/ (void*) Syscall::unmount,
+    /*[SYSCALL_FPATHCONF] =*/ (void*) Syscall::fpathconf,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -295,6 +296,12 @@ int Syscall::fchownat(struct fchownatParams* params) {
 
 int Syscall::fcntl(int fd, int cmd, int param) {
     return Process::current()->fcntl(fd, cmd, param);
+}
+
+long Syscall::fpathconf(int fd, int name) {
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) return -1;
+    return descr->vnode->pathconf(name);
 }
 
 int Syscall::fstat(int fd, struct stat* result) {

@@ -55,6 +55,7 @@ public:
     virtual void onLink();
     virtual bool onUnlink(bool force);
     virtual Reference<Vnode> open(const char* name, int flags, mode_t mode);
+    virtual long pathconf(int name);
     virtual short poll();
     virtual ssize_t pread(void* buffer, size_t size, off_t offset, int flags);
     virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset,

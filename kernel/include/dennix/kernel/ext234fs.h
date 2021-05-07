@@ -298,6 +298,7 @@ public:
     void onLink() override;
     bool onUnlink(bool force) override;
     Reference<Vnode> open(const char* name, int flags, mode_t mode) override;
+    long pathconf(int name) override;
     short poll() override;
     ssize_t pread(void* buffer, size_t size, off_t offset, int flags) override;
     ssize_t pwrite(const void* buffer, size_t size, off_t offset, int flags)

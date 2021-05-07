@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <dennix/conf.h>
 #include <dennix/fcntl.h>
 #include <dennix/poll.h>
 #include <dennix/seek.h>
@@ -682,6 +683,15 @@ Reference<Vnode> Ext234Vnode::open(const char* name, int flags, mode_t mode) {
     }
 
     return vnode;
+}
+
+long Ext234Vnode::pathconf(int name) {
+    switch (name) {
+    case _PC_NAME_MAX: return 255;
+    default:
+        errno = EINVAL;
+        return -1;
+    }
 }
 
 short Ext234Vnode::poll() {

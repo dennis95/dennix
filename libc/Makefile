@@ -338,6 +338,7 @@ LIBC_OBJ = \
 	unistd/fchdirat \
 	unistd/fchownat \
 	unistd/fork \
+	unistd/fpathconf \
 	unistd/ftruncate \
 	unistd/getcwd \
 	unistd/getentropy \

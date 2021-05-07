@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -111,13 +111,12 @@ extern "C" {
 
 #define _POSIX2_SYMLINKS 1
 
-#define _PC_FILESIZEBITS 0
-#define _PC_NAME_MAX 1
-#define _PC_PATH_MAX 2
-#define _PC_PIPE_BUF 3
-#define _PC_2_SYMLINKS 4
-#define _PC_NO_TRUNC 5
-#define _PC_VDISABLE 6
+#define _PC_FILESIZEBITS (-1)
+#define _PC_PATH_MAX (-2)
+#define _PC_PIPE_BUF (-3)
+#define _PC_2_SYMLINKS (-4)
+#define _PC_NO_TRUNC (-5)
+#define _PC_VDISABLE (-6)
 
 #define STDIN_FILENO 0
 #define STDOUT_FILENO 1
@@ -151,6 +150,7 @@ __noreturn void _exit(int);
 int fchdir(int);
 int fchownat(int, const char*, uid_t, gid_t, int);
 pid_t fork(void);
+long fpathconf(int, int);
 int ftruncate(int, off_t);
 char* getcwd(char*, size_t);
 uid_t geteuid(void);

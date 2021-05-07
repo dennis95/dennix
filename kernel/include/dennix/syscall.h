@@ -79,7 +79,8 @@
 #define SYSCALL_ACCEPT4 56
 #define SYSCALL_MOUNT 57
 #define SYSCALL_UNMOUNT 58
+#define SYSCALL_FPATHCONF 59
 
-#define NUM_SYSCALLS 59
+#define NUM_SYSCALLS 60
 
 #endif

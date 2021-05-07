@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <dennix/conf.h>
 #include <dennix/kernel/clock.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/vnode.h>
@@ -317,6 +318,15 @@ Reference<Vnode> Vnode::open(const char* /*name*/, int /*flags*/,
         mode_t /*mode*/) {
     errno = ENOTDIR;
     return nullptr;
+}
+
+long Vnode::pathconf(int name) {
+    switch (name) {
+    case _PC_NAME_MAX: return -1; // unlimited
+    default:
+        errno = EINVAL;
+        return -1;
+    }
 }
 
 short Vnode::poll() {
