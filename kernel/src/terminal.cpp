@@ -41,6 +41,8 @@ Terminal::Terminal() : Vnode(S_IFCHR, 0) {
     termio.c_oflag = 0;
     termio.c_cflag = CREAD | CS8;
     termio.c_lflag = ECHO | ECHOE | ECHOK | ICANON | ISIG;
+    termio.c_ispeed = B38400;
+    termio.c_ospeed = B38400;
 
     termio.c_cc[VEOF] = CTRL('D');
     termio.c_cc[VEOL] = 0;

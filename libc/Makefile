@@ -304,6 +304,7 @@ LIBC_OBJ = \
 	sys/utsname/uname \
 	sys/wait/wait \
 	sys/wait/waitpid \
+	termios/cfgetispeed \
 	termios/tcflush \
 	termios/tcgetattr \
 	termios/tcgetwinsize \

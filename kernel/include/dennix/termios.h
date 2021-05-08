@@ -69,6 +69,24 @@
 #define NOFLSH (1 << 8)
 #define TOSTOP (1 << 9) /* unimplemented */
 
+/* Baud rates */
+#define B0 0 /* unimplemented */
+#define B50 50 /* unimplemented */
+#define B75 75 /* unimplemented */
+#define B110 110 /* unimplemented */
+#define B134 134 /* unimplemented */
+#define B150 150 /* unimplemented */
+#define B200 200 /* unimplemented */
+#define B300 300 /* unimplemented */
+#define B600 600 /* unimplemented */
+#define B1200 1200 /* unimplemented */
+#define B1800 1800 /* unimplemented */
+#define B2400 2400 /* unimplemented */
+#define B4800 4800 /* unimplemented */
+#define B9600 9600 /* unimplemented */
+#define B19200 19200 /* unimplemented */
+#define B38400 38400 /* unimplemented */
+
 #define VEOF 0
 #define VEOL 1
 #define VERASE 2
@@ -91,6 +109,7 @@
 #define TCOFLUSH 2
 
 typedef unsigned char cc_t;
+typedef unsigned int speed_t;
 typedef unsigned int tcflag_t;
 
 struct termios {
@@ -98,6 +117,8 @@ struct termios {
     tcflag_t c_oflag;
     tcflag_t c_cflag;
     tcflag_t c_lflag;
+    speed_t c_ispeed;
+    speed_t c_ospeed;
     cc_t c_cc[NCCS];
 };
 
