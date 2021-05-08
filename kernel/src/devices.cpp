@@ -25,6 +25,7 @@
 #include <dennix/kernel/devices.h>
 #include <dennix/kernel/mouse.h>
 #include <dennix/kernel/panic.h>
+#include <dennix/kernel/process.h>
 #include <dennix/kernel/terminaldisplay.h>
 
 class DevDir : public DirectoryVnode {
@@ -92,6 +93,15 @@ public:
     }
 };
 
+class DevTty : public Vnode {
+public:
+    DevTty() : Vnode(S_IFCHR | 0666, devDir->stats.st_dev) {}
+
+    Reference<Vnode> resolve() override {
+        return Process::current()->controllingTerminal;
+    }
+};
+
 void DevFS::addDevice(const char* name, const Reference<Vnode>& vnode) {
     if (devDir->DirectoryVnode::link(name, vnode) < 0) {
         PANIC("Could not add device '/dev/%s'", name);
@@ -116,6 +126,7 @@ void DevFS::initialize(const Reference<DirectoryVnode>& rootDir) {
     Reference<Vnode> random = xnew DevRandom();
     addDevice("random", random);
     addDevice("urandom", random);
+    addDevice("tty", xnew DevTty());
 
     // Update the /dev/display timestamp to avoid a 1970 timestamp.
     TerminalDisplay::display->updateTimestampsLocked(true, true, true);

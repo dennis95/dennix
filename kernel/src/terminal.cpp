@@ -36,7 +36,7 @@
 static Terminal _terminal;
 Reference<Terminal> terminal(&_terminal);
 
-Terminal::Terminal() : Vnode(S_IFCHR, 0) {
+Terminal::Terminal() : Vnode(S_IFCHR | 0666, 0) {
     termio.c_iflag = 0;
     termio.c_oflag = 0;
     termio.c_cflag = CREAD | CS8;

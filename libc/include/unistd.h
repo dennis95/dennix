@@ -178,6 +178,7 @@ int symlink(const char*, const char*);
 int symlinkat(const char*, int, const char*);
 pid_t tcgetpgrp(int);
 int tcsetpgrp(int, pid_t);
+char* ttyname(int);
 int unlink(const char*);
 int unlinkat(int, const char*, int);
 ssize_t write(int, const void*, size_t);
