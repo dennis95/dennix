@@ -45,6 +45,10 @@ typedef __gnuc_va_list va_list;
 #  endif
 #endif
 
+#ifndef WEOF
+#  define WEOF __WINT_MAX__
+#endif
+
 typedef struct {
     unsigned int _state;
     wchar_t _wc;
