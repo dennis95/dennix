@@ -160,6 +160,7 @@ char* getlogin(void);
 int getopt(int, char* const[], const char*);
 pid_t getpid(void);
 pid_t getpgid(pid_t);
+pid_t getpgrp(void);
 uid_t getuid(void);
 int isatty(int);
 int lchown(const char*, uid_t, gid_t);

@@ -352,6 +352,7 @@ LIBC_OBJ = \
 	unistd/getlogin \
 	unistd/getpid \
 	unistd/getpgid \
+	unistd/getpgrp \
 	unistd/getuid \
 	unistd/isatty \
 	unistd/lchown \
