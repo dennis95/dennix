@@ -95,8 +95,10 @@ dxui_window* dxui_create_window(dxui_context* context, dxui_rect rect,
         free(window);
         return NULL;
     }
+    window->compositorTitle = window->control.text;
     window->control.rect = rect;
     window->control.background = COLOR_WHITE_SMOKE;
+    window->compositorBackground = COLOR_WHITE_SMOKE;
     window->container.class = &windowContainerClass;
     window->context = context;
     window->idAssigned = false;
@@ -145,6 +147,47 @@ dxui_window* dxui_create_window(dxui_context* context, dxui_rect rect,
     return DXUI_AS_WINDOW(window);
 }
 
+void dxui_hide(dxui_window* window) {
+    Window* win = window->internal;
+    win->visible = false;
+
+    struct gui_msg_hide_window msg;
+    msg.window_id = win->id;
+    struct gui_msg_header header;
+    header.type = GUI_MSG_HIDE_WINDOW;
+    header.length = sizeof(msg);
+    writeAll(win->context->socket, &header, sizeof(header));
+    writeAll(win->context->socket, &msg, sizeof(msg));
+}
+
+void dxui_resize_window(dxui_window* window, dxui_dim dim) {
+    Window* win = window->internal;
+    win->control.rect.dim = dim;
+
+    struct gui_msg_resize_window msg;
+    msg.window_id = win->id;
+    msg.width = dim.width;
+    msg.height = dim.height;
+    struct gui_msg_header header;
+    header.type = GUI_MSG_RESIZE_WINDOW;
+    header.length = sizeof(msg);
+    writeAll(win->context->socket, &header, sizeof(header));
+    writeAll(win->context->socket, &msg, sizeof(msg));
+}
+
+void dxui_set_cursor(dxui_window* window, int cursor) {
+    Window* win = window->internal;
+
+    struct gui_msg_set_window_cursor msg;
+    msg.window_id = win->id;
+    msg.cursor = cursor;
+    struct gui_msg_header header;
+    header.type = GUI_MSG_SET_WINDOW_CURSOR;
+    header.length = sizeof(msg);
+    writeAll(win->context->socket, &header, sizeof(header));
+    writeAll(win->context->socket, &msg, sizeof(msg));
+}
+
 void dxui_show(dxui_window* window) {
     Window* win = window->internal;
     win->visible = true;
@@ -167,6 +210,32 @@ static void redrawWindow(Control* control, dxui_dim dim, dxui_color* lfb,
         unsigned int pitch) {
     Window* window = (Window*) control;
     window->updateInProgress = true;
+
+    // Inform the compositor about changed backgrounds and titles.
+    if (window->compositorBackground != control->background) {
+        struct gui_msg_set_window_background msg;
+        msg.window_id = window->id;
+        msg.color = control->background;
+        struct gui_msg_header header;
+        header.type = GUI_MSG_SET_WINDOW_BACKGROUND;
+        header.length = sizeof(msg);
+        writeAll(window->context->socket, &header, sizeof(header));
+        writeAll(window->context->socket, &msg, sizeof(msg));
+        window->compositorBackground = control->background;
+    }
+
+    if (window->compositorTitle != control->text) {
+        size_t titleLength = strlen(control->text);
+        struct gui_msg_set_window_title msg;
+        msg.window_id = window->id;
+        struct gui_msg_header header;
+        header.type = GUI_MSG_SET_WINDOW_TITLE;
+        header.length = sizeof(msg) + titleLength;
+        writeAll(window->context->socket, &header, sizeof(header));
+        writeAll(window->context->socket, &msg, sizeof(msg));
+        writeAll(window->context->socket, control->text, titleLength);
+        window->compositorTitle = control->text;
+    }
 
     for (int y = 0; y < dim.height; y++) {
         for (int x = 0; x < dim.width; x++) {

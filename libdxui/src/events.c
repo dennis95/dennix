@@ -260,15 +260,6 @@ static void handleWindowResized(dxui_context* context, size_t length,
         event.dim = window->control.rect.dim;
         handler(DXUI_AS_WINDOW(window), &event);
     }
-
-    dxui_dim dim = window->control.rect.dim;
-    dxui_color* lfb = malloc(dim.width * dim.height * sizeof(uint32_t));
-    if (!lfb) return;
-    free(window->lfb);
-    window->lfb = lfb;
-    window->lfbDim = dim;
-    window->redraw = true;
-    dxui_update(window);
 }
 
 static bool receiveMessage(dxui_context* context) {

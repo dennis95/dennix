@@ -41,6 +41,8 @@ struct dxui_internal_window {
     bool redraw;
     bool updateInProgress;
     bool visible;
+    dxui_color compositorBackground;
+    const char* compositorTitle;
 };
 
 #define DXUI_AS_WINDOW(window) ((window)->dxui_as_window)

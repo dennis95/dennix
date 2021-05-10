@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,6 +21,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <unistd.h>
+#include <sys/guimsg.h>
 #include <dennix/mouse.h>
 
 #include "connection.h"
@@ -34,6 +35,8 @@ int mouseX;
 int mouseY;
 
 static const int cursorSize = 48;
+static const int minimumWindowHeight = 100;
+static const int minimumWindowWidth = 100;
 
 static uint32_t arrowCursor[48 * 48];
 static uint32_t resizeD1Cursor[48 * 48];
@@ -41,7 +44,15 @@ static uint32_t resizeD2Cursor[48 * 48];
 static uint32_t resizeHCursor[48 * 48];
 static uint32_t resizeVCursor[48 * 48];
 
-static uint32_t* cursor;
+static const uint32_t* const cursors[] = {
+    arrowCursor,
+    resizeD1Cursor,
+    resizeD2Cursor,
+    resizeHCursor,
+    resizeVCursor,
+};
+
+static int cursor = GUI_CURSOR_ARROW;
 static bool leftClick;
 static int resizeDirection;
 
@@ -85,19 +96,21 @@ static void handleMousePacket(const struct mouse_data* data) {
     }
 
     if (!leftClick) {
-        uint32_t* newCursor;
+        int newCursor;
         if (status == RESIZE_LEFT || status == RESIZE_RIGHT) {
-            newCursor = resizeHCursor;
+            newCursor = GUI_CURSOR_RESIZE_HORIZONTAL;
         } else if (status == RESIZE_TOP || status == RESIZE_BOTTOM) {
-            newCursor = resizeVCursor;
+            newCursor = GUI_CURSOR_RESIZE_VERTICAL;
         } else if (status == RESIZE_TOP_LEFT ||
                 status == RESIZE_BOTTOM_RIGHT) {
-            newCursor = resizeD1Cursor;
+            newCursor = GUI_CURSOR_RESIZE_DIAGONAL1;
         } else if (status == RESIZE_TOP_RIGHT ||
                 status == RESIZE_BOTTOM_LEFT) {
-            newCursor = resizeD2Cursor;
+            newCursor = GUI_CURSOR_RESIZE_DIAGONAL2;
+        } else if (status == CLIENT_AREA) {
+            newCursor = win->cursor;
         } else {
-            newCursor = arrowCursor;
+            newCursor = GUI_CURSOR_ARROW;
         }
 
         if (cursor != newCursor) {
@@ -147,7 +160,9 @@ static void handleMousePacket(const struct mouse_data* data) {
             rect.height = mouseY - rect.y;
         }
 
-        if (!rectEqual(rect, changingWindow->rect)) {
+        if (!rectEqual(rect, changingWindow->rect) &&
+                rect.width >= minimumWindowWidth &&
+                rect.height >= minimumWindowHeight) {
             resizeWindow(changingWindow, rect);
         }
     }
@@ -224,8 +239,6 @@ void initializeMouse(void) {
     loadFromFile("/share/cursors/resize_vertical.rgba", resizeVCursor,
             sizeof(resizeVCursor));
 
-    cursor = arrowCursor;
-
     mouseFd = open("/dev/mouse", O_RDONLY | O_CLOEXEC);
     if (mouseFd >= 0) {
         // Discard any mouse data that has been buffered.
@@ -240,5 +253,6 @@ void initializeMouse(void) {
 }
 
 uint32_t renderCursor(int x, int y) {
-    return cursor[y * cursorSize + x];
+    const uint32_t* cursorTexture = cursors[cursor];
+    return cursorTexture[y * cursorSize + x];
 }

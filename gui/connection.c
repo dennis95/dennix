@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,6 +42,14 @@ static void handleRedrawWindow(struct Connection* conn, size_t length,
         struct gui_msg_redraw_window* msg);
 static void handleRedrawWindowPart(struct Connection* conn, size_t length,
         struct gui_msg_redraw_window_part* msg);
+static void handleResizeWindow(struct Connection* conn, size_t length,
+        struct gui_msg_resize_window* msg);
+static void handleSetWindowBackground(struct Connection* conn, size_t length,
+        struct gui_msg_set_window_background* msg);
+static void handleSetWindowCursor(struct Connection* conn, size_t length,
+        struct gui_msg_set_window_cursor* msg);
+static void handleSetWindowTitle(struct Connection* conn, size_t length,
+        struct gui_msg_set_window_title* msg);
 static void handleShowWindow(struct Connection* conn, size_t length,
         struct gui_msg_show_window* msg);
 
@@ -87,6 +95,18 @@ static void handleMessage(struct Connection* conn, unsigned int type,
         break;
     case GUI_MSG_REDRAW_WINDOW_PART:
         handleRedrawWindowPart(conn, length, msg);
+        break;
+    case GUI_MSG_RESIZE_WINDOW:
+        handleResizeWindow(conn, length, msg);
+        break;
+    case GUI_MSG_SET_WINDOW_BACKGROUND:
+        handleSetWindowBackground(conn, length, msg);
+        break;
+    case GUI_MSG_SET_WINDOW_CURSOR:
+        handleSetWindowCursor(conn, length, msg);
+        break;
+    case GUI_MSG_SET_WINDOW_TITLE:
+        handleSetWindowTitle(conn, length, msg);
         break;
     case GUI_MSG_SHOW_WINDOW:
         handleShowWindow(conn, length, msg);
@@ -267,6 +287,44 @@ static void handleRedrawWindowPart(struct Connection* conn, size_t length,
     if (!window) return;
     redrawWindowPart(window, msg->x, msg->y, msg->width, msg->height,
             msg->pitch, msg->lfb);
+}
+
+static void handleResizeWindow(struct Connection* conn, size_t length,
+        struct gui_msg_resize_window* msg) {
+    if (length < sizeof(*msg)) return;
+    struct Window* window = getWindow(conn, msg->window_id);
+    if (!window) return;
+    struct Rectangle rect = window->rect;
+    rect.width = msg->width;
+    rect.height = msg->height;
+    resizeWindow(window, rect);
+}
+
+static void handleSetWindowBackground(struct Connection* conn, size_t length,
+        struct gui_msg_set_window_background* msg) {
+    if (length < sizeof(*msg)) return;
+    struct Window* window = getWindow(conn, msg->window_id);
+    if (!window) return;
+    setWindowBackground(window, msg->color);
+}
+
+static void handleSetWindowCursor(struct Connection* conn, size_t length,
+        struct gui_msg_set_window_cursor* msg) {
+    if (length < sizeof(*msg)) return;
+    struct Window* window = getWindow(conn, msg->window_id);
+    if (!window) return;
+    if (msg->cursor >= GUI_NUM_CURSORS) return;
+    setWindowCursor(window, msg->cursor);
+}
+
+static void handleSetWindowTitle(struct Connection* conn, size_t length,
+        struct gui_msg_set_window_title* msg) {
+    if (length < sizeof(*msg)) return;
+    struct Window* window = getWindow(conn, msg->window_id);
+    if (!window) return;
+    char* title = strndup(msg->title, length - sizeof(*msg));
+    if (!title) err(1, "malloc");
+    setWindowTitle(window, title);
 }
 
 static void handleShowWindow(struct Connection* conn, size_t length,

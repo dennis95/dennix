@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,6 +28,8 @@ struct Window {
     struct Window* above;
     struct Window* below;
     struct Connection* connection;
+    uint32_t background;
+    int cursor;
     uint32_t id;
     int flags;
     struct Rectangle rect;
@@ -71,6 +73,9 @@ void redrawWindowPart(struct Window* window, int x, int y, int width,
 uint32_t renderClientArea(struct Window* window, int x, int y);
 uint32_t renderWindowDecoration(struct Window* window, int x, int y);
 void resizeWindow(struct Window* window, struct Rectangle rect);
+void setWindowBackground(struct Window* window, uint32_t color);
+void setWindowCursor(struct Window* window, int cursor);
+void setWindowTitle(struct Window* window, char* title);
 void showWindow(struct Window* window);
 
 #endif

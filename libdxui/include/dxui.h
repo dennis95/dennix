@@ -205,6 +205,20 @@ enum {
 dxui_window* dxui_create_window(dxui_context* /*context*/, dxui_rect /*rect*/,
         const char* /*title*/, int /*flags*/);
 
+void dxui_hide(dxui_window* /*window*/);
+
+void dxui_resize_window(dxui_window* /*window*/, dxui_dim /*dim*/);
+
+enum {
+    DXUI_CURSOR_ARROW,
+    DXUI_CURSOR_RESIZE_DIAGONAL1,
+    DXUI_CURSOR_RESIZE_DIAGONAL2,
+    DXUI_CURSOR_RESIZE_HORIZONTAL,
+    DXUI_CURSOR_RESIZE_VERTICAL,
+};
+
+void dxui_set_cursor(dxui_window* /*window*/, int /*cursor*/);
+
 void dxui_show(dxui_window* /*window*/);
 
 /* Showing messages. */

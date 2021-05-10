@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,8 +29,6 @@
 
 static const int fontHeight = 16;
 static const int fontWidth = 9;
-static const int minimumWindowHeight = 100;
-static const int minimumWindowWidth = 100;
 static const int windowBorderSize = 4;
 static const int windowCloseButtonSize = 16;
 static const int windowTitleBarSize = fontHeight + 2 * windowBorderSize;
@@ -69,6 +67,8 @@ struct Window* addWindow(int x, int y, int width, int height, char* title,
     if (!window) err(1, "malloc");
 
     window->connection = connection;
+    window->background = RGB(245, 245, 245);
+    window->cursor = GUI_CURSOR_ARROW;
     window->flags = flags;
     window->rect = chooseWindowRect(x, y, width, height);
     window->title = title;
@@ -107,7 +107,7 @@ int checkMouseInteraction(struct Window* window, int x, int y) {
                 }
             }
 
-            if (!result && y - window->rect.y < windowTitleBarSize) {
+            if (!result) {
                 return TITLE_BAR;
             }
 
@@ -247,7 +247,7 @@ uint32_t renderClientArea(struct Window* window, int x, int y) {
             y < window->clientHeight) {
         return window->lfb[y * window->clientWidth + x];
     } else {
-        return RGB(255, 255, 255);
+        return window->background;
     }
 }
 
@@ -287,9 +287,6 @@ uint32_t renderWindowDecoration(struct Window* window, int x, int y) {
 }
 
 void resizeWindow(struct Window* window, struct Rectangle rect) {
-    if (rect.width < minimumWindowWidth || rect.height < minimumWindowHeight) {
-        return;
-    }
     if (window->visible) {
         addDamageRect(window->rect);
         addDamageRect(rect);
@@ -301,6 +298,24 @@ void resizeWindow(struct Window* window, struct Rectangle rect) {
     msg.width = getClientRect(window).width;
     msg.height = getClientRect(window).height;
     sendEvent(window->connection, GUI_EVENT_WINDOW_RESIZED, sizeof(msg), &msg);
+}
+
+void setWindowBackground(struct Window* window, uint32_t color) {
+    window->background = color;
+    addDamageRect(window->rect);
+}
+
+void setWindowCursor(struct Window* window, int cursor) {
+    window->cursor = cursor;
+}
+
+void setWindowTitle(struct Window* window, char* title) {
+    free(window->title);
+    window->title = title;
+    window->titlePixelLength = strlen(title) * fontWidth - 1;
+    struct Rectangle titleBar = window->rect;
+    titleBar.height = windowTitleBarSize;
+    addDamageRect(titleBar);
 }
 
 void showWindow(struct Window* window) {

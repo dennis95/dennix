@@ -30,6 +30,10 @@ enum {
     GUI_MSG_REDRAW_WINDOW,
     GUI_MSG_REDRAW_WINDOW_PART,
     GUI_MSG_SHOW_WINDOW,
+    GUI_MSG_RESIZE_WINDOW,
+    GUI_MSG_SET_WINDOW_BACKGROUND,
+    GUI_MSG_SET_WINDOW_CURSOR,
+    GUI_MSG_SET_WINDOW_TITLE,
 
     GUI_EVENT_STATUS = 10000,
     GUI_EVENT_CLOSE_BUTTON,
@@ -84,6 +88,37 @@ struct gui_msg_redraw_window_part {
 
 struct gui_msg_show_window {
     unsigned int window_id;
+};
+
+struct gui_msg_resize_window {
+    unsigned int window_id;
+    unsigned int width;
+    unsigned int height;
+};
+
+struct gui_msg_set_window_background {
+    unsigned int window_id;
+    uint32_t color;
+};
+
+enum {
+    GUI_CURSOR_ARROW,
+    GUI_CURSOR_RESIZE_DIAGONAL1,
+    GUI_CURSOR_RESIZE_DIAGONAL2,
+    GUI_CURSOR_RESIZE_HORIZONTAL,
+    GUI_CURSOR_RESIZE_VERTICAL,
+
+    GUI_NUM_CURSORS
+};
+
+struct gui_msg_set_window_cursor {
+    unsigned int window_id;
+    unsigned int cursor;
+};
+
+struct gui_msg_set_window_title {
+    unsigned int window_id;
+    char title[];
 };
 
 struct gui_event_status {
