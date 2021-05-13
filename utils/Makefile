@@ -46,6 +46,7 @@ BIN_PROGRAMS = \
 	rm \
 	sleep \
 	snake \
+	sync \
 	test \
 	tail \
 	time \
