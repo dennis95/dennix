@@ -482,7 +482,7 @@ ssize_t AtaDevice::pwrite(const void* buffer, size_t size, off_t offset,
     }
 
     while (size >= sectorSize) {
-        if (offset >= stats.st_size) goto finish;
+        if (offset >= stats.st_size) return bytesWritten;
 
         size_t sectorsRemaining = size / sectorSize;
         if (sectorsRemaining > 65536) {
@@ -504,7 +504,7 @@ ssize_t AtaDevice::pwrite(const void* buffer, size_t size, off_t offset,
         offset += sectorsRemaining * sectorSize;
     }
 
-    if (offset >= stats.st_size) goto finish;
+    if (offset >= stats.st_size) return bytesWritten;
 
     if (size > 0) {
         uint64_t lba = offset / sectorSize;
@@ -523,13 +523,13 @@ ssize_t AtaDevice::pwrite(const void* buffer, size_t size, off_t offset,
         bytesWritten += size;
     }
 
-finish:
-    // Make sure to flush the cache immediately because we currently do not have
-    // a way to shutdown the system.
+    return bytesWritten;
+}
+
+int AtaDevice::sync(int /*flags*/) {
     if (!channel->flushCache(secondary)) {
         errno = EIO;
         return -1;
     }
-
-    return bytesWritten;
+    return 0;
 }

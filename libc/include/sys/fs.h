@@ -27,6 +27,7 @@
 extern "C" {
 #endif
 
+int fssync(int, int);
 int mount(const char*, const char*, const char*, int);
 int unmount(const char*);
 

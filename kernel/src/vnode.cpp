@@ -383,6 +383,10 @@ int Vnode::symlink(const char* /*linkTarget*/, const char* /*name*/) {
     return -1;
 }
 
+int Vnode::sync(int /*flags*/) {
+    return 0;
+}
+
 int Vnode::tcgetattr(struct termios* /*result*/) {
     errno = ENOTTY;
     return -1;

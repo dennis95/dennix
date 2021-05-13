@@ -930,6 +930,17 @@ int Ext234Vnode::symlink(const char* linkTarget, const char* name) {
     return linkUnlocked(name, strcspn(name, "/"), symlink);
 }
 
+int Ext234Vnode::sync(int flags) {
+    AutoLock lock(&mutex);
+
+    if (inodeModified) {
+        if (!filesystem->writeInode(&inode, inodeAddress)) return -1;
+        inodeModified = false;
+    }
+
+    return filesystem->sync(flags);
+}
+
 int Ext234Vnode::unlink(const char* name, int flags) {
     AutoLock lock(&mutex);
     if (filesystem->readonly) {

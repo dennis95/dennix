@@ -239,6 +239,7 @@ public:
     bool resizeInode(ino_t ino, Inode* inode, off_t newSize);
     void setTime(struct timespec* ts, little_uint32_t* time,
             little_uint32_t* extraTime);
+    int sync(int flags);
     bool writeInode(const Inode* inode, uint64_t inodeAddress);
     bool writeInodeData(const Inode* inode, off_t offset, const void* buffer,
             size_t size);
@@ -309,6 +310,7 @@ public:
             const char* newName) override;
     Reference<Vnode> resolve() override;
     int symlink(const char* linkTarget, const char* name) override;
+    int sync(int flags) override;
     int unlink(const char* name, int flags) override;
     int unmount() override;
     int utimens(struct timespec atime, struct timespec mtime) override;

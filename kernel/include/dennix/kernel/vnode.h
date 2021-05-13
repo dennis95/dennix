@@ -68,6 +68,7 @@ public:
     virtual int stat(struct stat* result);
     struct stat stat();
     virtual int symlink(const char* linkTarget, const char* name);
+    virtual int sync(int flags);
     virtual int tcgetattr(struct termios* result);
     virtual int tcsetattr(int flags, const struct termios* termio);
     virtual int unlink(const char* name, int flags);

@@ -276,6 +276,7 @@ LIBC_OBJ = \
 	string/strxfrm \
 	strings/strcasecmp \
 	strings/strncasecmp \
+	sys/fs/fssync \
 	sys/fs/mount \
 	sys/fs/unmount \
 	sys/ioctl/ioctl \
@@ -341,8 +342,10 @@ LIBC_OBJ = \
 	unistd/fchdir \
 	unistd/fchdirat \
 	unistd/fchownat \
+	unistd/fdatasync \
 	unistd/fork \
 	unistd/fpathconf \
+	unistd/fsync \
 	unistd/ftruncate \
 	unistd/getcwd \
 	unistd/getentropy \

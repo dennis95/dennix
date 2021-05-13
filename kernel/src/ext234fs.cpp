@@ -66,7 +66,7 @@ FileSystem* Ext234::initialize(const Reference<Vnode>& device,
         }
 
         if (device->pwrite(&superBlock, sizeof(superBlock), 1024, 0) !=
-                sizeof(SuperBlock)) {
+                sizeof(SuperBlock) || device->sync(0) != 0) {
             return nullptr;
         }
     }
@@ -804,6 +804,7 @@ bool Ext234Fs::onUnmount() {
         writeSuperBlock();
     }
 
+    device->sync(0);
     return true;
 }
 
@@ -912,6 +913,17 @@ void Ext234Fs::setTime(struct timespec* ts, little_uint32_t* time,
     } else {
         *time = ts->tv_sec & 0x7FFFFFFF;
     }
+}
+
+int Ext234Fs::sync(int flags) {
+    if (!readonly) {
+        struct timespec now;
+        Clock::get(CLOCK_REALTIME)->getTime(&now);
+        superBlock.s_wtime = now.tv_sec;
+        if (!writeSuperBlock()) return -1;
+    }
+
+    return device->sync(flags);
 }
 
 bool Ext234Fs::write(const void* buffer, size_t size, off_t offset) {

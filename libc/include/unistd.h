@@ -54,7 +54,7 @@ extern "C" {
 /* TODO: #define _POSIX_CHOWN_RESTRICTED */
 #define _POSIX_CLOCK_SELECTION _POSIX_VERSION
 #define _POSIX_CPUTIME _POSIX_VERSION
-/* #define _POSIX_FSYNC */
+#define _POSIX_FSYNC _POSIX_VERSION
 /* #define _POSIX_IPV6 */
 #define _POSIX_JOB_CONTROL _POSIX_VERSION
 #define _POSIX_MAPPED_FILES _POSIX_VERSION
@@ -77,7 +77,7 @@ extern "C" {
 /* #define _POSIX_SPAWN */
 /* TODO: #define _POSIX_SPIN_LOCKS */
 /* #define _POSIX_SPORADIC_SERVER */
-/* #define _POSIX_SYNCHRONIZED_IO */
+#define _POSIX_SYNCHRONIZED_IO _POSIX_VERSION
 /* #define _POSIX_THREAD_ATTR_STACKADDR */
 /* #define _POSIX_THREAD_ATTR_STACKSIZE */
 #define _POSIX_THREAD_CPUTIME _POSIX_VERSION
@@ -149,8 +149,10 @@ int execvp(const char*, char* const[]);
 __noreturn void _exit(int);
 int fchdir(int);
 int fchownat(int, const char*, uid_t, gid_t, int);
+int fdatasync(int);
 pid_t fork(void);
 long fpathconf(int, int);
+int fsync(int);
 int ftruncate(int, off_t);
 char* getcwd(char*, size_t);
 uid_t geteuid(void);

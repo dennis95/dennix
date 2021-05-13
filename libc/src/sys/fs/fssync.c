@@ -13,15 +13,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/fs.h
- * Filesystem operations.
+/* libc/src/sys/fs/fssync.c
+ * Filesystem synchronization.
  */
 
-#ifndef _DENNIX_FS_H
-#define _DENNIX_FS_H
+#include <sys/fs.h>
+#include <sys/syscall.h>
 
-#define MOUNT_READONLY (1 << 0)
-
-#define SYNC_DATA (1 << 0)
-
-#endif
+DEFINE_SYSCALL_GLOBAL(SYSCALL_FSSYNC, int, fssync, (int, int));

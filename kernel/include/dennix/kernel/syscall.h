@@ -58,6 +58,7 @@ int fchmodat(int fd, const char* path, mode_t mode, int flags);
 int fchownat(struct fchownatParams* params);
 int fcntl(int fd, int cmd, int param);
 long fpathconf(int fd, int name);
+int fssync(int fd, int flags);
 int fstat(int fd, struct stat* result);
 int fstatat(int fd, const char* restrict path, struct stat* restrict result,
         int flags);

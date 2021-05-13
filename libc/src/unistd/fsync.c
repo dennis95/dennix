@@ -13,15 +13,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/fs.h
- * Filesystem operations.
+/* libc/src/unistd/fsync.c
+ * Synchronize changes to a file.
  */
 
-#ifndef _DENNIX_FS_H
-#define _DENNIX_FS_H
+#include <unistd.h>
+#include <sys/fs.h>
 
-#define MOUNT_READONLY (1 << 0)
-
-#define SYNC_DATA (1 << 0)
-
-#endif
+int fsync(int fd) {
+    return fssync(fd, 0);
+}
