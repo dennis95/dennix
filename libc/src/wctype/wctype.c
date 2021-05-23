@@ -67,3 +67,11 @@ int iswupper(wint_t c) {
 int iswxdigit(wint_t c) {
     return c <= 255 ? isxdigit(c) : 0;
 }
+
+wint_t towlower(wint_t c) {
+    return c <= 255 ? (wint_t) tolower(c) : c;
+}
+
+wint_t towupper(wint_t c) {
+    return c <= 255 ? (wint_t) toupper(c) : c;
+}

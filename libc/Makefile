@@ -383,6 +383,8 @@ LIBC_OBJ = \
 	unistd/unlinkat \
 	unistd/usleep \
 	unistd/write \
+	wctype/iswctype \
+	wctype/towctrans \
 	wctype/wctype
 
 LIBK_OBJ = $(COMMON_OBJ)
