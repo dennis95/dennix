@@ -303,6 +303,7 @@ LIBC_OBJ = \
 	sys/stat/stat \
 	sys/stat/umask \
 	sys/stat/utimensat \
+	sys/time/gettimeofday \
 	sys/time/utimes \
 	sys/utsname/uname \
 	sys/wait/wait \

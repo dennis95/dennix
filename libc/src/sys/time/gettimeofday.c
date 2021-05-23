@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,28 +13,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/sys/time.h
- * XSI time functions.
+/* libc/src/sys/time/gettimeofday.c
+ * Get the current time.
  */
 
-#ifndef _SYS_TIME_H
-#define _SYS_TIME_H
+#include <stdlib.h>
+#include <time.h>
+#include <sys/time.h>
 
-#include <sys/cdefs.h>
-#define __need_time_t
-#define __need_suseconds_t
-#include <bits/types.h>
-#include <bits/timeval.h>
+int gettimeofday(struct timeval* restrict tv, void* restrict null) {
+    if (null) abort();
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int gettimeofday(struct timeval* __restrict, void* __restrict);
-int utimes(const char*, const struct timeval[2]);
-
-#ifdef __cplusplus
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    tv->tv_sec = ts.tv_sec;
+    tv->tv_usec = ts.tv_nsec / 1000;
+    return 0;
 }
-#endif
-
-#endif
