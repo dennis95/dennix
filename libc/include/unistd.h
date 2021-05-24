@@ -143,6 +143,7 @@ size_t confstr(int, char*, size_t);
 int dup(int);
 int dup2(int, int);
 int execl(const char*, const char*, ...);
+int execlp(const char*, const char*, ...);
 int execv(const char*, char* const[]);
 int execve(const char*, char* const[], char* const[]);
 int execvp(const char*, char* const[]);

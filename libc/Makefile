@@ -336,6 +336,7 @@ LIBC_OBJ = \
 	unistd/dup3 \
 	unistd/environ \
 	unistd/execl \
+	unistd/execlp \
 	unistd/execv \
 	unistd/execve \
 	unistd/execvp \
