@@ -148,6 +148,7 @@ int execve(const char*, char* const[], char* const[]);
 int execvp(const char*, char* const[]);
 __noreturn void _exit(int);
 int fchdir(int);
+int fchown(int, uid_t, gid_t);
 int fchownat(int, const char*, uid_t, gid_t, int);
 int fdatasync(int);
 pid_t fork(void);

@@ -55,6 +55,7 @@ int fchdir(int);
 int fchdirat(int fd, const char* path);
 int fchmod(int fd, mode_t mode);
 int fchmodat(int fd, const char* path, mode_t mode, int flags);
+int fchown(int fd, uid_t uid, gid_t gid);
 int fchownat(struct fchownatParams* params);
 int fcntl(int fd, int cmd, int param);
 long fpathconf(int fd, int name);

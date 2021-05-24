@@ -81,7 +81,8 @@
 #define SYSCALL_UNMOUNT 58
 #define SYSCALL_FPATHCONF 59
 #define SYSCALL_FSSYNC 60
+#define SYSCALL_FCHOWN 61
 
-#define NUM_SYSCALLS 61
+#define NUM_SYSCALLS 62
 
 #endif

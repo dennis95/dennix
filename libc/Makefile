@@ -342,6 +342,7 @@ LIBC_OBJ = \
 	unistd/_exit \
 	unistd/fchdir \
 	unistd/fchdirat \
+	unistd/fchown \
 	unistd/fchownat \
 	unistd/fdatasync \
 	unistd/fork \

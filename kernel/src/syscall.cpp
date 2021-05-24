@@ -100,6 +100,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_UNMOUNT] =*/ (void*) Syscall::unmount,
     /*[SYSCALL_FPATHCONF] =*/ (void*) Syscall::fpathconf,
     /*[SYSCALL_FSSYNC] =*/ (void*) Syscall::fssync,
+    /*[SYSCALL_FCHOWN] =*/ (void*) Syscall::fchown,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -276,6 +277,12 @@ int Syscall::fchmodat(int fd, const char* path, mode_t mode, int flags) {
     if (!vnode) return -1;
 
     return vnode->chmod(mode);
+}
+
+int Syscall::fchown(int fd, uid_t uid, gid_t gid) {
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) return -1;
+    return descr->vnode->chown(uid, gid);
 }
 
 static int fchownatImpl(int fd, const char* path, uid_t uid, gid_t gid,
