@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -45,9 +45,10 @@ struct SignalStackFrame {
 #endif
 };
 
-static sigset_t defaultIgnoredSignals = _SIGSET(SIGCHLD) | _SIGSET(SIGURG) |
-        _SIGSET(SIGWINCH);
-static sigset_t uncatchableSignals = _SIGSET(SIGKILL) | _SIGSET(SIGSTOP);
+static const sigset_t defaultIgnoredSignals = _SIGSET(SIGCHLD) |
+        _SIGSET(SIGURG) | _SIGSET(SIGWINCH);
+static const sigset_t uncatchableSignals = _SIGSET(SIGKILL) | _SIGSET(SIGSTOP);
+static const sigset_t unresettableSignals = _SIGSET(SIGILL) | _SIGSET(SIGTRAP);
 
 extern "C" {
 volatile unsigned long signalPending = 0;
@@ -176,8 +177,16 @@ InterruptContext* Thread::handleSignal(InterruptContext* context) {
     context->INSTRUCTION_POINTER = (uintptr_t) action.sa_sigaction;
     context->STACK_POINTER = (uintptr_t) sigreturnPointer;
 
-    signalMask |= (action.sa_mask & ~uncatchableSignals)
-            | _SIGSET(siginfo.si_signo);
+    signalMask |= (action.sa_mask & ~uncatchableSignals);
+    if (action.sa_flags & (SA_NODEFER | SA_RESETHAND)) {
+        signalMask |= _SIGSET(siginfo.si_signo);
+    }
+    if (action.sa_flags & SA_RESETHAND &&
+            !sigismember(&unresettableSignals, siginfo.si_signo)) {
+        process->sigactions[siginfo.si_signo].sa_handler = SIG_DFL;
+        process->sigactions[siginfo.si_signo].sa_flags &= ~SA_SIGINFO;
+    }
+
     return context;
 }
 
