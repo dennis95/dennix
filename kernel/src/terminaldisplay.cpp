@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -60,6 +60,7 @@ static bool fgIsVgaColor = true;
 static CharPos cursorPos;
 static CharPos savedPos;
 static CharPos alternateSavedPos;
+static bool reversedColors;
 
 static bool endOfLine;
 static unsigned int params[MAX_PARAMS];
@@ -100,6 +101,7 @@ static void setGraphicsRendition() {
         if (param == 0) { // Reset
             color = defaultColor;
             fgIsVgaColor = true;
+            reversedColors = false;
         } else if (param == 1) { // Increased intensity / Bold
             // When using colors from the VGA palette we implement this as
             // increased intensity. For other colors this is currently ignored.
@@ -107,11 +109,15 @@ static void setGraphicsRendition() {
             if (fgIsVgaColor) {
                 color.fgColor = vgaColors[(color.vgaColor & 0xF) | 0x08];
             }
+        } else if (param == 7) { // Reversed colors
+            reversedColors = true;
         } else if (param == 22) { // Normal intensity / Not bold
             color.vgaColor &= ~0x08;
             if (fgIsVgaColor) {
                 color.fgColor = vgaColors[color.vgaColor & 0x7];
             }
+        } else if (param == 27) { // Disable reversed colors
+            reversedColors = false;
         } else if (param >= 30 && param <= 37) {
             color.vgaColor = (color.vgaColor & 0xF8) | ansiToVga[param - 30];
             color.fgColor = vgaColors[color.vgaColor & 0x0F];
@@ -127,8 +133,10 @@ static void setGraphicsRendition() {
             } else if (params[i] == 5) {
                 if (i + 1 >= MAX_PARAMS) return;
                 i++;
-                if (params[i] < 16) {
-                    newColor = vgaColors[params[i]];
+                if (params[i] < 8) {
+                    newColor = vgaColors[ansiToVga[params[i]]];
+                } else if (params[i] < 16) {
+                    newColor = vgaColors[ansiToVga[params[i] - 8] + 8];
                 } else if (params[i] < 232) {
                     params[i] -= 16;
                     uint8_t r = params[i] / 36;
@@ -199,6 +207,7 @@ void TerminalDisplay::printCharacter(char c) {
             color = defaultColor;
             endOfLine = false;
             fgIsVgaColor = true;
+            reversedColors = false;
             CharPos lastPos = {display->columns - 1, display->rows - 1};
             display->clear({0, 0}, lastPos, color);
             cursorPos = {0, 0};
@@ -212,10 +221,12 @@ void TerminalDisplay::printCharacter(char c) {
                 savedColor = color;
                 savedPos = cursorPos;
             }
+            status = NORMAL;
         } else if (c == '8') { // Restore cursor
             color = alternateBuffer ? alternateSavedColor : savedColor;
             cursorPos = alternateBuffer ? alternateSavedPos : savedPos;
             endOfLine = false;
+            status = NORMAL;
         } else {
             // Unknown escape sequence, ignore.
             status = NORMAL;
@@ -412,6 +423,14 @@ void TerminalDisplay::printCharacter(char c) {
     }
 }
 
+static Color reverse(Color c) {
+    Color result;
+    result.fgColor = c.bgColor;
+    result.bgColor = c.fgColor;
+    result.vgaColor = (c.vgaColor >> 4) | (c.vgaColor << 4);
+    return result;
+}
+
 void TerminalDisplay::printCharacterRaw(char c) {
     wchar_t wc;
     size_t result = mbrtowc(&wc, &c, 1, &ps);
@@ -422,11 +441,16 @@ void TerminalDisplay::printCharacterRaw(char c) {
         wc = L'�';
     }
 
+    Color currentColor = color;
+    if (reversedColors) {
+        currentColor = reverse(color);
+    }
+
     if (endOfLine || wc == L'\n') {
         cursorPos.x = 0;
 
         if (cursorPos.y + 1 >= display->rows) {
-            display->scroll(1, color);
+            display->scroll(1, currentColor);
             cursorPos.y = display->rows - 1;
         } else {
             cursorPos.y++;
@@ -441,10 +465,10 @@ void TerminalDisplay::printCharacterRaw(char c) {
         if (endPos.x >= display->columns) {
             endPos.x = display->columns - 1;
         }
-        display->clear(cursorPos, endPos, color);
+        display->clear(cursorPos, endPos, currentColor);
         cursorPos.x += length - 1;
     } else {
-        display->putCharacter(cursorPos, wc, color);
+        display->putCharacter(cursorPos, wc, currentColor);
     }
 
     if (cursorPos.x + 1 >= display->columns) {
