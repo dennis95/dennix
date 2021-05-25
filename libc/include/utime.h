@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,36 +13,27 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/pwd.h
- * User list.
+/* libc/include/utime.h
+ * Obsolete filestamp updating.
  */
 
-#ifndef _PWD_H
-#define _PWD_H
+#ifndef _UTIME_H
+#define _UTIME_H
 
 #include <sys/cdefs.h>
-#define __need_gid_t
-#define __need_size_t
-#define __need_uid_t
+#define __need_time_t
 #include <bits/types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct passwd {
-    char* pw_name;
-    uid_t pw_uid;
-    gid_t pw_gid;
-    char* pw_dir;
-    char* pw_shell;
+struct utimbuf {
+    time_t actime;
+    time_t modtime;
 };
 
-void endpwent(void);
-struct passwd* getpwent(void);
-struct passwd* getpwnam(const char*);
-struct passwd* getpwuid(uid_t);
-void setpwent(void);
+int utime(const char*, const struct utimbuf*);
 
 #ifdef __cplusplus
 }

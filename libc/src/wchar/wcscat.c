@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,39 +13,21 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/pwd.h
- * User list.
+/* libc/src/wchar/wcscat.c
+ * Concatenate wide character strings.
  */
 
-#ifndef _PWD_H
-#define _PWD_H
+#include <wchar.h>
 
-#include <sys/cdefs.h>
-#define __need_gid_t
-#define __need_size_t
-#define __need_uid_t
-#include <bits/types.h>
+wchar_t* wcscat(wchar_t* restrict s1, const wchar_t* restrict s2) {
+    wchar_t* result = s1;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-struct passwd {
-    char* pw_name;
-    uid_t pw_uid;
-    gid_t pw_gid;
-    char* pw_dir;
-    char* pw_shell;
-};
-
-void endpwent(void);
-struct passwd* getpwent(void);
-struct passwd* getpwnam(const char*);
-struct passwd* getpwuid(uid_t);
-void setpwent(void);
-
-#ifdef __cplusplus
+    while (*s1) {
+        s1++;
+    }
+    while (*s2) {
+        *s1++ = *s2++;
+    }
+    *s1 = L'\0';
+    return result;
 }
-#endif
-
-#endif

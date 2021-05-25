@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,39 +13,26 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/pwd.h
- * User list.
+/* libc/src/utime/utime.c
+ * Obsolete timestamp updating.
  */
 
-#ifndef _PWD_H
-#define _PWD_H
+#include <fcntl.h>
+#include <utime.h>
+#include <sys/stat.h>
 
-#include <sys/cdefs.h>
-#define __need_gid_t
-#define __need_size_t
-#define __need_uid_t
-#include <bits/types.h>
+int utime(const char* path, const struct utimbuf* times) {
+    struct timespec ts[2];
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+    if (times) {
+        ts[0].tv_sec = times->actime;
+        ts[0].tv_nsec = 0;
+        ts[1].tv_sec = times->modtime;
+        ts[1].tv_nsec = 0;
+    } else {
+        ts[0].tv_nsec = UTIME_NOW;
+        ts[1].tv_nsec = UTIME_NOW;
+    }
 
-struct passwd {
-    char* pw_name;
-    uid_t pw_uid;
-    gid_t pw_gid;
-    char* pw_dir;
-    char* pw_shell;
-};
-
-void endpwent(void);
-struct passwd* getpwent(void);
-struct passwd* getpwnam(const char*);
-struct passwd* getpwuid(uid_t);
-void setpwent(void);
-
-#ifdef __cplusplus
+    return utimensat(AT_FDCWD, path, ts, 0);
 }
-#endif
-
-#endif

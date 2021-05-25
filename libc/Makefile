@@ -121,6 +121,7 @@ COMMON_OBJ = \
 	wchar/mbsinit \
 	wchar/mbsrtowcs \
 	wchar/wcrtomb \
+	wchar/wcscat \
 	wchar/wcschr \
 	wchar/wcscmp \
 	wchar/wcscpy \
@@ -385,6 +386,7 @@ LIBC_OBJ = \
 	unistd/unlinkat \
 	unistd/usleep \
 	unistd/write \
+	utime/utime \
 	wctype/iswctype \
 	wctype/towctrans \
 	wctype/wctype
