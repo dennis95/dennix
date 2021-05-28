@@ -32,7 +32,6 @@ static dxui_context* getWindowContext(Container* container);
 static dxui_color* getWindowFramebuffer(Container* container, dxui_dim* dim,
         unsigned int* pitch);
 static void invalidateWindowRect(Container* container, dxui_rect rect);
-static bool writeAll(int fd, const void* buffer, size_t size);
 
 const ControlClass dxui_windowControlClass = {
     .delete = deleteWindow,
@@ -48,19 +47,19 @@ void dxui_close(dxui_window* window) {
     Window* win = window->internal;
     dxui_context* context = win->context;
 
-    struct gui_msg_close_window msg;
-    msg.window_id = win->id;
-    struct gui_msg_header header;
-    header.type = GUI_MSG_CLOSE_WINDOW;
-    header.length = sizeof(msg);
-
-    writeAll(context->socket, &header, sizeof(header));
-    writeAll(context->socket, &msg, sizeof(msg));
+    context->backend->closeWindow(context, win->id);
 
     void (*handler)(dxui_window*) =
             win->control.eventHandlers[DXUI_EVENT_WINDOW_CLOSE];
     if (handler) {
         handler(window);
+    }
+
+    Control* control = win->container.firstControl;
+    while (control) {
+        Control* next = control->next;
+        dxui_delete(control);
+        control = next;
     }
 
     if (win->prev) {
@@ -71,13 +70,6 @@ void dxui_close(dxui_window* window) {
 
     if (win->next) {
         win->next->prev = win->prev;
-    }
-
-    Control* control = win->container.firstControl;
-    while (control) {
-        Control* next = control->next;
-        dxui_delete(control);
-        control = next;
     }
 
     free(win->lfb);
@@ -104,7 +96,7 @@ dxui_window* dxui_create_window(dxui_context* context, dxui_rect rect,
     window->idAssigned = false;
 
     window->lfbDim = rect.dim;
-    window->lfb = malloc(rect.width * rect.height * sizeof(uint32_t));
+    window->lfb = malloc(rect.width * rect.height * sizeof(dxui_color));
     if (!window->lfb) {
         free(window->control.text);
         free(window);
@@ -112,32 +104,13 @@ dxui_window* dxui_create_window(dxui_context* context, dxui_rect rect,
     }
     window->redraw = true;
 
-    struct gui_msg_create_window msg;
-    msg.x = rect.x;
-    msg.y = rect.y;
-    msg.width = rect.width;
-    msg.height = rect.height;
-    msg.flags = 0;
-    if (flags & DXUI_WINDOW_NO_RESIZE) msg.flags |= GUI_WINDOW_NO_RESIZE;
-
-    struct gui_msg_header header;
-    header.type = GUI_MSG_CREATE_WINDOW;
-    header.length = sizeof(msg) + strlen(title);
-
-    if (!(writeAll(context->socket, &header, sizeof(header)) &&
-            writeAll(context->socket, &msg, sizeof(msg)) &&
-            writeAll(context->socket, title, strlen(title)))) {
-        free(window->lfb);
-        free(window->control.text);
-        free(window);
-        return NULL;
-    }
-
     window->next = context->firstWindow;
     if (window->next) {
         window->next->prev = window;
     }
     context->firstWindow = window;
+
+    context->backend->createWindow(context, rect, title, flags);
 
     while (!window->idAssigned) {
         dxui_pump_events(context, DXUI_PUMP_ONCE);
@@ -150,55 +123,24 @@ dxui_window* dxui_create_window(dxui_context* context, dxui_rect rect,
 void dxui_hide(dxui_window* window) {
     Window* win = window->internal;
     win->visible = false;
-
-    struct gui_msg_hide_window msg;
-    msg.window_id = win->id;
-    struct gui_msg_header header;
-    header.type = GUI_MSG_HIDE_WINDOW;
-    header.length = sizeof(msg);
-    writeAll(win->context->socket, &header, sizeof(header));
-    writeAll(win->context->socket, &msg, sizeof(msg));
+    win->context->backend->hideWindow(win->context, win->id);
 }
 
 void dxui_resize_window(dxui_window* window, dxui_dim dim) {
     Window* win = window->internal;
     win->control.rect.dim = dim;
-
-    struct gui_msg_resize_window msg;
-    msg.window_id = win->id;
-    msg.width = dim.width;
-    msg.height = dim.height;
-    struct gui_msg_header header;
-    header.type = GUI_MSG_RESIZE_WINDOW;
-    header.length = sizeof(msg);
-    writeAll(win->context->socket, &header, sizeof(header));
-    writeAll(win->context->socket, &msg, sizeof(msg));
+    win->context->backend->resizeWindow(win->context, win->id, dim);
 }
 
 void dxui_set_cursor(dxui_window* window, int cursor) {
     Window* win = window->internal;
-
-    struct gui_msg_set_window_cursor msg;
-    msg.window_id = win->id;
-    msg.cursor = cursor;
-    struct gui_msg_header header;
-    header.type = GUI_MSG_SET_WINDOW_CURSOR;
-    header.length = sizeof(msg);
-    writeAll(win->context->socket, &header, sizeof(header));
-    writeAll(win->context->socket, &msg, sizeof(msg));
+    win->context->backend->setWindowCursor(win->context, win->id, cursor);
 }
 
 void dxui_show(dxui_window* window) {
     Window* win = window->internal;
     win->visible = true;
-
-    struct gui_msg_show_window msg;
-    msg.window_id = win->id;
-    struct gui_msg_header header;
-    header.type = GUI_MSG_SHOW_WINDOW;
-    header.length = sizeof(msg);
-    writeAll(win->context->socket, &header, sizeof(header));
-    writeAll(win->context->socket, &msg, sizeof(msg));
+    win->context->backend->showWindow(win->context, win->id);
 }
 
 static void deleteWindow(Control* control) {
@@ -213,27 +155,14 @@ static void redrawWindow(Control* control, dxui_dim dim, dxui_color* lfb,
 
     // Inform the compositor about changed backgrounds and titles.
     if (window->compositorBackground != control->background) {
-        struct gui_msg_set_window_background msg;
-        msg.window_id = window->id;
-        msg.color = control->background;
-        struct gui_msg_header header;
-        header.type = GUI_MSG_SET_WINDOW_BACKGROUND;
-        header.length = sizeof(msg);
-        writeAll(window->context->socket, &header, sizeof(header));
-        writeAll(window->context->socket, &msg, sizeof(msg));
+        window->context->backend->setWindowBackground(window->context,
+                window->id, control->background);
         window->compositorBackground = control->background;
     }
 
     if (window->compositorTitle != control->text) {
-        size_t titleLength = strlen(control->text);
-        struct gui_msg_set_window_title msg;
-        msg.window_id = window->id;
-        struct gui_msg_header header;
-        header.type = GUI_MSG_SET_WINDOW_TITLE;
-        header.length = sizeof(msg) + titleLength;
-        writeAll(window->context->socket, &header, sizeof(header));
-        writeAll(window->context->socket, &msg, sizeof(msg));
-        writeAll(window->context->socket, control->text, titleLength);
+        window->context->backend->setWindowTitle(window->context, window->id,
+                control->text);
         window->compositorTitle = control->text;
     }
 
@@ -250,18 +179,8 @@ static void redrawWindow(Control* control, dxui_dim dim, dxui_color* lfb,
     }
     window->updateInProgress = false;
 
-    struct gui_msg_redraw_window msg;
-    msg.window_id = window->id;
-    msg.width = window->lfbDim.width;
-    msg.height = window->lfbDim.height;
-    struct gui_msg_header header;
-    header.type = GUI_MSG_REDRAW_WINDOW;
-    size_t lfbSize = window->lfbDim.width * window->lfbDim.height *
-            sizeof(uint32_t);
-    header.length = sizeof(msg) + lfbSize;
-    writeAll(window->context->socket, &header, sizeof(header));
-    writeAll(window->context->socket, &msg, sizeof(msg));
-    writeAll(window->context->socket, window->lfb, lfbSize);
+    window->context->backend->redrawWindow(window->context, window->id,
+            window->lfbDim, window->lfb);
 
     window->redraw = false;
 }
@@ -280,40 +199,12 @@ static dxui_color* getWindowFramebuffer(Container* container, dxui_dim* dim,
 }
 
 static void updateRect(Window* window, dxui_rect rect) {
-    struct gui_msg_redraw_window_part msg;
-    msg.window_id = window->id;
-    msg.pitch = window->lfbDim.width;
-    msg.x = rect.x;
-    msg.y = rect.y;
-    msg.width = rect.width;
-    msg.height = rect.height;
-    struct gui_msg_header header;
-    header.type = GUI_MSG_REDRAW_WINDOW_PART;
-    size_t lfbSize = ((rect.height - 1) * window->lfbDim.width + rect.width) *
-            sizeof(uint32_t);
-    header.length = sizeof(msg) + lfbSize;
-    writeAll(window->context->socket, &header, sizeof(header));
-    writeAll(window->context->socket, &msg, sizeof(msg));
-    writeAll(window->context->socket, window->lfb + rect.y *
-            window->lfbDim.width + rect.x, lfbSize);
+    window->context->backend->redrawWindowPart(window->context, window->id,
+            window->lfbDim.width, rect, window->lfb);
 }
 
 static void invalidateWindowRect(Container* container, dxui_rect rect) {
     Window* window = (Window*) container;
     if (window->updateInProgress) return;
     updateRect(window, dxui_rect_crop(rect, window->lfbDim));
-}
-
-static bool writeAll(int fd, const void* buffer, size_t size) {
-    const char* buf = buffer;
-    size_t written = 0;
-    while (written < size) {
-        ssize_t bytesWritten = write(fd, buf + written, size - written);
-        if (bytesWritten < 0) {
-            if (errno != EINTR) return false;
-        } else {
-            written += bytesWritten;
-        }
-    }
-    return true;
 }

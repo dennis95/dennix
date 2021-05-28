@@ -27,12 +27,14 @@ CPPFLAGS += -I include -D_DENNIX_SOURCE -Ddxui_internal=internal
 
 OBJ = \
 	button.o \
+	compositor.o \
 	context.o \
 	control.o \
 	events.o \
 	label.o \
 	msgbox.o \
 	rect.o \
+	standalone.o \
 	text.o \
 	window.o
 

@@ -18,6 +18,7 @@
  */
 
 #include <dxui.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -28,7 +29,12 @@ static void addWindow(void);
 static void newWindowClick(dxui_control* control, dxui_mouse_event* event);
 static void newClientClick(dxui_control* control, dxui_mouse_event* event);
 static void messageBoxClick(dxui_control* control, dxui_mouse_event* event);
+static void closeButtonClick(dxui_control* control, dxui_mouse_event* event);
+static void changeColorButtonClick(dxui_control* control,
+        dxui_mouse_event* event);
+static void resizeButtonClick(dxui_control* control, dxui_mouse_event* event);
 static void onKey(dxui_window* window, dxui_key_event* event);
+static void onSignal(int signo);
 static void shutdown(void);
 
 static void addWindow(void) {
@@ -52,6 +58,28 @@ static void addWindow(void) {
     button = dxui_create_button(rect, "Show Message Box");
     if (!button) dxui_panic(context, "Failed to create a button");
     dxui_set_event_handler(button, DXUI_EVENT_MOUSE_CLICK, messageBoxClick);
+    dxui_add_control(window, button);
+
+    rect = (dxui_rect) {{ 250, 50, 150, 30 }};
+    button = dxui_create_button(rect, "Close");
+    if (!button) dxui_panic(context, "Failed to create a button");
+    dxui_set_event_handler(button, DXUI_EVENT_MOUSE_CLICK, closeButtonClick);
+    dxui_set_user_data(button, window);
+    dxui_add_control(window, button);
+
+    rect = (dxui_rect) {{ 250, 100, 150, 30 }};
+    button = dxui_create_button(rect, "Change color");
+    if (!button) dxui_panic(context, "Failed to create a button");
+    dxui_set_event_handler(button, DXUI_EVENT_MOUSE_CLICK,
+            changeColorButtonClick);
+    dxui_set_user_data(button, window);
+    dxui_add_control(window, button);
+
+    rect = (dxui_rect) {{ 250, 150, 150, 30 }};
+    button = dxui_create_button(rect, "Resize");
+    if (!button) dxui_panic(context, "Failed to create a button");
+    dxui_set_event_handler(button, DXUI_EVENT_MOUSE_CLICK, resizeButtonClick);
+    dxui_set_user_data(button, window);
     dxui_add_control(window, button);
 
     rect = (dxui_rect) {{ 50, 200, 150, 30 }};
@@ -85,6 +113,36 @@ static void messageBoxClick(dxui_control* control, dxui_mouse_event* event) {
     dxui_msg_box(context, "Message", "Hello World", DXUI_MSG_BOX_OK);
 }
 
+static void closeButtonClick(dxui_control* control, dxui_mouse_event* event) {
+    (void) event;
+    dxui_window* window = dxui_get_user_data(control);
+    dxui_close(window);
+}
+
+#define TRANSPARENT(color, alpha) (((color) & 0xFFFFFF) | ((alpha) << 24))
+static dxui_color colors[] = {
+    COLOR_WHITE_SMOKE,
+    TRANSPARENT(COLOR_CORAL, 200),
+    TRANSPARENT(COLOR_GREEN_YELLOW, 150),
+    TRANSPARENT(COLOR_ORCHID, 120),
+    TRANSPARENT(COLOR_FIREBRICK, 180),
+};
+static size_t colorIndex;
+
+static void changeColorButtonClick(dxui_control* control,
+        dxui_mouse_event* event) {
+    (void) event;
+    colorIndex = (colorIndex + 1) % 5;
+    dxui_window* window = dxui_get_user_data(control);
+    dxui_set_background(window, colors[colorIndex]);
+}
+
+static void resizeButtonClick(dxui_control* control, dxui_mouse_event* event) {
+    (void) event;
+    dxui_window* window = dxui_get_user_data(control);
+    dxui_resize_window(window, (dxui_dim) {600, 600});
+}
+
 static void onKey(dxui_window* window, dxui_key_event* event) {
     if (event->codepoint) {
         dxui_label* label = dxui_get_user_data(window);
@@ -97,13 +155,29 @@ static void onKey(dxui_window* window, dxui_key_event* event) {
     }
 }
 
+static void onSignal(int signo) {
+    signal(signo, SIG_DFL);
+    dxui_shutdown(context);
+    raise(signo);
+}
+
 static void shutdown(void) {
     dxui_shutdown(context);
 }
 
 int main() {
     atexit(shutdown);
-    context = dxui_initialize(0);
+    signal(SIGABRT, onSignal);
+    signal(SIGBUS, onSignal);
+    signal(SIGFPE, onSignal);
+    signal(SIGILL, onSignal);
+    signal(SIGINT, onSignal);
+    signal(SIGPIPE, onSignal);
+    signal(SIGQUIT, onSignal);
+    signal(SIGSEGV, onSignal);
+    signal(SIGTERM, onSignal);
+
+    context = dxui_initialize(DXUI_INIT_CURSOR);
     if (!context) dxui_panic(NULL, "Failed to initialize dxui");
 
     addWindow();

@@ -17,14 +17,23 @@
  * The dxui context.
  */
 
+#include <devctl.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <dennix/display.h>
+#include <dennix/mouse.h>
 #include "context.h"
+
+static dxui_context* initializeWithCompositor(int flags,
+        const char* socketPath);
+static dxui_context* initializeStandalone(int flags);
 
 static bool readAll(const char* filename, void* buffer, size_t size) {
     char* buf = buffer;
@@ -53,16 +62,33 @@ dxui_dim dxui_get_display_dim(dxui_context* context) {
 }
 
 dxui_context* dxui_initialize(int flags) {
-    (void) flags;
-
+    dxui_context* context;
     const char* socketPath = getenv("DENNIX_GUI_SOCKET");
-    if (!socketPath) return NULL;
+    if (socketPath) {
+        context = initializeWithCompositor(flags, socketPath);
+    } else {
+        context = initializeStandalone(flags);
+    }
+    if (!context) return NULL;
+
+    if (!readAll("/share/fonts/vgafont", &context->vgafont,
+            sizeof(context->vgafont))) {
+        dxui_shutdown(context);
+        return NULL;
+    }
+    return context;
+}
+
+static dxui_context* initializeWithCompositor(int flags,
+        const char* socketPath) {
+    (void) flags;
 
     struct sockaddr_un addr;
     if (strlen(socketPath) >= sizeof(addr.sun_path)) return NULL;
 
     dxui_context* context = calloc(1, sizeof(dxui_context));
     if (!context) return NULL;
+    context->backend = &dxui_compositorBackend;
 
     addr.sun_family = AF_UNIX;
     strcpy(addr.sun_path, socketPath);
@@ -87,12 +113,115 @@ dxui_context* dxui_initialize(int flags) {
         return NULL;
     }
 
-    if (!readAll("/share/fonts/vgafont", &context->vgafont,
-            sizeof(context->vgafont))) {
-        close(context->socket);
+    return context;
+}
+
+static dxui_context* initializeStandalone(int flags) {
+    if (flags & DXUI_INIT_NEED_COMPOSITOR) return NULL;
+
+    dxui_context* context = calloc(1, sizeof(dxui_context));
+    if (!context) return NULL;
+    context->socket = -1;
+    context->backend = &dxui_standaloneBackend;
+    context->mouseFd = -1;
+
+    context->displayFd = open("/dev/display", O_RDONLY | O_CLOEXEC);
+    if (context->displayFd < 0) {
         free(context);
         return NULL;
     }
+
+    int mode = DISPLAY_MODE_QUERY;
+    int oldMode;
+    if (posix_devctl(context->displayFd, DISPLAY_SET_MODE, &mode, sizeof(mode),
+            &oldMode) != 0 || oldMode != DISPLAY_MODE_TEXT) {
+        close(context->displayFd);
+        free(context);
+        return NULL;
+    }
+
+    mode = DISPLAY_MODE_LFB;
+    if (posix_devctl(context->displayFd, DISPLAY_SET_MODE, &mode, sizeof(mode),
+            NULL) != 0) {
+        dxui_shutdown(context);
+        return NULL;
+    }
+
+    struct display_resolution res;
+    if (posix_devctl(context->displayFd, DISPLAY_GET_RESOLUTION, &res,
+            sizeof(res), NULL) != 0) {
+        dxui_shutdown(context);
+        return NULL;
+    }
+
+    context->displayDim.width = res.width;
+    context->displayDim.height = res.height;
+
+    context->framebuffer = malloc(res.width * res.height * sizeof(dxui_color));
+    if (!context->framebuffer) {
+        dxui_shutdown(context);
+        return NULL;
+    }
+
+    context->mouseFd = open("/dev/mouse", O_RDONLY | O_CLOEXEC);
+    if (context->mouseFd < 0) {
+        dxui_shutdown(context);
+        return NULL;
+    }
+
+    // Discard any buffered mouse movements.
+    struct pollfd pfd[1];
+    pfd[0].fd = context->mouseFd;
+    pfd[0].events = POLLIN;
+    while (poll(pfd, 1, 0) == 1) {
+        struct mouse_data data[256];
+        read(context->mouseFd, data, sizeof(data));
+    }
+
+    struct termios termios;
+    if (tcgetattr(0, &termios) < 0) {
+        dxui_shutdown(context);
+        return NULL;
+    }
+
+    termios.c_lflag |= _KBWC;
+    if (tcsetattr(0, TCSAFLUSH, &termios) < 0) {
+        dxui_shutdown(context);
+        return NULL;
+    }
+
+    if (flags & DXUI_INIT_CURSOR) {
+        size_t cursorSize = 48 * 48 * sizeof(dxui_color);
+        context->cursors = malloc(5 * cursorSize);
+        if (!readAll("/share/cursors/arrow.rgba", context->cursors,
+                cursorSize)) {
+            dxui_shutdown(context);
+            return NULL;
+        }
+        if (!readAll("/share/cursors/resize_diagonal1.rgba",
+                (char*) context->cursors + cursorSize, cursorSize)) {
+            memcpy((char*) context->cursors + cursorSize, context->cursors,
+                    cursorSize);
+        }
+        if (!readAll("/share/cursors/resize_diagonal2.rgba",
+                (char*) context->cursors + 2 * cursorSize, cursorSize)) {
+            memcpy((char*) context->cursors + 2 * cursorSize, context->cursors,
+                    cursorSize);
+        }
+        if (!readAll("/share/cursors/resize_horizontal.rgba",
+                (char*) context->cursors + 3 * cursorSize, cursorSize)) {
+            memcpy((char*) context->cursors + 3 * cursorSize, context->cursors,
+                    cursorSize);
+        }
+        if (!readAll("/share/cursors/resize_vertical.rgba",
+                (char*) context->cursors + 4 * cursorSize, cursorSize)) {
+            memcpy((char*) context->cursors + 4 * cursorSize, context->cursors,
+                    cursorSize);
+        }
+    }
+
+    context->mousePos.x = res.width / 2;
+    context->mousePos.y = res.height / 2;
 
     return context;
 }
@@ -100,6 +229,22 @@ dxui_context* dxui_initialize(int flags) {
 void dxui_shutdown(dxui_context* context) {
     if (!context) return;
 
-    close(context->socket);
+    if (context->socket != -1) {
+        close(context->socket);
+    } else {
+        free(context->cursors);
+        free(context->framebuffer);
+
+        int mode = DISPLAY_MODE_TEXT;
+        posix_devctl(context->displayFd, DISPLAY_SET_MODE, &mode, sizeof(mode),
+                NULL);
+        close(context->displayFd);
+        close(context->mouseFd);
+
+        struct termios termios;
+        tcgetattr(0, &termios);
+        termios.c_lflag &= ~_KBWC;
+        tcsetattr(0, TCSAFLUSH, &termios);
+    }
     free(context);
 }

@@ -62,7 +62,15 @@ typedef struct dxui_context dxui_context;
 
 dxui_dim dxui_get_display_dim(dxui_context* /*context*/);
 
-/* Initialize the dxui context. No flags are defined yet. */
+enum {
+    /* Fail if no compositor is available. */
+    DXUI_INIT_NEED_COMPOSITOR = 1 << 0,
+    /* Make sure a mouse cursor is available even when running without
+       compositor. */
+    DXUI_INIT_CURSOR = 1 << 1,
+};
+
+/* Initialize the dxui context. */
 dxui_context* dxui_initialize(int /*flags*/);
 
 /* Shutdown the dxui context. Must be called on exit. */

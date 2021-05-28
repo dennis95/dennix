@@ -37,12 +37,16 @@ struct dxui_internal_window {
     unsigned int id;
     bool idAssigned;
     dxui_dim lfbDim;
-    uint32_t* lfb;
+    dxui_color* lfb;
     bool redraw;
     bool updateInProgress;
     bool visible;
     dxui_color compositorBackground;
     const char* compositorTitle;
+
+    // Used by the standalone backend:
+    unsigned int prevActiveWindowId;
+    int cursor;
 };
 
 #define DXUI_AS_WINDOW(window) ((window)->dxui_as_window)
