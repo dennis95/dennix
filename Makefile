@@ -25,7 +25,10 @@ LICENSE = $(LICENSES_DIR)/dennix/LICENSE
 DXPORT = ./ports/dxport --host=$(ARCH)-dennix --builddir=$(BUILD_DIR)/ports
 DXPORT += --sysroot=$(SYSROOT)
 
-all: libc kernel libdxui gui sh utils iso
+all: libc kernel libdxui gui apps sh utils iso
+
+apps: $(INCLUDE_DIR) $(LIB_DIR)
+	$(MAKE) -C apps
 
 gui: $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C gui
@@ -40,7 +43,10 @@ libdxui: $(INCLUDE_DIR)
 	$(MAKE) -C libdxui
 
 install-all: install-headers install-libc install-libdxui install-gui
-install-all: install-sh install-utils install-ports
+install-all: install-apps install-sh install-utils install-ports
+
+install-apps:
+	$(MAKE) -C apps install
 
 install-gui:
 	$(MAKE) -C gui install
@@ -101,6 +107,7 @@ $(SYSROOT): $(SYSROOT)/share/fonts/vgafont $(SYSROOT)/home/user $(DXPORT_DIR)
 
 $(BIN_DIR):
 	$(MAKE) -C gui install
+	$(MAKE) -C apps install
 	$(MAKE) -C sh install
 	$(MAKE) -C utils install
 
@@ -126,6 +133,6 @@ distclean:
 	rm -rf build sysroot
 	rm -f *.iso
 
-.PHONY: all gui kernel libc libdxui install-all install-gui install-headers
-.PHONY: install-libc install-libdxui install-ports install-sh install-toolchain
-.PHONY: install-utils iso qemu sh utils clean distclean
+.PHONY: all apps gui kernel libc libdxui install-all install-apps install-gui
+.PHONY: install-headers install-libc install-libdxui install-ports install-sh
+.PHONY: install-toolchain install-utils iso qemu sh utils clean distclean

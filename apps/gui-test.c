@@ -29,6 +29,7 @@ static void addWindow(void);
 static void newWindowClick(dxui_control* control, dxui_mouse_event* event);
 static void newClientClick(dxui_control* control, dxui_mouse_event* event);
 static void messageBoxClick(dxui_control* control, dxui_mouse_event* event);
+static void bricksButtonClick(dxui_control* control, dxui_mouse_event* event);
 static void closeButtonClick(dxui_control* control, dxui_mouse_event* event);
 static void changeColorButtonClick(dxui_control* control,
         dxui_mouse_event* event);
@@ -89,6 +90,12 @@ static void addWindow(void) {
     dxui_add_control(window, label);
     dxui_set_user_data(window, label);
 
+    rect = (dxui_rect) {{ 250, 200, 150, 30 }};
+    button = dxui_create_button(rect, "Bricks");
+    if (!button) dxui_panic(context, "Failed to create a button");
+    dxui_set_event_handler(button, DXUI_EVENT_MOUSE_CLICK, bricksButtonClick);
+    dxui_add_control(window, button);
+
     dxui_set_event_handler(window, DXUI_EVENT_KEY, onKey);
 
     dxui_show(window);
@@ -141,6 +148,15 @@ static void resizeButtonClick(dxui_control* control, dxui_mouse_event* event) {
     (void) event;
     dxui_window* window = dxui_get_user_data(control);
     dxui_resize_window(window, (dxui_dim) {600, 600});
+}
+
+static void bricksButtonClick(dxui_control* control, dxui_mouse_event* event) {
+    (void) control; (void) event;
+    pid_t pid = fork();
+    if (pid == 0) {
+        execl("/bin/bricks", "bricks", NULL);
+        _Exit(1);
+    }
 }
 
 static void onKey(dxui_window* window, dxui_key_event* event) {

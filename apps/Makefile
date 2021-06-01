@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021 Dennis Wölfing
+# Copyright (c) 2021 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -18,46 +18,27 @@ include $(REPO_ROOT)/build-aux/arch.mk
 include $(REPO_ROOT)/build-aux/paths.mk
 include $(REPO_ROOT)/build-aux/toolchain.mk
 
-BUILD = $(BUILD_DIR)/gui
+BUILD = $(BUILD_DIR)/apps
 
 CFLAGS ?= -O2 -g
-CFLAGS += --sysroot=$(SYSROOT) -Wall -Wextra
+CFLAGS += --sysroot=$(SYSROOT) -std=c11 -Wall -Wextra
 CPPFLAGS += -D_DENNIX_SOURCE
+LIBS = -ldxui
 
-OBJ = \
-	connection.o \
-	display.o \
-	gui.o \
-	keyboard.o \
-	mouse.o \
-	server.o \
-	window.o
+APPS = \
+	bricks \
+	gui-test
 
-CURSORS = \
-	arrow.rgba \
-	resize_diagonal1.rgba \
-	resize_diagonal2.rgba \
-	resize_horizontal.rgba \
-	resize_vertical.rgba
+all: $(addprefix $(BUILD)/, $(APPS))
 
-all: $(BUILD)/gui
-
-OBJ := $(addprefix $(BUILD)/, $(OBJ))
--include $(OBJ:.o=.d)
-
-install: $(BUILD)/gui
+install: $(addprefix $(BUILD)/, $(APPS))
 	@mkdir -p $(BIN_DIR)
-	cp -f $(BUILD)/gui $(BIN_DIR)
-	@mkdir -p $(SYSROOT)/share/cursors
-	cp -f $(CURSORS) $(SYSROOT)/share/cursors
+	cp -f $^ $(BIN_DIR)
 	touch $(SYSROOT)
 
-$(BUILD)/gui: $(OBJ)
-	$(CC) -o $@ $^
-
-$(BUILD)/%.o: %.c
-	@mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -MD -MP -c -o $@ $<
+$(BUILD)/%: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $< $(LIBS)
 
 clean:
 	rm -rf $(BUILD)
