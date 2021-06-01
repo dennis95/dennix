@@ -73,6 +73,8 @@ enum {
 /* Initialize the dxui context. */
 dxui_context* dxui_initialize(int /*flags*/);
 
+bool dxui_is_standalone(dxui_context* /*context*/);
+
 /* Shutdown the dxui context. Must be called on exit. */
 void dxui_shutdown(dxui_context* /*context*/);
 
@@ -169,8 +171,8 @@ enum {
     DXUI_PUMP_FOREVER,
 };
 
-/* Process pending events. */
-bool dxui_pump_events(dxui_context* /*context*/, int /*mode*/);
+/* Process pending events. The timeout is given in milliseconds. */
+bool dxui_pump_events(dxui_context* /*context*/, int /*mode*/, int /*timeout*/);
 
 void dxui_set_event_handler(dxui_control* /*control*/, int /*event*/,
         void* /*handler*/);
@@ -213,7 +215,13 @@ enum {
 dxui_window* dxui_create_window(dxui_context* /*context*/, dxui_rect /*rect*/,
         const char* /*title*/, int /*flags*/);
 
+/* Set the window to be drawn manually and return a framebuffer. */
+dxui_color* dxui_get_framebuffer(dxui_window* /*window*/, dxui_dim /*dim*/);
+
 void dxui_hide(dxui_window* /*window*/);
+
+/* Switch back to automatic drawing and invalidate the framebuffer. */
+void dxui_release_framebuffer(dxui_window* /*window*/);
 
 void dxui_resize_window(dxui_window* /*window*/, dxui_dim /*dim*/);
 
@@ -228,6 +236,9 @@ enum {
 void dxui_set_cursor(dxui_window* /*window*/, int /*cursor*/);
 
 void dxui_show(dxui_window* /*window*/);
+
+/* Update the given rect using data from the framebuffer. */
+void dxui_update_framebuffer(dxui_window* /*window*/, dxui_rect /*rect*/);
 
 /* Showing messages. */
 

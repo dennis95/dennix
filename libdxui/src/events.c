@@ -50,7 +50,7 @@ static void handleMousePacket(dxui_context* context,
         const struct mouse_data* data);
 static bool handleMousePackets(dxui_context* context);
 
-bool dxui_pump_events(dxui_context* context, int mode) {
+bool dxui_pump_events(dxui_context* context, int mode, int timeout) {
     struct pollfd pfd[2];
     nfds_t nfds;
     if (context->socket != -1) {
@@ -66,11 +66,11 @@ bool dxui_pump_events(dxui_context* context, int mode) {
     }
 
     while (true) {
-        int result = poll(pfd, nfds, mode == DXUI_PUMP_CLEAR ? 0 : -1);
+        int result = poll(pfd, nfds, mode == DXUI_PUMP_CLEAR ? 0 : timeout);
         if (result < 0) {
             if (errno != EAGAIN && errno != EINTR) return false;
         } else if (result == 0) {
-            if (mode == DXUI_PUMP_CLEAR) return true;
+            return true;
         } else {
             if (context->socket != -1) {
                 if (pfd[0].revents & POLLIN) {

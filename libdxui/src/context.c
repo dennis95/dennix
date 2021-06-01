@@ -106,7 +106,7 @@ static dxui_context* initializeWithCompositor(int flags,
         return NULL;
     }
 
-    if (!dxui_pump_events(context, DXUI_PUMP_ONCE) ||
+    if (!dxui_pump_events(context, DXUI_PUMP_ONCE, -1) ||
             context->displayDim.width < 0 || context->displayDim.height < 0) {
         close(context->socket);
         free(context);
@@ -224,6 +224,10 @@ static dxui_context* initializeStandalone(int flags) {
     context->mousePos.y = res.height / 2;
 
     return context;
+}
+
+bool dxui_is_standalone(dxui_context* context) {
+    return context->socket == -1;
 }
 
 void dxui_shutdown(dxui_context* context) {

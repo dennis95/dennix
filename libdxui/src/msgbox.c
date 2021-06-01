@@ -105,7 +105,7 @@ int dxui_msg_box(dxui_context* context, const char* title, const char* text,
     dxui_show(window);
 
     while (!result) {
-        dxui_pump_events(context, DXUI_PUMP_ONCE);
+        dxui_pump_events(context, DXUI_PUMP_ONCE, -1);
     }
 
     return result;

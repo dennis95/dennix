@@ -181,5 +181,5 @@ int main() {
     if (!context) dxui_panic(NULL, "Failed to initialize dxui");
 
     addWindow();
-    dxui_pump_events(context, DXUI_PUMP_WHILE_WINDOWS_EXIST);
+    dxui_pump_events(context, DXUI_PUMP_WHILE_WINDOWS_EXIST, -1);
 }

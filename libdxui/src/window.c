@@ -31,6 +31,7 @@ static void redrawWindow(Control* control, dxui_dim dim, dxui_color* lfb,
 static dxui_context* getWindowContext(Container* container);
 static dxui_color* getWindowFramebuffer(Container* container, dxui_dim* dim,
         unsigned int* pitch);
+static void updateRect(Window* window, dxui_rect rect);
 static void invalidateWindowRect(Container* container, dxui_rect rect);
 
 const ControlClass dxui_windowControlClass = {
@@ -113,17 +114,39 @@ dxui_window* dxui_create_window(dxui_context* context, dxui_rect rect,
     context->backend->createWindow(context, rect, title, flags);
 
     while (!window->idAssigned) {
-        dxui_pump_events(context, DXUI_PUMP_ONCE);
+        dxui_pump_events(context, DXUI_PUMP_ONCE, -1);
     }
 
     dxui_update(window);
     return DXUI_AS_WINDOW(window);
 }
 
+dxui_color* dxui_get_framebuffer(dxui_window* window, dxui_dim dim) {
+    Window* win = window->internal;
+    if (dim.width != win->lfbDim.width || dim.height != win->lfbDim.height) {
+        dxui_color* lfb = malloc(dim.height * dim.width * sizeof(dxui_color));
+        if (!lfb) return NULL;
+        free(win->lfb);
+        win->lfb = lfb;
+        win->lfbDim = dim;
+    }
+
+    win->manualDrawing = true;
+    win->redraw = true;
+    return win->lfb;
+}
+
 void dxui_hide(dxui_window* window) {
     Window* win = window->internal;
     win->visible = false;
     win->context->backend->hideWindow(win->context, win->id);
+}
+
+void dxui_release_framebuffer(dxui_window* window) {
+    Window* win = window->internal;
+    win->manualDrawing = false;
+    win->redraw = true;
+    dxui_update(window);
 }
 
 void dxui_resize_window(dxui_window* window, dxui_dim dim) {
@@ -143,6 +166,18 @@ void dxui_show(dxui_window* window) {
     win->context->backend->showWindow(win->context, win->id);
 }
 
+void dxui_update_framebuffer(dxui_window* window, dxui_rect rect) {
+    Window* win = window->internal;
+    rect = dxui_rect_crop(rect, win->lfbDim);
+    if (win->redraw) {
+        win->context->backend->redrawWindow(win->context, win->id, win->lfbDim,
+                win->lfb);
+        win->redraw = false;
+    } else {
+        updateRect(win, rect);
+    }
+}
+
 static void deleteWindow(Control* control) {
     Window* window = (Window*) control;
     dxui_close(DXUI_AS_WINDOW(window));
@@ -151,6 +186,12 @@ static void deleteWindow(Control* control) {
 static void redrawWindow(Control* control, dxui_dim dim, dxui_color* lfb,
         unsigned int pitch) {
     Window* window = (Window*) control;
+    if (window->manualDrawing) {
+        window->context->backend->redrawWindow(window->context, window->id,
+                window->lfbDim, window->lfb);
+        window->redraw = false;
+        return;
+    }
     window->updateInProgress = true;
 
     // Inform the compositor about changed backgrounds and titles.

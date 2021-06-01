@@ -38,6 +38,7 @@ struct dxui_internal_window {
     bool idAssigned;
     dxui_dim lfbDim;
     dxui_color* lfb;
+    bool manualDrawing;
     bool redraw;
     bool updateInProgress;
     bool visible;
