@@ -17,80 +17,49 @@
  * Mouse input.
  */
 
-#include <err.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <unistd.h>
-#include <sys/guimsg.h>
-#include <dennix/mouse.h>
-
 #include "connection.h"
-#include "display.h"
-#include "gui.h"
-#include "mouse.h"
 #include "window.h"
 
-int mouseFd;
-int mouseX;
-int mouseY;
-
-static const int cursorSize = 48;
 static const int minimumWindowHeight = 100;
 static const int minimumWindowWidth = 100;
 
-static uint32_t arrowCursor[48 * 48];
-static uint32_t resizeD1Cursor[48 * 48];
-static uint32_t resizeD2Cursor[48 * 48];
-static uint32_t resizeHCursor[48 * 48];
-static uint32_t resizeVCursor[48 * 48];
-
-static const uint32_t* const cursors[] = {
-    arrowCursor,
-    resizeD1Cursor,
-    resizeD2Cursor,
-    resizeHCursor,
-    resizeVCursor,
-};
-
-static int cursor = GUI_CURSOR_ARROW;
+static int cursor = DXUI_CURSOR_ARROW;
 static bool leftClick;
+static dxui_pos mousePos;
 static int resizeDirection;
 
-static void handleMousePacket(const struct mouse_data* data);
-
-struct Rectangle getMouseRect(void) {
-    struct Rectangle result;
-    result.x = mouseX - cursorSize / 2;
-    result.y = mouseY - cursorSize / 2;
-    result.width = cursorSize;
-    result.height = cursorSize;
-    return result;
+static void sendLeaveEvent(void) {
+    struct gui_event_mouse event;
+    event.window_id = mouseWindow->id;
+    event.x = 0;
+    event.y = 0;
+    event.flags = GUI_MOUSE_LEAVE;
+    sendEvent(mouseWindow->connection, GUI_EVENT_MOUSE, sizeof(event), &event);
 }
 
-static void handleMousePacket(const struct mouse_data* data) {
-    int oldX = mouseX;
-    int oldY = mouseY;
+void handleMouse(dxui_control* control, dxui_mouse_event* event) {
+    (void) control;
 
-    mouseX += data->mouse_x;
-    mouseY += data->mouse_y;
-    if (mouseX < 0) {
-        mouseX = 0;
-    } else if (mouseX >= displayRect.width) {
-        mouseX = displayRect.width - 1;
+    if (event->flags & DXUI_MOUSE_LEAVE) {
+        leftClick = false;
+        changingWindow = NULL;
+        resizeDirection = 0;
+        if (mouseWindow) {
+            sendLeaveEvent();
+            mouseWindow = NULL;
+        }
+        return;
     }
 
-    if (mouseY < 0) {
-        mouseY = 0;
-    } else if (mouseY >= displayRect.height) {
-        mouseY = displayRect.height - 1;
-    }
+    dxui_pos oldPos = mousePos;
+    mousePos = event->pos;
 
     int status = 0;
     struct Window* win = NULL;
-    if (!(data->mouse_flags & MOUSE_LEFT) || !changingWindow) {
+    if (!(event->flags & DXUI_MOUSE_LEFT) || !changingWindow) {
         for (win = topWindow; win; win = win->below) {
             if (!win->visible) continue;
-            status = checkMouseInteraction(win, mouseX, mouseY);
+            status = checkMouseInteraction(win, mousePos);
             if (status) break;
         }
     }
@@ -98,27 +67,27 @@ static void handleMousePacket(const struct mouse_data* data) {
     if (!leftClick) {
         int newCursor;
         if (status == RESIZE_LEFT || status == RESIZE_RIGHT) {
-            newCursor = GUI_CURSOR_RESIZE_HORIZONTAL;
+            newCursor = DXUI_CURSOR_RESIZE_HORIZONTAL;
         } else if (status == RESIZE_TOP || status == RESIZE_BOTTOM) {
-            newCursor = GUI_CURSOR_RESIZE_VERTICAL;
+            newCursor = DXUI_CURSOR_RESIZE_VERTICAL;
         } else if (status == RESIZE_TOP_LEFT ||
                 status == RESIZE_BOTTOM_RIGHT) {
-            newCursor = GUI_CURSOR_RESIZE_DIAGONAL1;
+            newCursor = DXUI_CURSOR_RESIZE_DIAGONAL1;
         } else if (status == RESIZE_TOP_RIGHT ||
                 status == RESIZE_BOTTOM_LEFT) {
-            newCursor = GUI_CURSOR_RESIZE_DIAGONAL2;
+            newCursor = DXUI_CURSOR_RESIZE_DIAGONAL2;
         } else if (status == CLIENT_AREA) {
             newCursor = win->cursor;
         } else {
-            newCursor = GUI_CURSOR_ARROW;
+            newCursor = DXUI_CURSOR_ARROW;
         }
 
         if (cursor != newCursor) {
             cursor = newCursor;
-            addDamageRect(getMouseRect());
+            dxui_set_cursor(compositorWindow, cursor);
         }
 
-        if (data->mouse_flags & MOUSE_LEFT) {
+        if (event->flags & DXUI_MOUSE_LEFT) {
             leftClick = true;
         }
 
@@ -131,36 +100,36 @@ static void handleMousePacket(const struct mouse_data* data) {
                         &msg);
             } else if (status == TITLE_BAR) {
                 changingWindow = win;
-            } else {
+            } else if (status != CLIENT_AREA) {
                 changingWindow = win;
                 resizeDirection = status;
             }
         }
-    } else if (!(data->mouse_flags & MOUSE_LEFT)) {
+    } else if (!(event->flags & DXUI_MOUSE_LEFT)) {
         leftClick = false;
         changingWindow = NULL;
         resizeDirection = 0;
     } else if (changingWindow && resizeDirection == 0) {
         addDamageRect(changingWindow->rect);
-        changingWindow->rect.x += mouseX - oldX;
-        changingWindow->rect.y += mouseY - oldY;
+        changingWindow->rect.x += mousePos.x - oldPos.x;
+        changingWindow->rect.y += mousePos.y - oldPos.y;
         addDamageRect(changingWindow->rect);
     } else if (changingWindow) {
-        struct Rectangle rect = changingWindow->rect;
+        dxui_rect rect = changingWindow->rect;
         if (resizeDirection & RESIZE_LEFT) {
-            rect.width += rect.x - mouseX;
-            rect.x = mouseX;
+            rect.width += rect.x - mousePos.x;
+            rect.x = mousePos.x;
         } else if (resizeDirection & RESIZE_RIGHT) {
-            rect.width = mouseX - rect.x;
+            rect.width = mousePos.x - rect.x;
         }
         if (resizeDirection & RESIZE_TOP) {
-            rect.height += rect.y - mouseY;
-            rect.y = mouseY;
+            rect.height += rect.y - mousePos.y;
+            rect.y = mousePos.y;
         } else if (resizeDirection & RESIZE_BOTTOM) {
-            rect.height = mouseY - rect.y;
+            rect.height = mousePos.y - rect.y;
         }
 
-        if (!rectEqual(rect, changingWindow->rect) &&
+        if (!dxui_rect_equals(rect, changingWindow->rect) &&
                 rect.width >= minimumWindowWidth &&
                 rect.height >= minimumWindowHeight) {
             resizeWindow(changingWindow, rect);
@@ -169,90 +138,19 @@ static void handleMousePacket(const struct mouse_data* data) {
 
     if (win && status == CLIENT_AREA) {
         if (mouseWindow && mouseWindow != win) {
-            struct gui_event_mouse event;
-            event.window_id = mouseWindow->id;
-            event.x = 0;
-            event.y = 0;
-            event.flags = GUI_MOUSE_LEAVE;
-            sendEvent(mouseWindow->connection, GUI_EVENT_MOUSE, sizeof(event),
-                    &event);
+            sendLeaveEvent();
             mouseWindow = win;
         }
 
-        struct gui_event_mouse event;
-        event.window_id = win->id;
-        event.x = mouseX - getClientRect(win).x;
-        event.y = mouseY - getClientRect(win).y;
-        event.flags = 0;
-        if (leftClick) event.flags |= GUI_MOUSE_LEFT;
-        if (data->mouse_flags & MOUSE_RIGHT) {
-            event.flags |= GUI_MOUSE_RIGHT;
-        }
-        if (data->mouse_flags & MOUSE_MIDDLE) {
-            event.flags |= GUI_MOUSE_MIDDLE;
-        }
-        if (data->mouse_flags & MOUSE_SCROLL_UP) {
-            event.flags |= GUI_MOUSE_SCROLL_UP;
-        }
-        if (data->mouse_flags & MOUSE_SCROLL_DOWN) {
-            event.flags |= GUI_MOUSE_SCROLL_DOWN;
-        }
-        sendEvent(win->connection, GUI_EVENT_MOUSE, sizeof(event), &event);
+        struct gui_event_mouse guiEvent;
+        guiEvent.window_id = win->id;
+        guiEvent.x = mousePos.x - getClientRect(win).x;
+        guiEvent.y = mousePos.y - getClientRect(win).y;
+        guiEvent.flags = event->flags;
+        sendEvent(win->connection, GUI_EVENT_MOUSE, sizeof(guiEvent),
+                &guiEvent);
     } else if (mouseWindow) {
-        struct gui_event_mouse event;
-        event.window_id = mouseWindow->id;
-        event.x = 0;
-        event.y = 0;
-        event.flags = GUI_MOUSE_LEAVE;
-        sendEvent(mouseWindow->connection, GUI_EVENT_MOUSE, sizeof(event),
-                &event);
+        sendLeaveEvent();
         mouseWindow = NULL;
     }
-}
-
-void handleMouse(void) {
-    struct Rectangle oldMouseRect = getMouseRect();
-
-    struct mouse_data data[256];
-    ssize_t bytesRead = read(mouseFd, &data, sizeof(data));
-    if (bytesRead < 0) err(1, "read");
-    size_t mousePackets = bytesRead / sizeof(struct mouse_data);
-
-    for (size_t i = 0; i < mousePackets; i++) {
-        handleMousePacket(&data[i]);
-    }
-
-    if (!rectEqual(oldMouseRect, getMouseRect())) {
-        addDamageRect(oldMouseRect);
-        addDamageRect(getMouseRect());
-    }
-}
-
-void initializeMouse(void) {
-    loadFromFile("/share/cursors/arrow.rgba", arrowCursor, sizeof(arrowCursor));
-    loadFromFile("/share/cursors/resize_diagonal1.rgba", resizeD1Cursor,
-            sizeof(resizeD1Cursor));
-    loadFromFile("/share/cursors/resize_diagonal2.rgba", resizeD2Cursor,
-            sizeof(resizeD2Cursor));
-    loadFromFile("/share/cursors/resize_horizontal.rgba", resizeHCursor,
-            sizeof(resizeHCursor));
-    loadFromFile("/share/cursors/resize_vertical.rgba", resizeVCursor,
-            sizeof(resizeVCursor));
-
-    mouseFd = open("/dev/mouse", O_RDONLY | O_CLOEXEC);
-    if (mouseFd >= 0) {
-        // Discard any mouse data that has been buffered.
-        struct pollfd pfd[1];
-        pfd[0].fd = mouseFd;
-        pfd[0].events = POLLIN;
-        while (poll(pfd, 1, 0) == 1) {
-            struct mouse_data data[256];
-            read(mouseFd, data, sizeof(data));
-        }
-    }
-}
-
-uint32_t renderCursor(int x, int y) {
-    const uint32_t* cursorTexture = cursors[cursor];
-    return cursorTexture[y * cursorSize + x];
 }

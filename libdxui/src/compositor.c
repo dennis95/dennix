@@ -169,6 +169,8 @@ static void redrawWindow(dxui_context* context, unsigned int id, dxui_dim dim,
 
 static void redrawWindowPart(dxui_context* context, unsigned int id,
         unsigned int pitch, dxui_rect rect, dxui_color* lfb) {
+    if (rect.width == 0 || rect.height == 0) return;
+
     struct gui_msg_redraw_window_part msg;
     msg.window_id = id;
     msg.pitch = pitch;

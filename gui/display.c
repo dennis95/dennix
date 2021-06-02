@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,33 +17,13 @@
  * Display.
  */
 
-#include <devctl.h>
-#include <err.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <dennix/display.h>
-
-#include "display.h"
-#include "gui.h"
-#include "mouse.h"
 #include "window.h"
 
-static const uint32_t backgroundColor = RGB(0, 200, 255);
+static const dxui_color backgroundColor = RGB(0, 200, 255);
+static dxui_rect damageRect;
 
-static int displayFd;
-static uint32_t* lfb;
-static int oldMode;
-
-struct Rectangle damageRect;
-struct Rectangle displayRect;
-
-static uint32_t blend(uint32_t fg, uint32_t bg);
-static void onSignal(int signo);
-static uint32_t renderPixel(int x, int y);
-static void restoreDisplay(void);
+static dxui_color blend(dxui_color fg, dxui_color bg);
+static dxui_color renderPixel(dxui_pos pos);
 
 #define min(x, y) ((x) < (y) ? (x) : (y))
 #define max(x, y) ((x) > (y) ? (x) : (y))
@@ -52,7 +32,7 @@ static void restoreDisplay(void);
 #define BLUE_PART(rgba) (((rgba) >> 0) & 0xFF)
 #define ALPHA_PART(rgba) (((rgba) >> 24) & 0xFF)
 
-void addDamageRect(struct Rectangle rect) {
+void addDamageRect(dxui_rect rect) {
     // TODO: This is a rather primitive implementation that causes us to redraw
     // too much.
     if (damageRect.width == 0) {
@@ -61,7 +41,7 @@ void addDamageRect(struct Rectangle rect) {
     }
     if (rect.width == 0) return;
 
-    struct Rectangle newRect;
+    dxui_rect newRect;
     newRect.x = min(damageRect.x, rect.x);
     newRect.y = min(damageRect.y, rect.y);
     int xEnd = max(damageRect.x + damageRect.width, rect.x + rect.width);
@@ -71,11 +51,11 @@ void addDamageRect(struct Rectangle rect) {
     damageRect = newRect;
 }
 
-static uint32_t blend(uint32_t fg, uint32_t bg) {
-    uint32_t r = RED_PART(fg);
-    uint32_t g = GREEN_PART(fg);
-    uint32_t b = BLUE_PART(fg);
-    uint32_t a = ALPHA_PART(fg);
+static dxui_color blend(dxui_color fg, dxui_color bg) {
+    dxui_color r = RED_PART(fg);
+    dxui_color g = GREEN_PART(fg);
+    dxui_color b = BLUE_PART(fg);
+    dxui_color a = ALPHA_PART(fg);
 
     r = r * a * 255 + RED_PART(bg) * ALPHA_PART(bg) * (255 - a);
     g = g * a * 255 + GREEN_PART(bg) * ALPHA_PART(bg) * (255 - a);
@@ -85,107 +65,34 @@ static uint32_t blend(uint32_t fg, uint32_t bg) {
 }
 
 void composit(void) {
-    struct Rectangle rect = damageRect;
-
-    if (rect.x < 0) {
-        rect.width += rect.x;
-        rect.x = 0;
-    }
-    if (rect.x + rect.width >= displayRect.width) {
-        rect.width = displayRect.width - rect.x;
-    }
-    if (rect.y < 0) {
-        rect.height += rect.y;
-        rect.y = 0;
-    }
-    if (rect.y + rect.height >= displayRect.height) {
-        rect.height = displayRect.height - rect.y;
-    }
+    dxui_rect rect = dxui_rect_crop(damageRect, guiDim);
+    if (rect.width == 0) return;
 
     for (int y = rect.y; y < rect.y + rect.height; y++) {
         for (int x = rect.x; x < rect.x + rect.width; x++) {
-            lfb[y * displayRect.width + x] = renderPixel(x, y);
+            lfb[y * guiDim.width + x] = renderPixel((dxui_pos) {x, y});
         }
     }
 
-    struct display_draw draw;
-    draw.lfb = lfb;
-    draw.lfb_pitch = displayRect.width * sizeof(uint32_t);
-    draw.lfb_x = 0;
-    draw.lfb_y = 0;
-    draw.draw_x = rect.x;
-    draw.draw_y = rect.y;
-    draw.draw_width = rect.width;
-    draw.draw_height = rect.height;
-    posix_devctl(displayFd, DISPLAY_DRAW, &draw, sizeof(draw), NULL);
-
+    dxui_update_framebuffer(compositorWindow, rect);
     damageRect.width = 0;
 }
 
-void initializeDisplay(void) {
-    displayFd = open("/dev/display", O_RDONLY | O_CLOEXEC);
-    if (displayFd < 0) err(1, "cannot open '/dev/display'");
-    int mode = DISPLAY_MODE_QUERY;
-    errno = posix_devctl(displayFd, DISPLAY_SET_MODE, &mode, sizeof(mode),
-            &oldMode);
-    if (errno) err(1, "cannot get display mode");
-
-    atexit(restoreDisplay);
-    signal(SIGABRT, onSignal);
-    signal(SIGBUS, onSignal);
-    signal(SIGFPE, onSignal);
-    signal(SIGILL, onSignal);
-    signal(SIGINT, SIG_IGN);
-    signal(SIGPIPE, SIG_IGN);
-    signal(SIGQUIT, SIG_IGN);
-    signal(SIGSEGV, onSignal);
-    signal(SIGTERM, onSignal);
-
-    mode = DISPLAY_MODE_LFB;
-    errno = posix_devctl(displayFd, DISPLAY_SET_MODE, &mode, sizeof(mode),
-            NULL);
-    if (errno) err(1, "cannot set display mode");
-
-    struct display_resolution res;
-    posix_devctl(displayFd, DISPLAY_GET_RESOLUTION, &res, sizeof(res), NULL);
-    displayRect.x = 0;
-    displayRect.y = 0;
-    displayRect.width = res.width;
-    displayRect.height = res.height;
-    mouseX = displayRect.width / 2;
-    mouseY = displayRect.height / 2;
-
-    lfb = malloc(displayRect.width * displayRect.height * sizeof(uint32_t));
-    if (!lfb) err(1, "malloc");
-}
-
-static void onSignal(int signo) {
-    restoreDisplay();
-    signal(signo, SIG_DFL);
-    raise(signo);
-}
-
-static uint32_t renderPixel(int x, int y) {
-    uint32_t rgba = 0;
-    struct Rectangle mouseRect = getMouseRect();
-    if (isInRect(x, y, mouseRect)) {
-        int xPixel = x - mouseRect.x;
-        int yPixel = y - mouseRect.y;
-        rgba = renderCursor(xPixel, yPixel);
-    }
+static dxui_color renderPixel(dxui_pos pos) {
+    dxui_color rgba = 0;
 
     for (struct Window* window = topWindow; window; window = window->below) {
         if (!window->visible) continue;
-        if (!isInRect(x, y, window->rect)) continue;
-        struct Rectangle clientRect = getClientRect(window);
+        if (!dxui_rect_contains_pos(window->rect, pos)) continue;
+        dxui_rect clientRect = getClientRect(window);
 
-        uint32_t color;
-        if (isInRect(x, y, clientRect)) {
-            color = renderClientArea(window, x - clientRect.x,
-                    y - clientRect.y);
+        dxui_color color;
+        if (dxui_rect_contains_pos(clientRect, pos)) {
+            color = renderClientArea(window, pos.x - clientRect.x,
+                    pos.y - clientRect.y);
         } else {
-            color = renderWindowDecoration(window, x - window->rect.x,
-                    y - window->rect.y);
+            color = renderWindowDecoration(window, pos.x - window->rect.x,
+                    pos.y - window->rect.y);
         }
         if (ALPHA_PART(rgba) == 255) {
             return rgba;
@@ -203,8 +110,4 @@ static uint32_t renderPixel(int x, int y) {
     } else {
         return blend(rgba, backgroundColor);
     }
-}
-
-static void restoreDisplay(void) {
-    posix_devctl(displayFd, DISPLAY_SET_MODE, &oldMode, sizeof(oldMode), NULL);
 }

@@ -17,7 +17,6 @@
  * Connection.
  */
 
-#include <err.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -111,8 +110,6 @@ static void handleMessage(struct Connection* conn, unsigned int type,
     case GUI_MSG_SHOW_WINDOW:
         handleShowWindow(conn, length, msg);
         break;
-    default:
-        warnx("Unknown message type %u\n", type);
     }
 }
 
@@ -131,7 +128,7 @@ bool receiveMessage(struct Connection* conn) {
 
     if (!conn->messageBuffer) {
         conn->messageBuffer = malloc(length);
-        if (!conn->messageBuffer) err(1, "malloc");
+        if (!conn->messageBuffer) dxui_panic(context, "malloc");
     }
 
     while (conn->messageReceived < length) {
@@ -193,7 +190,7 @@ static bool sendOutput(struct Connection* conn, const void* buffer,
             conn->outputBuffered += size;
         } else {
             char* newBuffer = malloc(conn->outputBuffered + size);
-            if (!newBuffer) err(1, "malloc");
+            if (!newBuffer) dxui_panic(context, "malloc");
             size_t copySize = conn->outputBufferSize - conn->outputBufferOffset;
             if (conn->outputBuffered < copySize) {
                 copySize = conn->outputBuffered;
@@ -228,9 +225,10 @@ static void handleCreateWindow(struct Connection* conn, size_t length,
         struct gui_msg_create_window* msg) {
     if (length < sizeof(*msg)) return;
     char* title = strndup(msg->title, length - sizeof(*msg));
-    if (!title) err(1, "malloc");
+    if (!title) dxui_panic(context, "malloc");
     struct Window* window = addWindow(msg->x, msg->y, msg->width, msg->height,
             title, msg->flags, conn);
+    free(title);
 
     struct gui_event_window_created response;
 
@@ -248,7 +246,7 @@ static void handleCreateWindow(struct Connection* conn, size_t length,
     size_t newSize = conn->windowsAllocated ? conn->windowsAllocated * 2 : 8;
     conn->windows = reallocarray(conn->windows, newSize,
             sizeof(struct Window*));
-    if (!conn->windows) err(1, "realloc");
+    if (!conn->windows) dxui_panic(context, "realloc");
     memset(conn->windows + conn->windowsAllocated, 0,
             (newSize - conn->windowsAllocated) * sizeof(struct Window*));
 
@@ -270,7 +268,7 @@ static void handleHideWindow(struct Connection* conn, size_t length,
 static void handleRedrawWindow(struct Connection* conn, size_t length,
         struct gui_msg_redraw_window* msg) {
     if (length < sizeof(*msg)) return;
-    size_t lfbSize = msg->height * msg->width * sizeof(uint32_t);
+    size_t lfbSize = msg->height * msg->width * sizeof(dxui_color);
     if (length < sizeof(*msg) + lfbSize) return;
     struct Window* window = getWindow(conn, msg->window_id);
     if (!window) return;
@@ -281,7 +279,7 @@ static void handleRedrawWindowPart(struct Connection* conn, size_t length,
         struct gui_msg_redraw_window_part* msg) {
     if (length < sizeof(*msg)) return;
     size_t lfbSize = ((msg->height - 1) * msg->pitch + msg->width) *
-            sizeof(uint32_t);
+            sizeof(dxui_color);
     if (length < sizeof(*msg) + lfbSize) return;
     struct Window* window = getWindow(conn, msg->window_id);
     if (!window) return;
@@ -294,7 +292,7 @@ static void handleResizeWindow(struct Connection* conn, size_t length,
     if (length < sizeof(*msg)) return;
     struct Window* window = getWindow(conn, msg->window_id);
     if (!window) return;
-    struct Rectangle rect = window->rect;
+    dxui_rect rect = window->rect;
     rect.width = msg->width;
     rect.height = msg->height;
     resizeWindow(window, rect);
@@ -323,8 +321,9 @@ static void handleSetWindowTitle(struct Connection* conn, size_t length,
     struct Window* window = getWindow(conn, msg->window_id);
     if (!window) return;
     char* title = strndup(msg->title, length - sizeof(*msg));
-    if (!title) err(1, "malloc");
+    if (!title) dxui_panic(context, "malloc");
     setWindowTitle(window, title);
+    free(title);
 }
 
 static void handleShowWindow(struct Connection* conn, size_t length,

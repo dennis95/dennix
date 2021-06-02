@@ -23,6 +23,7 @@ BUILD = $(BUILD_DIR)/gui
 CFLAGS ?= -O2 -g
 CFLAGS += --sysroot=$(SYSROOT) -Wall -Wextra
 CPPFLAGS += -D_DENNIX_SOURCE
+LIBS = -ldxui
 
 OBJ = \
 	connection.o \
@@ -53,7 +54,7 @@ install: $(BUILD)/gui
 	touch $(SYSROOT)
 
 $(BUILD)/gui: $(OBJ)
-	$(CC) -o $@ $^
+	$(CC) -o $@ $^ $(LIBS)
 
 $(BUILD)/%.o: %.c
 	@mkdir -p $(BUILD)

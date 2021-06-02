@@ -20,8 +20,8 @@
 #include <dxui.h>
 
 bool dxui_rect_contains_pos(dxui_rect rect, dxui_pos pos) {
-    return rect.x <= pos.x && pos.x - rect.x <= rect.width &&
-            rect.y <= pos.y && pos.y - rect.y <= rect.height;
+    return rect.x <= pos.x && pos.x - rect.x < rect.width &&
+            rect.y <= pos.y && pos.y - rect.y < rect.height;
 }
 
 dxui_rect dxui_rect_crop(dxui_rect rect, dxui_dim dim) {

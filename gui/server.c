@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,8 +17,7 @@
  * Server.
  */
 
-#include <err.h>
-#include <poll.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -26,10 +25,6 @@
 #include <sys/un.h>
 
 #include "connection.h"
-#include "display.h"
-#include "keyboard.h"
-#include "mouse.h"
-#include "server.h"
 #include "window.h"
 
 static struct Connection** connections;
@@ -44,13 +39,10 @@ static void unlinkSocket(void);
 
 static void acceptConnections(void) {
     int fd = accept4(serverFd, NULL, NULL, SOCK_CLOEXEC | SOCK_NONBLOCK);
-    if (fd < 0) {
-        warn("accept failed");
-        return;
-    }
+    if (fd < 0) return;
 
     struct Connection* connection = malloc(sizeof(struct Connection));
-    if (!connection) err(1, "malloc");
+    if (!connection) dxui_panic(context, "malloc");
     connection->fd = fd;
     connection->windows = NULL;
     connection->windowsAllocated = 0;
@@ -65,8 +57,8 @@ static void acceptConnections(void) {
 
     struct gui_event_status msg;
     msg.flags = 0;
-    msg.display_width = displayRect.width;
-    msg.display_height = displayRect.height;
+    msg.display_width = guiDim.width;
+    msg.display_height = guiDim.height;
     sendEvent(connection, GUI_EVENT_STATUS, sizeof(msg), &msg);
 }
 
@@ -77,24 +69,35 @@ static void addConnection(struct Connection* connection) {
     if (numConnections > connectionsAllocated) {
         connections = reallocarray(connections, connectionsAllocated,
                 2 * sizeof(struct Connection*));
-        if (!connections) err(1, "realloc");
-        pfd = reallocarray(pfd, 3 + 2 * connectionsAllocated,
+        if (!connections) dxui_panic(context, "realloc");
+        pfd = reallocarray(pfd, 1 + 2 * connectionsAllocated + DXUI_POLL_NFDS,
                 sizeof(struct pollfd));
-        if (!pfd) err(1, "realloc");
+        if (!pfd) dxui_panic(context, "realloc");
         connectionsAllocated *= 2;
     }
 
     connections[connection->index] = connection;
-    pfd[connection->index + 3].fd = connection->fd;
-    pfd[connection->index + 3].events = POLLIN | POLLOUT;
-    pfd[connection->index + 3].revents = 0;
+    pfd[connection->index + 1].fd = connection->fd;
+    pfd[connection->index + 1].events = POLLIN | POLLOUT;
+    pfd[connection->index + 1].revents = 0;
+}
+
+void broadcastStatusEvent(void) {
+    struct gui_event_status msg;
+    msg.flags = 0;
+    msg.display_width = guiDim.width;
+    msg.display_height = guiDim.height;
+
+    for (size_t i = 0; i < numConnections; i++) {
+        sendEvent(connections[i], GUI_EVENT_STATUS, sizeof(msg), &msg);
+    }
 }
 
 static void closeConnection(struct Connection* connection) {
     numConnections--;
     connections[connection->index] = connections[numConnections];
     connections[connection->index]->index = connection->index;
-    pfd[connection->index + 3] = pfd[numConnections + 3];
+    pfd[connection->index + 1] = pfd[numConnections + 1];
 
     for (size_t i = 0; i < connection->windowsAllocated; i++) {
         if (connection->windows[i]) {
@@ -110,7 +113,7 @@ static void closeConnection(struct Connection* connection) {
 
 void initializeServer(void) {
     serverFd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
-    if (serverFd < 0) err(1, "socket");
+    if (serverFd < 0) dxui_panic(context, "socket");
     struct sockaddr_un addr;
     addr.sun_family = AF_UNIX;
 
@@ -119,55 +122,48 @@ void initializeServer(void) {
     setenv("DENNIX_GUI_SOCKET", addr.sun_path, 1);
     unlink(addr.sun_path);
     if (bind(serverFd, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
-        err(1, "bind");
+        dxui_panic(context, "bind");
     }
     atexit(unlinkSocket);
 
-    if (listen(serverFd, 1) < 0) err(1, "listen");
+    if (listen(serverFd, 1) < 0) dxui_panic(context, "listen");
 
     connectionsAllocated = 8;
     connections = malloc(connectionsAllocated * sizeof(struct Connection*));
-    if (!connections) err(1, "malloc");
+    if (!connections) dxui_panic(context, "malloc");
 
-    pfd = malloc((3 + connectionsAllocated) * sizeof(struct pollfd));
-    if (!pfd) err(1, "malloc");
+    pfd = malloc((1 + connectionsAllocated + DXUI_POLL_NFDS) *
+            sizeof(struct pollfd));
+    if (!pfd) dxui_panic(context, "malloc");
 
     pfd[0].fd = serverFd;
     pfd[0].events = POLLIN;
-
-    pfd[1].fd = 0;
-    pfd[1].events = POLLIN;
-
-    pfd[2].fd = mouseFd;
-    pfd[2].events = POLLIN;
 }
 
 void pollEvents(void) {
-    if (poll(pfd, 3 + numConnections, -1) >= 1) {
+    int result = dxui_poll(context, pfd, 1 + numConnections, -1);
+    if (result < 0 && errno != EINTR) {
+        for (struct Window* win = topWindow; win; win = win->below) {
+            closeWindow(win);
+        }
+        exit(0);
+    } else if (result >= 1) {
         if (pfd[0].revents & POLLIN) {
             acceptConnections();
         }
 
-        if (pfd[1].revents & POLLIN) {
-            handleKeyboard();
-        }
-
-        if (pfd[2].revents & POLLIN) {
-            handleMouse();
-        }
-
         for (size_t i = 0; i < numConnections; i++) {
-            if (pfd[3 + i].revents & POLLIN) {
+            if (pfd[1 + i].revents & POLLIN) {
                 if (!receiveMessage(connections[i])) {
                     closeConnection(connections[i]);
                     i--;
                     continue;
                 }
             }
-            if (pfd[3 + i].revents & POLLOUT &&
+            if (pfd[1 + i].revents & POLLOUT &&
                     connections[i]->outputBuffered) {
                 flushConnectionBuffer(connections[i]);
-            } else if (pfd[3 + i].revents & POLLHUP) {
+            } else if (pfd[1 + i].revents & POLLHUP) {
                 closeConnection(connections[i]);
                 i--;
             }

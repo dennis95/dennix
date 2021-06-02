@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,11 +20,19 @@
 #ifndef GUI_H
 #define GUI_H
 
-#include <stddef.h>
-#include "rect.h"
+#include <dxui.h>
 
-extern char vgafont[4096];
+extern dxui_context* context;
+extern dxui_window* compositorWindow;
+extern dxui_color* lfb;
+extern dxui_dim guiDim;
 
-void loadFromFile(const char* filename, void* buffer, size_t size);
+void addDamageRect(dxui_rect rect);
+void broadcastStatusEvent(void);
+void composit(void);
+void handleKey(dxui_control* control, dxui_key_event* event);
+void handleMouse(dxui_control* control, dxui_mouse_event* event);
+void initializeServer(void);
+void pollEvents(void);
 
 #endif

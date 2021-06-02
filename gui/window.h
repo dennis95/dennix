@@ -20,24 +20,21 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include <stddef.h>
-#include <stdint.h>
-#include "rect.h"
+#include "gui.h"
 
 struct Window {
     struct Window* above;
     struct Window* below;
     struct Connection* connection;
-    uint32_t background;
+    dxui_color background;
     int cursor;
-    uint32_t id;
+    unsigned int id;
     int flags;
-    struct Rectangle rect;
-    char* title;
-    size_t titlePixelLength;
-    uint32_t* lfb;
-    int clientWidth;
-    int clientHeight;
+    dxui_rect rect;
+    dxui_color* titleLfb;
+    dxui_dim titleDim;
+    dxui_color* lfb;
+    dxui_dim clientDim;
     bool visible;
 };
 
@@ -60,22 +57,23 @@ extern struct Window* changingWindow;
 extern struct Window* mouseWindow;
 extern struct Window* topWindow;
 
-struct Window* addWindow(int x, int y, int width, int height, char* title,
+struct Window* addWindow(int x, int y, int width, int height, const char* title,
         int flags, struct Connection* connection);
-int checkMouseInteraction(struct Window* window, int x, int y);
+int checkMouseInteraction(struct Window* window, dxui_pos pos);
 void closeWindow(struct Window* window);
-struct Rectangle getClientRect(struct Window* window);
+dxui_rect getClientRect(struct Window* window);
 void hideWindow(struct Window* window);
 void moveWindowToTop(struct Window* window);
-void redrawWindow(struct Window* window, int width, int height, uint32_t* lfb);
+void redrawWindow(struct Window* window, int width, int height,
+        dxui_color* lfb);
 void redrawWindowPart(struct Window* window, int x, int y, int width,
-        int height, size_t pitch, uint32_t* lfb);
-uint32_t renderClientArea(struct Window* window, int x, int y);
-uint32_t renderWindowDecoration(struct Window* window, int x, int y);
-void resizeWindow(struct Window* window, struct Rectangle rect);
-void setWindowBackground(struct Window* window, uint32_t color);
+        int height, size_t pitch, dxui_color* lfb);
+dxui_color renderClientArea(struct Window* window, int x, int y);
+dxui_color renderWindowDecoration(struct Window* window, int x, int y);
+void resizeWindow(struct Window* window, dxui_rect rect);
+void setWindowBackground(struct Window* window, dxui_color color);
 void setWindowCursor(struct Window* window, int cursor);
-void setWindowTitle(struct Window* window, char* title);
+void setWindowTitle(struct Window* window, const char* title);
 void showWindow(struct Window* window);
 
 #endif

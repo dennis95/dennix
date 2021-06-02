@@ -28,6 +28,7 @@ static dxui_context* context;
 static void addWindow(void);
 static void newWindowClick(dxui_control* control, dxui_mouse_event* event);
 static void newClientClick(dxui_control* control, dxui_mouse_event* event);
+static void newCompositorClick(dxui_control* control, dxui_mouse_event* event);
 static void messageBoxClick(dxui_control* control, dxui_mouse_event* event);
 static void bricksButtonClick(dxui_control* control, dxui_mouse_event* event);
 static void closeButtonClick(dxui_control* control, dxui_mouse_event* event);
@@ -56,6 +57,12 @@ static void addWindow(void) {
     dxui_add_control(window, button);
 
     rect = (dxui_rect) {{ 50, 150, 150, 30 }};
+    button = dxui_create_button(rect, "New Compositor");
+    if (!button) dxui_panic(context, "Failed to create a button");
+    dxui_set_event_handler(button, DXUI_EVENT_MOUSE_CLICK, newCompositorClick);
+    dxui_add_control(window, button);
+
+    rect = (dxui_rect) {{ 50, 200, 150, 30 }};
     button = dxui_create_button(rect, "Show Message Box");
     if (!button) dxui_panic(context, "Failed to create a button");
     dxui_set_event_handler(button, DXUI_EVENT_MOUSE_CLICK, messageBoxClick);
@@ -83,7 +90,7 @@ static void addWindow(void) {
     dxui_set_user_data(button, window);
     dxui_add_control(window, button);
 
-    rect = (dxui_rect) {{ 50, 200, 150, 30 }};
+    rect = (dxui_rect) {{ 50, 250, 150, 30 }};
     dxui_label* label = dxui_create_label(rect, "");
     if (!label) dxui_panic(context, "Failed to create a label");
     dxui_set_background(label, COLOR_WHITE);
@@ -111,6 +118,15 @@ static void newClientClick(dxui_control* control, dxui_mouse_event* event) {
     pid_t pid = fork();
     if (pid == 0) {
         execl("/bin/gui-test", "gui-test", NULL);
+        _Exit(1);
+    }
+}
+
+static void newCompositorClick(dxui_control* control, dxui_mouse_event* event) {
+    (void) control; (void) event;
+    pid_t pid = fork();
+    if (pid == 0) {
+        execl("/bin/gui", "gui", NULL);
         _Exit(1);
     }
 }
