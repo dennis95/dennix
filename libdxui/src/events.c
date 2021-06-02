@@ -18,7 +18,6 @@
  */
 
 #include <errno.h>
-#include <poll.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/guimsg.h>
@@ -49,6 +48,54 @@ static bool handleKeyboard(dxui_context* context);
 static void handleMousePacket(dxui_context* context,
         const struct mouse_data* data);
 static bool handleMousePackets(dxui_context* context);
+
+int dxui_poll(dxui_context* context, struct pollfd pfd[], nfds_t nfds,
+        int timeout) {
+    if (context->socket != -1) {
+        pfd[nfds].fd = context->socket;
+        pfd[nfds].events = POLLIN;
+        nfds++;
+    } else {
+        pfd[nfds].fd = 0;
+        pfd[nfds].events = POLLIN;
+        pfd[nfds + 1].fd = context->mouseFd;
+        pfd[nfds + 1].events = POLLIN;
+        nfds += 2;
+    }
+
+    int result = poll(pfd, nfds, timeout);
+    if (result <= 0) return result;
+
+    bool needsPump = false;
+    if (context->socket != -1) {
+        if (pfd[nfds - 1].revents & POLLIN) {
+            needsPump = true;
+            result--;
+        }
+        if (pfd[nfds - 1].revents & (POLLHUP | POLLERR)) {
+            errno = ECONNRESET;
+            return -1;
+        }
+    } else {
+        if (pfd[nfds - 2].revents & POLLIN) {
+            needsPump = true;
+            result--;
+        }
+        if (pfd[nfds - 1].revents & POLLIN) {
+            needsPump = true;
+            result--;
+        }
+    }
+
+    if (needsPump) {
+        if (!dxui_pump_events(context, DXUI_PUMP_CLEAR, -1)) {
+            errno = ECONNRESET;
+            return -1;
+        }
+    }
+
+    return result;
+}
 
 bool dxui_pump_events(dxui_context* context, int mode, int timeout) {
     struct pollfd pfd[2];

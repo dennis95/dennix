@@ -20,6 +20,7 @@
 #ifndef _DXUI_H
 #define _DXUI_H
 
+#include <poll.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -156,6 +157,11 @@ typedef struct {
 typedef struct {
     dxui_dim dim;
 } dxui_resize_event;
+
+#define DXUI_POLL_NFDS 2
+
+int dxui_poll(dxui_context* /*context*/, struct pollfd /*pfd*/[],
+        nfds_t /*nfds*/, int /*timeout*/);
 
 enum {
     /* Block until one event has been processed. */
