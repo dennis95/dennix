@@ -34,6 +34,7 @@
 #include <dennix/kernel/ps2.h>
 #include <dennix/kernel/rtc.h>
 #include <dennix/kernel/terminal.h>
+#include <dennix/kernel/worker.h>
 
 #ifndef DENNIX_VERSION
 #  define DENNIX_VERSION ""
@@ -116,6 +117,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     initProcess->rootFd = rootFd;
     initProcess->cwdFd = rootFd;
     Thread::addThread(&initProcess->mainThread);
+    WorkerThread::initialize();
 
     while (true) {
         asm volatile ("hlt");

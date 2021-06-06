@@ -73,7 +73,8 @@ OBJ = \
 	terminal.o \
 	terminaldisplay.o \
 	thread.o \
-	vnode.o
+	vnode.o \
+	worker.o
 
 include $(ARCH).mk
 

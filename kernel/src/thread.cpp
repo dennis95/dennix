@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,9 +18,11 @@
  */
 
 #include <assert.h>
+#include <sched.h>
 #include <string.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/registers.h>
+#include <dennix/kernel/worker.h>
 
 Thread* Thread::_current;
 Thread* Thread::idleThread;
@@ -104,6 +106,10 @@ InterruptContext* Thread::schedule(InterruptContext* context) {
     return _current->interruptContext;
 }
 
+static void deallocateStack(void* address) {
+    kernelSpace->unmapMemory((vaddr_t) address, PAGESIZE);
+}
+
 void Thread::updateContext(vaddr_t newKernelStack, InterruptContext* newContext,
             const __fpu_t* newFpuEnv) {
     Interrupts::disable();
@@ -111,12 +117,24 @@ void Thread::updateContext(vaddr_t newKernelStack, InterruptContext* newContext,
         contextChanged = true;
     }
 
-    if (kernelStack) {
-        // TODO: We cannot unmap kernelStack on exec because it will remain in
-        // use until scheduling. This is leaking 4 KiB on every execve(2).
-    }
+    vaddr_t oldKernelStack = kernelStack;
     kernelStack = newKernelStack;
     interruptContext = newContext;
     memcpy(fpuEnv, newFpuEnv, sizeof(__fpu_t));
+
+    if (this == _current) {
+        WorkerJob job;
+        if (oldKernelStack) {
+            job.func = deallocateStack;
+            job.context = (void*) oldKernelStack;
+            WorkerThread::addJob(&job);
+        }
+
+        sched_yield();
+        __builtin_unreachable();
+    } else if (oldKernelStack) {
+        kernelSpace->unmapMemory(oldKernelStack, PAGESIZE);
+    }
+
     Interrupts::enable();
 }

@@ -58,26 +58,32 @@ Terminal::Terminal() : Vnode(S_IFCHR | 0666, 0) {
 
     foregroundGroup = -1;
     numEof = 0;
+    readCond = KTHREAD_COND_INITIALIZER;
+    writeCond = KTHREAD_COND_INITIALIZER;
+    readIndex = 0;
+    lineIndex = 0;
+    writeIndex = 0;
 }
 
 void Terminal::handleCharacter(char c) {
     if (termio.c_lflag & ICANON && c == termio.c_cc[VEOF]) {
-        if (terminalBuffer.hasIncompleteLine()) {
-            terminalBuffer.endLine();
+        if (hasIncompleteLine()) {
+            endLine();
         } else {
             numEof++;
+            kthread_cond_broadcast(&readCond);
         }
     } else if (termio.c_lflag & ICANON && c == termio.c_cc[VERASE]) {
-        if (terminalBuffer.backspace() && (termio.c_lflag & ECHOE)) {
+        if (backspace() && (termio.c_lflag & ECHOE)) {
             TerminalDisplay::backspace();
         }
     } else if (termio.c_lflag & ISIG && c == termio.c_cc[VINTR]) {
         if (!(termio.c_lflag & NOFLSH)) {
-            terminalBuffer.endLine();
+            endLine();
         }
         raiseSignal(SIGINT);
     } else if (termio.c_lflag & ICANON && c == termio.c_cc[VKILL]) {
-        while (terminalBuffer.backspace()) {
+        while (backspace()) {
             if (termio.c_lflag & ECHOK) {
                 TerminalDisplay::backspace();
             }
@@ -94,9 +100,9 @@ void Terminal::handleCharacter(char c) {
         if (termio.c_lflag & ECHO || (termio.c_lflag & ECHONL && c == '\n')) {
             TerminalDisplay::printCharacterRaw(c);
         }
-        terminalBuffer.write(c);
+        writeBuffer(c);
         if (!(termio.c_lflag & ICANON) || c == '\n' || c == termio.c_cc[VEOL]) {
-            terminalBuffer.endLine();
+            endLine();
         }
     }
 }
@@ -107,13 +113,15 @@ void Terminal::handleSequence(const char* sequence) {
             if (termio.c_lflag & ECHO) {
                 TerminalDisplay::printCharacterRaw(*sequence);
             }
-            terminalBuffer.write(*sequence++);
+            writeBuffer(*sequence++);
         }
-        terminalBuffer.endLine();
+        endLine();
     }
 }
 
 void Terminal::onKeyboardEvent(int key) {
+    AutoLock lock(&mutex);
+
     wchar_t wc = Keyboard::getWideCharFromKey(key);
     if (!(termio.c_cflag & CREAD)) return;
 
@@ -124,9 +132,9 @@ void Terminal::onKeyboardEvent(int key) {
         const char* bytes = (const char*) &kbwc;
 
         for (size_t i = 0; i < sizeof(kbwc); i++) {
-            terminalBuffer.write(bytes[i]);
+            writeBuffer(bytes[i]);
         }
-        terminalBuffer.endLine();
+        endLine();
         return;
     }
 
@@ -147,6 +155,8 @@ void Terminal::onKeyboardEvent(int key) {
 
 int Terminal::devctl(int command, void* restrict data, size_t size,
         int* restrict info) {
+    AutoLock lock(&mutex);
+
     switch (command) {
     case TIOCGPGRP: {
         if (size != 0 && size != sizeof(pid_t)) {
@@ -221,7 +231,7 @@ int Terminal::devctl(int command, void* restrict data, size_t size,
         switch (*selector) {
         case TCIFLUSH:
         case TCIOFLUSH:
-            terminalBuffer.reset();
+            resetBuffer();
             break;
         case TCOFLUSH:
             // Output is always transmitted immediately.
@@ -246,7 +256,7 @@ int Terminal::isatty() {
 short Terminal::poll() {
     AutoLock lock(&mutex);
     short result = POLLOUT | POLLWRNORM;
-    if (terminalBuffer.available()) result |= POLLIN | POLLRDNORM;
+    if (dataAvailable()) result |= POLLIN | POLLRDNORM;
     return result;
 }
 
@@ -265,12 +275,13 @@ void Terminal::raiseSignal(int signal) {
 
 ssize_t Terminal::read(void* buffer, size_t size, int flags) {
     if (size == 0) return 0;
+    AutoLock lock(&mutex);
     char* buf = (char*) buffer;
     size_t readSize = 0;
 
     size_t min = termio.c_lflag & ICANON ? 1 : termio.c_cc[VMIN];
     while (readSize < size) {
-        while (terminalBuffer.available() < min && !numEof) {
+        while (dataAvailable() < min && !numEof) {
             if (readSize) {
                 updateTimestamps(true, false, false);
                 return readSize;
@@ -281,7 +292,7 @@ ssize_t Terminal::read(void* buffer, size_t size, int flags) {
                 return -1;
             }
 
-            if (Signal::isPending()) {
+            if (kthread_cond_sigwait(&readCond, &mutex) == EINTR) {
                 if (readSize) {
                     updateTimestamps(true, false, false);
                     return readSize;
@@ -289,7 +300,6 @@ ssize_t Terminal::read(void* buffer, size_t size, int flags) {
                 errno = EINTR;
                 return -1;
             }
-            sched_yield();
         }
         min = 1;
 
@@ -300,11 +310,11 @@ ssize_t Terminal::read(void* buffer, size_t size, int flags) {
             }
             numEof--;
             return 0;
-        } else if (terminalBuffer.available() == 0) {
+        } else if (dataAvailable() == 0) {
             return 0;
         }
 
-        char c = terminalBuffer.read();
+        char c = readBuffer();
         buf[readSize] = c;
         readSize++;
         if ((termio.c_lflag & ICANON) && c == '\n') break;
@@ -320,16 +330,18 @@ int Terminal::tcgetattr(struct termios* result) {
 }
 
 int Terminal::tcsetattr(int flags, const struct termios* termio) {
+    AutoLock lock(&mutex);
+
     if (flags == TCSANOW || flags == TCSADRAIN) {
         // TCSANOW and TCSADRAIN are identical because output is always
         // transmitted immediately.
         this->termio = *termio;
         if (!(termio->c_lflag & ICANON)) {
-            terminalBuffer.endLine();
+            endLine();
         }
     } else if (flags == TCSAFLUSH) {
         this->termio = *termio;
-        terminalBuffer.reset();
+        resetBuffer();
         numEof = 0;
     } else {
         errno = EINVAL;
@@ -353,18 +365,12 @@ ssize_t Terminal::write(const void* buffer, size_t size, int /*flags*/) {
     return (ssize_t) size;
 }
 
-// TODO: TerminalBuffer reads and writes should be atomic.
-
-TerminalBuffer::TerminalBuffer() {
-    reset();
-}
-
-size_t TerminalBuffer::available() {
+size_t Terminal::dataAvailable() {
     return lineIndex >= readIndex ?
             lineIndex - readIndex : readIndex - lineIndex;
 }
 
-bool TerminalBuffer::backspace() {
+bool Terminal::backspace() {
     if (lineIndex == writeIndex) return false;
     bool continuationByte;
     do {
@@ -376,31 +382,38 @@ bool TerminalBuffer::backspace() {
         }
     } while (continuationByte && lineIndex != writeIndex);
 
+    kthread_cond_broadcast(&writeCond);
     return true;
 }
 
-void TerminalBuffer::endLine() {
+void Terminal::endLine() {
     lineIndex = writeIndex;
+    kthread_cond_broadcast(&readCond);
 }
 
-bool TerminalBuffer::hasIncompleteLine() {
+bool Terminal::hasIncompleteLine() {
     return lineIndex != writeIndex;
 }
 
-char TerminalBuffer::read() {
+char Terminal::readBuffer() {
     char result = circularBuffer[readIndex];
     readIndex = (readIndex + 1) % TERMINAL_BUFFER_SIZE;
+    kthread_cond_broadcast(&writeCond);
     return result;
 }
 
-void TerminalBuffer::reset() {
+void Terminal::resetBuffer() {
     readIndex = 0;
     lineIndex = 0;
     writeIndex = 0;
+    kthread_cond_broadcast(&writeCond);
 }
 
-void TerminalBuffer::write(char c) {
-    while ((writeIndex + 1) % TERMINAL_BUFFER_SIZE == readIndex);
+void Terminal::writeBuffer(char c) {
+    while ((writeIndex + 1) % TERMINAL_BUFFER_SIZE == readIndex) {
+        kthread_cond_sigwait(&writeCond, &mutex);
+    }
+
     circularBuffer[writeIndex] = c;
     writeIndex = (writeIndex + 1) % TERMINAL_BUFFER_SIZE;
 }

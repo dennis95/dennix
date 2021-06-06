@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,27 +13,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/mouse.h
- * Mouse device.
+/* kernel/include/dennix/kernel/worker.h
+ * Kernel worker thread.
  */
 
-#ifndef KERNEL_MOUSE_H
-#define KERNEL_MOUSE_H
+#ifndef KERNEL_WORKER_H
+#define KERNEL_WORKER_H
 
-#include <dennix/mouse.h>
-#include <dennix/kernel/vnode.h>
+#include <dennix/kernel/kernel.h>
 
-class MouseDevice : public Vnode {
-public:
-    MouseDevice();
-    void addPacket(mouse_data data);
-    short poll() override;
-    ssize_t read(void* buffer, size_t size, int flags) override;
-private:
-    mouse_data mouseBuffer[256];
-    size_t readIndex;
-    size_t available;
-    kthread_cond_t readCond;
+struct WorkerJob {
+    void (*func)(void*);
+    void* context;
+    struct WorkerJob* next;
 };
+
+namespace WorkerThread {
+void addJob(WorkerJob* job);
+void initialize();
+}
 
 #endif

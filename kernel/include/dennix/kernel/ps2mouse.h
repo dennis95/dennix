@@ -22,17 +22,24 @@
 
 #include <dennix/kernel/mouse.h>
 #include <dennix/kernel/ps2.h>
+#include <dennix/kernel/worker.h>
 
 class PS2Mouse : public PS2Device {
 public:
     PS2Mouse(bool secondPort);
     void irqHandler() override;
 private:
+    void work();
+    static void worker(void* self);
+private:
     uint8_t buffer[4];
     bool hasMouseWheel;
     unsigned char index;
     bool secondPort;
     Reference<MouseDevice> mouseDevice;
+    mouse_data packetBuffer[128];
+    size_t packetsAvailable;
+    WorkerJob job;
 };
 
 #endif

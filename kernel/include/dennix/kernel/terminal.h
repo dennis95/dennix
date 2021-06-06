@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,23 +26,6 @@
 
 #define TERMINAL_BUFFER_SIZE 4096
 
-class TerminalBuffer {
-public:
-    TerminalBuffer();
-    size_t available();
-    bool backspace();
-    void endLine();
-    bool hasIncompleteLine();
-    char read();
-    void reset();
-    void write(char c);
-private:
-    char circularBuffer[TERMINAL_BUFFER_SIZE];
-    size_t readIndex;
-    size_t lineIndex;
-    size_t writeIndex;
-};
-
 class Terminal : public Vnode, public KeyboardListener {
 public:
     Terminal();
@@ -61,9 +44,23 @@ private:
     void onKeyboardEvent(int key) override;
 private:
     pid_t foregroundGroup;
-    TerminalBuffer terminalBuffer;
     struct termios termio;
     unsigned int numEof;
+    kthread_cond_t readCond;
+    kthread_cond_t writeCond;
+private:
+    size_t dataAvailable();
+    bool backspace();
+    void endLine();
+    bool hasIncompleteLine();
+    char readBuffer();
+    void resetBuffer();
+    void writeBuffer(char c);
+private:
+    char circularBuffer[TERMINAL_BUFFER_SIZE];
+    size_t readIndex;
+    size_t lineIndex;
+    size_t writeIndex;
 };
 
 extern Reference<Terminal> terminal;

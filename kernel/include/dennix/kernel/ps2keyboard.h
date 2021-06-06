@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,6 +22,7 @@
 
 #include <dennix/kernel/keyboard.h>
 #include <dennix/kernel/ps2.h>
+#include <dennix/kernel/worker.h>
 
 class PS2Keyboard : public PS2Device {
 public:
@@ -29,10 +30,15 @@ public:
     void irqHandler() override;
 private:
     void handleKey(int keycode);
+    void work();
+    static void worker(void* self);
 public:
     KeyboardListener* listener;
 private:
     bool secondPort;
+    int buffer[128];
+    size_t available;
+    WorkerJob job;
 };
 
 #endif
