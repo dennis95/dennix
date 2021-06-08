@@ -37,6 +37,7 @@ OBJ = \
 	bga.o \
 	clock.o \
 	conf.o \
+	console.o \
 	cxx.o \
 	devices.o \
 	directory.o \
@@ -71,7 +72,6 @@ OBJ = \
 	symlink.o \
 	syscall.o \
 	terminal.o \
-	terminaldisplay.o \
 	thread.o \
 	vnode.o \
 	worker.o

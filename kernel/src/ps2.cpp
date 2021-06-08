@@ -18,12 +18,12 @@
  */
 
 #include <inttypes.h>
+#include <dennix/kernel/console.h>
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/portio.h>
 #include <dennix/kernel/ps2keyboard.h>
 #include <dennix/kernel/ps2mouse.h>
-#include <dennix/kernel/terminal.h>
 
 #define PS2_DATA_PORT 0x60
 #define PS2_STATUS_PORT 0x64
@@ -138,7 +138,7 @@ static void checkPort(bool secondPort) {
        works without any additional initialization. */
     if (secondPort) return;
     PS2Keyboard* keyboard = xnew PS2Keyboard();
-    keyboard->listener = (Terminal*) terminal;
+    keyboard->listener = (Console*) console;
 
     ps2Device1 = keyboard;
     Interrupts::irqHandlers[1] = irqHandler;
@@ -166,7 +166,7 @@ static void checkPort(bool secondPort) {
         if (id == 0x41 || id == 0xC1 || id == 0x83) {
             // The device identified itself as a keyboard
             PS2Keyboard* keyboard = xnew PS2Keyboard(secondPort);
-            keyboard->listener = (Terminal*) terminal;
+            keyboard->listener = (Console*) console;
             device = keyboard;
         }
     }

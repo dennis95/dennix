@@ -29,6 +29,8 @@ public:
     Reference<Vnode> getRootDir() override;
     void initialize(const Reference<DirectoryVnode>& rootDir);
     bool onUnmount() override;
+public:
+    static const dev_t dev;
 };
 
 extern DevFS devFS;

@@ -13,20 +13,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/src/terminaldisplay.cpp
- * Terminal display with support for ECMA-48 terminal escapes.
+/* kernel/src/console.cpp
+ * System console.
  */
 
 #include <signal.h>
+#include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
-#include <dennix/display.h>
-#include <dennix/kernel/terminal.h>
-#include <dennix/kernel/terminaldisplay.h>
-
-Reference<Display> TerminalDisplay::display;
-
-#define MAX_PARAMS 16
+#include <dennix/kbkeys.h>
+#include <dennix/kernel/console.h>
+#include <dennix/kernel/devices.h>
 
 static const uint32_t vgaColors[16] = {
     RGB(0, 0, 0),
@@ -52,48 +48,80 @@ static const Color defaultColor = {
     .bgColor = vgaColors[0],
     .vgaColor = 0x07
 };
-static bool alternateBuffer = false;
-static Color color = defaultColor;
-static Color savedColor = defaultColor;
-static Color alternateSavedColor = defaultColor;
-static bool fgIsVgaColor = true;
-static CharPos cursorPos;
-static CharPos savedPos;
-static CharPos alternateSavedPos;
-static bool reversedColors;
-
-static bool endOfLine;
-static unsigned int params[MAX_PARAMS];
-static bool paramSpecified[MAX_PARAMS];
-static size_t paramIndex;
-static mbstate_t ps;
-static bool questionMarkModifier;
 static const unsigned int tabsize = 8;
 
-static enum {
+enum {
     NORMAL,
     ESCAPED,
     CSI,
     OSC,
     OSC_ESCAPED,
-} status = NORMAL;
+};
 
-void TerminalDisplay::backspace() {
-    // TODO: When the deleted character was a tab the cursor needs to be moved
-    // by an unknown number of positions but we do not keep track of this
-    // information.
-    if (endOfLine) {
-        endOfLine = false;
-    } else if (cursorPos.x == 0 && cursorPos.y > 0) {
-        cursorPos.x = display->columns - 1;
-        cursorPos.y--;
-    } else {
-        cursorPos.x--;
-    }
-    display->putCharacter(cursorPos, '\0', color);
+static Console _console;
+Reference<Console> console(&_console);
+
+Console::Console() : Terminal(DevFS::dev) {
+    alternateBuffer = false;
+    color = defaultColor;
+    savedColor = defaultColor;
+    alternateSavedColor = defaultColor;
+    fgIsVgaColor = true;
+    cursorPos = {0, 0};
+    savedPos = {0, 0};
+    alternateSavedPos = {0, 0};
+    reversedColors = false;
+    endOfLine = false;
+    ps = {};
+    questionMarkModifier = false;
+    status = NORMAL;
 }
 
-static void setGraphicsRendition() {
+void Console::handleSequence(const char* sequence) {
+    while (*sequence) {
+        handleCharacter(*sequence++);
+    }
+}
+
+void Console::onKeyboardEvent(int key) {
+    wchar_t wc = Keyboard::getWideCharFromKey(key);
+    if (!(termio.c_cflag & CREAD)) return;
+
+    if (termio.c_lflag & _KBWC) {
+        struct kbwc kbwc;
+        kbwc.kb = key;
+        kbwc.wc = wc;
+        const char* bytes = (const char*) &kbwc;
+
+        for (size_t i = 0; i < sizeof(kbwc); i++) {
+            writeBuffer(bytes[i]);
+        }
+        endLine();
+        return;
+    }
+
+    if (wc != L'\0') {
+        char buffer[MB_CUR_MAX];
+        size_t bytes = wcrtomb(buffer, wc, nullptr);
+        for (size_t i = 0; i < bytes; i++) {
+            handleCharacter(buffer[i]);
+        }
+    } else {
+        const char* sequence = Keyboard::getSequenceFromKey(key);
+        if (sequence) {
+            handleSequence(sequence);
+        }
+    }
+}
+
+void Console::output(const char* buffer, size_t size) {
+    for (size_t i = 0; i < size; i++) {
+        printCharacter(buffer[i]);
+    }
+    display->setCursorPos(cursorPos);
+}
+
+void Console::setGraphicsRendition() {
     for (size_t i = 0; i <= paramIndex; i++) {
         unsigned int param = params[i];
         const uint8_t ansiToVga[] = { 0, 4, 2, 6, 1, 5, 3, 7 };
@@ -184,7 +212,7 @@ static void setGraphicsRendition() {
     }
 }
 
-void TerminalDisplay::printCharacter(char c) {
+void Console::printCharacter(char c) {
     if (likely(status == NORMAL && (!mbsinit(&ps) || c != '\e'))) {
         printCharacterRaw(c);
         return;
@@ -431,7 +459,7 @@ static Color reverse(Color c) {
     return result;
 }
 
-void TerminalDisplay::printCharacterRaw(char c) {
+void Console::printCharacterRaw(char c) {
     wchar_t wc;
     size_t result = mbrtowc(&wc, &c, 1, &ps);
     if (result == (size_t) -2) { // incomplete character
@@ -444,6 +472,18 @@ void TerminalDisplay::printCharacterRaw(char c) {
     Color currentColor = color;
     if (reversedColors) {
         currentColor = reverse(color);
+    }
+
+    if (wc == L'\b') {
+        if (endOfLine) {
+            endOfLine = false;
+        } else if (cursorPos.x == 0 && cursorPos.y > 0) {
+            cursorPos.x = display->columns - 1;
+            cursorPos.y--;
+        } else {
+            cursorPos.x--;
+        }
+        return;
     }
 
     if (endOfLine || wc == L'\n') {
@@ -478,11 +518,7 @@ void TerminalDisplay::printCharacterRaw(char c) {
     }
 }
 
-void TerminalDisplay::updateCursorPosition() {
-    display->setCursorPos(cursorPos);
-}
-
-void TerminalDisplay::updateDisplaySize() {
+void Console::updateDisplaySize() {
     if (cursorPos.x >= display->columns) {
         cursorPos.x = display->columns - 1;
     }
@@ -496,6 +532,10 @@ void TerminalDisplay::updateDisplaySize() {
         savedPos.y = display->rows - 1;
     }
 
-    updateCursorPosition();
-    terminal->raiseSignal(SIGWINCH);
+    struct winsize ws;
+    ws.ws_col = display->columns;
+    ws.ws_row = display->rows;
+    setWinsize(&ws);
+
+    display->setCursorPos(cursorPos);
 }

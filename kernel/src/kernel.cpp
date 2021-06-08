@@ -21,6 +21,7 @@
 #include <string.h>
 #include <dennix/fcntl.h>
 #include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/console.h>
 #include <dennix/kernel/devices.h>
 #include <dennix/kernel/directory.h>
 #include <dennix/kernel/file.h>
@@ -33,7 +34,6 @@
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/ps2.h>
 #include <dennix/kernel/rtc.h>
-#include <dennix/kernel/terminal.h>
 #include <dennix/kernel/worker.h>
 
 #ifndef DENNIX_VERSION
@@ -108,8 +108,8 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     assert(initProcess->pid == 1);
     Process::initProcess = initProcess;
 
-    initProcess->controllingTerminal = terminal;
-    Reference<FileDescription> descr = xnew FileDescription(terminal, O_RDWR);
+    initProcess->controllingTerminal = console;
+    Reference<FileDescription> descr = xnew FileDescription(console, O_RDWR);
     initProcess->addFileDescriptor(descr, 0); // stdin
     initProcess->addFileDescriptor(descr, 0); // stdout
     initProcess->addFileDescriptor(descr, 0); // stderr

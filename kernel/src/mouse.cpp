@@ -27,8 +27,7 @@
 
 #define BUFFER_ITEMS (sizeof(mouseBuffer) / sizeof(mouse_data))
 
-MouseDevice::MouseDevice() : Vnode(S_IFCHR | 0666,
-        devFS.getRootDir()->stat().st_dev) {
+MouseDevice::MouseDevice() : Vnode(S_IFCHR | 0666, DevFS::dev) {
     readIndex = 0;
     available = 0;
     readCond = KTHREAD_COND_INITIALIZER;

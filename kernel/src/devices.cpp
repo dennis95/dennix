@@ -22,11 +22,11 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <dennix/poll.h>
+#include <dennix/kernel/console.h>
 #include <dennix/kernel/devices.h>
 #include <dennix/kernel/mouse.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/process.h>
-#include <dennix/kernel/terminaldisplay.h>
 
 class DevDir : public DirectoryVnode {
 public:
@@ -43,10 +43,11 @@ public:
 static DevDir _devDir;
 static Reference<DevDir> devDir(&_devDir);
 DevFS devFS;
+const dev_t DevFS::dev = (dev_t) &_devDir;
 
 class CharDevice : public Vnode {
 public:
-    CharDevice() : Vnode(S_IFCHR | 0666, devDir->stats.st_dev) {}
+    CharDevice() : Vnode(S_IFCHR | 0666, DevFS::dev) {}
 
     short poll() override {
         return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM;
@@ -95,7 +96,7 @@ public:
 
 class DevTty : public Vnode {
 public:
-    DevTty() : Vnode(S_IFCHR | 0666, devDir->stats.st_dev) {}
+    DevTty() : Vnode(S_IFCHR | 0666, DevFS::dev) {}
 
     Reference<Vnode> resolve() override {
         return Process::current()->controllingTerminal;
@@ -119,17 +120,18 @@ void DevFS::initialize(const Reference<DirectoryVnode>& rootDir) {
     if (!dir || dir->mount(this) < 0) {
         PANIC("Could not mount /dev filesystem.");
     }
+    addDevice("console", console);
     addDevice("full", xnew DevFull());
     addDevice("null", xnew DevNull());
     addDevice("zero", xnew DevZero());
-    addDevice("display", TerminalDisplay::display);
+    addDevice("display", console->display);
     Reference<Vnode> random = xnew DevRandom();
     addDevice("random", random);
     addDevice("urandom", random);
     addDevice("tty", xnew DevTty());
 
     // Update the /dev/display timestamp to avoid a 1970 timestamp.
-    TerminalDisplay::display->updateTimestampsLocked(true, true, true);
+    console->display->updateTimestampsLocked(true, true, true);
 }
 
 bool DevFS::onUnmount() {

@@ -319,7 +319,7 @@ bool AtaChannel::writeSectors(const char* buffer, size_t sectorCount,
 
 AtaDevice::AtaDevice(AtaChannel* channel, bool secondary, uint64_t sectors,
         uint64_t sectorSize, bool lba48Supported) : Vnode(S_IFBLK | 0644,
-        devFS.getRootDir()->stat().st_dev) {
+        DevFS::dev) {
     this->channel = channel;
     this->secondary = secondary;
     this->sectors = sectors;

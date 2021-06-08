@@ -85,7 +85,7 @@ void Partition::scanPartitions(const Reference<Vnode>& device,
 }
 
 Partition::Partition(const Reference<Vnode>& device, off_t offset, size_t size)
-        : Vnode(S_IFBLK | 0644, devFS.getRootDir()->stat().st_dev),
+        : Vnode(S_IFBLK | 0644, DevFS::dev),
         device(device) {
     partitionOffset = offset;
     stats.st_size = size;

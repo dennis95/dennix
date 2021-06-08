@@ -19,11 +19,11 @@
 
 #include <assert.h>
 #include <signal.h>
+#include <dennix/kernel/console.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/portio.h>
 #include <dennix/kernel/registers.h>
 #include <dennix/kernel/signal.h>
-#include <dennix/kernel/terminaldisplay.h>
 #include <dennix/kernel/thread.h>
 
 #define PIC1_COMMAND 0x20
@@ -174,7 +174,7 @@ handleKernelException:
         }
 
         if (irq == 0) {
-            TerminalDisplay::display->update();
+            console->display->update();
             newContext = Thread::schedule(context);
         }
 
