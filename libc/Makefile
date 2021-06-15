@@ -261,17 +261,21 @@ LIBC_OBJ = \
 	stdlib/_Exit \
 	stdlib/exit \
 	stdlib/getenv \
+	stdlib/grantpt \
 	stdlib/mkdtemp \
 	stdlib/mkostemp \
 	stdlib/mkostemps \
 	stdlib/mkstemp \
 	stdlib/mkstemps \
+	stdlib/posix_openpt \
+	stdlib/ptsname \
 	stdlib/realpath \
 	stdlib/setenv \
 	stdlib/strtod \
 	stdlib/strtof \
 	stdlib/strtold \
 	stdlib/system \
+	stdlib/unlockpt \
 	stdlib/unsetenv \
 	string/strcoll \
 	string/strxfrm \

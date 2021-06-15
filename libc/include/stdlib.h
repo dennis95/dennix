@@ -97,10 +97,14 @@ unsigned long long strtoull(const char* __restrict, char** __restrict, int);
 #endif
 
 #if __USE_DENNIX || __USE_POSIX
+int grantpt(int);
 char* mkdtemp(char*);
 int mkstemp(char*);
+int posix_openpt(int);
+char* ptsname(int);
 char* realpath(const char* __restrict, char* __restrict);
 int setenv(const char*, const char*, int);
+int unlockpt(int);
 int unsetenv(const char*);
 #endif
 
