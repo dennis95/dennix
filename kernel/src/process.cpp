@@ -65,6 +65,7 @@ Process::Process() : mainThread(this) {
     prevInGroup = nullptr;
     pgid = -1;
     pid = -1;
+    sid = -1;
     rootFd = nullptr;
     memset(sigactions, '\0', sizeof(sigactions));
     sigreturn = 0;
@@ -83,6 +84,7 @@ bool Process::addProcess(Process* process) {
     process->pid = processes.add({process, group});
     if (process->pgid == -1) {
         process->pgid = process->pid;
+        process->sid = process->pid;
     }
     return process->pid != -1;
 }
@@ -463,6 +465,7 @@ Process* Process::regfork(int /*flags*/, regfork_t* registers) {
     process->controllingTerminal = controllingTerminal;
     process->cwdFd = cwdFd;
     process->pgid = pgid;
+    process->sid = sid;
     process->rootFd = rootFd;
     process->sigreturn = sigreturn;
     process->umask = umask;
@@ -497,7 +500,8 @@ Process* Process::regfork(int /*flags*/, regfork_t* registers) {
 }
 
 void Process::removeFromGroup() {
-    AutoLock lock(&processesMutex);
+    // processesMutex must be held when calling this function.
+
     Process* groupLeader = processes[pgid].processGroup;
     kthread_mutex_lock(&groupLeader->groupMutex);
 
@@ -533,15 +537,23 @@ int Process::setpgid(pid_t pgid) {
     }
 
     if (this->pgid == pgid) return 0;
-    removeFromGroup();
-    this->pgid = pgid;
 
-    AutoLock lock(&processesMutex);
-    if (pgid >= processes.allocatedSize ||
-            (!processes[pgid].processGroup && pgid != pid)) {
+    if (sid == pid) {
         errno = EPERM;
         return -1;
     }
+
+    AutoLock lock(&processesMutex);
+    if (pgid >= processes.allocatedSize ||
+            (!processes[pgid].processGroup && pgid != pid) ||
+            (processes[pgid].processGroup &&
+            processes[pgid].processGroup->sid != sid)) {
+        errno = EPERM;
+        return -1;
+    }
+
+    removeFromGroup();
+    this->pgid = pgid;
 
     if (!processes[pgid].processGroup) {
         processes[pgid].processGroup = this;
@@ -560,12 +572,34 @@ int Process::setpgid(pid_t pgid) {
     return 0;
 }
 
-void Process::terminate() {
+pid_t Process::setsid() {
+    AutoLock lock(&processesMutex);
+    if (processes[pid].processGroup) {
+        errno = EPERM;
+        return -1;
+    }
+
     removeFromGroup();
+    pgid = pid;
+    sid = pid;
+    controllingTerminal = nullptr;
+    processes[pid].processGroup = this;
+    return pgid;
+}
+
+void Process::terminate() {
+    kthread_mutex_lock(&processesMutex);
+    removeFromGroup();
+    kthread_mutex_unlock(&processesMutex);
 
     rootFd = nullptr;
     cwdFd = nullptr;
     fdTable.clear();
+
+    if (sid == pid && controllingTerminal) {
+        controllingTerminal->exitSession();
+    }
+    controllingTerminal = nullptr;
 
     kthread_mutex_lock(&childrenMutex);
     if (firstChild) {

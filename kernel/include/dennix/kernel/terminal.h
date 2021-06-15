@@ -32,6 +32,7 @@ public:
     Terminal(dev_t dev);
     int devctl(int command, void* restrict data, size_t size,
             int* restrict info) override;
+    void exitSession();
     void hangup();
     int isatty() override;
     short poll() override;
@@ -57,6 +58,7 @@ private:
 protected:
     struct termios termio;
     bool hungup;
+    pid_t sid;
 private:
     pid_t foregroundGroup;
     unsigned int numEof;

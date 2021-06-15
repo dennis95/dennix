@@ -54,6 +54,7 @@ public:
     void raiseSignalForGroup(siginfo_t siginfo);
     Process* regfork(int flags, regfork_t* registers);
     int setpgid(pid_t pgid);
+    pid_t setsid();
     void terminateBySignal(siginfo_t siginfo);
     Process* waitpid(pid_t pid, int flags);
 private:
@@ -69,6 +70,7 @@ public:
     Thread mainThread;
     pid_t pid;
     pid_t pgid;
+    pid_t sid;
     Reference<FileDescription> rootFd;
     struct sigaction sigactions[NSIG];
     vaddr_t sigreturn;

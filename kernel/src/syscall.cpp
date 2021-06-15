@@ -101,6 +101,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_FPATHCONF] =*/ (void*) Syscall::fpathconf,
     /*[SYSCALL_FSSYNC] =*/ (void*) Syscall::fssync,
     /*[SYSCALL_FCHOWN] =*/ (void*) Syscall::fchown,
+    /*[SYSCALL_SETSID] =*/ (void*) Syscall::setsid,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -709,9 +710,17 @@ int Syscall::setpgid(pid_t pid, pid_t pgid) {
             errno = ESRCH;
             return -1;
         }
+        if (process->sid != Process::current()->sid) {
+            errno = EPERM;
+            return -1;
+        }
     }
 
     return process->setpgid(pgid);
+}
+
+pid_t Syscall::setsid() {
+    return Process::current()->setsid();
 }
 
 int Syscall::sigtimedwait(const sigset_t* set, siginfo_t* info,

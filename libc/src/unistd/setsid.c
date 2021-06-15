@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018, 2019, 2021 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,40 +13,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/termios.h
- * Terminal I/O.
+/* libc/src/unistd/setsid.c
+ * Create a new session.
  */
 
-#ifndef _TERMIOS_H
-#define _TERMIOS_H
+#include <unistd.h>
+#include <sys/syscall.h>
 
-#include <sys/cdefs.h>
-#define __need_pid_t
-#include <bits/types.h>
-#include <dennix/termios.h>
-#if __USE_DENNIX
-#  include <dennix/winsize.h>
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-speed_t cfgetispeed(const struct termios*);
-speed_t cfgetospeed(const struct termios*);
-int cfsetispeed(struct termios*, speed_t);
-int cfsetospeed(struct termios*, speed_t);
-int tcflush(int, int);
-int tcgetattr(int, struct termios*);
-int tcsetattr(int, int, const struct termios*);
-
-#if __USE_DENNIX
-int tcgetwinsize(int, struct winsize*);
-int tcsetsid(int, pid_t);
-#endif
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+DEFINE_SYSCALL_GLOBAL(SYSCALL_SETSID, pid_t, setsid, (void));

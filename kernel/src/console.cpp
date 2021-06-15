@@ -62,6 +62,7 @@ static Console _console;
 Reference<Console> console(&_console);
 
 Console::Console() : Terminal(DevFS::dev) {
+    sid = 1;
     alternateBuffer = false;
     color = defaultColor;
     savedColor = defaultColor;

@@ -42,7 +42,7 @@
 #define OPOST (1 << 0) /* unimplemented */
 
 /* Control modes */
-#define CLOCAL (1 << 0) /* unimplemented */
+#define CLOCAL (1 << 0)
 #define CREAD (1 << 1)
 #define CS5 (0 << 2) /* unimplemented */
 #define CS6 (1 << 2) /* unimplemented */

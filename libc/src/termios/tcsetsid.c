@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018, 2019, 2021 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,40 +13,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/termios.h
- * Terminal I/O.
+/* libc/src/termios/tcsetsid.c
+ * Make a terminal the controlling terminal of a session.
  */
 
-#ifndef _TERMIOS_H
-#define _TERMIOS_H
+#include <devctl.h>
+#include <errno.h>
+#include <termios.h>
+#include <unistd.h>
 
-#include <sys/cdefs.h>
-#define __need_pid_t
-#include <bits/types.h>
-#include <dennix/termios.h>
-#if __USE_DENNIX
-#  include <dennix/winsize.h>
-#endif
+int tcsetsid(int fd, pid_t pid) {
+    if (pid != getpid()) {
+        errno = EPERM;
+        return -1;
+    }
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-speed_t cfgetispeed(const struct termios*);
-speed_t cfgetospeed(const struct termios*);
-int cfsetispeed(struct termios*, speed_t);
-int cfsetospeed(struct termios*, speed_t);
-int tcflush(int, int);
-int tcgetattr(int, struct termios*);
-int tcsetattr(int, int, const struct termios*);
-
-#if __USE_DENNIX
-int tcgetwinsize(int, struct winsize*);
-int tcsetsid(int, pid_t);
-#endif
-
-#ifdef __cplusplus
+    int info;
+    errno = posix_devctl(fd, TIOCSCTTY, NULL, 0, &info);
+    if (errno == EINVAL) errno = ENOTTY;
+    return info;
 }
-#endif
-
-#endif

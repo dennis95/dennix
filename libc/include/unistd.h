@@ -178,6 +178,7 @@ ssize_t readlink(const char* __restrict, char* __restrict, size_t);
 ssize_t readlinkat(int, const char* __restrict, char* __restrict, size_t);
 int rmdir(const char*);
 int setpgid(pid_t, pid_t);
+pid_t setsid(void);
 unsigned int sleep(unsigned int);
 int symlink(const char*, const char*);
 int symlinkat(const char*, int, const char*);

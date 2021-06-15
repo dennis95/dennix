@@ -318,6 +318,7 @@ LIBC_OBJ = \
 	termios/tcgetattr \
 	termios/tcgetwinsize \
 	termios/tcsetattr \
+	termios/tcsetsid \
 	time/asctime \
 	time/clock_gettime \
 	time/clock_nanosleep \
@@ -380,6 +381,7 @@ LIBC_OBJ = \
 	unistd/regfork \
 	unistd/rmdir \
 	unistd/setpgid \
+	unistd/setsid \
 	unistd/sleep \
 	unistd/symlink \
 	unistd/symlinkat \

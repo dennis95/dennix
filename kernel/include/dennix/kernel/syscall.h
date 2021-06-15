@@ -92,6 +92,7 @@ ssize_t readlinkat(int fd, const char* restrict path, char* restrict buffer,
 int renameat(int oldFd, const char* oldPath, int newFd, const char* newPath);
 pid_t regfork(int flags, regfork_t* registers);
 int setpgid(pid_t pid, pid_t pgid);
+pid_t setsid();
 int sigaction(int signal, const struct sigaction* restrict action,
         struct sigaction* restrict old);
 int sigprocmask(int how, const sigset_t* restrict set, sigset_t* restrict old);

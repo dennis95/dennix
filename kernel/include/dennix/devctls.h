@@ -26,6 +26,8 @@
 /* Devctl numbers that are defined by default in <devctl.h> and <sys/ioctl.h>
    are defined here. More devctl numbers are defined in <dennix/display.h>. */
 
+#define TIOCSCTTY _DEVCTL(_IOCTL_VOID, 0)
+
 /* _IOCTL_INT 0 is used in <dennix/display.h>. */
 #define TCFLSH _DEVCTL(_IOCTL_INT, 1)
 

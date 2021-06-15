@@ -49,6 +49,7 @@ Terminal::Terminal(dev_t dev) : Vnode(S_IFCHR | 0666, dev) {
     termio.c_cc[VTIME] = 0;
 
     foregroundGroup = -1;
+    sid = -1;
     numEof = 0;
     readCond = KTHREAD_COND_INITIALIZER;
     writeCond = KTHREAD_COND_INITIALIZER;
@@ -114,7 +115,15 @@ void Terminal::handleCharacter(char c) {
 void Terminal::hangup() {
     AutoLock lock(&mutex);
 
-    // TODO: Send SIGHUP to controlling process
+    if (sid != -1 && !(termio.c_cflag & CLOCAL)) {
+        Process* controllingProcess = Process::get(sid);
+        if (controllingProcess) {
+            siginfo_t siginfo = {};
+            siginfo.si_signo = SIGHUP;
+            siginfo.si_code = SI_KERNEL;
+            controllingProcess->raiseSignal(siginfo);
+        }
+    }
 
     hungup = true;
     kthread_cond_broadcast(&readCond);
@@ -219,10 +228,38 @@ int Terminal::devctl(int command, void* restrict data, size_t size,
             return ERANGE;
         }
     } break;
+    case TIOCSCTTY: {
+        if (data || size) {
+            *info = -1;
+            return EINVAL;
+        }
+
+        if (sid != -1) {
+            *info = -1;
+            return EPERM;
+        }
+
+        Process* process = Process::current();
+        if (process->sid != process->pid) {
+            *info = -1;
+            return EPERM;
+        }
+
+        process->controllingTerminal = this;
+        sid = process->sid;
+        foregroundGroup = process->pgid;
+        *info = 0;
+        return 0;
+    } break;
     default:
         *info = -1;
         return EINVAL;
     }
+}
+
+void Terminal::exitSession() {
+    sid = -1;
+    foregroundGroup = -1;
 }
 
 int Terminal::isatty() {
