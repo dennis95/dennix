@@ -31,6 +31,7 @@ public:
     Console();
     void updateDisplaySize();
 protected:
+    bool getTtyPath(char* buffer, size_t size) override;
     void output(const char* buffer, size_t size);
 private:
     void handleSequence(const char* sequence);

@@ -61,7 +61,7 @@
 #define ECHONL (1 << 3)
 /* Non-standard flag that causes the terminal to transmit key-codepoint pairs
    instead of bytes. See struct kbwc in <dennix/kbkeys.h>. Disables most
-   terminal-specific processing of input. */
+   terminal-specific processing of input. Ignored for pseudo terminals. */
 #define _KBWC (1 << 4)
 #define ECHOE (1 << 5)
 #define ECHOK (1 << 6)

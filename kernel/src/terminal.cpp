@@ -55,6 +55,9 @@ Terminal::Terminal(dev_t dev) : Vnode(S_IFCHR | 0666, dev) {
     readIndex = 0;
     lineIndex = 0;
     writeIndex = 0;
+    winsize.ws_row = 80;
+    winsize.ws_col = 25;
+    hungup = false;
 }
 
 static bool isSpecialChar(unsigned char c) {
@@ -106,6 +109,15 @@ void Terminal::handleCharacter(char c) {
             endLine();
         }
     }
+}
+
+void Terminal::hangup() {
+    AutoLock lock(&mutex);
+
+    // TODO: Send SIGHUP to controlling process
+
+    hungup = true;
+    kthread_cond_broadcast(&readCond);
 }
 
 int Terminal::devctl(int command, void* restrict data, size_t size,
@@ -197,6 +209,16 @@ int Terminal::devctl(int command, void* restrict data, size_t size,
         *info = 0;
         return 0;
     } break;
+    case TIOCGPATH: {
+        if (size == 0) size = TTY_NAME_MAX + 1;
+        if (getTtyPath((char*) data, size)) {
+            *info = 0;
+            return 0;
+        } else {
+            *info = -1;
+            return ERANGE;
+        }
+    } break;
     default:
         *info = -1;
         return EINVAL;
@@ -209,8 +231,13 @@ int Terminal::isatty() {
 
 short Terminal::poll() {
     AutoLock lock(&mutex);
-    short result = POLLOUT | POLLWRNORM;
+    short result = 0;
     if (dataAvailable()) result |= POLLIN | POLLRDNORM;
+    if (hungup) {
+        result |= POLLHUP;
+    } else {
+        result |= POLLOUT | POLLWRNORM;
+    }
     return result;
 }
 
@@ -235,7 +262,7 @@ ssize_t Terminal::read(void* buffer, size_t size, int flags) {
 
     size_t min = termio.c_lflag & ICANON ? 1 : termio.c_cc[VMIN];
     while (readSize < size) {
-        while (dataAvailable() < min && !numEof) {
+        while (dataAvailable() < min && !numEof && !hungup) {
             if (readSize) {
                 updateTimestamps(true, false, false);
                 return readSize;
@@ -257,12 +284,12 @@ ssize_t Terminal::read(void* buffer, size_t size, int flags) {
         }
         min = 1;
 
-        if (numEof) {
+        if (numEof || hungup) {
             if (readSize) {
                 updateTimestamps(true, false, false);
                 return readSize;
             }
-            numEof--;
+            if (numEof) numEof--;
             return 0;
         } else if (dataAvailable() == 0) {
             return 0;
@@ -311,8 +338,14 @@ int Terminal::tcsetattr(int flags, const struct termios* termio) {
 }
 
 ssize_t Terminal::write(const void* buffer, size_t size, int /*flags*/) {
-    if (size == 0) return 0;
     AutoLock lock(&mutex);
+
+    if (hungup) {
+        errno = EIO;
+        return -1;
+    }
+
+    if (size == 0) return 0;
     const char* buf = (const char*) buffer;
     output(buf, size);
 
@@ -341,6 +374,10 @@ bool Terminal::backspace() {
     return true;
 }
 
+bool Terminal::canWriteBuffer() {
+    return (writeIndex + 1) % TERMINAL_BUFFER_SIZE != readIndex;
+}
+
 void Terminal::endLine() {
     lineIndex = writeIndex;
     kthread_cond_broadcast(&readCond);
@@ -365,7 +402,7 @@ void Terminal::resetBuffer() {
 }
 
 void Terminal::writeBuffer(char c) {
-    while ((writeIndex + 1) % TERMINAL_BUFFER_SIZE == readIndex) {
+    while (!canWriteBuffer()) {
         kthread_cond_sigwait(&writeCond, &mutex);
     }
 

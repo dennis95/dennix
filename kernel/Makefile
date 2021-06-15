@@ -64,6 +64,7 @@ OBJ = \
 	ps2.o \
 	ps2keyboard.o \
 	ps2mouse.o \
+	pseudoterminal.o \
 	random.o \
 	refcount.o \
 	rtc.o \

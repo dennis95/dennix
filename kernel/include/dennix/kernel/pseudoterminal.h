@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,19 +13,28 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/limits.h
- * Implementation limits.
+/* kernel/include/dennix/kernel/pseudoterminal.h
+ * Pseudo terminals.
  */
 
-#ifndef _DENNIX_LIMITS_H
-#define _DENNIX_LIMITS_H
+#ifndef KERNEL_PSEUDOTERMINAL_H
+#define KERNEL_PSEUDOTERMINAL_H
 
-#define FILESIZEBITS 64
-#define _GETENTROPY_MAX 256
-#define PAGESIZE 0x1000
-#define PAGE_SIZE PAGESIZE
-#define PIPE_BUF 4096
-#define SYMLOOP_MAX 20
-#define TTY_NAME_MAX 20
+#include <dennix/kernel/terminal.h>
+
+class DevPtmx : public Vnode {
+public:
+    DevPtmx();
+    Reference<Vnode> resolve() override;
+};
+
+class DevPts : public Vnode {
+public:
+    DevPts();
+    Reference<Vnode> getChildNode(const char* name) override;
+    Reference<Vnode> getChildNode(const char* path, size_t length) override;
+    size_t getDirectoryEntries(void** buffer, int flags) override;
+    Reference<Vnode> open(const char* name, int flags, mode_t mode) override;
+};
 
 #endif

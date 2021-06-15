@@ -32,6 +32,7 @@ public:
     Terminal(dev_t dev);
     int devctl(int command, void* restrict data, size_t size,
             int* restrict info) override;
+    void hangup();
     int isatty() override;
     short poll() override;
     ssize_t read(void* buffer, size_t size, int flags) override;
@@ -40,12 +41,14 @@ public:
     int tcsetattr(int flags, const struct termios* termios) override;
     ssize_t write(const void* buffer, size_t size, int flags) override;
 protected:
+    bool canWriteBuffer();
+    size_t dataAvailable();
     void endLine();
+    virtual bool getTtyPath(char* buffer, size_t size) = 0;
     void handleCharacter(char c);
     virtual void output(const char* buffer, size_t size) = 0;
     void writeBuffer(char c);
 private:
-    size_t dataAvailable();
     bool backspace();
     bool hasIncompleteLine();
     void raiseSignal(int signal);
@@ -53,6 +56,7 @@ private:
     void resetBuffer();
 protected:
     struct termios termio;
+    bool hungup;
 private:
     pid_t foregroundGroup;
     unsigned int numEof;

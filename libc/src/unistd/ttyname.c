@@ -17,12 +17,16 @@
  * Get the name of a terminal.
  */
 
+#include <devctl.h>
+#include <errno.h>
+#include <limits.h>
 #include <unistd.h>
 
+static char buffer[TTY_NAME_MAX + 1];
+
 char* ttyname(int fd) {
-    (void) fd;
-    // This implementation only works because we currently only support a single
-    // terminal. When we implement pseudoterminals we will need a real
-    // implementation of this function.
-    return "/dev/tty";
+    errno = posix_devctl(fd, TIOCGPATH, buffer, sizeof(buffer), NULL);
+    if (errno == EINVAL) errno = ENOTTY;
+    if (errno) return NULL;
+    return buffer;
 }

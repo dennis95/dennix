@@ -77,6 +77,10 @@ Console::Console() : Terminal(DevFS::dev) {
     status = NORMAL;
 }
 
+bool Console::getTtyPath(char* buffer, size_t size) {
+    return strlcpy(buffer, "/dev/console", size) < size;
+}
+
 void Console::handleSequence(const char* sequence) {
     while (*sequence) {
         handleCharacter(*sequence++);
@@ -84,6 +88,8 @@ void Console::handleSequence(const char* sequence) {
 }
 
 void Console::onKeyboardEvent(int key) {
+    AutoLock lock(&mutex);
+
     wchar_t wc = Keyboard::getWideCharFromKey(key);
     if (!(termio.c_cflag & CREAD)) return;
 

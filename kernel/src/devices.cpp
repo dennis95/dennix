@@ -27,6 +27,7 @@
 #include <dennix/kernel/mouse.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/process.h>
+#include <dennix/kernel/pseudoterminal.h>
 
 class DevDir : public DirectoryVnode {
 public:
@@ -121,14 +122,16 @@ void DevFS::initialize(const Reference<DirectoryVnode>& rootDir) {
         PANIC("Could not mount /dev filesystem.");
     }
     addDevice("console", console);
+    addDevice("display", console->display);
     addDevice("full", xnew DevFull());
     addDevice("null", xnew DevNull());
-    addDevice("zero", xnew DevZero());
-    addDevice("display", console->display);
+    addDevice("ptmx", xnew DevPtmx());
+    addDevice("pts", xnew DevPts());
     Reference<Vnode> random = xnew DevRandom();
     addDevice("random", random);
-    addDevice("urandom", random);
     addDevice("tty", xnew DevTty());
+    addDevice("urandom", random);
+    addDevice("zero", xnew DevZero());
 
     // Update the /dev/display timestamp to avoid a 1970 timestamp.
     console->display->updateTimestampsLocked(true, true, true);
