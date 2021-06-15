@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -45,7 +45,7 @@ public:
     int close(int fd);
     int dup3(int fd1, int fd2, int flags);
     void exit(int status);
-    int execute(const Reference<Vnode>& vnode, char* const argv[],
+    int execute(Reference<Vnode>& vnode, char* const argv[],
             char* const envp[]);
     int fcntl(int fd, int cmd, int param);
     Reference<FileDescription> getFd(int fd);
@@ -54,6 +54,7 @@ public:
     void raiseSignalForGroup(siginfo_t siginfo);
     Process* regfork(int flags, regfork_t* registers);
     int setpgid(pid_t pgid);
+    pid_t setsid();
     void terminateBySignal(siginfo_t siginfo);
     Process* waitpid(pid_t pid, int flags);
 private:
@@ -69,6 +70,7 @@ public:
     Thread mainThread;
     pid_t pid;
     pid_t pgid;
+    pid_t sid;
     Reference<FileDescription> rootFd;
     struct sigaction sigactions[NSIG];
     vaddr_t sigreturn;
@@ -97,7 +99,8 @@ public:
 private:
     static int copyArguments(char* const argv[], char* const envp[],
             char**& newArgv, char**& newEnvp, AddressSpace* newAddressSpace);
-    static uintptr_t loadELF(uintptr_t elf, AddressSpace* newAddressSpace);
+    static uintptr_t loadELF(const Reference<Vnode>& vnode,
+            AddressSpace* newAddressSpace);
 };
 
 #endif

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,6 +26,8 @@
 #include <dennix/kernel/kthread.h>
 #include <dennix/kernel/refcount.h>
 
+class FileSystem;
+
 class Vnode : public ReferenceCounted {
 public:
     virtual Reference<Vnode> accept(struct sockaddr* address,
@@ -41,7 +43,7 @@ public:
     virtual int ftruncate(off_t length);
     virtual Reference<Vnode> getChildNode(const char* path);
     virtual Reference<Vnode> getChildNode(const char* path, size_t length);
-    virtual size_t getDirectoryEntries(void** buffer);
+    virtual size_t getDirectoryEntries(void** buffer, int flags);
     virtual char* getLinkTarget();
     virtual int isatty();
     virtual bool isSeekable();
@@ -49,29 +51,35 @@ public:
     virtual int listen(int backlog);
     virtual off_t lseek(off_t offset, int whence);
     virtual int mkdir(const char* name, mode_t mode);
+    virtual int mount(FileSystem* filesystem);
     virtual void onLink();
-    virtual bool onUnlink();
+    virtual bool onUnlink(bool force);
     virtual Reference<Vnode> open(const char* name, int flags, mode_t mode);
+    virtual long pathconf(int name);
     virtual short poll();
     virtual ssize_t pread(void* buffer, size_t size, off_t offset, int flags);
     virtual ssize_t pwrite(const void* buffer, size_t size, off_t offset,
                 int flags);
     virtual ssize_t read(void* buffer, size_t size, int flags);
     virtual ssize_t readlink(char* buffer, size_t size);
-    virtual int rename(Reference<Vnode>& oldDirectory, const char* oldName,
-            const char* newName);
+    virtual int rename(const Reference<Vnode>& oldDirectory,
+            const char* oldName, const char* newName);
+    virtual Reference<Vnode> resolve();
     virtual int stat(struct stat* result);
     struct stat stat();
+    virtual int symlink(const char* linkTarget, const char* name);
+    virtual int sync(int flags);
     virtual int tcgetattr(struct termios* result);
     virtual int tcsetattr(int flags, const struct termios* termio);
     virtual int unlink(const char* name, int flags);
+    virtual int unmount();
     void updateTimestampsLocked(bool access, bool status, bool modification);
     virtual int utimens(struct timespec atime, struct timespec mtime);
     virtual ssize_t write(const void* buffer, size_t size, int flags);
     virtual ~Vnode();
 protected:
     Vnode(mode_t mode, dev_t dev);
-    void updateTimestamps(bool access, bool status, bool modification);
+    virtual void updateTimestamps(bool access, bool status, bool modification);
 public:
     kthread_mutex_t mutex;
     struct stat stats;

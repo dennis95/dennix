@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -33,13 +33,17 @@ LIBS += -lk -lgcc
 
 OBJ = \
 	addressspace.o \
+	ata.o \
 	bga.o \
 	clock.o \
 	conf.o \
+	console.o \
 	cxx.o \
 	devices.o \
 	directory.o \
 	display.o \
+	ext234fs.o \
+	ext234vnode.o \
 	file.o \
 	filedescription.o \
 	initrd.o \
@@ -51,6 +55,7 @@ OBJ = \
 	memorysegment.o \
 	mouse.o \
 	panic.o \
+	partition.o \
 	pci.o \
 	physicalmemory.o \
 	pipe.o \
@@ -59,6 +64,7 @@ OBJ = \
 	ps2.o \
 	ps2keyboard.o \
 	ps2mouse.o \
+	pseudoterminal.o \
 	random.o \
 	refcount.o \
 	rtc.o \
@@ -67,9 +73,9 @@ OBJ = \
 	symlink.o \
 	syscall.o \
 	terminal.o \
-	terminaldisplay.o \
 	thread.o \
-	vnode.o
+	vnode.o \
+	worker.o
 
 include $(ARCH).mk
 

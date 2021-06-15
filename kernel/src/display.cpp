@@ -21,10 +21,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/console.h>
+#include <dennix/kernel/devices.h>
 #include <dennix/kernel/display.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/portio.h>
-#include <dennix/kernel/terminaldisplay.h>
 #include "../../libdxui/src/cp437.h"
 
 // Classical VGA font but with the Unicode replacement character at 0xFF.
@@ -40,7 +41,7 @@ static const size_t charHeight = 16;
 static const size_t charWidth = 9;
 
 Display::Display(video_mode mode, char* buffer, size_t pitch)
-        : Vnode(S_IFCHR | 0666, 0) {
+        : Vnode(S_IFCHR | 0666, DevFS::dev) {
     this->buffer = buffer;
     this->mode = mode;
     if (mode.video_bpp == 0) {
@@ -276,7 +277,7 @@ int Display::setVideoMode(video_mode* videoMode) {
     }
     rows = newRows;
     columns = newColumns;
-    TerminalDisplay::updateDisplaySize();
+    console->updateDisplaySize();
 
     if (newColumns <= oldColumns) {
         for (size_t i = 0; i < newRows; i++) {

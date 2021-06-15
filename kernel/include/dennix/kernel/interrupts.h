@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -78,9 +78,14 @@ struct InterruptContext {
 #endif
 };
 
-namespace Interrupts {
-extern void (*irqHandlers[])(const InterruptContext*);
+struct IrqHandler {
+    void (*func)(void*, const InterruptContext*);
+    void* user;
+    IrqHandler* next;
+};
 
+namespace Interrupts {
+void addIrqHandler(unsigned int irq, IrqHandler* handler);
 void disable();
 void enable();
 void initPic();

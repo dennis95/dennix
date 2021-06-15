@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -54,7 +54,7 @@ extern "C" {
 /* TODO: #define _POSIX_CHOWN_RESTRICTED */
 #define _POSIX_CLOCK_SELECTION _POSIX_VERSION
 #define _POSIX_CPUTIME _POSIX_VERSION
-/* #define _POSIX_FSYNC */
+#define _POSIX_FSYNC _POSIX_VERSION
 /* #define _POSIX_IPV6 */
 #define _POSIX_JOB_CONTROL _POSIX_VERSION
 #define _POSIX_MAPPED_FILES _POSIX_VERSION
@@ -77,7 +77,7 @@ extern "C" {
 /* #define _POSIX_SPAWN */
 /* TODO: #define _POSIX_SPIN_LOCKS */
 /* #define _POSIX_SPORADIC_SERVER */
-/* #define _POSIX_SYNCHRONIZED_IO */
+#define _POSIX_SYNCHRONIZED_IO _POSIX_VERSION
 /* #define _POSIX_THREAD_ATTR_STACKADDR */
 /* #define _POSIX_THREAD_ATTR_STACKSIZE */
 #define _POSIX_THREAD_CPUTIME _POSIX_VERSION
@@ -111,13 +111,12 @@ extern "C" {
 
 #define _POSIX2_SYMLINKS 1
 
-#define _PC_FILESIZEBITS 0
-#define _PC_NAME_MAX 1
-#define _PC_PATH_MAX 2
-#define _PC_PIPE_BUF 3
-#define _PC_2_SYMLINKS 4
-#define _PC_NO_TRUNC 5
-#define _PC_VDISABLE 6
+#define _PC_FILESIZEBITS (-1)
+#define _PC_PATH_MAX (-2)
+#define _PC_PIPE_BUF (-3)
+#define _PC_2_SYMLINKS (-4)
+#define _PC_NO_TRUNC (-5)
+#define _PC_VDISABLE (-6)
 
 #define STDIN_FILENO 0
 #define STDOUT_FILENO 1
@@ -144,13 +143,18 @@ size_t confstr(int, char*, size_t);
 int dup(int);
 int dup2(int, int);
 int execl(const char*, const char*, ...);
+int execlp(const char*, const char*, ...);
 int execv(const char*, char* const[]);
 int execve(const char*, char* const[], char* const[]);
 int execvp(const char*, char* const[]);
 __noreturn void _exit(int);
 int fchdir(int);
+int fchown(int, uid_t, gid_t);
 int fchownat(int, const char*, uid_t, gid_t, int);
+int fdatasync(int);
 pid_t fork(void);
+long fpathconf(int, int);
+int fsync(int);
 int ftruncate(int, off_t);
 char* getcwd(char*, size_t);
 uid_t geteuid(void);
@@ -160,6 +164,7 @@ char* getlogin(void);
 int getopt(int, char* const[], const char*);
 pid_t getpid(void);
 pid_t getpgid(pid_t);
+pid_t getpgrp(void);
 uid_t getuid(void);
 int isatty(int);
 int lchown(const char*, uid_t, gid_t);
@@ -173,11 +178,13 @@ ssize_t readlink(const char* __restrict, char* __restrict, size_t);
 ssize_t readlinkat(int, const char* __restrict, char* __restrict, size_t);
 int rmdir(const char*);
 int setpgid(pid_t, pid_t);
+pid_t setsid(void);
 unsigned int sleep(unsigned int);
 int symlink(const char*, const char*);
 int symlinkat(const char*, int, const char*);
 pid_t tcgetpgrp(int);
 int tcsetpgrp(int, pid_t);
+char* ttyname(int);
 int unlink(const char*);
 int unlinkat(int, const char*, int);
 ssize_t write(int, const void*, size_t);

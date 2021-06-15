@@ -45,6 +45,7 @@ BIN_PROGRAMS = \
 	rm \
 	sleep \
 	snake \
+	sync \
 	test \
 	tail \
 	time \
@@ -53,7 +54,9 @@ BIN_PROGRAMS = \
 	uname
 
 SBIN_PROGRAMS = \
-	init
+	init \
+	mount \
+	umount
 
 PROGRAMS = $(BIN_PROGRAMS) $(SBIN_PROGRAMS)
 
@@ -76,6 +79,7 @@ $(BUILD)/%: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $<
 
+$(BUILD)/mv: cp.c rm.c
 $(BUILD)/tail: head.c
 
 clean:

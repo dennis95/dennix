@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,9 +21,18 @@
 #define KERNEL_DEVICES_H
 
 #include <dennix/kernel/directory.h>
+#include <dennix/kernel/filesystem.h>
 
-namespace Devices {
-void initialize(Reference<DirectoryVnode> rootDir);
-}
+class DevFS : public FileSystem {
+public:
+    void addDevice(const char* name, const Reference<Vnode>& vnode);
+    Reference<Vnode> getRootDir() override;
+    void initialize(const Reference<DirectoryVnode>& rootDir);
+    bool onUnmount() override;
+public:
+    static const dev_t dev;
+};
+
+extern DevFS devFS;
 
 #endif

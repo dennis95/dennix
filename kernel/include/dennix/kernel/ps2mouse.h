@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,17 +20,26 @@
 #ifndef KERNEL_PS2MOUSE_H
 #define KERNEL_PS2MOUSE_H
 
+#include <dennix/kernel/mouse.h>
 #include <dennix/kernel/ps2.h>
+#include <dennix/kernel/worker.h>
 
 class PS2Mouse : public PS2Device {
 public:
     PS2Mouse(bool secondPort);
     void irqHandler() override;
 private:
+    void work();
+    static void worker(void* self);
+private:
     uint8_t buffer[4];
     bool hasMouseWheel;
     unsigned char index;
     bool secondPort;
+    Reference<MouseDevice> mouseDevice;
+    mouse_data packetBuffer[128];
+    size_t packetsAvailable;
+    WorkerJob job;
 };
 
 #endif

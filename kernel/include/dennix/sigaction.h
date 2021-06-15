@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2020 Dennis Wölfing
+/* Copyright (c) 2017, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -33,6 +33,8 @@ struct sigaction {
 };
 
 #define SA_SIGINFO (1 << 0)
+#define SA_RESETHAND (1 << 1)
+#define SA_NODEFER (1 << 2)
 
 #define SIG_BLOCK 0
 #define SIG_UNBLOCK 1

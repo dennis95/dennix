@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -84,6 +84,8 @@ COMMON_OBJ = \
 	stdlib/strtoll \
 	stdlib/strtoul \
 	stdlib/strtoull \
+	stdlib/wcstombs \
+	stdlib/wctomb \
 	string/explicit_bzero \
 	string/memchr \
 	string/memcmp \
@@ -119,11 +121,15 @@ COMMON_OBJ = \
 	wchar/mbsinit \
 	wchar/mbsrtowcs \
 	wchar/wcrtomb \
+	wchar/wcscat \
 	wchar/wcschr \
 	wchar/wcscmp \
 	wchar/wcscpy \
 	wchar/wcslen \
-	wchar/wcwidth
+	wchar/wcsrtombs \
+	wchar/wcwidth \
+	wchar/wmemchr \
+	wchar/wmemcpy
 
 LIBC_OBJ = \
 	$(COMMON_OBJ) \
@@ -131,6 +137,7 @@ LIBC_OBJ = \
 	devctl/posix_devctl \
 	dirent/alphasort \
 	dirent/closedir \
+	dirent/dirfd \
 	dirent/fdopendir \
 	dirent/opendir \
 	dirent/posix_getdents \
@@ -160,6 +167,10 @@ LIBC_OBJ = \
 	poll/poll \
 	poll/ppoll \
 	pwd/getpwnam \
+	search/tdelete \
+	search/tfind \
+	search/tsearch \
+	search/twalk \
 	signal/kill \
 	signal/raise \
 	signal/sigaction \
@@ -250,22 +261,29 @@ LIBC_OBJ = \
 	stdlib/_Exit \
 	stdlib/exit \
 	stdlib/getenv \
+	stdlib/grantpt \
 	stdlib/mkdtemp \
 	stdlib/mkostemp \
 	stdlib/mkostemps \
 	stdlib/mkstemp \
 	stdlib/mkstemps \
+	stdlib/posix_openpt \
+	stdlib/ptsname \
 	stdlib/realpath \
 	stdlib/setenv \
 	stdlib/strtod \
 	stdlib/strtof \
 	stdlib/strtold \
 	stdlib/system \
+	stdlib/unlockpt \
 	stdlib/unsetenv \
 	string/strcoll \
 	string/strxfrm \
 	strings/strcasecmp \
 	strings/strncasecmp \
+	sys/fs/fssync \
+	sys/fs/mount \
+	sys/fs/unmount \
 	sys/ioctl/ioctl \
 	sys/mman/mmap \
 	sys/mman/munmap \
@@ -290,13 +308,18 @@ LIBC_OBJ = \
 	sys/stat/stat \
 	sys/stat/umask \
 	sys/stat/utimensat \
+	sys/time/gettimeofday \
 	sys/time/utimes \
 	sys/utsname/uname \
 	sys/wait/wait \
 	sys/wait/waitpid \
+	termios/cfgetispeed \
+	termios/tcflush \
 	termios/tcgetattr \
 	termios/tcgetwinsize \
 	termios/tcsetattr \
+	termios/tcsetsid \
+	termios/tcsetwinsize \
 	time/asctime \
 	time/clock_gettime \
 	time/clock_nanosleep \
@@ -320,14 +343,19 @@ LIBC_OBJ = \
 	unistd/dup3 \
 	unistd/environ \
 	unistd/execl \
+	unistd/execlp \
 	unistd/execv \
 	unistd/execve \
 	unistd/execvp \
 	unistd/_exit \
 	unistd/fchdir \
 	unistd/fchdirat \
+	unistd/fchown \
 	unistd/fchownat \
+	unistd/fdatasync \
 	unistd/fork \
+	unistd/fpathconf \
+	unistd/fsync \
 	unistd/ftruncate \
 	unistd/getcwd \
 	unistd/getentropy \
@@ -337,6 +365,7 @@ LIBC_OBJ = \
 	unistd/getlogin \
 	unistd/getpid \
 	unistd/getpgid \
+	unistd/getpgrp \
 	unistd/getuid \
 	unistd/isatty \
 	unistd/lchown \
@@ -353,15 +382,21 @@ LIBC_OBJ = \
 	unistd/regfork \
 	unistd/rmdir \
 	unistd/setpgid \
+	unistd/setsid \
 	unistd/sleep \
 	unistd/symlink \
 	unistd/symlinkat \
 	unistd/tcgetpgrp \
 	unistd/tcsetpgrp \
+	unistd/ttyname \
 	unistd/unlink \
 	unistd/unlinkat \
 	unistd/usleep \
-	unistd/write
+	unistd/write \
+	utime/utime \
+	wctype/iswctype \
+	wctype/towctrans \
+	wctype/wctype
 
 LIBK_OBJ = $(COMMON_OBJ)
 

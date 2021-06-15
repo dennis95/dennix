@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2018, 2019, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -32,11 +32,18 @@
 extern "C" {
 #endif
 
+speed_t cfgetispeed(const struct termios*);
+speed_t cfgetospeed(const struct termios*);
+int cfsetispeed(struct termios*, speed_t);
+int cfsetospeed(struct termios*, speed_t);
+int tcflush(int, int);
 int tcgetattr(int, struct termios*);
 int tcsetattr(int, int, const struct termios*);
 
 #if __USE_DENNIX
 int tcgetwinsize(int, struct winsize*);
+int tcsetsid(int, pid_t);
+int tcsetwinsize(int, const struct winsize*);
 #endif
 
 #ifdef __cplusplus

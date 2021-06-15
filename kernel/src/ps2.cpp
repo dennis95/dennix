@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,12 +18,12 @@
  */
 
 #include <inttypes.h>
+#include <dennix/kernel/console.h>
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/portio.h>
 #include <dennix/kernel/ps2keyboard.h>
 #include <dennix/kernel/ps2mouse.h>
-#include <dennix/kernel/terminal.h>
 
 #define PS2_DATA_PORT 0x60
 #define PS2_STATUS_PORT 0x64
@@ -46,13 +46,16 @@
 #define DEVICE_RESET 0xFF
 
 static void checkPort(bool secondPort);
-static void irqHandler(const InterruptContext* context);
+static void irqHandler(void*, const InterruptContext* context);
 static void sendPS2Command(uint8_t command);
 static void sendPS2Command(uint8_t command, uint8_t data);
 static uint8_t sendPS2CommandWithResponse(uint8_t command);
 
 static PS2Device* ps2Device1;
 static PS2Device* ps2Device2;
+
+static IrqHandler handler1;
+static IrqHandler handler2;
 
 void PS2::initialize() {
     // Disable PS/2 devices
@@ -135,7 +138,7 @@ static void checkPort(bool secondPort) {
        works without any additional initialization. */
     if (secondPort) return;
     PS2Keyboard* keyboard = xnew PS2Keyboard();
-    keyboard->listener = (Terminal*) terminal;
+    keyboard->listener = (Console*) console;
 
     ps2Device1 = keyboard;
     Interrupts::irqHandlers[1] = irqHandler;
@@ -163,7 +166,7 @@ static void checkPort(bool secondPort) {
         if (id == 0x41 || id == 0xC1 || id == 0x83) {
             // The device identified itself as a keyboard
             PS2Keyboard* keyboard = xnew PS2Keyboard(secondPort);
-            keyboard->listener = (Terminal*) terminal;
+            keyboard->listener = (Console*) console;
             device = keyboard;
         }
     }
@@ -171,10 +174,12 @@ static void checkPort(bool secondPort) {
     if (device) {
         if (!secondPort) {
             ps2Device1 = device;
-            Interrupts::irqHandlers[1] = irqHandler;
+            handler1.func = irqHandler;
+            Interrupts::addIrqHandler(1, &handler1);
         } else {
             ps2Device2 = device;
-            Interrupts::irqHandlers[12] = irqHandler;
+            handler2.func = irqHandler;
+            Interrupts::addIrqHandler(12, &handler2);
         }
     }
 #endif
@@ -221,7 +226,7 @@ uint8_t PS2::sendDeviceCommand(bool secondPort, uint8_t command, uint8_t data,
     return response;
 }
 
-static void irqHandler(const InterruptContext* /*context*/) {
+static void irqHandler(void*, const InterruptContext* /*context*/) {
     // Unfortunately both mouse and keyboard data arrive at the same io port. We
     // are supposed to be able to distinguish them depending on which IRQ was
     // raised, but unfortunately this does not work reliably on buggy hardware

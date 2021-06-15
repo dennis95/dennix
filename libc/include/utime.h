@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2020 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,23 +13,30 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/terminaldisplay.h
- * Terminal display with support for ECMA-48 terminal escapes.
+/* libc/include/utime.h
+ * Obsolete filestamp updating.
  */
 
-#ifndef KERNEL_TERMINALDISPLAY_H
-#define KERNEL_TERMINALDISPLAY_H
+#ifndef _UTIME_H
+#define _UTIME_H
 
-#include <dennix/kernel/display.h>
+#include <sys/cdefs.h>
+#define __need_time_t
+#include <bits/types.h>
 
-namespace TerminalDisplay {
-extern Reference<Display> display;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void backspace();
-void printCharacter(char c);
-void printCharacterRaw(char c);
-void updateCursorPosition();
-void updateDisplaySize();
+struct utimbuf {
+    time_t actime;
+    time_t modtime;
+};
+
+int utime(const char*, const struct utimbuf*);
+
+#ifdef __cplusplus
 }
+#endif
 
 #endif

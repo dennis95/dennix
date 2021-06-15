@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -45,6 +45,8 @@ struct posix_dent {
 #define DT_SEM 020
 #define DT_SHM 020
 
-#define DT_FORCE_TYPE 0
+#define DT_FORCE_TYPE (1 << 0)
+
+#define _DT_FLAGS DT_FORCE_TYPE
 
 #endif

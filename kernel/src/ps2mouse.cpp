@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,6 +17,9 @@
  * PS/2 mouse driver.
  */
 
+#include <string.h>
+#include <dennix/kernel/devices.h>
+#include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/mouse.h>
 #include <dennix/kernel/portio.h>
@@ -36,6 +39,9 @@
 PS2Mouse::PS2Mouse(bool secondPort) : secondPort(secondPort) {
     hasMouseWheel = false;
     index = 0;
+    packetsAvailable = 0;
+    job.func = worker;
+    job.context = this;
 
     PS2::sendDeviceCommand(secondPort, MOUSE_GET_ID);
     uint8_t id = PS2::readDataPort();
@@ -52,6 +58,7 @@ PS2Mouse::PS2Mouse(bool secondPort) : secondPort(secondPort) {
     }
     PS2::sendDeviceCommand(secondPort, MOUSE_SET_SAMPLE_RATE, 40, true);
     mouseDevice = xnew MouseDevice();
+    devFS.addDevice("mouse", mouseDevice);
     Log::printf("PS/2 mouse found\n");
 }
 
@@ -98,7 +105,34 @@ void PS2Mouse::irqHandler() {
                 data.mouse_y = -buffer[2];
             }
 
-            mouseDevice->addPacket(data);
+            if (packetsAvailable == sizeof(packetBuffer) /
+                    sizeof(packetBuffer[0])) {
+                return;
+            }
+            packetBuffer[packetsAvailable] = data;
+            packetsAvailable++;
+            if (packetsAvailable == 1) {
+                WorkerThread::addJob(&job);
+            }
         }
     }
+}
+
+void PS2Mouse::work() {
+    mouse_data buf[128];
+
+    Interrupts::disable();
+    size_t entries = packetsAvailable;
+    memcpy(buf, packetBuffer, entries * sizeof(mouse_data));
+    packetsAvailable = 0;
+    Interrupts::enable();
+
+    for (size_t i = 0; i < entries; i++) {
+        mouseDevice->addPacket(buf[i]);
+    }
+}
+
+void PS2Mouse::worker(void* self) {
+    PS2Mouse* mouse = (PS2Mouse*) self;
+    mouse->work();
 }

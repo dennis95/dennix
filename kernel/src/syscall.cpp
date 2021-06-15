@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,6 +29,7 @@
 #include <dennix/wait.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/clock.h>
+#include <dennix/kernel/ext234.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/pipe.h>
 #include <dennix/kernel/process.h>
@@ -95,6 +96,12 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_LISTEN] =*/ (void*) Syscall::listen,
     /*[SYSCALL_CONNECT] =*/ (void*) Syscall::connect,
     /*[SYSCALL_ACCEPT4] =*/ (void*) Syscall::accept4,
+    /*[SYSCALL_MOUNT] =*/ (void*) Syscall::mount,
+    /*[SYSCALL_UNMOUNT] =*/ (void*) Syscall::unmount,
+    /*[SYSCALL_FPATHCONF] =*/ (void*) Syscall::fpathconf,
+    /*[SYSCALL_FSSYNC] =*/ (void*) Syscall::fssync,
+    /*[SYSCALL_FCHOWN] =*/ (void*) Syscall::fchown,
+    /*[SYSCALL_SETSID] =*/ (void*) Syscall::setsid,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -210,6 +217,7 @@ int Syscall::dup3(int fd1, int fd2, int flags) {
 int Syscall::execve(const char* path, char* const argv[], char* const envp[]) {
     Reference<FileDescription> descr = getRootFd(AT_FDCWD, path);
     Reference<Vnode> vnode = resolvePath(descr->vnode, path);
+    descr = nullptr;
 
     if (!vnode || Process::current()->execute(vnode, argv, envp) == -1) {
         return -1;
@@ -272,6 +280,12 @@ int Syscall::fchmodat(int fd, const char* path, mode_t mode, int flags) {
     return vnode->chmod(mode);
 }
 
+int Syscall::fchown(int fd, uid_t uid, gid_t gid) {
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) return -1;
+    return descr->vnode->chown(uid, gid);
+}
+
 static int fchownatImpl(int fd, const char* path, uid_t uid, gid_t gid,
         int flags) {
     bool followFinalSymlink = !(flags & AT_SYMLINK_NOFOLLOW);
@@ -291,6 +305,18 @@ int Syscall::fchownat(struct fchownatParams* params) {
 
 int Syscall::fcntl(int fd, int cmd, int param) {
     return Process::current()->fcntl(fd, cmd, param);
+}
+
+long Syscall::fpathconf(int fd, int name) {
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) return -1;
+    return descr->vnode->pathconf(name);
+}
+
+int Syscall::fssync(int fd, int flags) {
+    Reference<FileDescription> descr = Process::current()->getFd(fd);
+    if (!descr) return -1;
+    return descr->vnode->sync(flags);
 }
 
 int Syscall::fstat(int fd, struct stat* result) {
@@ -451,6 +477,42 @@ void* Syscall::mmap(__mmapRequest* request) {
     return mmapImplementation(request->_addr, request->_size,
             request->_protection, request->_flags, request->_fd,
             request->_offset);
+}
+
+int Syscall::mount(const char* filename, const char* mountPath,
+        const char* filesystem, int flags) {
+    Reference<Vnode> file = resolvePath(getRootFd(AT_FDCWD, filename)->vnode,
+            filename);
+    if (!file) return -1;
+
+    const char* lastComponent;
+    Reference<Vnode> mountpoint = resolvePathExceptLastComponent(AT_FDCWD,
+            mountPath, &lastComponent);
+    if (!mountpoint) return -1;
+    mountpoint = mountpoint->getChildNode(lastComponent);
+    if (!mountpoint) return -1;
+
+    if (!S_ISDIR(mountpoint->stat().st_mode)) {
+        errno = ENOTDIR;
+        return -1;
+    }
+
+    FileSystem* fs = nullptr;
+    if (strcmp(filesystem, "ext234") == 0 || strcmp(filesystem, "ext2") == 0 ||
+            strcmp(filesystem, "ext3") == 0 ||
+            strcmp(filesystem, "ext4") == 0) {
+        fs = Ext234::initialize(file, mountpoint, mountPath, flags);
+    } else {
+        errno = EINVAL;
+    }
+
+    if (!fs) return -1;
+
+    int result = mountpoint->mount(fs);
+    if (result < 0) {
+        delete fs;
+    }
+    return result;
 }
 
 int Syscall::munmap(void* addr, size_t size) {
@@ -648,9 +710,17 @@ int Syscall::setpgid(pid_t pid, pid_t pgid) {
             errno = ESRCH;
             return -1;
         }
+        if (process->sid != Process::current()->sid) {
+            errno = EPERM;
+            return -1;
+        }
     }
 
     return process->setpgid(pgid);
+}
+
+pid_t Syscall::setsid() {
+    return Process::current()->setsid();
 }
 
 int Syscall::sigtimedwait(const sigset_t* set, siginfo_t* info,
@@ -747,6 +817,17 @@ int Syscall::unlinkat(int fd, const char* path, int flags) {
     }
 
     return vnode->unlink(name, flags);
+}
+
+int Syscall::unmount(const char* mountPath) {
+    const char* lastComponent;
+    Reference<Vnode> mountpoint = resolvePathExceptLastComponent(AT_FDCWD,
+            mountPath, &lastComponent);
+    if (!mountpoint) return -1;
+    mountpoint = mountpoint->getChildNode(lastComponent);
+    if (!mountpoint) return -1;
+
+    return mountpoint->unmount();
 }
 
 int Syscall::utimensat(int fd, const char* path, const struct timespec ts[2],

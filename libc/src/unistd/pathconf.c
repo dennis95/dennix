@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,22 +18,25 @@
  */
 
 #include <errno.h>
-#include <limits.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 long pathconf(const char* path, int name) {
-    (void) path;
+    int originalErrno = errno;
+    int fd = open(path, O_SEARCH | O_CLOEXEC | O_CLOFORK);
+    int errnoAfterOpen = errno;
 
-    switch (name) {
-    case _PC_FILESIZEBITS: return FILESIZEBITS;
-    case _PC_NAME_MAX: return -1; // unlimited
-    case _PC_PATH_MAX: return -1; // unlimited
-    case _PC_PIPE_BUF: return PIPE_BUF;
-    case _PC_2_SYMLINKS: return _POSIX2_SYMLINKS;
-    case _PC_NO_TRUNC: return _POSIX_NO_TRUNC;
-    case _PC_VDISABLE: return _POSIX_VDISABLE;
-    default:
-        errno = EINVAL;
-        return -1;
+    errno = 0;
+    long result = fpathconf(fd, name);
+    if (fd >= 0) {
+        close(fd);
     }
+
+    if (errno == 0) {
+        errno = originalErrno;
+    } else if (fd < 0) {
+        errno = errnoAfterOpen;
+    }
+
+    return result;
 }

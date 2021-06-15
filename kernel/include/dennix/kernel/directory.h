@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,15 +29,19 @@ public:
     ~DirectoryVnode();
     Reference<Vnode> getChildNode(const char* name) override;
     Reference<Vnode> getChildNode(const char* path, size_t length) override;
-    size_t getDirectoryEntries(void** buffer) override;
+    size_t getDirectoryEntries(void** buffer, int flags) override;
     int link(const char* name, const Reference<Vnode>& vnode) override;
     off_t lseek(off_t offset, int whence) override;
     int mkdir(const char* name, mode_t mode) override;
-    bool onUnlink() override;
+    int mount(FileSystem* filesystem) override;
+    bool onUnlink(bool force) override;
     Reference<Vnode> open(const char* name, int flags, mode_t mode) override;
-    int rename(Reference<Vnode>& oldDirectory, const char* oldName,
+    int rename(const Reference<Vnode>& oldDirectory, const char* oldName,
             const char* newName) override;
+    Reference<Vnode> resolve() override;
+    int symlink(const char* linkTarget, const char* name) override;
     int unlink(const char* path, int flags) override;
+    int unmount() override;
 private:
     Reference<Vnode> getChildNodeUnlocked(const char* name, size_t length);
     int linkUnlocked(const char* name, size_t length,
@@ -48,6 +52,8 @@ public:
 private:
     Reference<Vnode>* childNodes;
     char** fileNames;
+    FileSystem* mounted;
+protected:
     Reference<DirectoryVnode> parent;
 };
 

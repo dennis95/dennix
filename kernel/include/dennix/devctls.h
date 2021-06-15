@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,8 +26,16 @@
 /* Devctl numbers that are defined by default in <devctl.h> and <sys/ioctl.h>
    are defined here. More devctl numbers are defined in <dennix/display.h>. */
 
+#define TIOCSCTTY _DEVCTL(_IOCTL_VOID, 0)
+
+/* _IOCTL_INT 0 is used in <dennix/display.h>. */
+#define TCFLSH _DEVCTL(_IOCTL_INT, 1)
+
 #define TIOCGWINSZ _DEVCTL(_IOCTL_PTR, 0) /* (struct winsize*) */
 #define TIOCGPGRP _DEVCTL(_IOCTL_PTR, 1) /* (pid_t*) */
 #define TIOCSPGRP _DEVCTL(_IOCTL_PTR, 2) /* (const pid_t*) */
+/* _IOCTL_PTR 3 - 6 are used in <dennix/display.h>. */
+#define TIOCGPATH _DEVCTL(_IOCTL_PTR, 7) /* (char*) */
+#define TIOCSWINSZ _DEVCTL(_IOCTL_PTR, 8) /* (const struct winsize*) */
 
 #endif

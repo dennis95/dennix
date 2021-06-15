@@ -17,10 +17,10 @@
  * Kernel panic.
  */
 
+#include <dennix/kernel/console.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/registers.h>
-#include <dennix/kernel/terminaldisplay.h>
 
 static void panic(const char* file, unsigned int line, const char* func,
         const char* format, va_list ap) {
@@ -37,7 +37,7 @@ NORETURN void panic(const char* file, unsigned int line, const char* func,
     panic(file, line, func, format, ap);
     va_end(ap);
 
-    TerminalDisplay::display->update();
+    console->display->update();
     while (true) asm ("hlt");
 }
 
@@ -49,6 +49,6 @@ NORETURN void panic(const char* file, unsigned int line, const char* func,
     va_end(ap);
     Registers::dumpInterruptContext(context);
 
-    TerminalDisplay::display->update();
+    console->display->update();
     while (true) asm ("hlt");
 }

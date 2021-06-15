@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2017, 2019, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,7 +27,8 @@ public:
     ReferenceCounted();
     virtual ~ReferenceCounted();
     void addReference() const;
-    void removeReference() const;
+    virtual void removeReference() const;
+    size_t getRefCount() const { return refcount; }
 private:
     mutable size_t refcount;
 };
@@ -60,6 +61,11 @@ public:
         return Reference<T2>((T2*) object);
     }
 
+    Reference(Reference&& ref) {
+        object = ref.object;
+        ref.object = nullptr;
+    }
+
     ~Reference() {
         if (object) {
             object->removeReference();
@@ -85,23 +91,37 @@ public:
         return *this;
     }
 
+    Reference& operator=(T* const& obj) {
+        if (object == obj) return *this;
+
+        if (object) {
+            object->removeReference();
+        }
+        object = obj;
+        if (object) {
+            object->addReference();
+        }
+
+        return *this;
+    }
+
     template <typename T2>
-    bool operator==(const Reference<T2>& ref) {
+    bool operator==(const Reference<T2>& ref) const {
         return object == (T2*) ref;
     }
 
     template <typename T2>
-    bool operator==(T2* const& obj) {
+    bool operator==(T2* const& obj) const {
         return object == obj;
     }
 
     template <typename T2>
-    bool operator!=(const Reference<T2>& ref) {
+    bool operator!=(const Reference<T2>& ref) const {
         return object != (T2*) ref;
     }
 
     template <typename T2>
-    bool operator!=(T2* const& obj) {
+    bool operator!=(T2* const& obj) const {
         return object != obj;
     }
 

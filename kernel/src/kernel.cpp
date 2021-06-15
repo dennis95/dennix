@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,6 +21,7 @@
 #include <string.h>
 #include <dennix/fcntl.h>
 #include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/console.h>
 #include <dennix/kernel/devices.h>
 #include <dennix/kernel/directory.h>
 #include <dennix/kernel/file.h>
@@ -33,7 +34,7 @@
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/ps2.h>
 #include <dennix/kernel/rtc.h>
-#include <dennix/kernel/terminal.h>
+#include <dennix/kernel/worker.h>
 
 #ifndef DENNIX_VERSION
 #  define DENNIX_VERSION ""
@@ -85,9 +86,10 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     Reference<FileDescription> rootFd = xnew FileDescription(rootDir, O_SEARCH);
     Process::current()->rootFd = rootFd;
 
-    Devices::initialize(rootDir);
+    devFS.initialize(rootDir);
     rootDir->mkdir("tmp", 0777);
     rootDir->mkdir("run", 0755);
+    rootDir->mkdir("mnt", 0755);
 
     Log::printf("Starting init process...\n");
     Reference<Vnode> program = resolvePath(rootDir, "/sbin/init");
@@ -106,8 +108,8 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     assert(initProcess->pid == 1);
     Process::initProcess = initProcess;
 
-    initProcess->controllingTerminal = terminal;
-    Reference<FileDescription> descr = xnew FileDescription(terminal, O_RDWR);
+    initProcess->controllingTerminal = console;
+    Reference<FileDescription> descr = xnew FileDescription(console, O_RDWR);
     initProcess->addFileDescriptor(descr, 0); // stdin
     initProcess->addFileDescriptor(descr, 0); // stdout
     initProcess->addFileDescriptor(descr, 0); // stderr
@@ -115,6 +117,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     initProcess->rootFd = rootFd;
     initProcess->cwdFd = rootFd;
     Thread::addThread(&initProcess->mainThread);
+    WorkerThread::initialize();
 
     while (true) {
         asm volatile ("hlt");

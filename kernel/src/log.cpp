@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,11 +19,10 @@
 
 #include <stdio.h>
 #include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/console.h>
 #include <dennix/kernel/display.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/multiboot.h>
-#include <dennix/kernel/terminal.h>
-#include <dennix/kernel/terminaldisplay.h>
 
 static size_t callback(void*, const char* s, size_t nBytes);
 
@@ -40,8 +39,9 @@ void Log::earlyInitialize(multiboot_info* multiboot) {
         mode.video_bpp = 0;
         mode.video_height = 25;
         mode.video_width = 80;
-        TerminalDisplay::display = new (displayBuf) Display(mode,
+        console->display = new (displayBuf) Display(mode,
                 (char*) videoMapped, 160);
+        console->updateDisplaySize();
     } else if (multiboot->framebuffer_type == MULTIBOOT_RGB &&
             (multiboot->framebuffer_bpp == 24 ||
             multiboot->framebuffer_bpp == 32)) {
@@ -60,8 +60,9 @@ void Log::earlyInitialize(multiboot_info* multiboot) {
         mode.video_bpp = multiboot->framebuffer_bpp;
         mode.video_height = multiboot->framebuffer_height;
         mode.video_width = multiboot->framebuffer_width;
-        TerminalDisplay::display = new (displayBuf) Display(mode, (char*) lfb,
+        console->display = new (displayBuf) Display(mode, (char*) lfb,
                 multiboot->framebuffer_pitch);
+        console->updateDisplaySize();
     } else {
         // Without any usable display we cannot do anything.
         while (true) asm volatile ("cli; hlt");
@@ -69,7 +70,7 @@ void Log::earlyInitialize(multiboot_info* multiboot) {
 }
 
 void Log::initialize() {
-    TerminalDisplay::display->initialize();
+    console->display->initialize();
 }
 
 void Log::printf(const char* format, ...) {
@@ -84,5 +85,5 @@ void Log::vprintf(const char* format, va_list ap) {
 }
 
 static size_t callback(void*, const char* s, size_t nBytes) {
-    return terminal->write(s, nBytes, 0);
+    return console->write(s, nBytes, 0);
 }

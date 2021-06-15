@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -38,8 +38,11 @@ struct passwd {
     char* pw_shell;
 };
 
+void endpwent(void);
+struct passwd* getpwent(void);
 struct passwd* getpwnam(const char*);
 struct passwd* getpwuid(uid_t);
+void setpwent(void);
 
 #ifdef __cplusplus
 }

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,5 +25,7 @@
 #define _CS_UNAME_RELEASE 2
 #define _CS_UNAME_VERSION 3
 #define _CS_UNAME_MACHINE 4
+
+#define _PC_NAME_MAX 0
 
 #endif

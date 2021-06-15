@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2020 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -37,16 +37,14 @@ enum {
     ATTR_TIMESTAMP = 1 << 2,
 };
 
-static int preserve;
-static int status;
-
-static void copyFile(int sourceFd, const char* sourcePath, int destFd,
+static bool copyFile(int sourceFd, const char* sourcePath, int destFd,
         const char* destPath);
-static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
+static bool copy(int sourceFd, const char* sourceName, const char* sourcePath,
         int destFd, const char* destName, const char* destPath, bool force,
-        bool prompt, bool recursive);
+        bool prompt, bool recursive, int preserve);
 static bool isDescendantOf(int dirFd, const struct stat* possibleParentStat);
 
+#ifndef MV
 int main(int argc, char* argv[]) {
     struct option longopts[] = {
         { "force", no_argument, 0, 'f' },
@@ -61,6 +59,7 @@ int main(int argc, char* argv[]) {
     bool force = false;
     bool prompt = false;
     bool recursive = false;
+    int preserve = 0;
     int c;
     while ((c = getopt_long(argc, argv, "fipRr", longopts, NULL)) != -1) {
         switch (c) {
@@ -129,11 +128,14 @@ int main(int argc, char* argv[]) {
     if (optind == argc - 2) {
         struct stat destSt;
         if (stat(destination, &destSt) < 0 || !S_ISDIR(destSt.st_mode)) {
-            copy(AT_FDCWD, argv[optind], argv[optind], AT_FDCWD, destination,
-                    destination, force, prompt, recursive);
-            return status;
+            bool success = copy(AT_FDCWD, argv[optind], argv[optind], AT_FDCWD,
+                    destination, destination, force, prompt, recursive,
+                    preserve);
+            return success ? 0 : 1;
         }
     }
+
+    bool success = true;
 
     int destFd = open(destination, O_SEARCH | O_DIRECTORY);
     if (destFd < 0) err(1, "open: '%s'", destination);
@@ -148,69 +150,59 @@ int main(int argc, char* argv[]) {
         char* destPath = malloc(strlen(destination) + strlen(destName) + 2);
         if (!destPath) err(1, "malloc");
         stpcpy(stpcpy(stpcpy(destPath, destination), "/"), destName);
-        copy(AT_FDCWD, source, source, destFd, destName, destPath, force,
-                prompt, recursive);
+        success &= copy(AT_FDCWD, source, source, destFd, destName, destPath,
+                force, prompt, recursive, preserve);
         free(sourceCopy);
         free(destPath);
     }
+    return success ? 0 : 1;
 }
+#endif
 
-static bool getConfirmation(void) {
-    char* buffer = NULL;
-    size_t size = 0;
-    if (getline(&buffer, &size, stdin) <= 0) return false;
-    bool result = (*buffer == 'y' || *buffer == 'Y');
-    free(buffer);
-    return result;
-}
-
-static void copyFile(int sourceFd, const char* sourcePath, int destFd,
+static bool copyFile(int sourceFd, const char* sourcePath, int destFd,
         const char* destPath) {
     while (true) {
         char buffer[1024];
         ssize_t bytesAvailable = read(sourceFd, buffer, sizeof(buffer));
         if (bytesAvailable < 0) {
             warn("read: '%s'", sourcePath);
-            status = 1;
-            return;
+            return false;
         } else if (bytesAvailable == 0) {
-            return;
+            return true;
         }
         while (bytesAvailable) {
             ssize_t bytesWritten = write(destFd, buffer, bytesAvailable);
             if (bytesWritten < 0) {
                 warn("write: '%s'", destPath);
-                status = 1;
-                return;
+                return false;
             }
             bytesAvailable -= bytesWritten;
         }
     }
 }
 
-static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
+static bool copy(int sourceFd, const char* sourceName, const char* sourcePath,
         int destFd, const char* destName, const char* destPath, bool force,
-        bool prompt, bool recursive) {
+        bool prompt, bool recursive, int preserve) {
+    bool success = true;
+
     struct stat sourceSt, destSt;
     if (fstatat(sourceFd, sourceName, &sourceSt, 0) < 0) {
         warn("stat: '%s'", sourcePath);
-        status = 1;
-        return;
+        return false;
     }
     bool destExists = true;
     if (fstatat(destFd, destName, &destSt, 0) < 0) {
         if (errno != ENOENT) {
             warn("stat: '%s'", destPath);
-            status = 1;
-            return;
+            return false;
         }
         destExists = false;
     }
     if (destExists && sourceSt.st_dev == destSt.st_dev &&
             sourceSt.st_ino == destSt.st_ino) {
         warnx("'%s' and '%s' are the same file", sourcePath, destPath);
-        status = 1;
-        return;
+        return false;
     }
 
     int newDestFd;
@@ -218,55 +210,47 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
         if (!recursive) {
             warnx("omitting directory '%s' because -R is not specified",
                     sourcePath);
-            status = 1;
-            return;
+            return false;
         }
         if (destExists && !S_ISDIR(destSt.st_mode)) {
             warnx("cannot overwrite '%s' with directory '%s'", destPath,
                     sourcePath);
-            status = 1;
-            return;
+            return false;
         }
         if (!destExists) {
             if (mkdirat(destFd, destName, sourceSt.st_mode | S_IRWXU) < 0) {
                 warn("mkdir: '%s'", destPath);
-                status = 1;
-                return;
+                return false;
             }
             if (fstatat(destFd, destName, &destSt, 0) < 0) {
                 warn("stat: '%s'", destPath);
-                status = 1;
-                return;
+                return false;
             }
         }
 
         int newSourceFd = openat(sourceFd, sourceName, O_RDONLY | O_DIRECTORY);
         if (newSourceFd < 0) {
             warn("open: '%s'", sourcePath);
-            status = 1;
-            return;
+            return false;
         }
         DIR* dir = fdopendir(newSourceFd);
         if (!dir) {
             warn("fdopendir: '%s'", sourcePath);
             close(newSourceFd);
-            status = 1;
-            return;
+            return false;
         }
         newDestFd = openat(destFd, destName, O_SEARCH | O_DIRECTORY);
         if (newDestFd < 0) {
             warn("open: '%s'", destPath);
             closedir(dir);
-            status = 1;
-            return;
+            return false;
         }
 
         if (isDescendantOf(newDestFd, &sourceSt)) {
             warnx("cannot copy directory '%s' into itself '%s'", sourcePath,
                     destPath);
             closedir(dir);
-            status = 1;
-            return;
+            return false;
         }
 
         struct dirent* dirent = readdir(dir);
@@ -287,8 +271,11 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
             if (!newDestPath) err(1, "malloc");
             stpcpy(stpcpy(stpcpy(newDestPath, destPath), "/"), dirent->d_name);
 
-            copy(newSourceFd, dirent->d_name, newSourcePath, newDestFd,
-                dirent->d_name, newDestPath, force, prompt, recursive);
+            if (!copy(newSourceFd, dirent->d_name, newSourcePath, newDestFd,
+                    dirent->d_name, newDestPath, force, prompt, recursive,
+                    preserve)) {
+                success = false;
+            }
 
             free(newSourcePath);
             free(newDestPath);
@@ -302,7 +289,7 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
             if (prompt) {
                 fprintf(stderr, "%s: overwrite '%s'? ",
                         program_invocation_short_name, destPath);
-                if (!getConfirmation()) return;
+                if (!getConfirmation()) return true;
             }
 
             newDestFd = openat(destFd, destName, O_WRONLY | O_TRUNC);
@@ -310,16 +297,13 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
                 if (force) {
                     if (unlinkat(destFd, destName, 0) < 0) {
                         warn("unlinkat: '%s'", destPath);
-                        status = 1;
-                        return;
+                        return false;
                     }
+                    destExists = false;
                 } else {
                     warn("open: '%s'", destPath);
-                    status = 1;
-                    return;
+                    return false;
                 }
-            } else {
-                destExists = true;
             }
         }
         if (!destExists) {
@@ -327,24 +311,25 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
                     sourceSt.st_mode & 0777);
             if (newDestFd < 0) {
                 warn("open: '%s'", destPath);
-                status = 1;
-                return;
+                return false;
             }
         }
         int newSourceFd = openat(sourceFd, sourceName, O_RDONLY);
         if (newSourceFd < 0) {
             warn("open: '%s'", sourcePath);
             close(newDestFd);
-            status = 1;
-            return;
+            return false;
         }
 
-        copyFile(newSourceFd, sourcePath, newDestFd, destPath);
+        if (!copyFile(newSourceFd, sourcePath, newDestFd, destPath)) {
+            close(newSourceFd);
+            close(newDestFd);
+            return false;
+        }
         close(newSourceFd);
     } else {
         warnx("unsupported file type: '%s'", sourcePath);
-        status = 1;
-        return;
+        return false;
     }
 
     if (preserve & ATTR_MODE) {
@@ -362,6 +347,7 @@ static void copy(int sourceFd, const char* sourceName, const char* sourcePath,
         }
     }
     close(newDestFd);
+    return success;
 }
 
 static bool isDescendantOf(int dirFd, const struct stat* possibleParentStat) {

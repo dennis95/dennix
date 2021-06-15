@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,20 +22,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <dennix/conf.h>
 #include <dennix/kernel/clock.h>
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/vnode.h>
 
-static ino_t nextIno = 0;
-
 Vnode::Vnode(mode_t mode, dev_t dev) {
     stats.st_dev = dev;
-    stats.st_ino = nextIno++;
+    stats.st_ino = (uintptr_t) this;
     stats.st_mode = mode;
     stats.st_nlink = 0;
     stats.st_uid = 0;
     stats.st_gid = 0;
-    stats.st_rdev = 0;
+    stats.st_rdev = (uintptr_t) this;
     stats.st_size = 0;
     updateTimestamps(true, true, true);
     stats.st_blksize = 0x1000;
@@ -108,6 +107,7 @@ static Reference<Vnode> resolvePathExceptLastComponent(
         currentVnode = followPath(currentVnode, lastComponent, componentLength,
                 symlinksFollowed, true);
         if (!currentVnode) return nullptr;
+        currentVnode = currentVnode->resolve();
 
         if (!S_ISDIR(currentVnode->stat().st_mode)) {
             errno = ENOTDIR;
@@ -164,6 +164,7 @@ Reference<Vnode> resolvePath(const Reference<Vnode>& vnode, const char* path,
     currentVnode = followPath(currentVnode, lastComponent, nameLength,
             symlinksFollowed, followFinalSymlink);
     if (!currentVnode) return nullptr;
+    currentVnode = currentVnode->resolve();
 
     if (lastComponent[nameLength] && !S_ISDIR(currentVnode->stat().st_mode)) {
         errno = ENOTDIR;
@@ -255,7 +256,7 @@ Reference<Vnode> Vnode::getChildNode(const char* /*path*/, size_t /*length*/) {
     return nullptr;
 }
 
-size_t Vnode::getDirectoryEntries(void** buffer) {
+size_t Vnode::getDirectoryEntries(void** buffer, int /*flags*/) {
     *buffer = nullptr;
     errno = ENOTDIR;
     return 0;
@@ -295,13 +296,18 @@ int Vnode::mkdir(const char* /*name*/, mode_t /*mode*/) {
     return -1;
 }
 
+int Vnode::mount(FileSystem* /*filesystem*/) {
+    errno = ENOTDIR;
+    return -1;
+}
+
 void Vnode::onLink() {
     AutoLock lock(&mutex);
     updateTimestamps(false, true, false);
     stats.st_nlink++;
 }
 
-bool Vnode::onUnlink() {
+bool Vnode::onUnlink(bool /*force*/) {
     AutoLock lock(&mutex);
     updateTimestamps(false, true, false);
     stats.st_nlink--;
@@ -312,6 +318,15 @@ Reference<Vnode> Vnode::open(const char* /*name*/, int /*flags*/,
         mode_t /*mode*/) {
     errno = ENOTDIR;
     return nullptr;
+}
+
+long Vnode::pathconf(int name) {
+    switch (name) {
+    case _PC_NAME_MAX: return -1; // unlimited
+    default:
+        errno = EINVAL;
+        return -1;
+    }
 }
 
 short Vnode::poll() {
@@ -340,10 +355,14 @@ ssize_t Vnode::readlink(char* /*buffer*/, size_t /*size*/) {
     return -1;
 }
 
-int Vnode::rename(Reference<Vnode>& /*oldDirectory*/, const char* /*oldName*/,
-        const char* /*newName*/) {
+int Vnode::rename(const Reference<Vnode>& /*oldDirectory*/,
+        const char* /*oldName*/, const char* /*newName*/) {
     errno = EBADF;
     return -1;
+}
+
+Reference<Vnode> Vnode::resolve() {
+    return this;
 }
 
 int Vnode::stat(struct stat* result) {
@@ -359,6 +378,15 @@ struct stat Vnode::stat() {
     return result;
 }
 
+int Vnode::symlink(const char* /*linkTarget*/, const char* /*name*/) {
+    errno = ENOTDIR;
+    return -1;
+}
+
+int Vnode::sync(int /*flags*/) {
+    return 0;
+}
+
 int Vnode::tcgetattr(struct termios* /*result*/) {
     errno = ENOTTY;
     return -1;
@@ -370,6 +398,11 @@ int Vnode::tcsetattr(int /*flags*/, const struct termios* /*termio*/) {
 }
 
 int Vnode::unlink(const char* /*name*/, int /*flags*/) {
+    errno = ENOTDIR;
+    return -1;
+}
+
+int Vnode::unmount() {
     errno = ENOTDIR;
     return -1;
 }

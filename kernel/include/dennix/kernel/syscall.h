@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -55,8 +55,11 @@ int fchdir(int);
 int fchdirat(int fd, const char* path);
 int fchmod(int fd, mode_t mode);
 int fchmodat(int fd, const char* path, mode_t mode, int flags);
+int fchown(int fd, uid_t uid, gid_t gid);
 int fchownat(struct fchownatParams* params);
 int fcntl(int fd, int cmd, int param);
+long fpathconf(int fd, int name);
+int fssync(int fd, int flags);
 int fstat(int fd, struct stat* result);
 int fstatat(int fd, const char* restrict path, struct stat* restrict result,
         int flags);
@@ -76,6 +79,8 @@ off_t lseek(int fd, off_t offset, int whence);
 void meminfo(struct meminfo*);
 int mkdirat(int fd, const char* path, mode_t mode);
 void* mmap(__mmapRequest* request);
+int mount(const char* filename, const char* mountPath, const char* filesystem,
+        int flags);
 int munmap(void* addr, size_t size);
 int openat(int fd, const char* path, int flags, mode_t mode);
 int pipe2(int fd[2], int flags);
@@ -87,6 +92,7 @@ ssize_t readlinkat(int fd, const char* restrict path, char* restrict buffer,
 int renameat(int oldFd, const char* oldPath, int newFd, const char* newPath);
 pid_t regfork(int flags, regfork_t* registers);
 int setpgid(pid_t pid, pid_t pgid);
+pid_t setsid();
 int sigaction(int signal, const struct sigaction* restrict action,
         struct sigaction* restrict old);
 int sigprocmask(int how, const sigset_t* restrict set, sigset_t* restrict old);
@@ -98,6 +104,7 @@ int tcgetattr(int fd, struct termios* result);
 int tcsetattr(int fd, int flags, const struct termios* termio);
 mode_t umask(mode_t newMask);
 int unlinkat(int fd, const char* path, int flags);
+int unmount(const char* mountPath);
 int utimensat(int fd, const char* path, const struct timespec ts[2], int flags);
 pid_t waitpid(pid_t pid, int* status, int flags);
 ssize_t write(int fd, const void* buffer, size_t size);

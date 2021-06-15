@@ -17,6 +17,8 @@
  * PS/2 Keyboard driver.
  */
 
+#include <string.h>
+#include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/portio.h>
 #include <dennix/kernel/ps2keyboard.h>
@@ -25,6 +27,9 @@
 
 PS2Keyboard::PS2Keyboard(bool secondPort) : secondPort(secondPort) {
     listener = nullptr;
+    available = 0;
+    job.func = worker;
+    job.context = this;
     Log::printf("PS/2 Keyboard found.\n");
 }
 
@@ -73,7 +78,35 @@ void PS2Keyboard::handleKey(int keycode) {
         PS2::sendDeviceCommand(secondPort, KEYBOARD_SET_LED, ledState, false);
     }
 
-    if (listener) {
-        listener->onKeyboardEvent(keycode);
+    if (available == sizeof(buffer) / sizeof(buffer[0])) {
+        return;
     }
+
+    buffer[available] = keycode;
+    available++;
+
+    if (available == 1) {
+        WorkerThread::addJob(&job);
+    }
+}
+
+void PS2Keyboard::work() {
+    int buf[128];
+
+    Interrupts::disable();
+    size_t entries = available;
+    memcpy(buf, buffer, entries * sizeof(int));
+    available = 0;
+    Interrupts::enable();
+
+    for (size_t i = 0; i < entries; i++) {
+        if (listener) {
+            listener->onKeyboardEvent(buf[i]);
+        }
+    }
+}
+
+void PS2Keyboard::worker(void* self) {
+    PS2Keyboard* keyboard = (PS2Keyboard*) self;
+    keyboard->work();
 }

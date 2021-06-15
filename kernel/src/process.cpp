@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -65,6 +65,7 @@ Process::Process() : mainThread(this) {
     prevInGroup = nullptr;
     pgid = -1;
     pid = -1;
+    sid = -1;
     rootFd = nullptr;
     memset(sigactions, '\0', sizeof(sigactions));
     sigreturn = 0;
@@ -83,6 +84,7 @@ bool Process::addProcess(Process* process) {
     process->pid = processes.add({process, group});
     if (process->pgid == -1) {
         process->pgid = process->pid;
+        process->sid = process->pid;
     }
     return process->pid != -1;
 }
@@ -133,29 +135,38 @@ int Process::copyArguments(char* const argv[], char* const envp[],
     return argc;
 }
 
-uintptr_t Process::loadELF(uintptr_t elf, AddressSpace* newAddressSpace) {
-    ElfHeader* header = (ElfHeader*) elf;
-
-    if (memcmp(header->e_ident, "\x7F""ELF", 4) != 0) {
+uintptr_t Process::loadELF(const Reference<Vnode>& vnode,
+        AddressSpace* newAddressSpace) {
+    ElfHeader header;
+    ssize_t readSize = vnode->pread(&header, sizeof(header), 0, 0);
+    if (readSize < 0) return 0;
+    if (readSize != sizeof(header) ||
+            memcmp(header.e_ident, "\x7F""ELF", 4) != 0) {
         errno = ENOEXEC;
         return 0;
     }
 
-    ProgramHeader* programHeader = (ProgramHeader*) (elf + header->e_phoff);
+    for (size_t i = 0; i < header.e_phnum; i++) {
+        ProgramHeader programHeader;
+        readSize = vnode->pread(&programHeader, sizeof(programHeader),
+                header.e_phoff + i * header.e_phentsize, 0);
+        if (readSize < 0) return 0;
+        if (readSize != sizeof(programHeader)) {
+            errno = ENOEXEC;
+            return 0;
+        }
 
-    for (size_t i = 0; i < header->e_phnum; i++) {
-        if (programHeader[i].p_type != PT_LOAD) continue;
+        if (programHeader.p_type != PT_LOAD) continue;
 
-        vaddr_t loadAddressAligned = programHeader[i].p_vaddr & ~PAGE_MISALIGN;
-        ptrdiff_t offset = programHeader[i].p_vaddr - loadAddressAligned;
+        vaddr_t loadAddressAligned = programHeader.p_vaddr & ~PAGE_MISALIGN;
+        ptrdiff_t offset = programHeader.p_vaddr - loadAddressAligned;
 
-        const void* src = (void*) (elf + programHeader[i].p_offset);
-        size_t size = ALIGNUP(programHeader[i].p_memsz + offset, PAGESIZE);
+        size_t size = ALIGNUP(programHeader.p_memsz + offset, PAGESIZE);
 
         int protection = 0;
-        if (programHeader[i].p_flags & PF_X) protection |= PROT_EXEC;
-        if (programHeader[i].p_flags & PF_W) protection |= PROT_WRITE;
-        if (programHeader[i].p_flags & PF_R) protection |= PROT_READ;
+        if (programHeader.p_flags & PF_X) protection |= PROT_EXEC;
+        if (programHeader.p_flags & PF_W) protection |= PROT_WRITE;
+        if (programHeader.p_flags & PF_R) protection |= PROT_READ;
 
         if (!newAddressSpace->mapMemory(loadAddressAligned, size, protection)) {
             return 0;
@@ -163,12 +174,22 @@ uintptr_t Process::loadELF(uintptr_t elf, AddressSpace* newAddressSpace) {
         vaddr_t dest = kernelSpace->mapFromOtherAddressSpace(newAddressSpace,
                 loadAddressAligned, size, PROT_WRITE);
         if (!dest) return 0;
-        memset((void*) (dest + offset), 0, programHeader[i].p_memsz);
-        memcpy((void*) (dest + offset), src, programHeader[i].p_filesz);
+        memset((void*) (dest + offset), 0, programHeader.p_memsz);
+        readSize = vnode->pread((void*) (dest + offset), programHeader.p_filesz,
+                programHeader.p_offset, 0);
+        if (readSize < 0) {
+            kernelSpace->unmapPhysical(dest, size);
+            return 0;
+        }
+        if ((uint64_t) readSize != programHeader.p_filesz) {
+            kernelSpace->unmapPhysical(dest, size);
+            errno = ENOEXEC;
+            return 0;
+        }
         kernelSpace->unmapPhysical(dest, size);
     }
 
-    return (uintptr_t) header->e_entry;
+    return header.e_entry;
 }
 
 int Process::addFileDescriptor(const Reference<FileDescription>& descr,
@@ -234,7 +255,7 @@ int Process::dup3(int fd1, int fd2, int flags) {
     return fdTable.insert(fd2, { fdTable[fd1].descr, fdFlags });
 }
 
-int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
+int Process::execute(Reference<Vnode>& vnode, char* const argv[],
         char* const envp[]) {
     mode_t mode = vnode->stat().st_mode;
     if (!S_ISREG(mode) || !(mode & 0111)) {
@@ -242,17 +263,15 @@ int Process::execute(const Reference<Vnode>& vnode, char* const argv[],
         return -1;
     }
 
-    // TODO: This should update the last access timestamp of the file.
-
     // Load the program
-    Reference<FileVnode> file = (Reference<FileVnode>) vnode;
     AddressSpace* newAddressSpace = new AddressSpace();
     if (!newAddressSpace) return -1;
-    uintptr_t entry = loadELF((uintptr_t) file->data, newAddressSpace);
+    uintptr_t entry = loadELF(vnode, newAddressSpace);
     if (!entry) {
         delete newAddressSpace;
         return -1;
     }
+    vnode = nullptr;
 
     size_t sigreturnSize = (uintptr_t) &endSigreturn -
             (uintptr_t) &beginSigreturn;
@@ -446,6 +465,7 @@ Process* Process::regfork(int /*flags*/, regfork_t* registers) {
     process->controllingTerminal = controllingTerminal;
     process->cwdFd = cwdFd;
     process->pgid = pgid;
+    process->sid = sid;
     process->rootFd = rootFd;
     process->sigreturn = sigreturn;
     process->umask = umask;
@@ -480,7 +500,8 @@ Process* Process::regfork(int /*flags*/, regfork_t* registers) {
 }
 
 void Process::removeFromGroup() {
-    AutoLock lock(&processesMutex);
+    // processesMutex must be held when calling this function.
+
     Process* groupLeader = processes[pgid].processGroup;
     kthread_mutex_lock(&groupLeader->groupMutex);
 
@@ -516,15 +537,23 @@ int Process::setpgid(pid_t pgid) {
     }
 
     if (this->pgid == pgid) return 0;
-    removeFromGroup();
-    this->pgid = pgid;
 
-    AutoLock lock(&processesMutex);
-    if (pgid >= processes.allocatedSize ||
-            (!processes[pgid].processGroup && pgid != pid)) {
+    if (sid == pid) {
         errno = EPERM;
         return -1;
     }
+
+    AutoLock lock(&processesMutex);
+    if (pgid >= processes.allocatedSize ||
+            (!processes[pgid].processGroup && pgid != pid) ||
+            (processes[pgid].processGroup &&
+            processes[pgid].processGroup->sid != sid)) {
+        errno = EPERM;
+        return -1;
+    }
+
+    removeFromGroup();
+    this->pgid = pgid;
 
     if (!processes[pgid].processGroup) {
         processes[pgid].processGroup = this;
@@ -543,12 +572,34 @@ int Process::setpgid(pid_t pgid) {
     return 0;
 }
 
-void Process::terminate() {
+pid_t Process::setsid() {
+    AutoLock lock(&processesMutex);
+    if (processes[pid].processGroup) {
+        errno = EPERM;
+        return -1;
+    }
+
     removeFromGroup();
+    pgid = pid;
+    sid = pid;
+    controllingTerminal = nullptr;
+    processes[pid].processGroup = this;
+    return pgid;
+}
+
+void Process::terminate() {
+    kthread_mutex_lock(&processesMutex);
+    removeFromGroup();
+    kthread_mutex_unlock(&processesMutex);
 
     rootFd = nullptr;
     cwdFd = nullptr;
     fdTable.clear();
+
+    if (sid == pid && controllingTerminal) {
+        controllingTerminal->exitSession();
+    }
+    controllingTerminal = nullptr;
 
     kthread_mutex_lock(&childrenMutex);
     if (firstChild) {

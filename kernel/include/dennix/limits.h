@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,5 +26,6 @@
 #define PAGE_SIZE PAGESIZE
 #define PIPE_BUF 4096
 #define SYMLOOP_MAX 20
+#define TTY_NAME_MAX 20
 
 #endif

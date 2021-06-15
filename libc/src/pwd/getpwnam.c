@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,6 +18,7 @@
  */
 
 #include <pwd.h>
+#include <stdbool.h>
 #include <string.h>
 
 // We currently do not support multiple users, so we just hardcode this entry.
@@ -41,4 +42,22 @@ struct passwd* getpwuid(uid_t uid) {
         return (struct passwd*) &userEntry;
     }
     return NULL;
+}
+
+static bool atFirstEntry = true;
+
+struct passwd* getpwent(void) {
+    if (atFirstEntry) {
+        atFirstEntry = false;
+        return (struct passwd*) &userEntry;
+    }
+    return NULL;
+}
+
+void endpwent(void) {
+    atFirstEntry = true;
+}
+
+void setpwent(void) {
+    atFirstEntry = true;
 }
