@@ -43,6 +43,7 @@ int tcsetattr(int, int, const struct termios*);
 #if __USE_DENNIX
 int tcgetwinsize(int, struct winsize*);
 int tcsetsid(int, pid_t);
+int tcsetwinsize(int, const struct winsize*);
 #endif
 
 #ifdef __cplusplus

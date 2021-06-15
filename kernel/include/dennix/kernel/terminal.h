@@ -37,7 +37,7 @@ public:
     int isatty() override;
     short poll() override;
     ssize_t read(void* buffer, size_t size, int flags) override;
-    void setWinsize(struct winsize* ws);
+    void setWinsize(const struct winsize* ws);
     int tcgetattr(struct termios* result) override;
     int tcsetattr(int flags, const struct termios* termios) override;
     ssize_t write(const void* buffer, size_t size, int flags) override;

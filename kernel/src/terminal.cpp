@@ -251,6 +251,17 @@ int Terminal::devctl(int command, void* restrict data, size_t size,
         *info = 0;
         return 0;
     } break;
+    case TIOCSWINSZ: {
+        if (size != 0 && size != sizeof(struct winsize)) {
+            *info = -1;
+            return EINVAL;
+        }
+
+        const struct winsize* ws = (const struct winsize*) data;
+        setWinsize(ws);
+        *info = 0;
+        return 0;
+    } break;
     default:
         *info = -1;
         return EINVAL;
@@ -342,7 +353,8 @@ ssize_t Terminal::read(void* buffer, size_t size, int flags) {
     return (ssize_t) readSize;
 }
 
-void Terminal::setWinsize(struct winsize* ws) {
+void Terminal::setWinsize(const struct winsize* ws) {
+    if (winsize.ws_col == ws->ws_col && winsize.ws_row == ws->ws_row) return;
     winsize = *ws;
     raiseSignal(SIGWINCH);
 }

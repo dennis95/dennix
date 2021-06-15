@@ -36,5 +36,6 @@
 #define TIOCSPGRP _DEVCTL(_IOCTL_PTR, 2) /* (const pid_t*) */
 /* _IOCTL_PTR 3 - 6 are used in <dennix/display.h>. */
 #define TIOCGPATH _DEVCTL(_IOCTL_PTR, 7) /* (char*) */
+#define TIOCSWINSZ _DEVCTL(_IOCTL_PTR, 8) /* (const struct winsize*) */
 
 #endif

@@ -319,6 +319,7 @@ LIBC_OBJ = \
 	termios/tcgetwinsize \
 	termios/tcsetattr \
 	termios/tcsetsid \
+	termios/tcsetwinsize \
 	time/asctime \
 	time/clock_gettime \
 	time/clock_nanosleep \
