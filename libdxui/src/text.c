@@ -68,25 +68,30 @@ void dxui_draw_text_in_rect(dxui_context* context, dxui_color* framebuffer,
             continue;
         }
 
-        uint8_t cp437 = unicodeToCp437(wc);
-
-        const char* font = &context->vgafont[cp437 * fontHeight];
-        for (int i = 0; i < fontHeight; i++) {
-            int y = pos.y + i;
-            if (y < rect.y) continue;
-            if (y >= rect.y + rect.height) break;
-            for (int j = 0; j < 8; j++) {
-                int x = pos.x + j;
-                if (x < rect.x) continue;
-                if (x >= rect.x + rect.width) break;
-                bool pixelFg = font[i] & (1 << (7 - j));
-                if (pixelFg) {
-                    framebuffer[y * pitch + x] = color;
-                }
-            }
-        }
-
+        dxui_draw_text_wc(context, framebuffer, wc, color, pos, rect, pitch);
         pos.x += fontWidth;
         text++;
+    }
+}
+
+void dxui_draw_text_wc(dxui_context* context, dxui_color* framebuffer,
+        wchar_t wc, dxui_color color, dxui_pos pos, dxui_rect crop,
+        size_t pitch) {
+    uint8_t cp437 = unicodeToCp437(wc);
+
+    const char* font = &context->vgafont[cp437 * fontHeight];
+    for (int i = 0; i < fontHeight; i++) {
+        int y = pos.y + i;
+        if (y < crop.y) continue;
+        if (y >= crop.y + crop.height) break;
+        for (int j = 0; j < 8; j++) {
+            int x = pos.x + j;
+            if (x < crop.x) continue;
+            if (x >= crop.x + crop.width) break;
+            bool pixelFg = font[i] & (1 << (7 - j));
+            if (pixelFg) {
+                framebuffer[y * pitch + x] = color;
+            }
+        }
     }
 }

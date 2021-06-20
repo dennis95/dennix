@@ -24,6 +24,10 @@
 #include <dennix/kernel/console.h>
 #include <dennix/kernel/devices.h>
 
+// Some of this code is shared (with modifications) with apps/terminal.c.
+// When making changes to the shared code it is important to keep these two
+// files in sync so that both can be equally considered the "dennix" terminal.
+
 static const uint32_t vgaColors[16] = {
     RGB(0, 0, 0),
     RGB(0, 0, 170),

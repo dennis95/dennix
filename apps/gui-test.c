@@ -35,6 +35,7 @@ static void closeButtonClick(dxui_control* control, dxui_mouse_event* event);
 static void changeColorButtonClick(dxui_control* control,
         dxui_mouse_event* event);
 static void resizeButtonClick(dxui_control* control, dxui_mouse_event* event);
+static void terminalButtonClick(dxui_control* control, dxui_mouse_event* event);
 static void onKey(dxui_window* window, dxui_key_event* event);
 static void onSignal(int signo);
 static void shutdown(void);
@@ -101,6 +102,12 @@ static void addWindow(void) {
     button = dxui_create_button(rect, "Bricks");
     if (!button) dxui_panic(context, "Failed to create a button");
     dxui_set_event_handler(button, DXUI_EVENT_MOUSE_CLICK, bricksButtonClick);
+    dxui_add_control(window, button);
+
+    rect = (dxui_rect) {{ 250, 250, 150, 30 }};
+    button = dxui_create_button(rect, "Terminal");
+    if (!button) dxui_panic(context, "Failed to create a button");
+    dxui_set_event_handler(button, DXUI_EVENT_MOUSE_CLICK, terminalButtonClick);
     dxui_add_control(window, button);
 
     dxui_set_event_handler(window, DXUI_EVENT_KEY, onKey);
@@ -171,6 +178,15 @@ static void bricksButtonClick(dxui_control* control, dxui_mouse_event* event) {
     pid_t pid = fork();
     if (pid == 0) {
         execl("/bin/bricks", "bricks", NULL);
+        _Exit(1);
+    }
+}
+
+static void terminalButtonClick(dxui_control* control, dxui_mouse_event* event) {
+    (void) control; (void) event;
+    pid_t pid = fork();
+    if (pid == 0) {
+        execl("/bin/terminal", "terminal", NULL);
         _Exit(1);
     }
 }

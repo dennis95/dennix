@@ -404,8 +404,8 @@ static bool handleKeyboard(dxui_context* context) {
 
     context->partialKeyBytes = bytes % sizeof(struct kbwc);
     for (size_t i = 0; i < context->partialKeyBytes; i++) {
-        context->partialKeyBuffer[i] = *(char*) kbwc + bytes -
-                context->partialKeyBytes + i;
+        context->partialKeyBuffer[i] = *((char*) kbwc + bytes -
+                context->partialKeyBytes + i);
     }
     return true;
 }

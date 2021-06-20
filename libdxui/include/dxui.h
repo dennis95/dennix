@@ -306,6 +306,10 @@ void dxui_draw_text_in_rect(dxui_context* /*context*/,
         dxui_color* /*framebuffer*/, const char* /*text*/, dxui_color /*color*/,
         dxui_pos /*pos*/, dxui_rect /*rect*/, size_t /*pitch*/);
 
+void dxui_draw_text_wc(dxui_context* /*context*/, dxui_color* /*framebuffer*/,
+        wchar_t /*wc*/, dxui_color /*color*/, dxui_pos /*pos*/,
+        dxui_rect /*crop*/, size_t /*pitch*/);
+
 #ifdef __cplusplus
 }
 #endif
