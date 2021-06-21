@@ -40,6 +40,7 @@
 #  define DENNIX_VERSION ""
 #endif
 
+static void startInitProcess(void* param);
 static Reference<DirectoryVnode> loadInitrd(multiboot_info* multiboot);
 
 static multiboot_info multiboot;
@@ -91,8 +92,22 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     rootDir->mkdir("run", 0755);
     rootDir->mkdir("mnt", 0755);
 
+    WorkerJob job;
+    job.func = startInitProcess;
+    job.context = &rootFd;
+    WorkerThread::addJob(&job);
+    WorkerThread::initialize();
+
+    while (true) {
+        asm volatile ("hlt");
+    }
+}
+
+static void startInitProcess(void* param) {
+    Reference<FileDescription> rootFd = *(Reference<FileDescription>*) param;
+
     Log::printf("Starting init process...\n");
-    Reference<Vnode> program = resolvePath(rootDir, "/sbin/init");
+    Reference<Vnode> program = resolvePath(rootFd->vnode, "/sbin/init");
     if (!program) PANIC("No init program found");
 
     Process* initProcess = xnew Process();
@@ -117,11 +132,6 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     initProcess->rootFd = rootFd;
     initProcess->cwdFd = rootFd;
     Thread::addThread(&initProcess->mainThread);
-    WorkerThread::initialize();
-
-    while (true) {
-        asm volatile ("hlt");
-    }
 }
 
 static Reference<DirectoryVnode> loadInitrd(multiboot_info* multiboot) {
