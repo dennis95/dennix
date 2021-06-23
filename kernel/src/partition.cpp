@@ -160,3 +160,7 @@ ssize_t Partition::pwrite(const void* buffer, size_t size, off_t offset,
 
     return device->pwrite(buffer, size, partitionOffset + offset, flags);
 }
+
+int Partition::sync(int flags) {
+    return device->sync(flags);
+}

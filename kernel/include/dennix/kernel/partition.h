@@ -31,6 +31,7 @@ public:
     ssize_t pread(void* buffer, size_t size, off_t offset, int flags) override;
     ssize_t pwrite(const void* buffer, size_t size, off_t offset, int flags)
             override;
+    int sync(int flags) override;
 public:
     static void scanPartitions(const Reference<Vnode>& device,
             const char* deviceName, size_t sectorSize);
