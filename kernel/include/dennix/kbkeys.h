@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2020 Dennis Wölfing
+/* Copyright (c) 2017, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -124,6 +124,8 @@
 #define KB_PAGEDOWN 0xD1
 #define KB_INSERT 0xD2
 #define KB_DELETE 0xD3
+#define KB_LGUI 0xDB
+#define KB_RGUI 0xDC
 
 struct kbwc {
     int kb;

@@ -27,7 +27,6 @@ LIBS = -ldxui
 
 APPS = \
 	bricks \
-	gui-test \
 	terminal
 
 all: $(addprefix $(BUILD)/, $(APPS))

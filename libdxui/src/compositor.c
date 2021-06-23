@@ -73,6 +73,7 @@ static void createWindow(dxui_context* context, dxui_rect rect,
     msg.height = rect.height;
     msg.flags = 0;
     if (flags & DXUI_WINDOW_NO_RESIZE) msg.flags |= GUI_WINDOW_NO_RESIZE;
+    if (flags & DXUI_WINDOW_COMPOSITOR) msg.flags |= GUI_WINDOW_COMPOSITOR;
 
     struct gui_msg_header header;
     header.type = GUI_MSG_CREATE_WINDOW;

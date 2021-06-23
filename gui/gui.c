@@ -47,27 +47,6 @@ static void handleClose(dxui_window* window) {
     exit(0);
 }
 
-static void handleResize(dxui_window* window, dxui_resize_event* event) {
-    lfb = dxui_get_framebuffer(window, event->dim);
-    if (!lfb) dxui_panic(context, "Failed to create window framebuffer");
-    guiDim = event->dim;
-
-    dxui_rect rect = { .pos = {0, 0}, .dim = guiDim };
-    addDamageRect(rect);
-
-    for (struct Window* win = topWindow; win; win = win->below) {
-        if (win->rect.x > guiDim.width - 10) {
-            win->rect.x = guiDim.width - 50;
-        }
-
-        if (win->rect.y > guiDim.height - 10) {
-            win->rect.y = guiDim.height - 50;
-        }
-    }
-
-    broadcastStatusEvent();
-}
-
 static void initialize(void) {
     atexit(shutdown);
     signal(SIGABRT, onSignal);
@@ -95,8 +74,10 @@ static void initialize(void) {
         rect.height = 4 * displayDim.height / 5;
     }
 
-    compositorWindow = dxui_create_window(context, rect, "GUI", 0);
+    compositorWindow = dxui_create_window(context, rect, "GUI",
+            DXUI_WINDOW_COMPOSITOR);
     if (!compositorWindow) dxui_panic(context, "Failed to create a window");
+    dxui_set_background(compositorWindow, backgroundColor);
 
     dxui_set_event_handler(compositorWindow, DXUI_EVENT_MOUSE, handleMouse);
     dxui_set_event_handler(compositorWindow, DXUI_EVENT_KEY, handleKey);
@@ -111,6 +92,7 @@ static void initialize(void) {
 
     dxui_show(compositorWindow);
 
+    initializeDisplay();
     initializeServer();
 }
 
@@ -119,13 +101,6 @@ int main(void) {
     dxui_rect rect = { .pos = {0, 0}, .dim = guiDim };
     addDamageRect(rect);
     composit();
-
-    pid_t pid = fork();
-    if (pid == 0) {
-        // Run the test application.
-        execl("/bin/gui-test", "gui-test", NULL);
-        _Exit(1);
-    }
 
     while (true) {
         pollEvents();

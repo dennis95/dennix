@@ -50,6 +50,7 @@ struct gui_msg_header {
 
 enum {
     GUI_WINDOW_NO_RESIZE = 1 << 0,
+    GUI_WINDOW_COMPOSITOR = 1 << 1,
 };
 
 struct gui_msg_create_window {

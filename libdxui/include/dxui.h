@@ -216,6 +216,7 @@ void dxui_close(dxui_window* /*window*/);
 
 enum {
     DXUI_WINDOW_NO_RESIZE = 1 << 0,
+    DXUI_WINDOW_COMPOSITOR = 1 << 1,
 };
 
 dxui_window* dxui_create_window(dxui_context* /*context*/, dxui_rect /*rect*/,

@@ -27,11 +27,15 @@ extern dxui_window* compositorWindow;
 extern dxui_color* lfb;
 extern dxui_dim guiDim;
 
+static const dxui_color backgroundColor = RGB(0, 200, 255);
+
 void addDamageRect(dxui_rect rect);
 void broadcastStatusEvent(void);
 void composit(void);
 void handleKey(dxui_control* control, dxui_key_event* event);
 void handleMouse(dxui_control* control, dxui_mouse_event* event);
+void handleResize(dxui_window* window, dxui_resize_event* event);
+void initializeDisplay(void);
 void initializeServer(void);
 void pollEvents(void);
 

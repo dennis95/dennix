@@ -149,11 +149,6 @@ void closeWindow(struct Window* window) {
     free(window->titleLfb);
     free(window->lfb);
     free(window);
-
-    if (topWindow == NULL) {
-        // If all windows have been closed, exit the gui.
-        exit(0);
-    }
 }
 
 dxui_rect getClientRect(struct Window* window) {
