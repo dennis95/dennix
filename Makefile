@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -25,7 +25,13 @@ LICENSE = $(LICENSES_DIR)/dennix/LICENSE
 DXPORT = ./ports/dxport --host=$(ARCH)-dennix --builddir=$(BUILD_DIR)/ports
 DXPORT += --sysroot=$(SYSROOT)
 
-all: libc kernel sh utils iso
+all: libc kernel libdxui gui apps sh utils iso
+
+apps: $(INCLUDE_DIR) $(LIB_DIR)
+	$(MAKE) -C apps
+
+gui: $(INCLUDE_DIR) $(LIB_DIR)
+	$(MAKE) -C gui
 
 kernel $(KERNEL): $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C kernel
@@ -33,17 +39,32 @@ kernel $(KERNEL): $(INCLUDE_DIR) $(LIB_DIR)
 libc: $(INCLUDE_DIR)
 	$(MAKE) -C libc
 
-install-all: install-headers install-libc install-sh install-utils install-ports
+libdxui: $(INCLUDE_DIR)
+	$(MAKE) -C libdxui
+
+install-all: install-headers install-libc install-libdxui install-gui
+install-all: install-apps install-sh install-utils install-ports
+
+install-apps:
+	$(MAKE) -C apps install
+
+install-gui:
+	$(MAKE) -C gui install
 
 install-headers $(INCLUDE_DIR):
 	$(MAKE) -C kernel install-headers
 	$(MAKE) -C libc install-headers
+	$(MAKE) -C libdxui install-headers
 
 install-libc: $(INCLUDE_DIR)
 	$(MAKE) -C libc install-libs
 
+install-libdxui: $(INCLUDE_DIR)
+	$(MAKE) -C libdxui install-lib
+
 $(LIB_DIR):
 	$(MAKE) -C libc install-libs
+	$(MAKE) -C libdxui install-lib
 
 install-ports $(DXPORT_DIR): $(INCLUDE_DIR) $(LIB_DIR)
 ifneq ($(wildcard ./ports/dxport),)
@@ -85,6 +106,8 @@ $(SYSROOT): $(INCLUDE_DIR) $(LIB_DIR) $(BIN_DIR) $(SYSROOT)/usr $(LICENSE)
 $(SYSROOT): $(SYSROOT)/share/fonts/vgafont $(SYSROOT)/home/user $(DXPORT_DIR)
 
 $(BIN_DIR):
+	$(MAKE) -C gui install
+	$(MAKE) -C apps install
 	$(MAKE) -C sh install
 	$(MAKE) -C utils install
 
@@ -110,6 +133,6 @@ distclean:
 	rm -rf build sysroot
 	rm -f *.iso
 
-.PHONY: all kernel libc install-all install-headers install-libc install-ports
-.PHONY: install-sh install-toolchain install-utils iso qemu sh utils clean
-.PHONY: distclean
+.PHONY: all apps gui kernel libc libdxui install-all install-apps install-gui
+.PHONY: install-headers install-libc install-libdxui install-ports install-sh
+.PHONY: install-toolchain install-utils iso qemu sh utils clean distclean
