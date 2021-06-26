@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -37,7 +37,7 @@ NORETURN void panic(const char* file, unsigned int line, const char* func,
     panic(file, line, func, format, ap);
     va_end(ap);
 
-    console->display->update();
+    console->display->onPanic();
     while (true) asm ("hlt");
 }
 
@@ -49,6 +49,6 @@ NORETURN void panic(const char* file, unsigned int line, const char* func,
     va_end(ap);
     Registers::dumpInterruptContext(context);
 
-    console->display->update();
+    console->display->onPanic();
     while (true) asm ("hlt");
 }

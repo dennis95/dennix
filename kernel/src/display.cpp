@@ -104,6 +104,11 @@ void Display::initialize() {
     clear({0, 0}, {columns - 1, rows - 1}, defaultColor);
 }
 
+void Display::onPanic() {
+    renderingText = true;
+    update();
+}
+
 void Display::putCharacter(CharPos position, wchar_t wc, Color color) {
     if (unlikely(!doubleBuffer)) {
         CharBufferEntry entry = { wc, color.fgColor, color.bgColor, true };

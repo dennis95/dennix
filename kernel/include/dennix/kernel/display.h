@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -58,6 +58,7 @@ public:
     int devctl(int command, void* restrict data, size_t size,
             int* restrict info) override;
     void initialize();
+    void onPanic();
     void putCharacter(CharPos position, wchar_t c, Color color);
     void scroll(unsigned int lines, Color color, bool up = true);
     void setCursorPos(CharPos position);
