@@ -20,6 +20,7 @@
 #ifndef _SYS_GUIMSG_H
 #define _SYS_GUIMSG_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -34,6 +35,7 @@ enum {
     GUI_MSG_SET_WINDOW_BACKGROUND,
     GUI_MSG_SET_WINDOW_CURSOR,
     GUI_MSG_SET_WINDOW_TITLE,
+    GUI_MSG_SET_RELATIVE_MOUSE,
 
     GUI_EVENT_STATUS = 10000,
     GUI_EVENT_CLOSE_BUTTON,
@@ -122,6 +124,11 @@ struct gui_msg_set_window_title {
     char title[];
 };
 
+struct gui_msg_set_relative_mouse {
+    unsigned int window_id;
+    bool relative;
+};
+
 struct gui_event_status {
     /* currently no flags are defined. */
     unsigned int flags;
@@ -142,6 +149,7 @@ enum {
     GUI_MOUSE_SCROLL_UP = 1 << 3,
     GUI_MOUSE_SCROLL_DOWN = 1 << 4,
     GUI_MOUSE_LEAVE = 1 << 5,
+    GUI_MOUSE_RELATIVE = 1 << 6,
 };
 
 struct gui_event_mouse {

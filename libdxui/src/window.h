@@ -40,6 +40,7 @@ struct dxui_internal_window {
     dxui_color* lfb;
     bool manualDrawing;
     bool redraw;
+    bool relativeMouse;
     bool updateInProgress;
     bool visible;
     dxui_color compositorBackground;

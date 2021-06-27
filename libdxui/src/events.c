@@ -169,25 +169,29 @@ static void handleMouseEvent(dxui_context* context, Window* window,
         dxui_mouse_event event) {
     bool mouseDown = false;
     bool mouseUp = false;
-
-    if (!context->mouseDown && event.flags & DXUI_MOUSE_LEFT) {
-        context->mouseDown = true;
-        context->mouseDownPos = event.pos;
-        mouseDown = true;
-    } else if (context->mouseDown && !(event.flags & DXUI_MOUSE_LEFT)) {
-        context->mouseDown = false;
-        mouseUp = true;
-    }
-
     bool click = false;
+    dxui_control* control;
 
-    dxui_control* control = dxui_get_control_at(window, event.pos);
-    if (mouseUp) {
-        dxui_control* mouseDownControl = dxui_get_control_at(window,
-                context->mouseDownPos);
-        if (control == mouseDownControl) {
-            click = true;
+    if (!(event.flags & DXUI_MOUSE_RELATIVE)) {
+        if (!context->mouseDown && event.flags & DXUI_MOUSE_LEFT) {
+            context->mouseDown = true;
+            context->mouseDownPos = event.pos;
+            mouseDown = true;
+        } else if (context->mouseDown && !(event.flags & DXUI_MOUSE_LEFT)) {
+            context->mouseDown = false;
+            mouseUp = true;
         }
+
+        control = dxui_get_control_at(window, event.pos);
+        if (mouseUp) {
+            dxui_control* mouseDownControl = dxui_get_control_at(window,
+                    context->mouseDownPos);
+            if (control == mouseDownControl) {
+                click = true;
+            }
+        }
+    } else {
+        control = DXUI_AS_CONTROL(window);
     }
 
     if (mouseDown) {
@@ -412,26 +416,37 @@ static bool handleKeyboard(dxui_context* context) {
 
 static void handleMousePacket(dxui_context* context,
         const struct mouse_data* data) {
-    context->mousePos.x += data->mouse_x;
-    context->mousePos.y += data->mouse_y;
-    if (context->mousePos.x < 0) {
-        context->mousePos.x = 0;
-    } else if (context->mousePos.x >= context->displayDim.width) {
-        context->mousePos.x = context->displayDim.width - 1;
-    }
+    bool relativeMouse = context->activeWindow &&
+            context->activeWindow->relativeMouse;
 
-    if (context->mousePos.y < 0) {
-        context->mousePos.y = 0;
-    } else if (context->mousePos.y >= context->displayDim.height) {
-        context->mousePos.y = context->displayDim.height - 1;
+    if (!relativeMouse) {
+        context->mousePos.x += data->mouse_x;
+        context->mousePos.y += data->mouse_y;
+        if (context->mousePos.x < 0) {
+            context->mousePos.x = 0;
+        } else if (context->mousePos.x >= context->displayDim.width) {
+            context->mousePos.x = context->displayDim.width - 1;
+        }
+
+        if (context->mousePos.y < 0) {
+            context->mousePos.y = 0;
+        } else if (context->mousePos.y >= context->displayDim.height) {
+            context->mousePos.y = context->displayDim.height - 1;
+        }
     }
 
     if (!context->activeWindow) return;
 
     dxui_mouse_event event;
-    event.pos.x = context->mousePos.x - context->viewport.x;
-    event.pos.y = context->mousePos.y - context->viewport.y;
-    event.flags = 0;
+    if (relativeMouse) {
+        event.pos.x = data->mouse_x;
+        event.pos.y = data->mouse_y;
+        event.flags = DXUI_MOUSE_RELATIVE;
+    } else {
+        event.pos.x = context->mousePos.x - context->viewport.x;
+        event.pos.y = context->mousePos.y - context->viewport.y;
+        event.flags = 0;
+    }
 
     if (data->mouse_flags & MOUSE_LEFT) {
         event.flags |= DXUI_MOUSE_LEFT;
@@ -451,7 +466,9 @@ static void handleMousePacket(dxui_context* context,
 
     handleMouseEvent(context, context->activeWindow, event);
 
-    if (context->activeWindow) {
+    if (!relativeMouse && context->activeWindow && context->cursors) {
+        // Cause the cursor to be redrawn.
+        // TODO: I think this causes performance issues in the compositor.
         dxui_update(context->activeWindow);
     }
 }

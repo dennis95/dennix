@@ -49,6 +49,10 @@ dxui_dim (dxui_get_dim)(dxui_control* control) {
     return control->internal->rect.dim;
 }
 
+dxui_container* (dxui_get_owner)(dxui_control* control) {
+    return DXUI_AS_CONTAINER(control->internal->owner);
+}
+
 const char* (dxui_get_text)(dxui_control* control) {
     return control->internal->text;
 }

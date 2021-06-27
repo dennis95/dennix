@@ -43,6 +43,8 @@ static void handleRedrawWindowPart(struct Connection* conn, size_t length,
         struct gui_msg_redraw_window_part* msg);
 static void handleResizeWindow(struct Connection* conn, size_t length,
         struct gui_msg_resize_window* msg);
+static void handleSetRelativeMouse(struct Connection* conn, size_t length,
+        struct gui_msg_set_relative_mouse* msg);
 static void handleSetWindowBackground(struct Connection* conn, size_t length,
         struct gui_msg_set_window_background* msg);
 static void handleSetWindowCursor(struct Connection* conn, size_t length,
@@ -97,6 +99,9 @@ static void handleMessage(struct Connection* conn, unsigned int type,
         break;
     case GUI_MSG_RESIZE_WINDOW:
         handleResizeWindow(conn, length, msg);
+        break;
+    case GUI_MSG_SET_RELATIVE_MOUSE:
+        handleSetRelativeMouse(conn, length, msg);
         break;
     case GUI_MSG_SET_WINDOW_BACKGROUND:
         handleSetWindowBackground(conn, length, msg);
@@ -296,6 +301,17 @@ static void handleResizeWindow(struct Connection* conn, size_t length,
     rect.width = msg->width;
     rect.height = msg->height;
     resizeWindow(window, rect);
+}
+
+static void handleSetRelativeMouse(struct Connection* conn, size_t length,
+        struct gui_msg_set_relative_mouse* msg) {
+    if (length < sizeof(*msg)) return;
+    struct Window* window = getWindow(conn, msg->window_id);
+    if (!window) return;
+    window->relativeMouse = msg->relative;
+    if (window == topWindow) {
+        dxui_set_relative_mouse(compositorWindow, msg->relative);
+    }
 }
 
 static void handleSetWindowBackground(struct Connection* conn, size_t length,

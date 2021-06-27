@@ -142,6 +142,7 @@ enum {
     DXUI_MOUSE_SCROLL_UP = 1 << 3,
     DXUI_MOUSE_SCROLL_DOWN = 1 << 4,
     DXUI_MOUSE_LEAVE = 1 << 5,
+    DXUI_MOUSE_RELATIVE = 1 << 6,
 };
 
 typedef struct {
@@ -204,6 +205,9 @@ dxui_control* dxui_get_control_at(dxui_container* /*container*/,
 #define dxui_get_control_at(container, pos) \
         dxui_get_control_at(DXUI_AS_CONTAINER(container), pos)
 
+dxui_container* dxui_get_owner(dxui_control* /*control*/);
+#define dxui_get_owner(control) dxui_get_owner(DXUI_AS_CONTROL(control))
+
 /* Windows. */
 
 typedef union {
@@ -231,6 +235,8 @@ void dxui_hide(dxui_window* /*window*/);
 void dxui_release_framebuffer(dxui_window* /*window*/);
 
 void dxui_resize_window(dxui_window* /*window*/, dxui_dim /*dim*/);
+
+void dxui_set_relative_mouse(dxui_window* /*window*/, bool /*relative*/);
 
 enum {
     DXUI_CURSOR_ARROW,

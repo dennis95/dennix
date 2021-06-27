@@ -40,6 +40,19 @@ static void sendLeaveEvent(void) {
 void handleMouse(dxui_control* control, dxui_mouse_event* event) {
     (void) control;
 
+    if (event->flags & DXUI_MOUSE_RELATIVE) {
+        if (!topWindow || !topWindow->relativeMouse) return;
+
+        struct gui_event_mouse guiEvent;
+        guiEvent.window_id = topWindow->id;
+        guiEvent.x = event->pos.x;
+        guiEvent.y = event->pos.y;
+        guiEvent.flags = event->flags;
+        sendEvent(topWindow->connection, GUI_EVENT_MOUSE, sizeof(guiEvent),
+                &guiEvent);
+        return;
+    }
+
     if (event->flags & DXUI_MOUSE_LEAVE) {
         leftClick = false;
         changingWindow = NULL;

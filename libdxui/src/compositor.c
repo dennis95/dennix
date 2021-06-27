@@ -28,6 +28,8 @@ static void createWindow(dxui_context* context, dxui_rect rect,
         const char* title, int flags);
 static void hideWindow(dxui_context* context, unsigned int id);
 static void resizeWindow(dxui_context* context, unsigned int id, dxui_dim dim);
+static void setRelativeMouse(dxui_context* context, unsigned int id,
+        bool relative);
 static void setWindowCursor(dxui_context* context, unsigned int id, int cursor);
 static void showWindow(dxui_context* context, unsigned int id);
 static void setWindowBackground(dxui_context* context, unsigned int id,
@@ -45,6 +47,7 @@ const Backend dxui_compositorBackend = {
     .createWindow = createWindow,
     .hideWindow = hideWindow,
     .resizeWindow = resizeWindow,
+    .setRelativeMouse = setRelativeMouse,
     .setWindowCursor = setWindowCursor,
     .showWindow = showWindow,
     .setWindowBackground = setWindowBackground,
@@ -114,6 +117,19 @@ static void setWindowCursor(dxui_context* context, unsigned int id,
     struct gui_msg_header header;
     header.type = GUI_MSG_SET_WINDOW_CURSOR;
     header.length = sizeof(msg);
+    writeAll(context->socket, &header, sizeof(header));
+    writeAll(context->socket, &msg, sizeof(msg));
+}
+
+static void setRelativeMouse(dxui_context* context, unsigned int id,
+        bool relative) {
+    struct gui_msg_set_relative_mouse msg;
+    msg.window_id = id;
+    msg.relative = relative;
+    struct gui_msg_header header;
+    header.type = GUI_MSG_SET_RELATIVE_MOUSE;
+    header.length = sizeof(msg);
+
     writeAll(context->socket, &header, sizeof(header));
     writeAll(context->socket, &msg, sizeof(msg));
 }

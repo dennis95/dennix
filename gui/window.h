@@ -35,6 +35,7 @@ struct Window {
     dxui_dim titleDim;
     dxui_color* lfb;
     dxui_dim clientDim;
+    bool relativeMouse;
     bool visible;
 };
 

@@ -27,6 +27,8 @@ static void createWindow(dxui_context* context, dxui_rect rect,
         const char* title, int flags);
 static void hideWindow(dxui_context* context, unsigned int id);
 static void resizeWindow(dxui_context* context, unsigned int id, dxui_dim dim);
+static void setRelativeMouse(dxui_context* context, unsigned int id,
+        bool relative);
 static void setWindowCursor(dxui_context* context, unsigned int id, int cursor);
 static void showWindow(dxui_context* context, unsigned int id);
 static void setWindowBackground(dxui_context* context, unsigned int id,
@@ -43,6 +45,7 @@ const Backend dxui_standaloneBackend = {
     .createWindow = createWindow,
     .hideWindow = hideWindow,
     .resizeWindow = resizeWindow,
+    .setRelativeMouse = setRelativeMouse,
     .setWindowCursor = setWindowCursor,
     .showWindow = showWindow,
     .setWindowBackground = setWindowBackground,
@@ -130,6 +133,11 @@ static void resizeWindow(dxui_context* context, unsigned int id, dxui_dim dim) {
     dxui_update(window);
 }
 
+static void setRelativeMouse(dxui_context* context, unsigned int id,
+        bool relative) {
+    (void) context; (void) id; (void) relative;
+}
+
 static void setWindowCursor(dxui_context* context, unsigned int id,
         int cursor) {
     if (cursor > 4) return;
@@ -183,7 +191,7 @@ static dxui_color blend(dxui_color fg, dxui_color bg) {
 static void draw(dxui_context* context, dxui_rect rect) {
     dxui_dim displayDim = context->displayDim;
 
-    if (context->cursors) {
+    if (context->cursors && !context->activeWindow->relativeMouse) {
         dxui_rect cursorRect;
         cursorRect.x = context->mousePos.x - 24;
         cursorRect.y = context->mousePos.y - 24;

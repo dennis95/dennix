@@ -43,12 +43,19 @@ static void removeWindow(struct Window* window);
 static dxui_color renderCloseButton(int x, int y);
 
 static void addWindowOnTop(struct Window* window) {
+    bool relativeMouse = false;
+
     if (topWindow) {
         topWindow->above = window;
+        relativeMouse = topWindow->relativeMouse;
     }
     window->below = topWindow;
     window->above = NULL;
     topWindow = window;
+
+    if (window->relativeMouse != relativeMouse) {
+        dxui_set_relative_mouse(compositorWindow, window->relativeMouse);
+    }
 
     if (window->visible) {
         addDamageRect(window->rect);
@@ -68,6 +75,7 @@ struct Window* addWindow(int x, int y, int width, int height, const char* title,
     window->titleLfb = NULL;
     window->lfb = NULL;
     window->clientDim = (dxui_dim) {0, 0};
+    window->relativeMouse = false;
     window->visible = false;
 
     setWindowTitle(window, title);
@@ -230,6 +238,10 @@ static void removeWindow(struct Window* window) {
         window->above->below = window->below;
     } else {
         topWindow = window->below;
+        if (window->relativeMouse != (topWindow && topWindow->relativeMouse)) {
+            dxui_set_relative_mouse(compositorWindow, topWindow &&
+                    topWindow->relativeMouse);
+        }
     }
 }
 

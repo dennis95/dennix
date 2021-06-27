@@ -31,6 +31,8 @@ typedef struct {
     void (*resizeWindow)(dxui_context* context, unsigned int id, dxui_dim dim);
     void (*setWindowCursor)(dxui_context* context, unsigned int id, int cursor);
     void (*showWindow)(dxui_context* context, unsigned int id);
+    void (*setRelativeMouse)(dxui_context* context, unsigned int id,
+            bool relative);
     void (*setWindowBackground)(dxui_context* context, unsigned int id,
             dxui_color color);
     void (*setWindowTitle)(dxui_context* context, unsigned int id,

@@ -160,6 +160,12 @@ void dxui_set_cursor(dxui_window* window, int cursor) {
     win->context->backend->setWindowCursor(win->context, win->id, cursor);
 }
 
+void dxui_set_relative_mouse(dxui_window* window, bool relative) {
+    Window* win = window->internal;
+    win->relativeMouse = relative;
+    win->context->backend->setRelativeMouse(win->context, win->id, relative);
+}
+
 void dxui_show(dxui_window* window) {
     Window* win = window->internal;
     win->visible = true;
