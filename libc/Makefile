@@ -114,6 +114,7 @@ COMMON_OBJ = \
 	string/strspn \
 	string/strstr \
 	string/strtok \
+	string/strtok_r \
 	time/gmtime \
 	time/gmtime_r \
 	time/timegm \
