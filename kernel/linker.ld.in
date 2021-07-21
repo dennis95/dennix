@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -32,13 +32,15 @@ SECTIONS {
     }
     bootstrap_rodata : {
         *(bootstrap_rodata)
+        . = ALIGN(4096);
     }
 
     bootstrap_bss ALIGN(4096) : {
         *(bootstrap_bss)
+        . = ALIGN(4096);
     }
 
-    bootstrapEnd = ALIGN(4096);
+    bootstrapEnd = .;
     numBootstrapPages = (bootstrapEnd - bootstrapBegin) / 0x1000;
 
     . += KERNEL_VIRTUAL;
@@ -58,9 +60,10 @@ SECTIONS {
 
     .rodata ALIGN(4096) : AT(ADDR(.rodata) - KERNEL_VIRTUAL) {
         *(.rodata*)
+        . = ALIGN(4096);
     }
 
-    kernelReadOnlyEnd = ALIGN(4096);
+    kernelReadOnlyEnd = .;
     numReadOnlyPages = (kernelReadOnlyEnd - kernelVirtualBegin) / 0x1000;
 
     .data ALIGN(4096) : AT(ADDR(.data) - KERNEL_VIRTUAL) {
@@ -83,9 +86,10 @@ SECTIONS {
 
     .bss ALIGN(4096) : AT(ADDR(.bss) - KERNEL_VIRTUAL) {
         *(.bss)
+        . = ALIGN(4096);
     }
 
-    kernelVirtualEnd = ALIGN(4096);
+    kernelVirtualEnd = .;
     kernelPhysicalEnd = kernelVirtualEnd - KERNEL_VIRTUAL;
     numWritablePages = (kernelVirtualEnd - kernelReadOnlyEnd) / 0x1000;
 }

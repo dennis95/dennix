@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -50,55 +50,72 @@ static inline bool isUsedByKernel(paddr_t physicalAddress) {
 }
 
 static inline bool isUsedByModule(paddr_t physicalAddress,
-        const multiboot_mod_list* modules, uint32_t moduleCount) {
-    for (size_t i = 0; i < moduleCount; i++) {
-        if (physicalAddress >= modules[i].mod_start &&
-                physicalAddress < modules[i].mod_end) {
-            return true;
+        const multiboot_info* multiboot) {
+    uintptr_t p = (uintptr_t) multiboot + 8;
+
+    while (true) {
+        const multiboot_tag* tag = (const multiboot_tag*) p;
+        if (tag->type == MULTIBOOT_TAG_TYPE_MODULE) {
+            const multiboot_tag_module* moduleTag =
+                    (const multiboot_tag_module*) tag;
+            if (physicalAddress >= moduleTag->mod_start &&
+                    physicalAddress < moduleTag->mod_end) {
+                return true;
+            }
         }
+
+        if (tag->type == MULTIBOOT_TAG_TYPE_END) {
+            return false;
+        }
+
+        p = ALIGNUP(p + tag->size, 8);
     }
-    return false;
 }
 
 static inline bool isUsedByMultiboot(paddr_t physicalAddress,
-        multiboot_info* multiboot) {
-    paddr_t mmapEnd = multiboot->mmap_addr + multiboot->mmap_length;
-    paddr_t modsEnd = multiboot->mods_addr +
-            multiboot->mods_count * sizeof(multiboot_mod_list);
-    return ((physicalAddress >= (multiboot->mmap_addr & ~PAGE_MISALIGN) &&
-            physicalAddress < mmapEnd) ||
-            (physicalAddress >= (multiboot->mods_addr & ~PAGE_MISALIGN) &&
-            physicalAddress < modsEnd));
+        paddr_t multibootPhys, paddr_t multibootEnd) {
+    return physicalAddress >= multibootPhys && physicalAddress < multibootEnd;
 }
 
-void PhysicalMemory::initialize(multiboot_info* multiboot) {
-    vaddr_t mmapMapping;
-    size_t mmapSize;
-    vaddr_t mmap = kernelSpace->mapUnaligned(multiboot->mmap_addr,
-            multiboot->mmap_length, PROT_READ, mmapMapping, mmapSize);
-    if (!mmap) PANIC("Failed to map multiboot mmap");
-    vaddr_t mmapEnd = mmap + multiboot->mmap_length;
+void PhysicalMemory::initialize(const multiboot_info* multiboot) {
+    uintptr_t p = (uintptr_t) multiboot + 8;
+    const multiboot_tag* tag;
 
-    // Map the module list so we can check which addresses are used by modules
-    vaddr_t modulesMapping;
-    size_t modulesSize;
-    const multiboot_mod_list* modules = (const multiboot_mod_list*)
-            kernelSpace->mapUnaligned(multiboot->mods_addr,
-            multiboot->mods_count * sizeof(multiboot_mod_list), PROT_READ,
-            modulesMapping, modulesSize);
-    if (!modules) PANIC("Failed to map multiboot modules");
+    while (true) {
+        tag = (const multiboot_tag*) p;
+        if (tag->type == MULTIBOOT_TAG_TYPE_MMAP) {
+            break;
+        }
+
+        if (tag->type == MULTIBOOT_TAG_TYPE_END) {
+            PANIC("Bootloader did not provide a memory map.");
+        }
+
+        p = ALIGNUP(p + tag->size, 8);
+    }
+
+    const multiboot_tag_mmap* mmapTag = (const multiboot_tag_mmap*) tag;
+
+    vaddr_t mmap = (vaddr_t) mmapTag->entries;
+    vaddr_t mmapEnd = mmap + (tag->size - sizeof(*mmapTag));
+
+    paddr_t multibootPhys = kernelSpace->getPhysicalAddress(
+            (vaddr_t) multiboot & ~PAGE_MISALIGN);
+    paddr_t multibootEnd = multibootPhys + ALIGNUP(multiboot->total_size +
+            ((vaddr_t) multiboot & PAGE_MISALIGN), PAGESIZE);
 
     while (mmap < mmapEnd) {
         multiboot_mmap_entry* mmapEntry = (multiboot_mmap_entry*) mmap;
 
         if (mmapEntry->type == MULTIBOOT_MEMORY_AVAILABLE &&
-            mmapEntry->addr + mmapEntry->len <= UINTPTR_MAX) {
+                mmapEntry->addr + mmapEntry->len <= UINTPTR_MAX) {
             paddr_t addr = (paddr_t) mmapEntry->addr;
             for (uint64_t i = 0; i < mmapEntry->len; i += PAGESIZE) {
                 totalFrames++;
-                if (isUsedByModule(addr + i, modules, multiboot->mods_count) ||
+                if (isUsedByModule(addr + i, multiboot) ||
                         isUsedByKernel(addr + i) ||
-                        isUsedByMultiboot(addr + i, multiboot)) {
+                        isUsedByMultiboot(addr + i, multibootPhys,
+                        multibootEnd)) {
                     continue;
                 }
 
@@ -106,11 +123,8 @@ void PhysicalMemory::initialize(multiboot_info* multiboot) {
             }
         }
 
-        mmap += mmapEntry->size + 4;
+        mmap += mmapTag->entry_size;
     }
-
-    kernelSpace->unmapPhysical(mmapMapping, mmapSize);
-    kernelSpace->unmapPhysical(modulesMapping, modulesSize);
 }
 
 void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {

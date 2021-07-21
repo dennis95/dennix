@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,12 +27,20 @@ earlyPanic:
     # Tries to print an error message to the screen and halts. The error message
     # is expected in eax and a pointer to the multiboot structure in esi.
     # We cannot run any C code because initialization was not completed.
-    testl $0x1000, (%esi)
-    jz text
-    cmpb $2, 109(%esi)
+    add $8, %esi
+1:  cmp $8, (%esi)
+    je 1f
+    cmp $0, (%esi)
     je text
-    cmpb $1, 109(%esi)
+    add 4(%esi), %esi
+    add $7, %esi
+    and $-8, %esi
+    jmp 1b
+
+1:  cmpb $1, 29(%esi)
     je graphics
+    cmpb $2, 29(%esi)
+    je text
     # We cannot print anything when the bootloader chooses some weird mode.
     jmp halt
 
@@ -49,18 +57,18 @@ text:
 
 graphics:
     # We only support 24 and 32 bpp.
-    cmpb $24, 108(%esi)
+    cmpb $24, 28(%esi)
     je 1f
-    cmpb $32, 108(%esi)
+    cmpb $32, 28(%esi)
     jne halt
 
 1:  xor %ebx, %ebx
-    mov 108(%esi), %bl
+    mov 28(%esi), %bl
     mov %ebx, %esp # bpp
     shr $3, %ebx # bpp / 8
 
     # Get the LFB address.
-    mov 88(%esi), %edi
+    mov 8(%esi), %edi
     # Get the physical address of the vgafont.
     mov $(vgafont - KERNEL_VIRTUAL), %ebp
 
@@ -96,14 +104,14 @@ graphics:
     movb $0xAA, 2(%edi)
 
     sub %esp, %edi
-    add 96(%esi), %edi
+    add 16(%esi), %edi
     inc %ecx
     mov %ebp, %edx
     xor %ecx, %edx
     test $0xF, %edx
     jnz 2b
 
-    mov 96(%esi), %edx
+    mov 16(%esi), %edx
     shl $4, %edx
     sub %edx, %edi
     add %esp, %edi

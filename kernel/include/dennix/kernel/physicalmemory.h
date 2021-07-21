@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,10 +20,10 @@
 #ifndef KERNEL_PHYSICALMEMORY_H
 #define KERNEL_PHYSICALMEMORY_H
 
-#include <dennix/kernel/multiboot.h>
+#include <dennix/kernel/multiboot2.h>
 
 namespace PhysicalMemory {
-void initialize(multiboot_info* multiboot);
+void initialize(const multiboot_info* multiboot);
 paddr_t popPageFrame();
 paddr_t popReserved();
 void pushPageFrame(paddr_t physicalAddress);

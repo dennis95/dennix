@@ -41,9 +41,7 @@
 #endif
 
 static void startInitProcess(void* param);
-static Reference<DirectoryVnode> loadInitrd(multiboot_info* multiboot);
-
-static multiboot_info multiboot;
+static Reference<DirectoryVnode> loadInitrd(const multiboot_info* multiboot);
 
 extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     AddressSpace::initialize();
@@ -52,16 +50,20 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     // memory.
     vaddr_t multibootMapping;
     size_t mapSize;
-    const multiboot_info* multibootMapped = (const multiboot_info*)
+    const multiboot_info* multiboot = (const multiboot_info*)
             kernelSpace->mapUnaligned(multibootAddress, sizeof(multiboot_info),
             PROT_READ, multibootMapping, mapSize);
-    memcpy(&multiboot, multibootMapped, sizeof(multiboot_info));
+    size_t multibootInfoSize = multiboot->total_size;
     kernelSpace->unmapPhysical(multibootMapping, mapSize);
 
-    Log::earlyInitialize(&multiboot);
+    multiboot = (const multiboot_info*)
+            kernelSpace->mapUnaligned(multibootAddress, multibootInfoSize,
+            PROT_READ, multibootMapping, mapSize);
+
+    Log::earlyInitialize(multiboot);
     // Kernel panic works after this point.
 
-    PhysicalMemory::initialize(&multiboot);
+    PhysicalMemory::initialize(multiboot);
 
     Log::initialize();
     Log::printf("Welcome to Dennix " DENNIX_VERSION "\n");
@@ -82,7 +84,7 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
 
     // Load the initrd.
     Log::printf("Loading Initrd...\n");
-    Reference<DirectoryVnode> rootDir = loadInitrd(&multiboot);
+    Reference<DirectoryVnode> rootDir = loadInitrd(multiboot);
     if (!rootDir) PANIC("Could not load initrd");
     Reference<FileDescription> rootFd = xnew FileDescription(rootDir, O_SEARCH);
     Process::current()->rootFd = rootFd;
@@ -134,29 +136,29 @@ static void startInitProcess(void* param) {
     Thread::addThread(&initProcess->mainThread);
 }
 
-static Reference<DirectoryVnode> loadInitrd(multiboot_info* multiboot) {
-    Reference<DirectoryVnode> root;
-    vaddr_t mapping;
-    size_t mapSize;
-    const multiboot_mod_list* modules = (const multiboot_mod_list*)
-            kernelSpace->mapUnaligned(multiboot->mods_addr,
-            multiboot->mods_count * sizeof(multiboot_mod_list), PROT_READ,
-            mapping, mapSize);
-    if (!modules) PANIC("Failed to map multiboot modules");
+static Reference<DirectoryVnode> loadInitrd(const multiboot_info* multiboot) {
+    uintptr_t p = (uintptr_t) multiboot + 8;
 
-    for (size_t i = 0; i < multiboot->mods_count; i++) {
-        // Multiboot modules are guaranteed to be page aligned.
-        size_t size = ALIGNUP(modules[i].mod_end - modules[i].mod_start,
-                PAGESIZE);
-        vaddr_t initrd = kernelSpace->mapPhysical(modules[i].mod_start, size,
-                PROT_READ);
-        if (!initrd) PANIC("Failed to map initrd");
-        root = Initrd::loadInitrd(initrd);
-        kernelSpace->unmapPhysical(initrd, size);
+    while (true) {
+        const multiboot_tag* tag = (const multiboot_tag*) p;
+        if (tag->type == MULTIBOOT_TAG_TYPE_MODULE) {
+            const multiboot_tag_module* moduleTag =
+                    (const multiboot_tag_module*) tag;
+            size_t size = ALIGNUP(moduleTag->mod_end - moduleTag->mod_start,
+                    PAGESIZE);
+            vaddr_t initrd = kernelSpace->mapPhysical(moduleTag->mod_start,
+                    size, PROT_READ);
+            if (!initrd) PANIC("Failed to map initrd");
+            Reference<DirectoryVnode> root = Initrd::loadInitrd(initrd);
+            kernelSpace->unmapPhysical(initrd, size);
 
-        if (root->childCount) break;
+            if (root->childCount) return root;
+        }
+
+        if (tag->type == MULTIBOOT_TAG_TYPE_END) {
+            return nullptr;
+        }
+
+        p = ALIGNUP(p + tag->size, 8);
     }
-    kernelSpace->unmapPhysical(mapping, mapSize);
-
-    return root;
 }

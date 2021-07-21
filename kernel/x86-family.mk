@@ -1,4 +1,4 @@
-# Copyright (c) 2019, 2020 Dennis Wölfing
+# Copyright (c) 2019, 2020, 2021 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -16,4 +16,5 @@ OBJ += \
 	arch/x86-family/earlypanic.o \
 	arch/x86-family/gdt.o \
 	arch/x86-family/idt.o \
-	arch/x86-family/interrupts.o
+	arch/x86-family/interrupts.o \
+	arch/x86-family/multiboot.o

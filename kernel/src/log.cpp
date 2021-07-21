@@ -22,7 +22,7 @@
 #include <dennix/kernel/console.h>
 #include <dennix/kernel/display.h>
 #include <dennix/kernel/log.h>
-#include <dennix/kernel/multiboot.h>
+#include <dennix/kernel/multiboot2.h>
 
 static size_t callback(void*, const char* s, size_t nBytes);
 
@@ -30,9 +30,25 @@ static size_t callback(void*, const char* s, size_t nBytes);
 // the display.
 char displayBuf[sizeof(Display)];
 
-void Log::earlyInitialize(multiboot_info* multiboot) {
-    if (!(multiboot->flags & MULTIBOOT_FRAMEBUFFER_INFO) ||
-            multiboot->framebuffer_type == MULTIBOOT_EGA_TEXT) {
+void Log::earlyInitialize(const multiboot_info* multiboot) {
+    uintptr_t p = (uintptr_t) multiboot + 8;
+    const multiboot_tag* tag;
+
+    while (true) {
+        tag = (const multiboot_tag*) p;
+        if (tag->type == MULTIBOOT_TAG_TYPE_END ||
+                tag->type == MULTIBOOT_TAG_TYPE_FRAMEBUFFER) {
+            break;
+        }
+
+        p = ALIGNUP(p + tag->size, 8);
+    }
+
+    const multiboot_tag_framebuffer* fbTag =
+            (const multiboot_tag_framebuffer*) tag;
+
+    if (tag->type == MULTIBOOT_TAG_TYPE_END ||
+            fbTag->framebuffer_type == MULTIBOOT_FRAMEBUFFER_TYPE_EGA_TEXT) {
         vaddr_t videoMapped = kernelSpace->mapPhysical(0xB8000, PAGESIZE,
                 PROT_READ | PROT_WRITE);
         video_mode mode;
@@ -42,13 +58,12 @@ void Log::earlyInitialize(multiboot_info* multiboot) {
         console->display = new (displayBuf) Display(mode,
                 (char*) videoMapped, 160);
         console->updateDisplaySize();
-    } else if (multiboot->framebuffer_type == MULTIBOOT_RGB &&
-            (multiboot->framebuffer_bpp == 24 ||
-            multiboot->framebuffer_bpp == 32)) {
+    } else if (fbTag->framebuffer_type == MULTIBOOT_FRAMEBUFFER_TYPE_RGB &&
+            (fbTag->framebuffer_bpp == 24 || fbTag->framebuffer_bpp == 32)) {
         vaddr_t lfbMapping;
         size_t mapSize;
-        vaddr_t lfb = kernelSpace->mapUnaligned(multiboot->framebuffer_addr,
-                multiboot->framebuffer_height * multiboot->framebuffer_pitch,
+        vaddr_t lfb = kernelSpace->mapUnaligned(fbTag->framebuffer_addr,
+                fbTag->framebuffer_height * fbTag->framebuffer_pitch,
                 PROT_READ | PROT_WRITE, lfbMapping, mapSize);
         if (!lfb) {
             // This shouldn't fail in practise as enough memory should be
@@ -57,11 +72,11 @@ void Log::earlyInitialize(multiboot_info* multiboot) {
         }
 
         video_mode mode;
-        mode.video_bpp = multiboot->framebuffer_bpp;
-        mode.video_height = multiboot->framebuffer_height;
-        mode.video_width = multiboot->framebuffer_width;
+        mode.video_bpp = fbTag->framebuffer_bpp;
+        mode.video_height = fbTag->framebuffer_height;
+        mode.video_width = fbTag->framebuffer_width;
         console->display = new (displayBuf) Display(mode, (char*) lfb,
-                multiboot->framebuffer_pitch);
+                fbTag->framebuffer_pitch);
         console->updateDisplaySize();
     } else {
         // Without any usable display we cannot do anything.
