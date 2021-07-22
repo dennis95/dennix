@@ -29,6 +29,11 @@
 #define PCI_ADDRESS_ENABLE (1 << 31)
 #define PCI_HEADER_MULTIFUNCTION 0x80
 
+#define PCI_STATUS_CAPABILITY_LIST (1 << 4)
+#define PCI_CAP_MSI 0x5
+#define PCI_MSI_ENABLE (1 << 0)
+#define PCI_MSI_64BIT (1 << 7)
+
 struct PciBridgeHeader {
     uint16_t vendorId;
     uint16_t deviceId;
@@ -51,6 +56,63 @@ struct PciBridgeHeader {
 
 static void checkBus(uint8_t bus);
 
+int Pci::getIrq(unsigned int bus, unsigned int device, unsigned int function) {
+    if (!Interrupts::hasApic) {
+        uint8_t interruptLine = readConfig(bus, device, function,
+                offsetof(PciHeader, interruptLine));
+        return interruptLine;
+    }
+
+    // Check whether the device supports MSI.
+    uint16_t status = readConfig(bus, device, function,
+            offsetof(PciHeader, status));
+
+    if (status & PCI_STATUS_CAPABILITY_LIST) {
+        uint8_t capability = readConfig(bus, device, function,
+                offsetof(PciHeader, capabilitiesPointer)) & 0xFC;
+        while (capability) {
+            uint16_t header = readConfig(bus, device, function, capability);
+
+            if ((header & 0xFF) == PCI_CAP_MSI) {
+                uint16_t messageControl = readConfig(bus, device, function,
+                        capability + 2);
+                bool has64Bit = messageControl & PCI_MSI_64BIT;
+
+                int irq = Interrupts::allocateIrq();
+                if (irq < 0) return -1;
+
+                uint32_t address = 0xFEE00000 | (Interrupts::apicId << 12);
+                uint16_t value = irq - 16 + 51;
+
+                writeConfig(bus, device, function, capability + 4, address);
+                if (has64Bit) {
+                    writeConfig(bus, device, function, capability + 8, 0);
+                    uint32_t config = readConfig(bus, device, function,
+                            capability + 12);
+                    config = (config & 0xFFFF0000) | value;
+                    writeConfig(bus, device, function, capability + 12, config);
+                } else {
+                    uint32_t config = readConfig(bus, device, function,
+                            capability + 8);
+                    config = (config & 0xFFFF0000) | value;
+                    writeConfig(bus, device, function, capability + 8, config);
+                }
+
+                messageControl &= ~0x70;
+                messageControl |= PCI_MSI_ENABLE;
+                uint32_t config = (messageControl << 16) | header;
+                writeConfig(bus, device, function, capability, config);
+
+                return irq;
+            }
+
+            capability = (header >> 8) & 0xFC;
+        }
+    }
+
+    return -1;
+}
+
 uint32_t Pci::readConfig(unsigned int bus, unsigned int device,
         unsigned int function, unsigned int offset) {
     uint32_t address = PCI_ADDRESS_ENABLE | bus << 16 | device << 11 |
@@ -58,6 +120,14 @@ uint32_t Pci::readConfig(unsigned int bus, unsigned int device,
     outl(CONFIG_ADDRESS, address);
     uint32_t word = inl(CONFIG_DATA);
     return word >> (8 * (offset & 0x3));
+}
+
+void Pci::writeConfig(unsigned int bus, unsigned int device,
+        unsigned int function, unsigned int offset, uint32_t value) {
+    uint32_t address = PCI_ADDRESS_ENABLE | bus << 16 | device << 11 |
+            function << 8 | offset;
+    outl(CONFIG_ADDRESS, address);
+    outl(CONFIG_DATA, value);
 }
 
 static void checkFunction(uint8_t bus, uint8_t device, uint8_t function,

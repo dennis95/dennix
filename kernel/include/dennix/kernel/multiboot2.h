@@ -65,10 +65,17 @@ struct multiboot_tag_framebuffer {
     // Additional fields omitted.
 };
 
+struct multiboot_tag_acpi {
+    multiboot_tag header;
+    char rsdp[];
+};
+
 #define MULTIBOOT_TAG_TYPE_END 0
 #define MULTIBOOT_TAG_TYPE_MODULE 3
 #define MULTIBOOT_TAG_TYPE_MMAP 6
 #define MULTIBOOT_TAG_TYPE_FRAMEBUFFER 8
+#define MULTIBOOT_TAG_TYPE_ACPI_OLD 14
+#define MULTIBOOT_TAG_TYPE_ACPI_NEW 15
 
 #define MULTIBOOT_MEMORY_AVAILABLE 1
 

@@ -40,10 +40,12 @@ multibootStart:
 .align 8
 .word 1
 .word 0
-.long 20 # Size
+.long 28 # Size
 .long 3 # Modules
 .long 6 # Memory map
 .long 8 # Framebuffer info
+.long 14 # RSDP (ACPI 1.0)
+.long 15 # RSDP (ACPI 2.0+)
 
 # Request a framebuffer.
 .align 8

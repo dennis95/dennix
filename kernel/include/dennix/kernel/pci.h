@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -57,8 +57,11 @@ struct PciHeader {
 };
 
 namespace Pci {
+int getIrq(unsigned int bus, unsigned int device, unsigned int function);
 uint32_t readConfig(unsigned int bus, unsigned int device,
         unsigned int function, unsigned int offset);
+void writeConfig(unsigned int bus, unsigned int device, unsigned int function,
+        unsigned int offset, uint32_t value);
 void scanForDevices();
 }
 

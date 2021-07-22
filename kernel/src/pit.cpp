@@ -40,7 +40,7 @@ static IrqHandler handler;
 
 void Pit::initialize() {
     handler.func = irqHandler;
-    Interrupts::addIrqHandler(0, &handler);
+    Interrupts::addIrqHandler(Interrupts::isaIrq[0], &handler);
 
     outb(PIT_PORT_MODE, PIT_MODE_RATE_GENERATOR | PIT_MODE_LOBYTE_HIBYTE);
     outb(PIT_PORT_CHANNEL0, divider & 0xFF);

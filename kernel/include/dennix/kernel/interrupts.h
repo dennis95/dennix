@@ -85,11 +85,17 @@ struct IrqHandler {
 };
 
 namespace Interrupts {
-void addIrqHandler(unsigned int irq, IrqHandler* handler);
+extern uint8_t apicId;
+extern bool hasApic;
+extern int isaIrq[16];
+
+void addIrqHandler(int irq, IrqHandler* handler);
+int allocateIrq();
 void disable();
 void enable();
+void initApic();
+void initIoApic(paddr_t baseAddress, int interruptBase);
 void initPic();
 }
-
 
 #endif

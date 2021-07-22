@@ -18,3 +18,6 @@ OBJ += \
 	arch/x86-family/idt.o \
 	arch/x86-family/interrupts.o \
 	arch/x86-family/multiboot.o
+
+$(BUILD)/arch/x86-family/idt.cpp: src/arch/x86-family/idt.sh
+	$< > $@

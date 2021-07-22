@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <signal.h>
+#include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/console.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/portio.h>
@@ -54,13 +55,111 @@
 #define EX_SIMD_FLOATING_POINT_EXCEPTION 19
 #define EX_VIRTUALIZATION_EXCEPTION 20
 
-static IrqHandler* irqHandlers[16] = {0};
+class IoApic {
+public:
+    IoApic(paddr_t baseAddress, int interruptBase);
+    void unmask(int irq);
+private:
+    volatile uint32_t* indexRegister;
+    volatile uint32_t* dataRegister;
+public:
+    int interruptBase;
+    int maxIrq;
+    IoApic* next;
+};
 
-void Interrupts::addIrqHandler(unsigned int irq, IrqHandler* handler) {
-    assert(irq < 16);
+static vaddr_t apicMapped;
+static int freeIrq = 16;
+static IoApic* firstIoApic;
+static IrqHandler* irqHandlers[220] = {0};
+uint8_t Interrupts::apicId;
+bool Interrupts::hasApic;
+int Interrupts::isaIrq[16] =
+        { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+
+IoApic::IoApic(paddr_t baseAddress, int interruptBase) :
+        interruptBase(interruptBase) {
+    vaddr_t mapping;
+    size_t mapSize;
+
+    vaddr_t mapped = kernelSpace->mapUnaligned(baseAddress, 0x14,
+            PROT_READ | PROT_WRITE, mapping, mapSize);
+    if (!mapped) PANIC("Failed to map I/O APIC");
+    indexRegister = (volatile uint32_t*) mapped;
+    dataRegister = (volatile uint32_t*) (mapped + 0x10);
+
+    *indexRegister = 1;
+    size_t numIrqs = ((*dataRegister >> 16) & 0xFF) + 1;
+    maxIrq = interruptBase + numIrqs;
+
+    if (maxIrq >= freeIrq) {
+        freeIrq = maxIrq + 1;
+    }
+
+    next = nullptr;
+}
+
+void IoApic::unmask(int irq) {
+    *indexRegister = 0x10 + (irq - interruptBase) * 2;
+    *dataRegister = irq < 16 ? irq + 32 : irq - 16 + 51;
+    *indexRegister = 0x10 + (irq - interruptBase) * 2 + 1;
+    *dataRegister = Interrupts::apicId << 24;
+}
+
+void Interrupts::addIrqHandler(int irq, IrqHandler* handler) {
+    assert(irq < 220);
+    if (firstIoApic) {
+        IoApic* ioApic = firstIoApic;
+
+        while (ioApic) {
+            if (irq >= ioApic->interruptBase && irq < ioApic->maxIrq) {
+                ioApic->unmask(irq);
+            }
+            ioApic = ioApic->next;
+        }
+    } else if (irq < 16) {
+        if (irq < 8) {
+            outb(PIC1_DATA, inb(PIC1_DATA) & ~(1 << irq));
+        } else {
+            outb(PIC2_DATA, inb(PIC2_DATA) & ~(1 << (irq - 8)));
+        }
+    }
 
     handler->next = irqHandlers[irq];
     irqHandlers[irq] = handler;
+}
+
+int Interrupts::allocateIrq() {
+    if (!hasApic) return -1;
+    if (freeIrq >= 220) return -1;
+    return freeIrq++;
+}
+
+void Interrupts::initApic() {
+    hasApic = true;
+
+    apicMapped = kernelSpace->mapPhysical(0xFEE00000, PAGESIZE,
+            PROT_READ | PROT_WRITE);
+    if (!apicMapped) PANIC("Failed to map APIC");
+
+    volatile uint32_t* apicIdRegister =
+            (volatile uint32_t*) (apicMapped + 0x20);
+    apicId = *apicIdRegister >> 24;
+
+    volatile uint32_t* spuriousInterruptVector =
+            (volatile uint32_t*) (apicMapped + 0xF0);
+    *spuriousInterruptVector = 0x1FF;
+}
+
+void Interrupts::initIoApic(paddr_t baseAddress, int interruptBase) {
+    IoApic* ioApic = xnew IoApic(baseAddress, interruptBase);
+    ioApic->next = firstIoApic;
+
+    if (!firstIoApic) {
+        outb(PIC1_DATA, 0xFF);
+    }
+
+    firstIoApic = ioApic;
 }
 
 void Interrupts::initPic() {
@@ -75,6 +174,9 @@ void Interrupts::initPic() {
 
     outb(PIC1_DATA, 0x1);
     outb(PIC2_DATA, 0x1);
+
+    outb(PIC1_DATA, 0xFB);
+    outb(PIC2_DATA, 0xFF);
 }
 
 void Interrupts::disable() {
@@ -165,30 +267,37 @@ extern "C" InterruptContext* handleInterrupt(InterruptContext* context) {
     } else if (context->interrupt <= 31) { // CPU Exception
 handleKernelException:
         PANIC(context, "Unexpected %s", exceptionName(context->interrupt));
-    } else if (context->interrupt <= 47) { // IRQ
-        int irq = context->interrupt - 32;
+    } else if (context->interrupt == 0xFF) {
+        // This is a spurious interrupt. There is nothing to do.
+    } else if (context->interrupt <= 47 || context->interrupt >= 51) {
+        int irq = context->interrupt <= 47 ? context->interrupt - 32 :
+                context->interrupt - 51 + 16;
         IrqHandler* handler = irqHandlers[irq];
         while (handler) {
             handler->func(handler->user, context);
             handler = handler->next;
         }
 
-        if (irq == 0) {
+        if (irq == Interrupts::isaIrq[0]) {
             console->display->update();
             newContext = Thread::schedule(context);
         }
 
         // Send End of Interrupt
-        if (irq >= 8) {
-            outb(PIC2_COMMAND, PIC_EOI);
+        if (Interrupts::hasApic) {
+            volatile uint32_t* eoiRegister =
+                    (volatile uint32_t*) (apicMapped + 0xB0);
+            *eoiRegister = 0;
+        } else {
+            if (irq >= 8) {
+                outb(PIC2_COMMAND, PIC_EOI);
+            }
+            outb(PIC1_COMMAND, PIC_EOI);
         }
-        outb(PIC1_COMMAND, PIC_EOI);
     } else if (context->interrupt == 0x31) {
         newContext = Thread::schedule(context);
     } else if (context->interrupt == 0x32) {
         newContext = Signal::sigreturn(context);
-    } else {
-        PANIC(context, "Unexpected interrupt %lu", context->interrupt);
     }
     return newContext;
 }

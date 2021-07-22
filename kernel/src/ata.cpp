@@ -25,6 +25,7 @@
 #include <dennix/kernel/ata.h>
 #include <dennix/kernel/devices.h>
 #include <dennix/kernel/partition.h>
+#include <dennix/kernel/log.h>
 #include <dennix/kernel/pci.h>
 #include <dennix/kernel/portio.h>
 
@@ -61,6 +62,38 @@ void AtaController::initialize(uint8_t bus, uint8_t device, uint8_t function) {
             offsetof(PciHeader, progIf));
     if (!(progIf & 0x80)) return;
 
+    unsigned int irq1 = Interrupts::isaIrq[14];
+    unsigned int irq2 = Interrupts::isaIrq[15];
+    if (progIf & 0x5) {
+        int irq = Pci::getIrq(bus, device, function);
+        if (irq < 0) {
+            // We cannot get native PCI interrupts, try switching to ISA mode.
+            if ((progIf & 0x3) == 0x3) {
+                progIf &= ~0x1;
+            }
+            if ((progIf & 0xC) == 0xC) {
+                progIf &= ~0x4;
+            }
+
+            if (progIf & 0x5) {
+                Log::printf("ATA controller unsupported: cannot use IRQs\n");
+                return;
+            }
+
+            uint32_t config = Pci::readConfig(bus, device, function,
+                    offsetof(PciHeader, revisionId));
+            config = (config & 0xFFFF00FF) | (progIf << 8);
+            Pci::writeConfig(bus, device, function,
+                    offsetof(PciHeader, revisionId), config);
+        }
+        if (progIf & 0x1) {
+            irq1 = irq;
+        }
+        if (progIf & 0x4) {
+            irq2 = irq;
+        }
+    }
+
     uint16_t iobase1 = 0x1F0;
     uint16_t ctrlbase1 = 0x3F6;
     if (progIf & 0x1) {
@@ -83,19 +116,6 @@ void AtaController::initialize(uint8_t bus, uint8_t device, uint8_t function) {
         uint32_t bar3 = Pci::readConfig(bus, device, function,
                 offsetof(PciHeader, bar3));
         ctrlbase2 = bar3 & 0xFFFC;
-    }
-
-    unsigned int irq1 = 14;
-    unsigned int irq2 = 15;
-    if (progIf & 0x5) {
-        uint8_t interruptLine = Pci::readConfig(bus, device, function,
-                offsetof(PciHeader, interruptLine));
-        if (progIf & 0x1) {
-            irq1 = interruptLine;
-        }
-        if (progIf & 0x4) {
-            irq2 = interruptLine;
-        }
     }
 
     uint32_t bar4 = Pci::readConfig(bus, device, function,

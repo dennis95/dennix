@@ -32,6 +32,7 @@ LDFLAGS += --sysroot=$(SYSROOT) -T $(LDSCRIPT) -ffreestanding -nostdlib
 LIBS += -lk -lgcc
 
 OBJ = \
+	acpi.o \
 	addressspace.o \
 	ata.o \
 	bga.o \
@@ -77,9 +78,9 @@ OBJ = \
 	vnode.o \
 	worker.o
 
-include $(ARCH).mk
-
 all: $(BUILD)/kernel
+
+include $(ARCH).mk
 
 OBJ := $(addprefix $(BUILD)/, $(OBJ))
 -include $(OBJ:.o=.d)
@@ -98,6 +99,9 @@ $(LDSCRIPT): linker.ld.in
 
 $(BUILD)/%.o: src/%.cpp
 	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -MD -MP -c -o $@ $<
+
+$(BUILD)/%.o: $(BUILD)/%.cpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -MD -MP -c -o $@ $<
 
 $(BUILD)/%.o: src/%.S

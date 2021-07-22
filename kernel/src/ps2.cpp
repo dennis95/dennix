@@ -175,11 +175,11 @@ static void checkPort(bool secondPort) {
         if (!secondPort) {
             ps2Device1 = device;
             handler1.func = irqHandler;
-            Interrupts::addIrqHandler(1, &handler1);
+            Interrupts::addIrqHandler(Interrupts::isaIrq[1], &handler1);
         } else {
             ps2Device2 = device;
             handler2.func = irqHandler;
-            Interrupts::addIrqHandler(12, &handler2);
+            Interrupts::addIrqHandler(Interrupts::isaIrq[12], &handler2);
         }
     }
 #endif

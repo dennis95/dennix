@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -122,14 +122,14 @@ isr_error_code 11 # Segment Not Present
 isr_error_code 12 # Stack-Segement Fault
 isr_error_code 13 # General Protection Fault
 isr_error_code 14 # Page Fault
-#isr 15           # Reserved
+isr 15            # Reserved
 isr 16            # x87 Floating-Point Exception
 isr_error_code 17 # Alignment Check
 isr 18            # Machine Check
 isr 19            # SIMD Floating-Point Exception
 isr 20            # Virtualization Exception
 
-# IRQs
+# IRQ0 - IRQ15
 isr 32
 isr 33
 isr 34
@@ -150,6 +150,14 @@ isr 47
 #isr 48 # Syscall
 isr 49 # Schedule
 isr 50 # sigreturn
+
+# IRQ16 - IRQ219, Spurious Interrupt
+.altmacro
+.set i, 51
+.rept 255 - 50
+isr %i
+.set i, i+1
+.endr
 
 .global beginSigreturn
 beginSigreturn:

@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <string.h>
 #include <dennix/fcntl.h>
+#include <dennix/kernel/acpi.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/console.h>
 #include <dennix/kernel/devices.h>
@@ -67,11 +68,13 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
 
     Log::initialize();
     Log::printf("Welcome to Dennix " DENNIX_VERSION "\n");
+    Interrupts::initPic();
+    Acpi::initialize(multiboot);
+
     Log::printf("Initializing PS/2 Controller...\n");
     PS2::initialize();
 
     Thread::initializeIdleThread();
-    Interrupts::initPic();
     Log::printf("Initializing RTC and PIT...\n");
     Rtc::initialize();
     Pit::initialize();
