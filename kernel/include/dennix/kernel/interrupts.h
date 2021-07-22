@@ -88,6 +88,7 @@ namespace Interrupts {
 extern uint8_t apicId;
 extern bool hasApic;
 extern int isaIrq[16];
+extern int timerIrq;
 
 void addIrqHandler(int irq, IrqHandler* handler);
 int allocateIrq();

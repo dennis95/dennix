@@ -47,6 +47,7 @@ OBJ = \
 	ext234vnode.o \
 	file.o \
 	filedescription.o \
+	hpet.o \
 	initrd.o \
 	kernel.o \
 	keyboard.o \

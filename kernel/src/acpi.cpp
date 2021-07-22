@@ -20,6 +20,7 @@
 #include <string.h>
 #include <dennix/kernel/acpi.h>
 #include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/hpet.h>
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/multiboot2.h>
@@ -78,7 +79,25 @@ struct MadtInterruptSourceOverride {
     uint16_t flags;
 };
 
+struct GenericAddressStructure {
+    uint8_t addressSpace;
+    uint8_t bitWidth;
+    uint8_t bitOffset;
+    uint8_t accessSize;
+    uint64_t address;
+} PACKED;
+
+struct HpetTable {
+    IsdtHeader header;
+    uint32_t eventTimerBlockId;
+    GenericAddressStructure baseAddress;
+    uint8_t hpetNumber;
+    uint16_t minimumClockTick;
+    uint8_t pageProtection;
+};
+
 static paddr_t getRsdt(const multiboot_info* multiboot);
+static void scanHpet(paddr_t address, size_t length);
 static void scanMadt(paddr_t address, size_t length);
 static bool verifyTable(const void* table, size_t size);
 
@@ -107,6 +126,9 @@ void Acpi::initialize(const multiboot_info* multiboot) {
 
     size_t numTables = (rsdtSize - sizeof(IsdtHeader)) / sizeof(uint32_t);
 
+    paddr_t hpet = 0;
+    size_t hpetLength;
+
     paddr_t madt = 0;
     size_t madtLength;
 
@@ -122,6 +144,9 @@ void Acpi::initialize(const multiboot_info* multiboot) {
         if (memcmp(header->signature, "APIC", 4) == 0) {
             madt = rsdt->tables[i];
             madtLength = header->length;
+        } else if (memcmp(header->signature, "HPET", 4) == 0) {
+            hpet = rsdt->tables[i];
+            hpetLength = header->length;
         }
 
         kernelSpace->unmapPhysical(tableMapping, tableMapSize);
@@ -129,6 +154,10 @@ void Acpi::initialize(const multiboot_info* multiboot) {
 
     if (madt) {
         scanMadt(madt, madtLength);
+    }
+
+    if (hpet) {
+        scanHpet(hpet, hpetLength);
     }
 
     kernelSpace->unmapPhysical(mapping, mapSize);
@@ -150,6 +179,24 @@ static paddr_t getRsdt(const multiboot_info* multiboot) {
 
         p = ALIGNUP(p + tag->size, 8);
     }
+}
+
+static void scanHpet(paddr_t address, size_t length) {
+    vaddr_t mapping;
+    size_t mapSize;
+
+    const HpetTable* hpet = (const HpetTable*) kernelSpace->mapUnaligned(
+            address, length, PROT_READ, mapping, mapSize);
+    if (!hpet) PANIC("Failed to map HPET");
+
+    if (!verifyTable(hpet, length)) {
+        Log::printf("HPET verification failed");
+        kernelSpace->unmapPhysical(mapping, mapSize);
+        return;
+    }
+
+    Hpet::initialize(hpet->baseAddress.address);
+    kernelSpace->unmapPhysical(mapping, mapSize);
 }
 
 static void scanMadt(paddr_t address, size_t length) {

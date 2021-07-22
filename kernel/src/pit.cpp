@@ -39,8 +39,11 @@ static void irqHandler(void*, const InterruptContext* context);
 static IrqHandler handler;
 
 void Pit::initialize() {
+    if (Interrupts::timerIrq != -1) return;
+
     handler.func = irqHandler;
     Interrupts::addIrqHandler(Interrupts::isaIrq[0], &handler);
+    Interrupts::timerIrq = Interrupts::isaIrq[0];
 
     outb(PIT_PORT_MODE, PIT_MODE_RATE_GENERATOR | PIT_MODE_LOBYTE_HIBYTE);
     outb(PIT_PORT_CHANNEL0, divider & 0xFF);

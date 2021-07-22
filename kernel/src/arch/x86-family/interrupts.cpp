@@ -76,6 +76,7 @@ uint8_t Interrupts::apicId;
 bool Interrupts::hasApic;
 int Interrupts::isaIrq[16] =
         { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+int Interrupts::timerIrq = -1;
 
 IoApic::IoApic(paddr_t baseAddress, int interruptBase) :
         interruptBase(interruptBase) {
@@ -278,7 +279,7 @@ handleKernelException:
             handler = handler->next;
         }
 
-        if (irq == Interrupts::isaIrq[0]) {
+        if (irq == Interrupts::timerIrq) {
             console->display->update();
             newContext = Thread::schedule(context);
         }
