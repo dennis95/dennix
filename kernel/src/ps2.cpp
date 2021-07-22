@@ -137,11 +137,12 @@ static void checkPort(bool secondPort) {
        just assume that there is a keyboard connected to port 1 that just
        works without any additional initialization. */
     if (secondPort) return;
-    PS2Keyboard* keyboard = xnew PS2Keyboard();
+    PS2Keyboard* keyboard = xnew PS2Keyboard(false);
     keyboard->listener = (Console*) console;
 
     ps2Device1 = keyboard;
-    Interrupts::irqHandlers[1] = irqHandler;
+    handler1.func = irqHandler;
+    Interrupts::addIrqHandler(Interrupts::isaIrq[1], &handler1);
 #else
     // TODO: We should have a timeout in case get no response.
     if (PS2::sendDeviceCommand(secondPort, DEVICE_RESET) != 0xFA) return;
