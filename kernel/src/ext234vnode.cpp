@@ -17,8 +17,10 @@
  * ext2/ext3/ext4 Vnodes.
  */
 
+#include <assert.h>
 #include <dirent.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <dennix/conf.h>

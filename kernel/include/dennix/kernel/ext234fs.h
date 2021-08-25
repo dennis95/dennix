@@ -20,9 +20,9 @@
 #ifndef KERNEL_EXT234FS_H
 #define KERNEL_EXT234FS_H
 
-#include <dennix/kernel/dynarray.h>
 #include <dennix/kernel/endian.h>
 #include <dennix/kernel/filesystem.h>
+#include <dennix/kernel/hashtable.h>
 
 struct SuperBlock {
     little_uint32_t s_inodes_count;
@@ -276,7 +276,8 @@ private:
     kthread_mutex_t mutex;
     size_t openVnodes;
     SuperBlock superBlock;
-    DynamicArray<Ext234Vnode*, ino_t> vnodes;
+    HashTable<Ext234Vnode, ino_t> vnodes;
+    Ext234Vnode* vnodesBuffer[10000];
 };
 
 class Ext234Vnode : public Vnode {
@@ -291,6 +292,7 @@ public:
     Reference<Vnode> getChildNode(const char* path, size_t length) override;
     size_t getDirectoryEntries(void** buffer, int flags) override;
     char* getLinkTarget() override;
+    ino_t hashKey() { return stats.st_ino; }
     bool isSeekable() override;
     int link(const char* name, const Reference<Vnode>& vnode) override;
     off_t lseek(off_t offset, int whence) override;
@@ -327,6 +329,8 @@ private:
     int unlinkUnlocked(const char* name, int flags);
     bool updateParent(const Reference<Ext234Vnode>& parent);
     void writeTimestamps();
+public:
+    Ext234Vnode* nextInHashTable;
 private:
     Ext234Fs* filesystem;
     Inode inode;
