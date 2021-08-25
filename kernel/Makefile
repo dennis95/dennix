@@ -36,6 +36,7 @@ OBJ = \
 	addressspace.o \
 	ata.o \
 	bga.o \
+	blockcache.o \
 	clock.o \
 	conf.o \
 	console.o \

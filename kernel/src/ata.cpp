@@ -17,6 +17,7 @@
  * ATA driver.
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
@@ -338,7 +339,7 @@ bool AtaChannel::writeSectors(const char* buffer, size_t sectorCount,
 }
 
 AtaDevice::AtaDevice(AtaChannel* channel, bool secondary, uint64_t sectors,
-        uint64_t sectorSize, bool lba48Supported) : Vnode(S_IFBLK | 0644,
+        uint64_t sectorSize, bool lba48Supported) : BlockCacheDevice(0644,
         DevFS::dev) {
     this->channel = channel;
     this->secondary = secondary;
@@ -353,10 +354,6 @@ AtaDevice::AtaDevice(AtaChannel* channel, bool secondary, uint64_t sectors,
 
 AtaDevice::~AtaDevice() {
     delete tempBuffer;
-}
-
-bool AtaDevice::isSeekable() {
-    return true;
 }
 
 off_t AtaDevice::lseek(off_t offset, int whence) {
@@ -386,42 +383,16 @@ short AtaDevice::poll() {
     return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM;
 }
 
-ssize_t AtaDevice::pread(void* buffer, size_t size, off_t offset,
+bool AtaDevice::readUncached(void* buffer, size_t size, off_t offset,
         int /*flags*/) {
-    if (size == 0) return 0;
-
-    if (offset < 0) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    AutoLock lock(&mutex);
-
-    if (offset >= stats.st_size) return 0;
-
     char* buf = (char*) buffer;
-    uint64_t sectorMask = sectorSize - 1;
     size_t bytesRead = 0;
-    if (offset & sectorMask) {
-        uint64_t unaligned = offset & sectorMask;
 
-        uint64_t lba = offset / sectorSize;
-        if (!channel->readSectors(tempBuffer, 1, lba, secondary, sectorSize)) {
-            errno = EIO;
-            return -1;
-        }
+    assert(offset % sectorSize == 0);
+    assert(size % sectorSize == 0);
 
-        size_t copySize = sectorSize - unaligned;
-        if (copySize > size) copySize = size;
-        memcpy(buf, tempBuffer + unaligned, copySize);
-
-        bytesRead += copySize;
-        size -= copySize;
-        offset += copySize;
-    }
-
-    while (size >= sectorSize) {
-        if (offset >= stats.st_size) return bytesRead;
+    while (size) {
+        assert(offset < stats.st_size);
 
         size_t sectorsRemaining = size / sectorSize;
         if (sectorsRemaining > 65536) {
@@ -435,7 +406,7 @@ ssize_t AtaDevice::pread(void* buffer, size_t size, off_t offset,
         if (!channel->readSectors(buf + bytesRead, sectorsRemaining, lba,
                 secondary, sectorSize)) {
             errno = EIO;
-            return -1;
+            return false;
         }
 
         bytesRead += sectorsRemaining * sectorSize;
@@ -443,66 +414,19 @@ ssize_t AtaDevice::pread(void* buffer, size_t size, off_t offset,
         offset += sectorsRemaining * sectorSize;
     }
 
-    if (offset >= stats.st_size) return bytesRead;
-
-    if (size > 0) {
-        uint64_t lba = offset / sectorSize;
-        if (!channel->readSectors(tempBuffer, 1, lba, secondary, sectorSize)) {
-            errno = EIO;
-            return -1;
-        }
-
-        memcpy(buf + bytesRead, tempBuffer, size);
-        bytesRead += size;
-    }
-
-    return bytesRead;
+    return true;
 }
 
-ssize_t AtaDevice::pwrite(const void* buffer, size_t size, off_t offset,
+bool AtaDevice::writeUncached(const void* buffer, size_t size, off_t offset,
         int /*flags*/) {
-    if (size == 0) return 0;
-
-    if (offset < 0) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    AutoLock lock(&mutex);
-
-    if (offset >= stats.st_size) {
-        errno = ENOSPC;
-        return 0;
-    }
-
     char* buf = (char*) buffer;
-    uint64_t sectorMask = sectorSize - 1;
     size_t bytesWritten = 0;
-    if (offset & sectorMask) {
-        uint64_t unaligned = offset & sectorMask;
 
-        uint64_t lba = offset / sectorSize;
-        if (!channel->readSectors(tempBuffer, 1, lba, secondary, sectorSize)) {
-            errno = EIO;
-            return -1;
-        }
+    assert(offset % sectorSize == 0);
+    assert(size % sectorSize == 0);
 
-        size_t copySize = sectorSize - unaligned;
-        if (copySize > size) copySize = size;
-        memcpy(tempBuffer + unaligned, buf, copySize);
-
-        if (!channel->writeSectors(tempBuffer, 1, lba, secondary, sectorSize)) {
-            errno = EIO;
-            return -1;
-        }
-
-        bytesWritten += copySize;
-        size -= copySize;
-        offset += copySize;
-    }
-
-    while (size >= sectorSize) {
-        if (offset >= stats.st_size) return bytesWritten;
+    while (size) {
+        assert(offset < stats.st_size);
 
         size_t sectorsRemaining = size / sectorSize;
         if (sectorsRemaining > 65536) {
@@ -516,7 +440,7 @@ ssize_t AtaDevice::pwrite(const void* buffer, size_t size, off_t offset,
         if (!channel->writeSectors(buf + bytesWritten, sectorsRemaining, lba,
                 secondary, sectorSize)) {
             errno = EIO;
-            return -1;
+            return false;
         }
 
         bytesWritten += sectorsRemaining * sectorSize;
@@ -524,26 +448,7 @@ ssize_t AtaDevice::pwrite(const void* buffer, size_t size, off_t offset,
         offset += sectorsRemaining * sectorSize;
     }
 
-    if (offset >= stats.st_size) return bytesWritten;
-
-    if (size > 0) {
-        uint64_t lba = offset / sectorSize;
-        if (!channel->readSectors(tempBuffer, 1, lba, secondary, sectorSize)) {
-            errno = EIO;
-            return -1;
-        }
-
-        memcpy(tempBuffer, buf + bytesWritten, size);
-
-        if (!channel->writeSectors(tempBuffer, 1, lba, secondary, sectorSize)) {
-            errno = EIO;
-            return -1;
-        }
-
-        bytesWritten += size;
-    }
-
-    return bytesWritten;
+    return true;
 }
 
 int AtaDevice::sync(int /*flags*/) {

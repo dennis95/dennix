@@ -17,8 +17,8 @@
  * ATA driver.
  */
 
+#include <dennix/kernel/blockcache.h>
 #include <dennix/kernel/interrupts.h>
-#include <dennix/kernel/vnode.h>
 
 namespace AtaController {
     void initialize(uint8_t bus, uint8_t device, uint8_t function);
@@ -43,18 +43,19 @@ private:
     IrqHandler irqHandler;
 };
 
-class AtaDevice : public Vnode {
+class AtaDevice : public BlockCacheDevice {
 public:
     AtaDevice(AtaChannel* channel, bool secondary, uint64_t sectors,
             uint64_t sectorSize, bool lba48Supported);
     ~AtaDevice();
-    bool isSeekable() override;
     off_t lseek(off_t offset, int whence) override;
     short poll() override;
-    ssize_t pread(void* buffer, size_t size, off_t offset, int flags) override;
-    ssize_t pwrite(const void* buffer, size_t size, off_t offset, int flags)
-            override;
     int sync(int flags) override;
+protected:
+    bool readUncached(void* buffer, size_t size, off_t offset, int flags)
+            override;
+    bool writeUncached(const void* buffer, size_t size, off_t offset, int flags)
+            override;
 private:
     AtaChannel* channel;
     char* tempBuffer;
