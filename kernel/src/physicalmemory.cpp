@@ -20,17 +20,30 @@
 #include <assert.h>
 #include <dennix/meminfo.h>
 #include <dennix/kernel/addressspace.h>
+#include <dennix/kernel/cache.h>
 #include <dennix/kernel/kthread.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/physicalmemory.h>
 #include <dennix/kernel/syscall.h>
 
+class MemoryStack {
+public:
+    MemoryStack(void* firstStackPage);
+    void pushPageFrame(paddr_t physicalAddress, bool cache = false);
+    paddr_t popPageFrame(bool cache = false);
+public:
+    size_t framesOnStack;
+private:
+    paddr_t* stack;
+    vaddr_t lastStackPage;
+};
+
+static CacheController* firstCache;
 static char firstStackPage[PAGESIZE] ALIGNED(PAGESIZE);
 static size_t framesAvailable;
 static size_t framesReserved;
-static paddr_t* stack = (paddr_t*) firstStackPage + 1;
+static MemoryStack memstack(firstStackPage);
 static size_t totalFrames;
-static vaddr_t lastStackPage = (vaddr_t) firstStackPage;
 
 static kthread_mutex_t mutex = KTHREAD_MUTEX_INITIALIZER;
 
@@ -127,11 +140,14 @@ void PhysicalMemory::initialize(const multiboot_info* multiboot) {
     }
 }
 
-void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
-    assert(physicalAddress);
-    assert(PAGE_ALIGNED(physicalAddress));
-    AutoLock lock(&mutex);
+MemoryStack::MemoryStack(void* firstStackPage) {
+    stack = (paddr_t*) firstStackPage + 1;
+    framesOnStack = 0;
+    lastStackPage = (vaddr_t) firstStackPage;
+}
 
+void MemoryStack::pushPageFrame(paddr_t physicalAddress,
+        bool cache /*= false*/) {
     if (((vaddr_t) (stack + 1) & PAGE_MISALIGN) == 0) {
         paddr_t* stackPage = (paddr_t*) ((vaddr_t) stack & ~PAGE_MISALIGN);
 
@@ -143,12 +159,13 @@ void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
                     PAGESIZE, PROT_READ | PROT_WRITE);
             kthread_mutex_lock(&mutex);
 
+            if (cache) framesAvailable--;
+
             if (unlikely(nextStackPage == 0)) {
                 // If we cannot save the address, we have to leak it.
                 return;
             }
 
-            stackPage = (paddr_t*) ((vaddr_t) stack & ~PAGE_MISALIGN);
             *((paddr_t*) lastStackPage + 1) = nextStackPage;
             *(vaddr_t*) nextStackPage = lastStackPage;
             *((paddr_t*) nextStackPage + 1) = 0;
@@ -160,25 +177,47 @@ void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
     }
 
     *++stack = physicalAddress;
-    framesAvailable++;
+    framesOnStack++;
+    if (!cache) {
+        framesAvailable++;
+    }
 }
 
-static paddr_t popPageFrameInternal() {
+void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
+    assert(physicalAddress);
+    assert(PAGE_ALIGNED(physicalAddress));
+    AutoLock lock(&mutex);
+    memstack.pushPageFrame(physicalAddress);
+}
+
+paddr_t MemoryStack::popPageFrame(bool cache /*= false*/) {
     if (((vaddr_t) stack & PAGE_MISALIGN) < 2 * sizeof(paddr_t)) {
         paddr_t* stackPage = (paddr_t*) ((vaddr_t) stack & ~PAGE_MISALIGN);
         assert(*stackPage != 0);
         stack = (paddr_t*) (*stackPage + PAGESIZE - sizeof(paddr_t));
     }
 
+    framesOnStack--;
+    if (!cache) {
+        framesAvailable--;
+    }
     return *stack--;
 }
 
 paddr_t PhysicalMemory::popPageFrame() {
     AutoLock lock(&mutex);
-    if (framesAvailable == 0) return 0;
+    if (framesAvailable - framesReserved == 0) return 0;
 
-    framesAvailable--;
-    return popPageFrameInternal();
+    if (memstack.framesOnStack - framesReserved > 0) {
+        return memstack.popPageFrame();
+    }
+
+    for (CacheController* cache = firstCache; cache; cache = cache->nextCache) {
+        paddr_t result = cache->reclaimCache();
+        if (result) return result;
+    }
+
+    return 0;
 }
 
 paddr_t PhysicalMemory::popReserved() {
@@ -186,14 +225,31 @@ paddr_t PhysicalMemory::popReserved() {
     assert(framesReserved > 0);
 
     framesReserved--;
-    return popPageFrameInternal();
+    return memstack.popPageFrame();
 }
 
 bool PhysicalMemory::reserveFrames(size_t frames) {
     AutoLock lock(&mutex);
 
-    if (framesAvailable < frames) return false;
-    framesAvailable -= frames;
+    if (framesAvailable - framesReserved < frames) return false;
+
+    // Make sure that reserved frames on the stack because memory used for
+    // caching can be unreclaimable for a short time frame.
+    while (memstack.framesOnStack < framesReserved + frames) {
+        paddr_t address = 0;
+        for (CacheController* cache = firstCache; cache;
+                cache = cache->nextCache) {
+            address = cache->reclaimCache();
+            if (address) break;
+        }
+
+        if (address) {
+            memstack.pushPageFrame(address, true);
+        } else {
+            return false;
+        }
+    }
+
     framesReserved += frames;
     return true;
 }
@@ -205,8 +261,39 @@ void PhysicalMemory::unreserveFrames(size_t frames) {
     framesReserved -= frames;
 }
 
+CacheController::CacheController() {
+    nextCache = firstCache;
+    firstCache = this;
+}
+
+paddr_t CacheController::allocateCache() {
+    AutoLock lock(&mutex);
+    if (framesAvailable - framesReserved == 0) {
+        return 0;
+    }
+
+    if (memstack.framesOnStack - framesReserved > 0) {
+        return memstack.popPageFrame(true);
+    }
+
+    for (CacheController* cache = firstCache; cache; cache = cache->nextCache) {
+        if (cache == this) continue;
+        paddr_t result = cache->reclaimCache();
+        if (result) return result;
+    }
+
+    return reclaimCache();
+}
+
+void CacheController::returnCache(paddr_t address) {
+    AutoLock lock(&mutex);
+    memstack.pushPageFrame(address, true);
+}
+
 void Syscall::meminfo(struct meminfo* info) {
     AutoLock lock(&mutex);
     info->mem_total = totalFrames * PAGESIZE;
-    info->mem_free = framesAvailable * PAGESIZE;
+    info->mem_free = memstack.framesOnStack * PAGESIZE;
+    info->mem_available = framesAvailable * PAGESIZE;
+    info->__reserved = 0;
 }

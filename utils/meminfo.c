@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,7 +23,10 @@
 int main(void) {
     struct meminfo info;
     meminfo(&info);
-    printf("total: %zu KiB\nfree:  %zu KiB\nused:  %zu KiB\n",
-            info.mem_total / 1024, info.mem_free / 1024,
-            (info.mem_total - info.mem_free) / 1024);
+    size_t used = info.mem_total - info.mem_available;
+    size_t cached = info.mem_available - info.mem_free;
+    printf("total:     %9zu KiB\nused:      %9zu KiB\navailable: %9zu KiB\n"
+            "free:      %9zu KiB\ncached:    %9zu KiB\n",
+            info.mem_total / 1024, used / 1024, info.mem_available / 1024,
+            info.mem_free / 1024, cached / 1024);
 }

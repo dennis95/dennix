@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,18 +13,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/meminfo.h
- * Memory information.
+/* kernel/include/dennix/kernel/cache.h
+ * Caching.
  */
 
-#ifndef _DENNIX_MEMINFO_H
-#define _DENNIX_MEMINFO_H
+#ifndef KERNEL_CACHE_H
+#define KERNEL_CACHE_H
 
-struct meminfo {
-    __SIZE_TYPE__ mem_total;
-    __SIZE_TYPE__ mem_free;
-    __SIZE_TYPE__ mem_available;
-    __SIZE_TYPE__ __reserved;
+#include <dennix/kernel/kernel.h>
+
+class CacheController {
+public:
+    CacheController();
+    virtual paddr_t reclaimCache() = 0;
+protected:
+    paddr_t allocateCache();
+    void returnCache(paddr_t address);
+public:
+    CacheController* nextCache;
 };
 
 #endif
