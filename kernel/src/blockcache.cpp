@@ -256,7 +256,7 @@ ssize_t BlockCacheDevice::pwrite(const void* buffer, size_t size, off_t offset,
         memcpy((char*) block->address + (offset & PAGE_MISALIGN),
                 buf + bytesWritten, writeSize);
 
-        size_t writeOffset = offset & ~(stats.st_blksize - 1);
+        off_t writeOffset = offset & ~(stats.st_blksize - 1);
         size_t writeLength = ALIGNUP(writeSize, stats.st_blksize);
 
         if (!writeUncached((char*) block->address + (writeOffset &
