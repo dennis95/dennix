@@ -25,6 +25,7 @@
 namespace PhysicalMemory {
 void initialize(const multiboot_info* multiboot);
 paddr_t popPageFrame();
+paddr_t popPageFrame32();
 paddr_t popReserved();
 void pushPageFrame(paddr_t physicalAddress);
 bool reserveFrames(size_t frames);

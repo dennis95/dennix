@@ -47,6 +47,15 @@ static size_t totalFrames;
 
 static kthread_mutex_t mutex = KTHREAD_MUTEX_INITIALIZER;
 
+#ifdef __x86_64__
+static char firstStackPage32[PAGESIZE] ALIGNED(PAGESIZE);
+static MemoryStack memstack32(firstStackPage32);
+
+#define totalFramesOnStack (memstack.framesOnStack + memstack32.framesOnStack)
+#else
+#define totalFramesOnStack (memstack.framesOnStack)
+#endif
+
 extern "C" {
 extern symbol_t bootstrapBegin;
 extern symbol_t bootstrapEnd;
@@ -187,6 +196,13 @@ void PhysicalMemory::pushPageFrame(paddr_t physicalAddress) {
     assert(physicalAddress);
     assert(PAGE_ALIGNED(physicalAddress));
     AutoLock lock(&mutex);
+
+#ifdef __x86_64__
+    if (physicalAddress <= 0xFFFFF000) {
+        memstack32.pushPageFrame(physicalAddress);
+        return;
+    }
+#endif
     memstack.pushPageFrame(physicalAddress);
 }
 
@@ -208,8 +224,14 @@ paddr_t PhysicalMemory::popPageFrame() {
     AutoLock lock(&mutex);
     if (framesAvailable - framesReserved == 0) return 0;
 
-    if (memstack.framesOnStack - framesReserved > 0) {
-        return memstack.popPageFrame();
+    if (totalFramesOnStack - framesReserved > 0) {
+        if (memstack.framesOnStack > 0) {
+            return memstack.popPageFrame();
+        }
+
+    #ifdef __x86_64__
+        return memstack32.popPageFrame();
+    #endif
     }
 
     for (CacheController* cache = firstCache; cache; cache = cache->nextCache) {
@@ -220,12 +242,31 @@ paddr_t PhysicalMemory::popPageFrame() {
     return 0;
 }
 
+#ifdef __x86_64__
+paddr_t PhysicalMemory::popPageFrame32() {
+    AutoLock lock(&mutex);
+    if (memstack32.framesOnStack == 0) return 0;
+    return memstack32.popPageFrame();
+}
+#else
+paddr_t PhysicalMemory::popPageFrame32() {
+    return popPageFrame();
+}
+#endif
+
 paddr_t PhysicalMemory::popReserved() {
     AutoLock lock(&mutex);
     assert(framesReserved > 0);
 
     framesReserved--;
+#ifdef __x86_64__
+    if (memstack.framesOnStack > 0) {
+        return memstack.popPageFrame();
+    }
+    return memstack32.popPageFrame();
+#else
     return memstack.popPageFrame();
+#endif
 }
 
 bool PhysicalMemory::reserveFrames(size_t frames) {
@@ -235,7 +276,7 @@ bool PhysicalMemory::reserveFrames(size_t frames) {
 
     // Make sure that reserved frames on the stack because memory used for
     // caching can be unreclaimable for a short time frame.
-    while (memstack.framesOnStack < framesReserved + frames) {
+    while (totalFramesOnStack < framesReserved + frames) {
         paddr_t address = 0;
         for (CacheController* cache = firstCache; cache;
                 cache = cache->nextCache) {
@@ -244,6 +285,11 @@ bool PhysicalMemory::reserveFrames(size_t frames) {
         }
 
         if (address) {
+#ifdef __x86_64__
+            if (address <= 0xFFFFF000) {
+                memstack32.pushPageFrame(address, true);
+            } else
+#endif
             memstack.pushPageFrame(address, true);
         } else {
             return false;
@@ -272,8 +318,13 @@ paddr_t CacheController::allocateCache() {
         return 0;
     }
 
-    if (memstack.framesOnStack - framesReserved > 0) {
-        return memstack.popPageFrame(true);
+    if (totalFramesOnStack - framesReserved > 0) {
+        if (memstack.framesOnStack > 0) {
+            return memstack.popPageFrame(true);
+        }
+#ifdef __x86_64__
+        return memstack32.popPageFrame(true);
+#endif
     }
 
     for (CacheController* cache = firstCache; cache; cache = cache->nextCache) {
@@ -293,7 +344,7 @@ void CacheController::returnCache(paddr_t address) {
 void Syscall::meminfo(struct meminfo* info) {
     AutoLock lock(&mutex);
     info->mem_total = totalFrames * PAGESIZE;
-    info->mem_free = memstack.framesOnStack * PAGESIZE;
+    info->mem_free = totalFramesOnStack * PAGESIZE;
     info->mem_available = framesAvailable * PAGESIZE;
     info->__reserved = 0;
 }
