@@ -27,7 +27,7 @@ namespace AtaController {
 class AtaChannel {
 public:
     AtaChannel(uint16_t iobase, uint16_t ctrlbase, uint16_t busmasterBase,
-            unsigned int irq);
+            unsigned int irq, paddr_t prdPhys, vaddr_t prdVirt);
     bool flushCache(bool secondary);
     void identifyDevice(bool secondary);
     void onIrq(const InterruptContext* context);
@@ -36,18 +36,27 @@ public:
     bool writeSectors(const char* buffer, size_t sectorCount, uint64_t lba,
             bool secondary, uint64_t sectorSize);
 private:
+    bool finishDmaTransfer();
+    bool setSectors(size_t sectorCount, uint64_t lba, bool secondary);
+private:
     kthread_mutex_t mutex;
     uint16_t iobase;
     uint16_t ctrlbase;
     uint16_t busmasterBase;
+    paddr_t prdPhys;
+    vaddr_t prdVirt;
+    paddr_t dmaRegion;
+    vaddr_t dmaMapped;
     IrqHandler irqHandler;
+    bool awaitingInterrupt;
+    bool dmaInProgress;
+    bool error;
 };
 
 class AtaDevice : public BlockCacheDevice {
 public:
     AtaDevice(AtaChannel* channel, bool secondary, uint64_t sectors,
             uint64_t sectorSize, bool lba48Supported);
-    ~AtaDevice();
     off_t lseek(off_t offset, int whence) override;
     short poll() override;
     int sync(int flags) override;
@@ -58,7 +67,6 @@ protected:
             override;
 private:
     AtaChannel* channel;
-    char* tempBuffer;
     uint64_t sectors;
     uint64_t sectorSize;
     bool secondary;

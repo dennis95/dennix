@@ -19,15 +19,19 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <sched.h>
 #include <stdio.h>
 #include <string.h>
 #include <dennix/seek.h>
 #include <dennix/poll.h>
+#include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/ata.h>
 #include <dennix/kernel/devices.h>
 #include <dennix/kernel/partition.h>
 #include <dennix/kernel/log.h>
+#include <dennix/kernel/panic.h>
 #include <dennix/kernel/pci.h>
+#include <dennix/kernel/physicalmemory.h>
 #include <dennix/kernel/portio.h>
 
 #define REGISTER_DATA 0
@@ -41,19 +45,27 @@
 #define REGISTER_STATUS 7
 #define REGISTER_COMMAND 7
 
+#define REGISTER_BUSMASTER_COMMAND 0
 #define REGISTER_BUSMASTER_STATUS 2
+#define REGISTER_BUSMASTER_PRDT 4
 
 #define COMMAND_FLUSH_CACHE 0xE7
 #define COMMAND_IDENTIFY_DEVICE 0xEC
-#define COMMAND_READ_SECTORS 0x20
-#define COMMAND_READ_SECTORS_EXT 0x24
-#define COMMAND_WRITE_SECTORS 0x30
-#define COMMAND_WRITE_SECTORS_EXT 0x34
+#define COMMAND_READ_DMA 0xC8
+#define COMMAND_READ_DMA_EXT 0x25
+#define COMMAND_WRITE_DMA 0xCA
+#define COMMAND_WRITE_DMA_EXT 0x35
 
 #define STATUS_ERROR (1 << 0)
 #define STATUS_DATA_REQUEST (1 << 3)
 #define STATUS_DEVICE_FAULT (1 << 5)
 #define STATUS_BUSY (1 << 7)
+
+#define BUSMASTER_COMMAND_START (1 << 0)
+#define BUSMASTER_COMMAND_READ (1 << 3)
+
+#define BUSMASTER_STATUS_ERROR (1 << 1)
+#define BUSMASTER_STATUS_INTERRUPT (1 << 2)
 
 static size_t numAtaDevices = 0;
 static void onAtaIrq(void* user, const InterruptContext* context);
@@ -123,10 +135,23 @@ void AtaController::initialize(uint8_t bus, uint8_t device, uint8_t function) {
             offsetof(PciHeader, bar4));
     uint16_t busmasterBase = bar4 & 0xFFFC;
 
+    // Enable PCI busmastering.
+    uint32_t cmd = Pci::readConfig(bus, device, function,
+            offsetof(PciHeader, command));
+    cmd |= (1 << 2);
+    Pci::writeConfig(bus, device, function, offsetof(PciHeader, command), cmd);
+
+    paddr_t prdt = PhysicalMemory::popPageFrame32();
+    if (!prdt) PANIC("Failed to allocate PRDT");
+
+    vaddr_t prdtMapped = kernelSpace->mapPhysical(prdt, PAGESIZE,
+            PROT_READ | PROT_WRITE);
+    if (!prdtMapped) PANIC("Failed to map PRDT");
+
     AtaChannel* channel1 = xnew AtaChannel(iobase1, ctrlbase1, busmasterBase,
-            irq1);
+            irq1, prdt, prdtMapped);
     AtaChannel* channel2 = xnew AtaChannel(iobase2, ctrlbase2,
-            busmasterBase + 8, irq2);
+            busmasterBase + 8, irq2, prdt + 8, prdtMapped + 8);
     channel1->identifyDevice(false);
     channel1->identifyDevice(true);
     channel2->identifyDevice(false);
@@ -134,19 +159,52 @@ void AtaController::initialize(uint8_t bus, uint8_t device, uint8_t function) {
 }
 
 AtaChannel::AtaChannel(uint16_t iobase, uint16_t ctrlbase,
-        uint16_t busmasterBase, unsigned int irq) {
+        uint16_t busmasterBase, unsigned int irq, paddr_t prdPhys,
+        vaddr_t prdVirt) {
     mutex = KTHREAD_MUTEX_INITIALIZER;
     this->iobase = iobase;
     this->ctrlbase = ctrlbase;
     this->busmasterBase = busmasterBase;
+    this->prdPhys = prdPhys;
+    this->prdVirt = prdVirt;
 
+    dmaRegion = PhysicalMemory::popPageFrame32();
+    if (!dmaRegion) PANIC("Failed to allocate DMA region");
+
+    dmaMapped = kernelSpace->mapPhysical(dmaRegion, PAGESIZE,
+            PROT_READ | PROT_WRITE);
+    if (!dmaMapped) PANIC("Failed to map DMA region");
+
+    awaitingInterrupt = false;
+    dmaInProgress = false;
+    error = false;
     irqHandler.func = onAtaIrq;
     irqHandler.user = this;
     Interrupts::addIrqHandler(irq, &irqHandler);
 }
 
+bool AtaChannel::finishDmaTransfer() {
+    if (!dmaInProgress) return true;
+
+    while (awaitingInterrupt) {
+        sched_yield();
+    }
+
+    outb(busmasterBase + REGISTER_BUSMASTER_COMMAND, 0);
+    dmaInProgress = false;
+
+    if (error) {
+        uint8_t errorValue = inb(iobase + REGISTER_ERROR);
+        Log::printf("ATA error 0x%X\n", errorValue);
+        return false;
+    }
+    return true;
+}
+
 bool AtaChannel::flushCache(bool secondary) {
     AutoLock lock(&mutex);
+
+    if (!finishDmaTransfer()) return false;
 
     outb(iobase + REGISTER_DEVICE, 0xE0 | (secondary << 4));
     outb(iobase + REGISTER_COMMAND, COMMAND_FLUSH_CACHE);
@@ -220,16 +278,52 @@ static void onAtaIrq(void* user, const InterruptContext* context) {
 
 void AtaChannel::onIrq(const InterruptContext* /*context*/) {
     uint8_t busmasterStatus = inb(busmasterBase + REGISTER_BUSMASTER_STATUS);
-    if (!(busmasterStatus & (1 << 2))) return;
-    // Clear the interrupt bit by writing it back.
-    outb(busmasterBase + 2, busmasterStatus);
-    inb(iobase + REGISTER_STATUS);
+    if (!(busmasterStatus & BUSMASTER_STATUS_INTERRUPT)) return;
+
+    if (busmasterStatus & BUSMASTER_STATUS_ERROR) {
+        error = true;
+    }
+    // Clear the error and interrupt bits by writing them back.
+    outb(busmasterBase + REGISTER_BUSMASTER_STATUS, busmasterStatus);
+    uint8_t status = inb(iobase + REGISTER_STATUS);
+    if (status & (STATUS_ERROR | STATUS_DEVICE_FAULT)) {
+        error = true;
+    }
+    awaitingInterrupt = false;
 }
 
 bool AtaChannel::readSectors(char* buffer, size_t sectorCount, uint64_t lba,
         bool secondary, uint64_t sectorSize) {
     AutoLock lock(&mutex);
+    if (!finishDmaTransfer()) return false;
 
+    bool useLba48 = setSectors(sectorCount, lba, secondary);
+
+    uint32_t* prd = (uint32_t*) prdVirt;
+    prd[0] = dmaRegion;
+    prd[1] = (sectorCount * sectorSize) | (1U << 31);
+    outl(busmasterBase + REGISTER_BUSMASTER_PRDT, prdPhys);
+
+    outb(busmasterBase + REGISTER_BUSMASTER_STATUS,
+            BUSMASTER_STATUS_ERROR | BUSMASTER_STATUS_INTERRUPT);
+
+    outb(busmasterBase + REGISTER_BUSMASTER_COMMAND,
+            BUSMASTER_COMMAND_READ);
+
+    uint8_t command = useLba48 ? COMMAND_READ_DMA_EXT : COMMAND_READ_DMA;
+    outb(iobase + REGISTER_COMMAND, command);
+
+    awaitingInterrupt = true;
+    dmaInProgress = true;
+    error = false;
+    outb(busmasterBase + REGISTER_BUSMASTER_COMMAND,
+            BUSMASTER_COMMAND_START | BUSMASTER_COMMAND_READ);
+    if (!finishDmaTransfer()) return false;
+    memcpy(buffer, (void*) dmaMapped, sectorSize * sectorCount);
+    return true;
+}
+
+bool AtaChannel::setSectors(size_t sectorCount, uint64_t lba, bool secondary) {
     if (lba > 0xFFFFFFF || sectorCount > 256) {
         // We need to use lba48 for this.
         uint16_t count = sectorCount == 65536 ? 0 : sectorCount;
@@ -243,7 +337,7 @@ bool AtaChannel::readSectors(char* buffer, size_t sectorCount, uint64_t lba,
         outb(iobase + REGISTER_LBA_LOW, lba & 0xFF);
         outb(iobase + REGISTER_LBA_MID, (lba >> 8) & 0xFF);
         outb(iobase + REGISTER_LBA_HIGH, (lba >> 16) & 0xFF);
-        outb(iobase + REGISTER_COMMAND, COMMAND_READ_SECTORS_EXT);
+        return true;
     } else {
         uint8_t count = sectorCount == 256 ? 0 : sectorCount;
         outb(iobase + REGISTER_DEVICE, 0xE0 | (secondary << 4) |
@@ -252,89 +346,37 @@ bool AtaChannel::readSectors(char* buffer, size_t sectorCount, uint64_t lba,
         outb(iobase + REGISTER_LBA_LOW, lba & 0xFF);
         outb(iobase + REGISTER_LBA_MID, (lba >> 8) & 0xFF);
         outb(iobase + REGISTER_LBA_HIGH, (lba >> 16) & 0xFF);
-        outb(iobase + REGISTER_COMMAND, COMMAND_READ_SECTORS);
+        return false;
     }
-
-    for (size_t i = 0; i < sectorCount; i++) {
-        uint8_t status = inb(iobase + REGISTER_STATUS);
-        while (status & STATUS_BUSY) {
-            status = inb(iobase + REGISTER_STATUS);
-        }
-        while (!(status & (STATUS_DATA_REQUEST | STATUS_ERROR |
-                STATUS_DEVICE_FAULT))) {
-            status = inb(iobase + REGISTER_STATUS);
-        }
-        if (status & (STATUS_ERROR | STATUS_DEVICE_FAULT)) return false;
-
-        for (size_t j = 0; j < sectorSize / 2; j++) {
-            uint16_t word = inw(iobase + REGISTER_DATA);
-            buffer[2 * j] = word & 0xFF;
-            buffer[2 * j + 1] = (word >> 8) & 0xFF;
-        }
-
-        buffer += sectorSize;
-    }
-
-    return true;
 }
 
 bool AtaChannel::writeSectors(const char* buffer, size_t sectorCount,
         uint64_t lba, bool secondary, uint64_t sectorSize) {
     AutoLock lock(&mutex);
+    if (!finishDmaTransfer()) return false;
 
-    if (lba > 0xFFFFFFF || sectorCount > 256) {
-        // We need to use lba48 for this.
-        uint16_t count = sectorCount == 65536 ? 0 : sectorCount;
+    bool useLba48 = setSectors(sectorCount, lba, secondary);
+    memcpy((void*) dmaMapped, buffer, sectorSize * sectorCount);
 
-        outb(iobase + REGISTER_DEVICE, 0xE0 | (secondary << 4));
-        outb(iobase + REGISTER_SECTOR_COUNT, (count >> 8) & 0xFF);
-        outb(iobase + REGISTER_LBA_LOW, (lba >> 24) & 0xFF);
-        outb(iobase + REGISTER_LBA_MID, (lba >> 32) & 0xFF);
-        outb(iobase + REGISTER_LBA_HIGH, (lba >> 40) & 0xFF);
-        outb(iobase + REGISTER_SECTOR_COUNT, count & 0xFF);
-        outb(iobase + REGISTER_LBA_LOW, lba & 0xFF);
-        outb(iobase + REGISTER_LBA_MID, (lba >> 8) & 0xFF);
-        outb(iobase + REGISTER_LBA_HIGH, (lba >> 16) & 0xFF);
-        outb(iobase + REGISTER_COMMAND, COMMAND_WRITE_SECTORS_EXT);
-    } else {
-        uint8_t count = sectorCount == 256 ? 0 : sectorCount;
-        outb(iobase + REGISTER_DEVICE, 0xE0 | (secondary << 4) |
-                ((lba >> 24) & 0x0F));
-        outb(iobase + REGISTER_SECTOR_COUNT, count);
-        outb(iobase + REGISTER_LBA_LOW, lba & 0xFF);
-        outb(iobase + REGISTER_LBA_MID, (lba >> 8) & 0xFF);
-        outb(iobase + REGISTER_LBA_HIGH, (lba >> 16) & 0xFF);
-        outb(iobase + REGISTER_COMMAND, COMMAND_WRITE_SECTORS);
-    }
+    uint32_t* prd = (uint32_t*) prdVirt;
+    prd[0] = dmaRegion;
+    prd[1] = (sectorCount * sectorSize) | (1U << 31);
+    outl(busmasterBase + REGISTER_BUSMASTER_PRDT, prdPhys);
 
-    for (size_t i = 0; i < sectorCount; i++) {
-        uint8_t status = inb(iobase + REGISTER_STATUS);
-        while (status & STATUS_BUSY) {
-            status = inb(iobase + REGISTER_STATUS);
-        }
+    outb(busmasterBase + REGISTER_BUSMASTER_STATUS,
+            BUSMASTER_STATUS_ERROR | BUSMASTER_STATUS_INTERRUPT);
 
-        while (!(status & (STATUS_DATA_REQUEST | STATUS_ERROR |
-                STATUS_DEVICE_FAULT))) {
-            status = inb(iobase + REGISTER_STATUS);
-        }
+    outb(busmasterBase + REGISTER_BUSMASTER_COMMAND, 0);
 
-        if (status & (STATUS_ERROR | STATUS_DEVICE_FAULT)) return false;
+    uint8_t command = useLba48 ? COMMAND_WRITE_DMA_EXT : COMMAND_WRITE_DMA;
+    outb(iobase + REGISTER_COMMAND, command);
 
-        for (size_t j = 0; j < sectorSize / 2; j++) {
-            uint16_t word = (unsigned char) buffer[2 * j] |
-                    ((unsigned char) buffer[2 * j + 1] << 8);
-            outw(iobase + REGISTER_DATA, word);
-        }
-
-        buffer += sectorSize;
-    }
-
-    uint8_t status = inb(iobase + REGISTER_STATUS);
-    while (status & STATUS_BUSY) {
-        status = inb(iobase + REGISTER_STATUS);
-    }
-    if (status & (STATUS_ERROR | STATUS_DEVICE_FAULT)) return false;
-
+    awaitingInterrupt = true;
+    dmaInProgress = true;
+    error = false;
+    outb(busmasterBase + REGISTER_BUSMASTER_COMMAND,
+            BUSMASTER_COMMAND_START);
+    // The transfer will be finished asynchronously.
     return true;
 }
 
@@ -349,11 +391,6 @@ AtaDevice::AtaDevice(AtaChannel* channel, bool secondary, uint64_t sectors,
 
     stats.st_size = sectors * sectorSize;
     stats.st_blksize = sectorSize;
-    tempBuffer = xnew char[sectorSize];
-}
-
-AtaDevice::~AtaDevice() {
-    delete tempBuffer;
 }
 
 off_t AtaDevice::lseek(off_t offset, int whence) {
@@ -386,32 +423,17 @@ short AtaDevice::poll() {
 bool AtaDevice::readUncached(void* buffer, size_t size, off_t offset,
         int /*flags*/) {
     char* buf = (char*) buffer;
-    size_t bytesRead = 0;
 
     assert(offset % sectorSize == 0);
     assert(size % sectorSize == 0);
+    assert(size <= PAGESIZE);
+    assert(offset < stats.st_size);
 
-    while (size) {
-        assert(offset < stats.st_size);
-
-        size_t sectorsRemaining = size / sectorSize;
-        if (sectorsRemaining > 65536) {
-            sectorsRemaining = 65536;
-        }
-        if (!lba48Supported && sectorsRemaining > 256) {
-            sectorsRemaining = 256;
-        }
-
-        uint64_t lba = offset / sectorSize;
-        if (!channel->readSectors(buf + bytesRead, sectorsRemaining, lba,
-                secondary, sectorSize)) {
-            errno = EIO;
-            return false;
-        }
-
-        bytesRead += sectorsRemaining * sectorSize;
-        size -= sectorsRemaining * sectorSize;
-        offset += sectorsRemaining * sectorSize;
+    size_t sectors = size / sectorSize;
+    uint64_t lba = offset / sectorSize;
+    if (!channel->readSectors(buf, sectors, lba, secondary, sectorSize)) {
+        errno = EIO;
+        return false;
     }
 
     return true;
@@ -419,33 +441,18 @@ bool AtaDevice::readUncached(void* buffer, size_t size, off_t offset,
 
 bool AtaDevice::writeUncached(const void* buffer, size_t size, off_t offset,
         int /*flags*/) {
-    char* buf = (char*) buffer;
-    size_t bytesWritten = 0;
+    const char* buf = (const char*) buffer;
 
     assert(offset % sectorSize == 0);
     assert(size % sectorSize == 0);
+    assert(size <= PAGESIZE);
+    assert(offset < stats.st_size);
 
-    while (size) {
-        assert(offset < stats.st_size);
-
-        size_t sectorsRemaining = size / sectorSize;
-        if (sectorsRemaining > 65536) {
-            sectorsRemaining = 65536;
-        }
-        if (!lba48Supported && sectorsRemaining > 256) {
-            sectorsRemaining = 256;
-        }
-
-        uint64_t lba = offset / sectorSize;
-        if (!channel->writeSectors(buf + bytesWritten, sectorsRemaining, lba,
-                secondary, sectorSize)) {
-            errno = EIO;
-            return false;
-        }
-
-        bytesWritten += sectorsRemaining * sectorSize;
-        size -= sectorsRemaining * sectorSize;
-        offset += sectorsRemaining * sectorSize;
+    size_t sectors = size / sectorSize;
+    uint64_t lba = offset / sectorSize;
+    if (!channel->writeSectors(buf, sectors, lba, secondary, sectorSize)) {
+        errno = EIO;
+        return false;
     }
 
     return true;

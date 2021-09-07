@@ -79,11 +79,11 @@ extern "C" void kmain(uint32_t /*magic*/, paddr_t multibootAddress) {
     Rtc::initialize();
     Pit::initialize();
 
-    Log::printf("Scanning for PCI devices...\n");
-    Pci::scanForDevices();
-
     Log::printf("Enabling interrupts...\n");
     Interrupts::enable();
+
+    Log::printf("Scanning for PCI devices...\n");
+    Pci::scanForDevices();
 
     // Load the initrd.
     Log::printf("Loading Initrd...\n");
