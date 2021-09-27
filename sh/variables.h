@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,8 +19,15 @@
 
 #include <stdbool.h>
 
+struct ShellVar {
+    char* name;
+    char* value;
+};
+
 extern char** arguments;
 extern int numArguments;
+extern struct ShellVar* variables;
+extern size_t variablesAllocated;
 
 const char* getVariable(const char* name);
 void initializeVariables(void);

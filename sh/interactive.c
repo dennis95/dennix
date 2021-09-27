@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,16 +17,21 @@
  * Interactive input.
  */
 
+#include <ctype.h>
+#include <dirent.h>
 #include <err.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "builtins.h"
 #include "interactive.h"
 #include "sh.h"
+#include "variables.h"
 
 #undef CTRL
 #define CTRL(c) ((c) & 0x1F)
@@ -44,19 +49,29 @@ static struct termios currentTermios;
 static struct HistoryEntry* history;
 static size_t historySize;
 static size_t position;
-static size_t prefixLength;
+static size_t promptLength;
 static char sequenceParam;
 static struct winsize winsize;
 
+static inline size_t currentLine(void) {
+    return (promptLength + position) / winsize.ws_col;
+}
+
 static inline size_t positionInLine(void) {
-    return (prefixLength + position) % winsize.ws_col;
+    return (promptLength + position) % winsize.ws_col;
 }
 
 static void addHistoryEntry(struct HistoryEntry entry);
 static void addToBuffer(struct HistoryEntry* entry, char c);
 static void beginEdit(struct HistoryEntry* old, struct HistoryEntry* new);
 static void delete(struct HistoryEntry* entry, bool backspace);
+static size_t getCompletions(const char* text, char*** result,
+        size_t* completionStart);
 static void recallHistoryEntry(struct HistoryEntry* entry);
+static bool searchDir(const char* dirname, const char* prefix,
+        size_t prefixLength, char*** completions, size_t* numCompletions,
+        bool wantDirectory, bool wantExecutable);
+static void tab(struct HistoryEntry* entry, bool newCommand);
 
 void freeInteractive(void) {
     for (size_t i = 0; i < historySize; i++) {
@@ -89,7 +104,7 @@ void readCommandInteractive(const char** str, bool newCommand) {
     tcsetattr(0, TCSANOW, &termios);
 
     tcgetwinsize(2, &winsize);
-    prefixLength = printPrompt(newCommand);
+    promptLength = printPrompt(newCommand);
 
     enum {
         NORMAL,
@@ -114,11 +129,17 @@ void readCommandInteractive(const char** str, bool newCommand) {
                 }
                 delete(entry, true);
             } else if (c == '\n') {
-                position = entry->bufferUsed;
                 entry->buffer[entry->bufferUsed] = '\n';
                 entry->buffer[entry->bufferUsed + 1] = '\0';
+                size_t lines = (promptLength + entry->bufferUsed) /
+                        winsize.ws_col;
+                if (lines > currentLine()) {
+                    fprintf(stderr, "\e[%zuB", lines - currentLine());
+                }
                 fputc('\n', stderr);
                 break;
+            } else if (c == '\t') {
+                tab(entry, newCommand);
             } else if (c == CTRL('D')) {
                 if (entry->bufferUsed == 0) {
                     entry->buffer[0] = '\0';
@@ -332,12 +353,157 @@ static void delete(struct HistoryEntry* entry, bool backspace) {
     fputs("\e[u", stderr);
 }
 
+static bool isSeparatorForCompletion(unsigned char c) {
+    return isblank(c) || c == ';' || c == '&' || c == '|' || c == '<' ||
+            c == '>' || c == '$';
+}
+
+static size_t getCompletions(const char* text, char*** result,
+        size_t* completionStart) {
+    // First try to find out what we have to complete. We do not parse the whole
+    // command but just try to give useful completions for common cases.
+
+    size_t prefixStart = position;
+    while (prefixStart > 0 && !isSeparatorForCompletion(text[prefixStart - 1])
+            && text[prefixStart - 1] != '/') {
+        prefixStart--;
+    }
+    size_t wordStart = prefixStart;
+    while (wordStart > 0 && !isSeparatorForCompletion(text[wordStart - 1])) {
+        wordStart--;
+    }
+
+    enum {
+        COMPLETION_COMMAND,
+        COMPLETION_FILE,
+        COMPLETION_VARIABLE,
+        COMPLETION_EXECUTABLE,
+        COMPLETION_DIRECTORY,
+    };
+    int completionType;
+
+    if (prefixStart == 0) {
+        completionType = COMPLETION_COMMAND;
+    } else if (wordStart == 0) {
+        completionType = COMPLETION_EXECUTABLE;
+    } else if (text[prefixStart - 1] == '$') {
+        completionType = COMPLETION_VARIABLE;
+        if (position > prefixStart && text[prefixStart] == '{') {
+            prefixStart++;
+        }
+    } else {
+        size_t i;
+        char sep = '\0';
+        for (i = wordStart - 1; i > 0; i--) {
+            if (!isblank((unsigned char) text[i])) {
+                sep = text[i];
+                break;
+            }
+        }
+        if (sep == ';' || sep == '&' || sep == '|' || sep == '\0') {
+            if (wordStart == prefixStart) {
+                completionType = COMPLETION_COMMAND;
+            } else {
+                completionType = COMPLETION_EXECUTABLE;
+            }
+        } else if (sep == '<' || sep == '>') {
+            completionType = COMPLETION_FILE;
+        } else if (i >= 1 && sep == 'd' && text[i - 1] == 'c' &&
+                (i == 1 || isSeparatorForCompletion(text[i - 2]))) {
+            completionType = COMPLETION_DIRECTORY;
+        } else {
+            completionType = COMPLETION_FILE;
+        }
+    }
+
+    const char* prefix = text + prefixStart;
+    size_t prefixLength = position - prefixStart;
+
+    char** completions = NULL;
+    size_t completionsUsed = 0;
+
+    // Now that we know what to complete find all the possible completions.
+    if (completionType == COMPLETION_COMMAND) {
+        for (struct builtin* builtin = builtins; builtin->name; builtin++) {
+            if (strncmp(prefix, builtin->name, prefixLength) == 0) {
+                char* name = strdup(builtin->name);
+                if (!name) {
+                    goto fail;
+                }
+                addToArray((void**) &completions, &completionsUsed, &name,
+                        sizeof(char*));
+            }
+        }
+
+        const char* path = getVariable("PATH");
+        if (path) {
+            while (true) {
+                size_t length = strcspn(path, ":");
+                char* dirname = length ? strndup(path, length) : strdup(".");
+                if (!dirname) {
+                    goto fail;
+                }
+                if (!searchDir(dirname, prefix, prefixLength, &completions,
+                        &completionsUsed, false, true)) {
+                    free(dirname);
+                    goto fail;
+                }
+                free(dirname);
+
+                if (!path[length]) break;
+                path += length + 1;
+            }
+        }
+    } else if (completionType == COMPLETION_FILE ||
+            completionType == COMPLETION_DIRECTORY ||
+            completionType == COMPLETION_EXECUTABLE) {
+        bool directory = completionType == COMPLETION_DIRECTORY;
+        bool executable = completionType == COMPLETION_EXECUTABLE;
+
+        char* dirname;
+        if (wordStart != prefixStart) {
+            dirname = strndup(text + wordStart, prefixStart - wordStart);
+        } else {
+            dirname = strdup(".");
+        }
+        if (!dirname) goto fail;
+
+        if (!searchDir(dirname, prefix, prefixLength, &completions,
+                &completionsUsed, directory, executable)) {
+            free(dirname);
+            goto fail;
+        }
+        free(dirname);
+    } else if (completionType == COMPLETION_VARIABLE) {
+        for (size_t i = 0; i < variablesAllocated; i++) {
+            struct ShellVar* var = &variables[i];
+            if (strncmp(prefix, var->name, prefixLength) == 0) {
+                char* name = strdup(var->name);
+                if (!name) goto fail;
+                addToArray((void**) &completions, &completionsUsed, &name,
+                        sizeof(char*));
+            }
+        }
+    }
+
+    *completionStart = prefixStart;
+    *result = completions;
+    return completionsUsed;
+
+fail:
+    for (size_t i = 0; i < completionsUsed; i++) {
+        free(completions[i]);
+    }
+    free(completions);
+    return 0;
+}
+
 static void recallHistoryEntry(struct HistoryEntry* entry) {
-    size_t linesUp = (prefixLength + position) / winsize.ws_col;
+    size_t linesUp = currentLine();
     if (linesUp > 0) {
         fprintf(stderr, "\e[%zuA", linesUp);
     }
-    fprintf(stderr, "\e[%zuG\e[J", prefixLength + 1);
+    fprintf(stderr, "\e[%zuG\e[J", promptLength + 1);
 
     position = 0;
     fwrite(entry->buffer, 1, min(winsize.ws_col - positionInLine(),
@@ -349,4 +515,135 @@ static void recallHistoryEntry(struct HistoryEntry* entry) {
                 stderr);
     }
     position = entry->bufferUsed;
+}
+
+static bool searchDir(const char* dirname, const char* prefix,
+        size_t prefixLength, char*** completions, size_t* numCompletions,
+        bool wantDirectory, bool wantExecutable) {
+    DIR* dir = opendir(dirname);
+    if (!dir) return true;
+
+    errno = 0;
+    struct dirent* dirent = readdir(dir);
+    while (dirent) {
+        if (strncmp(prefix, dirent->d_name, prefixLength) != 0) goto next;
+        if (prefixLength == 0 && (strcmp(dirent->d_name, ".") == 0 ||
+                strcmp(dirent->d_name, "..") == 0)) {
+            goto next;
+        }
+
+        bool isDirectory = dirent->d_type == DT_DIR;
+        if (dirent->d_type == DT_UNKNOWN || wantExecutable) {
+            struct stat st;
+            if (fstatat(dirfd(dir), dirent->d_name, &st, 0) < 0) {
+                goto next;
+            }
+
+            isDirectory = S_ISDIR(st.st_mode);
+            bool isExecutable = st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH);
+            if (wantExecutable && !isExecutable) goto next;
+        }
+
+        if (wantDirectory && !isDirectory) goto next;
+
+        char* name = malloc(strlen(dirent->d_name) + isDirectory + 1);
+        if (!name) return false;
+        strcpy(name, dirent->d_name);
+        if (isDirectory) {
+            strcat(name, "/");
+        }
+        addToArray((void**) completions, numCompletions, &name, sizeof(char*));
+
+next:
+        dirent = readdir(dir);
+    }
+    closedir(dir);
+    return true;
+}
+
+static int sortString(const void* a, const void* b) {
+    return strcmp(*(const char**) a, *(const char**) b);
+}
+
+static void tab(struct HistoryEntry* entry, bool newCommand) {
+    if (entry->bufferUsed == 0) return;
+
+    char** completions;
+    size_t completionStart;
+    size_t numCompletions = getCompletions(entry->buffer, &completions,
+            &completionStart);
+    if (numCompletions == 0) return;
+
+    if (numCompletions == 1) {
+        // Only a single completion exists.
+        char* completion = completions[0] + (position - completionStart);
+        char lastCharacter = '\0';
+        while (*completion) {
+            addToBuffer(entry, *completion);
+            lastCharacter = *completion;
+            completion++;
+        }
+        if (lastCharacter != '/') {
+            addToBuffer(entry, ' ');
+        }
+        free(completions[0]);
+        free(completions);
+        return;
+    }
+
+    qsort(completions, numCompletions, sizeof(completions[0]), sortString);
+
+    // Check whether all completions share a common prefix. The list is sorted
+    // so it is enough to just look at the first and last completions.
+    size_t commonLength = 0;
+    char* first = completions[0];
+    char* last = completions[numCompletions - 1];
+    while (first[commonLength] == last[commonLength]) {
+        commonLength++;
+    }
+
+    if (commonLength > position - completionStart) {
+        for (size_t i = position - completionStart; i < commonLength; i++) {
+            addToBuffer(entry, first[i]);
+        }
+        for (size_t i = 0; i < numCompletions; i++) {
+            free(completions[i]);
+        }
+        free(completions);
+        return;
+    }
+
+    size_t lines = (promptLength + entry->bufferUsed) / winsize.ws_col;
+    if (lines > currentLine()) {
+        fprintf(stderr, "\e[%zuB", lines - currentLine());
+    }
+    fputc('\n', stderr);
+    for (size_t i = 0; i < numCompletions; i++) {
+        fputs(completions[i], stderr);
+        fputc(i == numCompletions - 1 ? '\n' : ' ', stderr);
+    }
+
+    printPrompt(newCommand);
+    size_t pos = position;
+    size_t posInLine = positionInLine();
+    size_t line = currentLine();
+    position = 0;
+    recallHistoryEntry(entry);
+
+    // Move the cursor to the position in the command where it was before.
+    size_t newLine = currentLine();
+    if (line < newLine) {
+        fprintf(stderr, "\e[%zuA", newLine - line);
+    }
+    if (posInLine < positionInLine()) {
+        fprintf(stderr, "\e[%zuD", positionInLine() - posInLine);
+    } else if (posInLine > positionInLine()) {
+        fprintf(stderr, "\e[%zuC", posInLine - positionInLine());
+    }
+    position = pos;
+
+    for (size_t i = 0; i < numCompletions; i++) {
+        free(completions[i]);
+    }
+    free(completions);
 }

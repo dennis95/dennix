@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -30,16 +30,11 @@ extern char** environ;
 
 char** arguments;
 int numArguments;
-
-struct ShellVar {
-    char* name;
-    char* value;
-};
+struct ShellVar* variables;
+size_t variablesAllocated;
 
 // This buffer is large enough to contain any $- value or any 32 bit integer.
 static char buffer[15];
-static struct ShellVar* variables;
-static size_t variablesAllocated;
 
 const char* getVariable(const char* name) {
     if (isdigit(*name)) {
