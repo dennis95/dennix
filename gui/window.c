@@ -286,6 +286,13 @@ dxui_color renderWindowDecoration(struct Window* window, int x, int y) {
     }
 }
 
+void resizeClientRect(struct Window* window, dxui_dim dim) {
+    dxui_rect rect = window->rect;
+    rect.width = dim.width + 2 * windowBorderSize;
+    rect.height = dim.height + windowTitleBarSize + windowBorderSize;
+    resizeWindow(window, rect);
+}
+
 void resizeWindow(struct Window* window, dxui_rect rect) {
     if (window->visible) {
         addDamageRect(window->rect);

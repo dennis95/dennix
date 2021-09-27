@@ -71,6 +71,7 @@ void redrawWindowPart(struct Window* window, int x, int y, int width,
         int height, size_t pitch, dxui_color* lfb);
 dxui_color renderClientArea(struct Window* window, int x, int y);
 dxui_color renderWindowDecoration(struct Window* window, int x, int y);
+void resizeClientRect(struct Window* window, dxui_dim dim);
 void resizeWindow(struct Window* window, dxui_rect rect);
 void setWindowBackground(struct Window* window, dxui_color color);
 void setWindowCursor(struct Window* window, int cursor);

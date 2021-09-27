@@ -297,10 +297,8 @@ static void handleResizeWindow(struct Connection* conn, size_t length,
     if (length < sizeof(*msg)) return;
     struct Window* window = getWindow(conn, msg->window_id);
     if (!window) return;
-    dxui_rect rect = window->rect;
-    rect.width = msg->width;
-    rect.height = msg->height;
-    resizeWindow(window, rect);
+    dxui_dim dim = { msg->width, msg->height };
+    resizeClientRect(window, dim);
 }
 
 static void handleSetRelativeMouse(struct Connection* conn, size_t length,
