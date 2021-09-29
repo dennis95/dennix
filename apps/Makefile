@@ -27,6 +27,7 @@ LIBS = -ldxui
 
 APPS = \
 	bricks \
+	calculator \
 	terminal
 
 all: $(addprefix $(BUILD)/, $(APPS))
