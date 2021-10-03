@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,6 +21,7 @@
 #define KERNEL_STREAMSOCKET_H
 
 #include <dennix/un.h>
+#include <dennix/kernel/circularbuffer.h>
 #include <dennix/kernel/socket.h>
 
 class StreamSocket : public Socket, public ConstructorMayFail {
@@ -62,9 +63,7 @@ private:
     kthread_cond_t sendCond;
     StreamSocket* peer;
     char* receiveBuffer;
-    size_t bufferSize;
-    size_t bufferIndex;
-    size_t bytesAvailable;
+    CircularBuffer circularBuffer;
 };
 
 #endif

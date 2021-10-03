@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -41,9 +41,6 @@ StreamSocket::StreamSocket(mode_t mode) : Socket(SOCK_STREAM, mode) {
     sendCond = KTHREAD_COND_INITIALIZER;
     peer = nullptr;
     receiveBuffer = nullptr;
-    bufferIndex = 0;
-    bufferSize = 0;
-    bytesAvailable = 0;
 }
 
 StreamSocket::StreamSocket(mode_t mode, const Reference<StreamSocket>& peer,
@@ -52,9 +49,9 @@ StreamSocket::StreamSocket(mode_t mode, const Reference<StreamSocket>& peer,
     isConnected = true;
     this->peer = (StreamSocket*) peer;
     this->connectionMutex = connectionMutex;
-    bufferSize = BUFFER_SIZE;
-    receiveBuffer = new char[bufferSize];
+    receiveBuffer = new char[BUFFER_SIZE];
     if (!receiveBuffer) FAIL_CONSTRUCTOR;
+    circularBuffer.initialize(receiveBuffer, BUFFER_SIZE);
 }
 
 StreamSocket::~StreamSocket() {
@@ -126,7 +123,7 @@ Reference<Vnode> StreamSocket::accept(struct sockaddr* address,
     incoming->isConnected = true;
     incoming->isConnecting = false;
     incoming->receiveBuffer = buffer;
-    incoming->bufferSize = BUFFER_SIZE;
+    incoming->circularBuffer.initialize(buffer, BUFFER_SIZE);
     struct sockaddr_un peerAddr = incoming->boundAddress;
     kthread_cond_broadcast(&incoming->connectCond);
     kthread_mutex_unlock(&incoming->socketMutex);
@@ -339,12 +336,12 @@ short StreamSocket::poll() {
     } else if (isConnected) {
         AutoLock lock(&connectionMutex->mutex);
 
-        if (bytesAvailable) {
+        if (circularBuffer.bytesAvailable()) {
             result |= POLLIN | POLLRDNORM;
         }
 
         if (peer) {
-            if (peer->bytesAvailable < peer->bufferSize) {
+            if (peer->circularBuffer.spaceAvailable()) {
                 result |= POLLOUT | POLLWRNORM;
             }
         } else {
@@ -379,7 +376,7 @@ ssize_t StreamSocket::read(void* buffer, size_t size, int flags) {
 
     AutoLock lock(&connectionMutex->mutex);
 
-    while (bytesAvailable == 0) {
+    while (circularBuffer.bytesAvailable() == 0) {
         if (!peer) {
             errno = ECONNRESET;
             return -1;
@@ -397,15 +394,7 @@ ssize_t StreamSocket::read(void* buffer, size_t size, int flags) {
         }
     }
 
-    size_t bytesRead = 0;
-    char* buf = (char*) buffer;
-
-    while (bytesAvailable > 0 && bytesRead < size) {
-        buf[bytesRead] = receiveBuffer[bufferIndex];
-        bufferIndex = (bufferIndex + 1) % bufferSize;
-        bytesAvailable--;
-        bytesRead++;
-    }
+    size_t bytesRead = circularBuffer.read(buffer, size);
 
     if (peer) {
         kthread_cond_broadcast(&peer->sendCond);
@@ -441,7 +430,7 @@ ssize_t StreamSocket::write(const void* buffer, size_t size, int flags) {
     size_t written = 0;
 
     while (written < size) {
-        while (peer && peer->bufferSize - peer->bytesAvailable == 0) {
+        while (peer && peer->circularBuffer.spaceAvailable() == 0) {
             if (flags & O_NONBLOCK) {
                 errno = EWOULDBLOCK;
                 return -1;
@@ -467,13 +456,7 @@ ssize_t StreamSocket::write(const void* buffer, size_t size, int flags) {
             return -1;
         }
 
-        while (peer && peer->bufferSize - peer->bytesAvailable > 0 &&
-                written < size) {
-            peer->receiveBuffer[(peer->bufferIndex + peer->bytesAvailable) %
-                    peer->bufferSize] = buf[written];
-            written++;
-            peer->bytesAvailable++;
-        }
+        written += peer->circularBuffer.write(buf + written, size - written);
         kthread_cond_broadcast(&peer->receiveCond);
     }
 

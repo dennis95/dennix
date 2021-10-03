@@ -37,6 +37,7 @@ OBJ = \
 	ata.o \
 	bga.o \
 	blockcache.o \
+	circularbuffer.o \
 	clock.o \
 	conf.o \
 	console.o \

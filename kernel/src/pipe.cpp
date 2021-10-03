@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -53,7 +53,8 @@ public:
 };
 
 PipeVnode::PipeVnode(Reference<Vnode>& readPipe, Reference<Vnode>& writePipe)
-        : Vnode(S_IFIFO | S_IRUSR | S_IWUSR, 0) {
+        : Vnode(S_IFIFO | S_IRUSR | S_IWUSR, 0),
+        circularBuffer(pipeBuffer, sizeof(pipeBuffer)) {
     readEnd = new ReadEnd(this);
     if (!readEnd) FAIL_CONSTRUCTOR;
     writeEnd = new WriteEnd(this);
@@ -62,8 +63,6 @@ PipeVnode::PipeVnode(Reference<Vnode>& readPipe, Reference<Vnode>& writePipe)
         readEnd = nullptr;
         FAIL_CONSTRUCTOR;
     }
-    bufferIndex = 0;
-    bytesAvailable = 0;
 
     readCond = KTHREAD_COND_INITIALIZER;
     writeCond = KTHREAD_COND_INITIALIZER;
@@ -111,8 +110,10 @@ PipeVnode::WriteEnd::~WriteEnd() {
 short PipeVnode::poll() {
     AutoLock lock(&mutex);
     short result = 0;
-    if (bytesAvailable) result |= POLLIN | POLLRDNORM;
-    if (writeEnd && bytesAvailable < PIPE_BUF) result |= POLLOUT | POLLWRNORM;
+    if (circularBuffer.bytesAvailable()) result |= POLLIN | POLLRDNORM;
+    if (readEnd && circularBuffer.spaceAvailable()) {
+        result |= POLLOUT | POLLWRNORM;
+    }
     if (!readEnd || !writeEnd) result |= POLLHUP;
     return result;
 }
@@ -121,7 +122,7 @@ ssize_t PipeVnode::read(void* buffer, size_t size, int flags) {
     if (size == 0) return 0;
     AutoLock lock(&mutex);
 
-    while (bytesAvailable == 0) {
+    while (circularBuffer.bytesAvailable() == 0) {
         if (!writeEnd) return 0;
 
         if (flags & O_NONBLOCK) {
@@ -135,16 +136,7 @@ ssize_t PipeVnode::read(void* buffer, size_t size, int flags) {
         }
     }
 
-    size_t bytesRead = 0;
-    char* buf = (char*) buffer;
-
-    while (bytesAvailable > 0 && bytesRead < size) {
-        buf[bytesRead] = pipeBuffer[bufferIndex];
-        bufferIndex = (bufferIndex + 1) % PIPE_BUF;
-        bytesAvailable--;
-        bytesRead++;
-    }
-
+    size_t bytesRead = circularBuffer.read(buffer, size);
     kthread_cond_broadcast(&writeCond);
     updateTimestamps(true, false, false);
     return bytesRead;
@@ -155,7 +147,7 @@ ssize_t PipeVnode::write(const void* buffer, size_t size, int flags) {
     AutoLock lock(&mutex);
 
     if (size <= PIPE_BUF) {
-        while (PIPE_BUF - bytesAvailable < size && readEnd) {
+        while (circularBuffer.spaceAvailable() < size && readEnd) {
             if (flags & O_NONBLOCK) {
                 errno = EAGAIN;
                 return -1;
@@ -172,7 +164,7 @@ ssize_t PipeVnode::write(const void* buffer, size_t size, int flags) {
     size_t written = 0;
 
     while (written < size) {
-        while (PIPE_BUF - bytesAvailable == 0 && readEnd) {
+        while (circularBuffer.spaceAvailable() == 0 && readEnd) {
             if (flags & O_NONBLOCK) {
                 if (written) {
                     updateTimestamps(false, true, true);
@@ -201,12 +193,7 @@ ssize_t PipeVnode::write(const void* buffer, size_t size, int flags) {
             return -1;
         }
 
-        while (PIPE_BUF - bytesAvailable > 0 && written < size) {
-            pipeBuffer[(bufferIndex + bytesAvailable) % PIPE_BUF] =
-                    buf[written];
-            written++;
-            bytesAvailable++;
-        }
+        written += circularBuffer.write(buf + written, size - written);
         kthread_cond_broadcast(&readCond);
     }
 

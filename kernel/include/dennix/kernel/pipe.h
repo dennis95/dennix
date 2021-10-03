@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,6 +20,7 @@
 #ifndef KERNEL_PIPE_H
 #define KERNEL_PIPE_H
 
+#include <dennix/kernel/circularbuffer.h>
 #include <dennix/kernel/vnode.h>
 
 class PipeVnode : public Vnode, public ConstructorMayFail {
@@ -40,8 +41,7 @@ private:
     Vnode* readEnd;
     Vnode* writeEnd;
     char pipeBuffer[PIPE_BUF];
-    size_t bufferIndex;
-    size_t bytesAvailable;
+    CircularBuffer circularBuffer;
     kthread_cond_t readCond;
     kthread_cond_t writeCond;
 };
