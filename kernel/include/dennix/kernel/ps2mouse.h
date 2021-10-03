@@ -36,7 +36,6 @@ private:
     bool hasMouseWheel;
     unsigned char index;
     bool secondPort;
-    Reference<MouseDevice> mouseDevice;
     mouse_data packetBuffer[128];
     size_t packetsAvailable;
     WorkerJob job;

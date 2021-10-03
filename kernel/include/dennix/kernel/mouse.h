@@ -36,4 +36,6 @@ private:
     kthread_cond_t readCond;
 };
 
+extern Reference<MouseDevice> mouseDevice;
+
 #endif

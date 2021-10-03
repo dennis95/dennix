@@ -124,6 +124,8 @@ void DevFS::initialize(const Reference<DirectoryVnode>& rootDir) {
     addDevice("console", console);
     addDevice("display", console->display);
     addDevice("full", xnew DevFull());
+    mouseDevice = xnew MouseDevice();
+    addDevice("mouse", mouseDevice);
     addDevice("null", xnew DevNull());
     addDevice("ptmx", xnew DevPtmx());
     addDevice("pts", xnew DevPts());

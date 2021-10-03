@@ -27,6 +27,8 @@
 
 #define BUFFER_ITEMS (sizeof(mouseBuffer) / sizeof(mouse_data))
 
+Reference<MouseDevice> mouseDevice;
+
 MouseDevice::MouseDevice() : Vnode(S_IFCHR | 0666, DevFS::dev) {
     readIndex = 0;
     available = 0;

@@ -57,8 +57,6 @@ PS2Mouse::PS2Mouse(bool secondPort) : secondPort(secondPort) {
         }
     }
     PS2::sendDeviceCommand(secondPort, MOUSE_SET_SAMPLE_RATE, 40, true);
-    mouseDevice = xnew MouseDevice();
-    devFS.addDevice("mouse", mouseDevice);
     Log::printf("PS/2 mouse found\n");
 }
 
@@ -126,6 +124,9 @@ void PS2Mouse::work() {
     memcpy(buf, packetBuffer, entries * sizeof(mouse_data));
     packetsAvailable = 0;
     Interrupts::enable();
+
+    // During boot the mouse device might not have been created yet.
+    if (!mouseDevice) return;
 
     for (size_t i = 0; i < entries; i++) {
         mouseDevice->addPacket(buf[i]);
