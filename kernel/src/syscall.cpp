@@ -465,7 +465,7 @@ static void* mmapImplementation(void* /*addr*/, size_t size,
     if (flags & MAP_ANONYMOUS) {
         AddressSpace* addressSpace = Process::current()->addressSpace;
         return (void*) addressSpace->mapMemory(ALIGNUP(size, PAGESIZE),
-                protection);
+                protection & _PROT_FLAGS);
     }
 
     // TODO: Implement other flags than MAP_ANONYMOUS

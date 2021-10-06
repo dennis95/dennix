@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,6 +28,7 @@
 #define PAGE_PRESENT (1 << 0)
 #define PAGE_WRITABLE (1 << 1)
 #define PAGE_USER (1 << 2)
+#define PAGE_WRITE_COMBINING (1 << 7)
 
 extern "C" {
 extern symbol_t bootstrapBegin;
@@ -65,6 +66,9 @@ static inline void addressToIndex(
 static inline int protectionToFlags(int protection) {
     int flags = PAGE_PRESENT;
     if (protection & PROT_WRITE) flags |= PAGE_WRITABLE;
+    if (protection & PROT_WRITE_COMBINING && AddressSpace::patSupported) {
+        flags |= PAGE_WRITE_COMBINING;
+    }
     return flags;
 }
 
@@ -171,6 +175,20 @@ void AddressSpace::initialize() {
     // Remove the mapping for the bootstrap page table
     // This is the first page table, so know it is mapped at RECURSIVE_MAPPING.
     kernelSpace->unmap(RECURSIVE_MAPPING);
+
+    uint32_t eax = 1;
+    uint32_t edx;
+    asm("cpuid" : "+a"(eax), "=d"(edx) :: "ebx", "ecx");
+    patSupported = edx & (1 << 16);
+
+    if (patSupported) {
+        uint32_t patLow;
+        uint32_t patHigh;
+        asm("rdmsr" : "=a"(patLow), "=d"(patHigh) : "c"(0x277));
+        // Set PAT entry 4 to write combining.
+        patHigh = (patHigh & 0xFFFFFF00) | 0x01;
+        asm("wrmsr" :: "a"(patLow), "d"(patHigh), "c"(0x277));
+    }
 }
 
 void AddressSpace::activate() {
@@ -208,7 +226,6 @@ paddr_t AddressSpace::getPhysicalAddress(vaddr_t virtualAddress) {
 
 vaddr_t AddressSpace::mapAt(
         vaddr_t virtualAddress, paddr_t physicalAddress, int protection) {
-    assert(!(protection & ~_PROT_FLAGS));
     assert(PAGE_ALIGNED(physicalAddress));
 
     int flags = protectionToFlags(protection);

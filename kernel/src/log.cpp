@@ -64,7 +64,8 @@ void Log::earlyInitialize(const multiboot_info* multiboot) {
         size_t mapSize;
         vaddr_t lfb = kernelSpace->mapUnaligned(fbTag->framebuffer_addr,
                 fbTag->framebuffer_height * fbTag->framebuffer_pitch,
-                PROT_READ | PROT_WRITE, lfbMapping, mapSize);
+                PROT_READ | PROT_WRITE | PROT_WRITE_COMBINING, lfbMapping,
+                mapSize);
         if (!lfb) {
             // This shouldn't fail in practise as enough memory should be
             // available.

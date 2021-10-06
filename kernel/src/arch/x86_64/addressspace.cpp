@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,6 +34,7 @@
 #define PAGE_PRESENT (1 << 0)
 #define PAGE_WRITABLE (1 << 1)
 #define PAGE_USER (1 << 2)
+#define PAGE_WRITE_COMBINING (1 << 7)
 #define PAGE_NO_EXECUTE (1UL << 63)
 #define PAGE_FLAGS 0xFFF0000000000FFF
 
@@ -90,6 +91,9 @@ static inline uintptr_t protectionToFlags(int protection) {
     uintptr_t flags = PAGE_PRESENT;
     if (protection & PROT_WRITE) flags |= PAGE_WRITABLE;
     if (!(protection & PROT_EXEC)) flags |= PAGE_NO_EXECUTE;
+    if (protection & PROT_WRITE_COMBINING && AddressSpace::patSupported) {
+        flags |= PAGE_WRITE_COMBINING;
+    }
     return flags;
 }
 
@@ -214,6 +218,19 @@ void AddressSpace::initialize() {
     kernelSpace->unmap(RECURSIVE_PAGETABLE(0, 0, 0));
     kernelSpace->unmap(RECURSIVE_PAGEDIR(0, 0));
     kernelSpace->unmap(RECURSIVE_PDPT(0));
+
+    uint32_t eax = 1;
+    uint32_t edx;
+    asm("cpuid" : "+a"(eax), "=d"(edx) :: "ebx", "ecx");
+    patSupported = edx & (1 << 16);
+    if (patSupported) {
+        uint32_t patLow;
+        uint32_t patHigh;
+        asm("rdmsr" : "=a"(patLow), "=d"(patHigh) : "c"(0x277));
+        // Set PAT entry 4 to write combining.
+        patHigh = (patHigh & 0xFFFFFF00) | 0x01;
+        asm("wrmsr" :: "a"(patLow), "d"(patHigh), "c"(0x277));
+    }
 }
 
 void AddressSpace::activate() {
@@ -265,7 +282,6 @@ paddr_t AddressSpace::getPhysicalAddress(vaddr_t virtualAddress) {
 
 vaddr_t AddressSpace::mapAt(vaddr_t virtualAddress, paddr_t physicalAddress,
         int protection) {
-    assert(!(protection & ~_PROT_FLAGS));
     assert(!(physicalAddress & PAGE_FLAGS));
 
     uintptr_t flags = protectionToFlags(protection);

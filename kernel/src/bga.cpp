@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -100,7 +100,7 @@ vaddr_t BgaDevice::setVideoMode(video_mode* mode) {
                 version == 0xB0C4 ? 8 * 1024 * 1024 :
                 4 * 1024 * 1024;
         framebuffer = kernelSpace->mapPhysical(physicalFramebufferAddress,
-                fbSize, PROT_READ | PROT_WRITE);
+                fbSize, PROT_READ | PROT_WRITE | PROT_WRITE_COMBINING);
         if (!framebuffer) return 0;
     }
     writeRegister(VBE_DISPI_INDEX_ENABLE, 0);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,6 +23,8 @@
 #include <dennix/mman.h>
 #include <dennix/kernel/kthread.h>
 #include <dennix/kernel/memorysegment.h>
+
+#define PROT_WRITE_COMBINING (1 << 17)
 
 class AddressSpace : public ConstructorMayFail {
 public:
@@ -61,6 +63,7 @@ private:
 #endif
 public:
     static void initialize();
+    static bool patSupported;
 private:
     static AddressSpace* activeAddressSpace;
 };

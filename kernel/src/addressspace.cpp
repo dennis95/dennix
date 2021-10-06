@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,6 +28,7 @@
 static AddressSpace _kernelSpace;
 AddressSpace* const kernelSpace = &_kernelSpace;
 AddressSpace* AddressSpace::activeAddressSpace;
+bool AddressSpace::patSupported;
 
 bool AddressSpace::isActive() {
     return this == kernelSpace || this == activeAddressSpace;
