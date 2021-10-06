@@ -91,7 +91,7 @@ IoApic::IoApic(paddr_t baseAddress, int interruptBase) :
 
     *indexRegister = 1;
     size_t numIrqs = ((*dataRegister >> 16) & 0xFF) + 1;
-    maxIrq = interruptBase + numIrqs;
+    maxIrq = interruptBase + numIrqs - 1;
 
     if (maxIrq >= freeIrq) {
         freeIrq = maxIrq + 1;
@@ -113,7 +113,7 @@ void Interrupts::addIrqHandler(int irq, IrqHandler* handler) {
         IoApic* ioApic = firstIoApic;
 
         while (ioApic) {
-            if (irq >= ioApic->interruptBase && irq < ioApic->maxIrq) {
+            if (irq >= ioApic->interruptBase && irq <= ioApic->maxIrq) {
                 ioApic->unmask(irq);
             }
             ioApic = ioApic->next;
