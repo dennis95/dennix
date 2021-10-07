@@ -26,7 +26,7 @@
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/streamsocket.h>
 
-#define BUFFER_SIZE (64 * 1024) // 64 KiB
+#define BUFFER_SIZE (4 * 1024 * 1024) // 4 MiB
 
 StreamSocket::StreamSocket(mode_t mode) : Socket(SOCK_STREAM, mode) {
     socketMutex = KTHREAD_MUTEX_INITIALIZER;
