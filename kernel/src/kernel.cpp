@@ -155,6 +155,12 @@ static Reference<DirectoryVnode> loadInitrd(const multiboot_info* multiboot) {
             Reference<DirectoryVnode> root = Initrd::loadInitrd(initrd);
             kernelSpace->unmapPhysical(initrd, size);
 
+            paddr_t address = moduleTag->mod_start;
+            while (address < (moduleTag->mod_end & ~PAGE_MISALIGN)) {
+                PhysicalMemory::pushPageFrame(address);
+                address += PAGESIZE;
+            }
+
             if (root->childCount) return root;
         }
 
