@@ -118,13 +118,18 @@ vaddr_t AddressSpace::mapMemoryInternal(vaddr_t virtualAddress, size_t size,
         if (unlikely(!mapAt(virtualAddress + i * PAGESIZE, physicalAddress,
                 protection))) {
             PhysicalMemory::unreserveFrames(pages - i - 1);
+            kthread_mutex_unlock(&mutex);
             PhysicalMemory::pushPageFrame(physicalAddress);
+            kthread_mutex_lock(&mutex);
 
             for (size_t j = 0; j < i; j++) {
                 physicalAddress = getPhysicalAddress(virtualAddress +
                         j * PAGESIZE);
                 unmap(virtualAddress + j * PAGESIZE);
+
+                kthread_mutex_unlock(&mutex);
                 PhysicalMemory::pushPageFrame(physicalAddress);
+                kthread_mutex_lock(&mutex);
             }
             MemorySegment::removeSegment(firstSegment, virtualAddress, size);
             return 0;
@@ -194,7 +199,12 @@ void AddressSpace::unmapMemory(vaddr_t virtualAddress, size_t size) {
     for (size_t i = 0; i < size; i += PAGESIZE) {
         paddr_t physicalAddress = getPhysicalAddress(virtualAddress + i);
         unmap(virtualAddress + i);
+
+        // Unlock the mutex because PhysicalMemory::pushPageFrame may need to
+        // map pages.
+        kthread_mutex_unlock(&mutex);
         PhysicalMemory::pushPageFrame(physicalAddress);
+        kthread_mutex_lock(&mutex);
     }
 
     MemorySegment::removeSegment(firstSegment, virtualAddress, size);
