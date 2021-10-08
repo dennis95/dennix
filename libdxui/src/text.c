@@ -28,7 +28,7 @@ dxui_rect dxui_get_text_rect(const char* text, dxui_rect rect, int flags) {
     mbstate_t ps = {0};
     const char* s = text;
     size_t charLength = mbsrtowcs(NULL, &s, 0, &ps);
-    size_t pixelLength = charLength * fontWidth - 1;
+    size_t pixelLength = charLength > 0 ? charLength * fontWidth - 1 : 0;
 
     dxui_rect result;
 
