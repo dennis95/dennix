@@ -56,7 +56,7 @@ int dxui_poll(dxui_context* context, struct pollfd pfd[], nfds_t nfds,
         pfd[nfds].events = POLLIN;
         nfds++;
     } else {
-        pfd[nfds].fd = 0;
+        pfd[nfds].fd = context->consoleFd;
         pfd[nfds].events = POLLIN;
         pfd[nfds + 1].fd = context->mouseFd;
         pfd[nfds + 1].events = POLLIN;
@@ -105,7 +105,7 @@ bool dxui_pump_events(dxui_context* context, int mode, int timeout) {
         pfd[0].events = POLLIN;
         nfds = 1;
     } else {
-        pfd[0].fd = 0;
+        pfd[0].fd = context->consoleFd;
         pfd[0].events = POLLIN;
         pfd[1].fd = context->mouseFd;
         pfd[1].events = POLLIN;
@@ -385,8 +385,8 @@ static bool handleKeyboard(dxui_context* context) {
         ((char*) kbwc)[i] = context->partialKeyBuffer[i];
     }
 
-    ssize_t bytes = read(0, (char*) kbwc + context->partialKeyBytes,
-            sizeof(kbwc) - context->partialKeyBytes);
+    ssize_t bytes = read(context->consoleFd, (char*) kbwc +
+            context->partialKeyBytes, sizeof(kbwc) - context->partialKeyBytes);
     if (bytes < 0) return false;
     bytes += context->partialKeyBytes;
 

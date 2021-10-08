@@ -58,6 +58,7 @@ struct dxui_context {
     int socket;
 
     // Used by the standalone backend:
+    int consoleFd;
     int displayFd;
     int mouseFd;
     dxui_color* cursors;

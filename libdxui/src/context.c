@@ -124,6 +124,7 @@ static dxui_context* initializeStandalone(int flags) {
     context->socket = -1;
     context->backend = &dxui_standaloneBackend;
     context->mouseFd = -1;
+    context->consoleFd = -1;
 
     context->displayFd = open("/dev/display", O_RDONLY | O_CLOEXEC);
     if (context->displayFd < 0) {
@@ -178,14 +179,20 @@ static dxui_context* initializeStandalone(int flags) {
         read(context->mouseFd, data, sizeof(data));
     }
 
+    context->consoleFd = open("/dev/console", O_RDONLY | O_CLOEXEC);
+    if (context->consoleFd < 0) {
+        dxui_shutdown(context);
+        return NULL;
+    }
+
     struct termios termios;
-    if (tcgetattr(0, &termios) < 0) {
+    if (tcgetattr(context->consoleFd, &termios) < 0) {
         dxui_shutdown(context);
         return NULL;
     }
 
     termios.c_lflag |= _KBWC;
-    if (tcsetattr(0, TCSAFLUSH, &termios) < 0) {
+    if (tcsetattr(context->consoleFd, TCSAFLUSH, &termios) < 0) {
         dxui_shutdown(context);
         return NULL;
     }
@@ -245,10 +252,13 @@ void dxui_shutdown(dxui_context* context) {
         close(context->displayFd);
         close(context->mouseFd);
 
-        struct termios termios;
-        tcgetattr(0, &termios);
-        termios.c_lflag &= ~_KBWC;
-        tcsetattr(0, TCSAFLUSH, &termios);
+        if (context->consoleFd != -1) {
+            struct termios termios;
+            tcgetattr(context->consoleFd, &termios);
+            termios.c_lflag &= ~_KBWC;
+            tcsetattr(context->consoleFd, TCSAFLUSH, &termios);
+            close(context->consoleFd);
+        }
     }
     free(context);
 }
