@@ -35,7 +35,6 @@
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/signal.h>
 #include <dennix/kernel/streamsocket.h>
-#include <dennix/kernel/symlink.h>
 #include <dennix/kernel/syscall.h>
 
 static const void* syscallList[NUM_SYSCALLS] = {
@@ -761,21 +760,12 @@ int Syscall::socket(int domain, int type, int protocol) {
 }
 
 int Syscall::symlinkat(const char* targetPath, int fd, const char* linkPath) {
-    if (!*targetPath) {
-        errno = ENOENT;
-        return -1;
-    }
-
     const char* name;
     Reference<Vnode> vnode = resolvePathExceptLastComponent(fd, linkPath,
             &name);
     if (!vnode) return -1;
 
-    Reference<Vnode> symlink = new SymlinkVnode(targetPath,
-            vnode->stat().st_dev);
-    if (!symlink) return -1;
-
-    return vnode->link(name, symlink);
+    return vnode->symlink(targetPath, name);
 }
 
 int Syscall::tcgetattr(int fd, struct termios* result) {
