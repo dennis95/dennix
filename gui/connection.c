@@ -209,6 +209,7 @@ static bool sendOutput(struct Connection* conn, const void* buffer,
             memcpy(newBuffer + conn->outputBuffered, buf, size);
 
             free(conn->outputBuffer);
+            conn->outputBuffer = newBuffer;
             conn->outputBuffered += size;
             conn->outputBufferOffset = 0;
             conn->outputBufferSize = conn->outputBuffered;
