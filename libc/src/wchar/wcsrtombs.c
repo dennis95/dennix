@@ -43,7 +43,9 @@ size_t wcsrtombs(char* restrict s, const wchar_t** restrict wcs, size_t size,
             return length;
         }
 
-        memcpy(s + length, buffer, bytes);
+        if (s) {
+            memcpy(s + length, buffer, bytes);
+        }
         if ((*wcs)[i] == L'\0') {
             if (s) *wcs = NULL;
             return length;
