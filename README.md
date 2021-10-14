@@ -37,3 +37,11 @@ file for details.
 All third-party ports are released under their own licenses. The full license
 text for every port is available in the `/share/licenses` directory of the
 release image.
+
+## Screenshots
+
+![Screenshot showing the gui with the bricks game and the calculator.](https://user-images.githubusercontent.com/11199027/137330982-4a310a5e-e88a-42a0-83aa-90933e072fdc.png)
+
+![Screenshot showing the gui with the doom port and compilation of a simple program that shows a window saying "Hello World!".](https://user-images.githubusercontent.com/11199027/137330998-2685b189-3777-44e2-b779-4440b6e8c7d3.png)
+
+![Screenshot showing the compilation of utilities.](https://user-images.githubusercontent.com/11199027/137336790-28a27b1c-2d09-4a95-bcf0-763f3f7c491f.png)
