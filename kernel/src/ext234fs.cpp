@@ -102,6 +102,7 @@ Ext234Fs::Ext234Fs(const Reference<Vnode>& device, const SuperBlock* superBlock,
     dev = device->stat().st_rdev;
     mutex = KTHREAD_MUTEX_INITIALIZER;
     openVnodes = 0;
+    renameMutex = KTHREAD_MUTEX_INITIALIZER;
 }
 
 uint64_t Ext234Fs::allocateBlock(uint64_t blockGroup) {

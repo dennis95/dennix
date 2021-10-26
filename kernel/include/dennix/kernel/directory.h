@@ -44,6 +44,7 @@ public:
     int unmount() override;
 private:
     Reference<Vnode> getChildNodeUnlocked(const char* name, size_t length);
+    bool isAncestor(const Reference<Vnode>& vnode);
     int linkUnlocked(const char* name, size_t length,
             const Reference<Vnode>& vnode);
     int unlinkUnlocked(const char* path, int flags);

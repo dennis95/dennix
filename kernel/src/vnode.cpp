@@ -302,13 +302,11 @@ int Vnode::mount(FileSystem* /*filesystem*/) {
 }
 
 void Vnode::onLink() {
-    AutoLock lock(&mutex);
     updateTimestamps(false, true, false);
     stats.st_nlink++;
 }
 
 bool Vnode::onUnlink(bool /*force*/) {
-    AutoLock lock(&mutex);
     updateTimestamps(false, true, false);
     stats.st_nlink--;
     return true;

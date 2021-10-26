@@ -466,12 +466,31 @@ char* Ext234Vnode::getLinkTarget() {
     }
 }
 
+bool Ext234Vnode::isAncestor(const Reference<Vnode>& vnode) {
+    // filesystem->renameMutex must be locked.
+    Reference<Ext234Vnode> dir = this;
+    while (dir) {
+        if (dir == vnode) {
+            return true;
+        }
+        DirectoryEntry entry;
+        if (dir->findDirectoryEntry("..", 2, &entry) == (uint64_t) -1) {
+            return false;
+        }
+        if (entry.inode == dir->stats.st_ino) return false;
+        dir = filesystem->getVnode(entry.inode);
+    }
+    return false;
+}
+
 bool Ext234Vnode::isSeekable() {
     return S_ISREG(stats.st_mode);
 }
 
 int Ext234Vnode::link(const char* name, const Reference<Vnode>& vnode) {
     AutoLock lock(&mutex);
+    AutoLock lock2(&vnode->mutex);
+
     if (filesystem->readonly) {
         errno = EROFS;
         return -1;
@@ -493,7 +512,7 @@ int Ext234Vnode::linkUnlocked(const char* name, size_t nameLength,
         return -1;
     }
 
-    if (vnode->stat().st_dev != stats.st_dev) {
+    if (vnode->stats.st_dev != stats.st_dev) {
         errno = EXDEV;
         return -1;
     }
@@ -508,7 +527,7 @@ int Ext234Vnode::linkUnlocked(const char* name, size_t nameLength,
         return -1;
     }
 
-    struct stat st = vnode->stat();
+    struct stat st = vnode->stats;
     if (!addChildNode(name, nameLength, st.st_ino, IFTODT(st.st_mode))) {
         return -1;
     }
@@ -588,15 +607,12 @@ int Ext234Vnode::mount(FileSystem* filesystem) {
 }
 
 void Ext234Vnode::onLink() {
-    AutoLock lock(&mutex);
     updateTimestamps(false, true, false);
     stats.st_nlink++;
     inode.i_links_count = stats.st_nlink;
 }
 
 bool Ext234Vnode::onUnlink(bool force) {
-    AutoLock lock(&mutex);
-
     if (!force && mounted) {
         errno = EBUSY;
         return false;
@@ -807,7 +823,9 @@ void Ext234Vnode::removeReference() const {
 
 int Ext234Vnode::rename(const Reference<Vnode>& oldDirectory,
         const char* oldName, const char* newName) {
-    AutoLock lock(&mutex);
+    // See comment in DirectoryVnode::rename() for explanation of the locking.
+    AutoLock renameLock(&filesystem->renameMutex);
+
     if (filesystem->readonly) {
         errno = EROFS;
         return -1;
@@ -818,75 +836,91 @@ int Ext234Vnode::rename(const Reference<Vnode>& oldDirectory,
         return -1;
     }
 
-    Reference<Vnode> vnode;
-    if (oldDirectory == this) {
-        vnode = getChildNodeUnlocked(oldName, strcspn(oldName, "/"));
-    } else {
-        vnode = oldDirectory->getChildNode(oldName, strcspn(oldName, "/"));
+    Reference<Ext234Vnode> oldDir = (Reference<Ext234Vnode>) oldDirectory;
 
-        // Check whether vnode is an ancestor of the new file.
-        Reference<Vnode> dir = getChildNodeUnlocked("..", 2);
-        while (dir && dir->stat().st_dev == stats.st_dev) {
-            if (dir == vnode) {
-                errno = EINVAL;
-                return -1;
-            }
-            dir = dir->getChildNode("..");
+    kthread_mutex_t* mutex1;
+    kthread_mutex_t* mutex2;
+
+    if (oldDir == this) {
+        mutex1 = &mutex;
+        mutex2 = nullptr;
+    } else if (stats.st_ino < oldDir->stats.st_ino) {
+        if (isAncestor(oldDir)) {
+            mutex1 = &oldDir->mutex;
+            mutex2 = &mutex;
+        } else {
+            mutex1 = &mutex;
+            mutex2 = &oldDir->mutex;
+        }
+    } else {
+        if (oldDir->isAncestor(this)) {
+            mutex1 = &mutex;
+            mutex2 = &oldDir->mutex;
+        } else {
+            mutex1 = &oldDir->mutex;
+            mutex2 = &mutex;
         }
     }
+
+    AutoLock lock1(mutex1);
+    AutoLock lock2(mutex2);
+
+    Reference<Vnode> vnode = oldDir->getChildNodeUnlocked(oldName,
+            strcspn(oldName, "/"));
     if (!vnode) return -1;
-    struct stat vnodeStat = vnode->stat();
-    if (vnodeStat.st_dev != stats.st_dev) {
-        errno = EXDEV;
+
+    if (isAncestor(vnode)) {
+        errno = EINVAL;
         return -1;
     }
 
     size_t newNameLength = strcspn(newName, "/");
     DirectoryEntry entry;
     uint64_t offset = findDirectoryEntry(newName, newNameLength, &entry);
-    if (offset != (uint64_t) -1) {
-        if (entry.inode == vnodeStat.st_ino) return 0;
 
-        mode_t mode;
-        if (filesystem->hasIncompatFeature(INCOMPAT_FILETYPE)) {
-            mode = DTTOIF(typeToDT(entry.file_type));
-        } else {
-            Reference<Vnode> vnode2 = filesystem->getVnode(entry.inode);
-            if (!vnode2) return -1;
-            mode = vnode2->stat().st_mode;
+    {
+        AutoLock vnodeLock(&vnode->mutex);
+        struct stat vnodeStat = vnode->stats;
+
+        if (offset != (uint64_t) -1) {
+            if (entry.inode == vnodeStat.st_ino) return 0;
+
+            mode_t mode;
+            if (filesystem->hasIncompatFeature(INCOMPAT_FILETYPE)) {
+                mode = DTTOIF(typeToDT(entry.file_type));
+            } else {
+                Reference<Vnode> vnode2 = filesystem->getVnode(entry.inode);
+                if (!vnode2) return -1;
+                mode = vnode2->stat().st_mode;
+            }
+
+            if (!S_ISDIR(vnodeStat.st_mode) && S_ISDIR(mode)) {
+                errno = EISDIR;
+                return -1;
+            }
+            if (S_ISDIR(vnodeStat.st_mode) && !S_ISDIR(mode)) {
+                errno = ENOTDIR;
+                return -1;
+            }
+
+            if (unlinkUnlocked(newName, AT_REMOVEDIR | AT_REMOVEFILE) < 0) {
+                return -1;
+            }
         }
 
-        if (!S_ISDIR(vnodeStat.st_mode) && S_ISDIR(mode)) {
-            errno = EISDIR;
-            return -1;
-        }
-        if (S_ISDIR(vnodeStat.st_mode) && !S_ISDIR(mode)) {
-            errno = ENOTDIR;
-            return -1;
+        if (linkUnlocked(newName, newNameLength, vnode) < 0) return -1;
+
+        if (S_ISDIR(vnodeStat.st_mode)) {
+            stats.st_nlink++;
+            inode.i_links_count = stats.st_nlink;
         }
 
-        if (unlinkUnlocked(newName, AT_REMOVEDIR | AT_REMOVEFILE) < 0) {
-            return -1;
+        if (S_ISDIR(vnodeStat.st_mode) && oldDir != this) {
+            ((Reference<Ext234Vnode>) vnode)->updateParent(this);
         }
     }
 
-    if (linkUnlocked(newName, newNameLength, vnode) < 0) return -1;
-    if (oldDirectory == this) {
-        unlinkUnlocked(oldName, 0);
-    } else {
-        oldDirectory->unlink(oldName, 0);
-    }
-
-    if (S_ISDIR(vnodeStat.st_mode)) {
-        stats.st_nlink++;
-        inode.i_links_count = stats.st_nlink;
-    }
-
-    if (S_ISDIR(vnodeStat.st_mode) && oldDirectory != this) {
-        // This cast is safe because we previously checked that the file is on
-        // the same filesystem.
-        ((Reference<Ext234Vnode>) vnode)->updateParent(this);
-    }
+    oldDir->unlinkUnlocked(oldName, 0);
     return 0;
 }
 
@@ -968,7 +1002,8 @@ int Ext234Vnode::unlinkUnlocked(const char* name, int flags) {
     Reference<Vnode> vnode = filesystem->getVnode(entry.inode);
     if (!vnode) return -1;
 
-    mode_t mode = vnode->stat().st_mode;
+    AutoLock lock(&vnode->mutex);
+    mode_t mode = vnode->stats.st_mode;
     if (flags) {
         if (S_ISDIR(mode) && !(flags & AT_REMOVEDIR)) {
             errno = EPERM;

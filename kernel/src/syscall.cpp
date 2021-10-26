@@ -687,6 +687,11 @@ int Syscall::renameat(int oldFd, const char* oldPath, int newFd,
         return -1;
     }
 
+    if (oldDirectory->stat().st_dev != newDirectory->stat().st_dev) {
+        errno = EXDEV;
+        return -1;
+    }
+
     return newDirectory->rename(oldDirectory, oldName, newName);
 }
 

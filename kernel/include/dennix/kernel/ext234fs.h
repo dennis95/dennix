@@ -269,6 +269,7 @@ public:
     size_t inodeSize;
     Reference<Vnode> mountPoint;
     bool readonly;
+    kthread_mutex_t renameMutex;
 private:
     Reference<Vnode> device;
     uint64_t groupCount;
@@ -324,6 +325,7 @@ private:
     uint64_t findDirectoryEntry(const char* name, size_t nameLength,
             DirectoryEntry* de);
     Reference<Vnode> getChildNodeUnlocked(const char* path, size_t length);
+    bool isAncestor(const Reference<Vnode>& vnode);
     int linkUnlocked(const char* name, size_t nameLength,
             const Reference<Vnode>& vnode);
     int unlinkUnlocked(const char* name, int flags);
