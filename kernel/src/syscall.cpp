@@ -854,12 +854,15 @@ pid_t Syscall::waitpid(pid_t pid, int* status, int flags) {
     Process* process = Process::current()->waitpid(pid, flags);
 
     if (!process) {
+        if (errno == 0) return 0;
         return -1;
     }
 
     int reason = (process->terminationStatus.si_code == CLD_EXITED)
             ? _WEXITED : _WSIGNALED;
-    *status = _WSTATUS(reason, process->terminationStatus.si_status);
+    if (status) {
+        *status = _WSTATUS(reason, process->terminationStatus.si_status);
+    }
     pid_t result = process->pid;
     delete process;
     return result;

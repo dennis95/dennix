@@ -23,6 +23,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <dennix/fcntl.h>
+#include <dennix/wait.h>
 #include <dennix/kernel/elf.h>
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/process.h>
@@ -667,12 +668,6 @@ void Process::terminateBySignal(siginfo_t siginfo) {
 }
 
 Process* Process::waitpid(pid_t pid, int flags) {
-    if (flags) {
-        // Flags are not yet supported
-        errno = EINVAL;
-        return nullptr;
-    }
-
     Process* process;
 
     if (pid == -1) {
@@ -690,6 +685,10 @@ Process* Process::waitpid(pid_t pid, int flags) {
             }
             kthread_mutex_unlock(&childrenMutex);
             if (process) break;
+            if (flags & WNOHANG) {
+                return nullptr;
+            }
+
             sched_yield();
 
             if (Signal::isPending()) {
@@ -712,6 +711,10 @@ Process* Process::waitpid(pid_t pid, int flags) {
         }
 
         while (!process->terminated) {
+            if (flags & WNOHANG) {
+                return nullptr;
+            }
+
             sched_yield();
             if (Signal::isPending()) {
                 errno = EINTR;
