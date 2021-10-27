@@ -28,6 +28,7 @@
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/registers.h>
 #include <dennix/kernel/signal.h>
+#include <dennix/kernel/worker.h>
 
 #define USER_STACK_SIZE (128 * 1024) // 128 KiB
 
@@ -587,6 +588,12 @@ pid_t Process::setsid() {
     return pgid;
 }
 
+static void cleanup(void* proc) {
+    Process* process = (Process*) proc;
+    delete process->addressSpace;
+    process->terminated = true;
+}
+
 void Process::terminate() {
     kthread_mutex_lock(&processesMutex);
     removeFromGroup();
@@ -627,17 +634,27 @@ void Process::terminate() {
         parent->raiseSignal(terminationStatus);
     }
 
-    Interrupts::disable();
-
     if (this == current()) {
-        kernelSpace->activate();
-    }
+        Interrupts::disable();
 
-    // Clean up
-    Thread::removeThread(&mainThread);
-    delete addressSpace;
-    terminated = true;
-    Interrupts::enable();
+        // The AddressSpace destructor needs to acquire locks so we cannot run
+        // it with interrupts disabled.
+        WorkerJob job;
+        job.func = cleanup;
+        job.context = this;
+        WorkerThread::addJob(&job);
+
+        Thread::removeThread(&mainThread);
+        Interrupts::enable();
+        sched_yield();
+        __builtin_unreachable();
+    } else {
+        Interrupts::disable();
+        Thread::removeThread(&mainThread);
+        Interrupts::enable();
+        delete addressSpace;
+        terminated = true;
+    }
 }
 
 void Process::terminateBySignal(siginfo_t siginfo) {

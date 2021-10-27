@@ -75,6 +75,7 @@ public:
     struct sigaction sigactions[NSIG];
     vaddr_t sigreturn;
     Clock systemCpuClock;
+    bool terminated;
     siginfo_t terminationStatus;
     mode_t umask;
     Clock userCpuClock;
@@ -89,7 +90,6 @@ private:
     Process* prevChild;
     Process* prevInGroup;
     Process* nextInGroup;
-    bool terminated;
 public:
     static bool addProcess(Process* process);
     static Process* current() { return Thread::current()->process; }
