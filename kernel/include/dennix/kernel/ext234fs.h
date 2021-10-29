@@ -271,14 +271,16 @@ public:
     bool readonly;
     kthread_mutex_t renameMutex;
 private:
+    kthread_mutex_t blocksMutex;
     Reference<Vnode> device;
     uint64_t groupCount;
     size_t gdtSize;
-    kthread_mutex_t mutex;
+    kthread_mutex_t inodesMutex;
     size_t openVnodes;
     SuperBlock superBlock;
     HashTable<Ext234Vnode, ino_t> vnodes;
     Ext234Vnode* vnodesBuffer[10000];
+    kthread_mutex_t vnodesMutex;
 };
 
 class Ext234Vnode : public Vnode {

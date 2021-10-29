@@ -99,13 +99,17 @@ Ext234Fs::Ext234Fs(const Reference<Vnode>& device, const SuperBlock* superBlock,
         inodeSize = superBlock->s_inode_size;
     }
 
+    blocksMutex = KTHREAD_MUTEX_INITIALIZER;
     dev = device->stat().st_rdev;
-    mutex = KTHREAD_MUTEX_INITIALIZER;
+    inodesMutex = KTHREAD_MUTEX_INITIALIZER;
     openVnodes = 0;
     renameMutex = KTHREAD_MUTEX_INITIALIZER;
+    vnodesMutex = KTHREAD_MUTEX_INITIALIZER;
 }
 
 uint64_t Ext234Fs::allocateBlock(uint64_t blockGroup) {
+    AutoLock lock(&blocksMutex);
+
     BlockGroupDescriptor bg;
     if (!readBlockGroupDesc(blockGroup, &bg)) return 0;
 
@@ -192,6 +196,8 @@ uint64_t Ext234Fs::allocateBlockInGroup(uint64_t blockGroup,
 }
 
 ino_t Ext234Fs::allocateInode(uint64_t blockGroup, bool dir) {
+    AutoLock lock(&inodesMutex);
+
     BlockGroupDescriptor bg;
     if (!readBlockGroupDesc(blockGroup, &bg)) return 0;
 
@@ -301,6 +307,8 @@ ino_t Ext234Fs::createInode(uint64_t blockGroup, mode_t mode) {
 }
 
 bool Ext234Fs::deallocateBlock(uint64_t blockNumber) {
+    AutoLock lock(&blocksMutex);
+
     if (blockSize == 1024) {
         blockNumber--;
     }
@@ -348,6 +356,8 @@ bool Ext234Fs::deallocateBlock(uint64_t blockNumber) {
 }
 
 bool Ext234Fs::deallocateInode(ino_t ino, bool dir) {
+    AutoLock lock(&inodesMutex);
+
     uint64_t blockGroup = getBlockGroup(ino);
 
     BlockGroupDescriptor bg;
@@ -477,7 +487,7 @@ indirect:
 }
 
 void Ext234Fs::dropVnodeReference(ino_t ino) {
-    kthread_mutex_lock(&mutex);
+    kthread_mutex_lock(&vnodesMutex);
 
     Vnode* vnode = vnodes.get(ino);
     if (vnode && vnode->getRefCount() == 1) {
@@ -490,7 +500,7 @@ void Ext234Fs::dropVnodeReference(ino_t ino) {
 
 void Ext234Fs::finishDropVnodeReference() {
     // The mutex was acquired in dropVnodeReference().
-    kthread_mutex_unlock(&mutex);
+    kthread_mutex_unlock(&vnodesMutex);
 }
 
 uint64_t Ext234Fs::getBlockCount(uint64_t fileSize) {
@@ -609,38 +619,38 @@ Reference<Vnode> Ext234Fs::getRootDir() {
 }
 
 Reference<Ext234Vnode> Ext234Fs::getVnode(ino_t ino) {
-    kthread_mutex_lock(&mutex);
+    kthread_mutex_lock(&vnodesMutex);
     // The mutex must be unlocked before returning. Otherwise dropping the
     // reference to vnode might deadlock when trying to remove the entry from
     // the vnode table.
 
     Reference<Ext234Vnode> vnode = vnodes.get(ino);
     if (vnode) {
-        kthread_mutex_unlock(&mutex);
+        kthread_mutex_unlock(&vnodesMutex);
         return vnode;
     }
 
     Inode inode;
     uint64_t inodeAddress;
     if (!readInode(ino, &inode, inodeAddress)) {
-        kthread_mutex_unlock(&mutex);
+        kthread_mutex_unlock(&vnodesMutex);
         return nullptr;
     }
     vnode = new Ext234Vnode(this, ino, &inode, inodeAddress);
     if (!vnode) {
-        kthread_mutex_unlock(&mutex);
+        kthread_mutex_unlock(&vnodesMutex);
         return nullptr;
     }
     vnodes.add((Ext234Vnode*) vnode);
     openVnodes++;
-    kthread_mutex_unlock(&mutex);
+    kthread_mutex_unlock(&vnodesMutex);
     return vnode;
 }
 
 Reference<Ext234Vnode> Ext234Fs::getVnodeIfOpen(ino_t ino) {
-    kthread_mutex_lock(&mutex);
+    kthread_mutex_lock(&vnodesMutex);
     Reference<Ext234Vnode> vnode = vnodes.get(ino);
-    kthread_mutex_unlock(&mutex);
+    kthread_mutex_unlock(&vnodesMutex);
     return vnode;
 }
 
@@ -784,7 +794,7 @@ fail:
 }
 
 bool Ext234Fs::onUnmount() {
-    AutoLock lock(&mutex);
+    AutoLock lock(&vnodesMutex);
 
     if (openVnodes) {
         errno = EBUSY;
