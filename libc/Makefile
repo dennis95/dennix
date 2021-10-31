@@ -250,7 +250,6 @@ LIBC_OBJ = \
 	stdio/ungetc_unlocked \
 	stdio/ungetc \
 	stdio/vdprintf \
-	stdio/vfprintf_unlocked \
 	stdio/vfprintf \
 	stdio/vfscanf \
 	stdio/vprintf \

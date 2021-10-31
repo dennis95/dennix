@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,9 +20,13 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+static size_t callback(void* file, const char* s, size_t nBytes) {
+    return fwrite_unlocked(s, 1, nBytes, (FILE*) file);
+}
+
 int vfprintf(FILE* restrict file, const char* restrict format, va_list ap) {
     flockfile(file);
-    int result = vfprintf_unlocked(file, format, ap);
+    int result = vcbprintf(file, callback, format, ap);
     funlockfile(file);
     return result;
 }

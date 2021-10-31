@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -158,8 +158,6 @@ int vcbprintf(void*, size_t (*)(void*, const char*, size_t), const char*,
         __gnuc_va_list) __printf_like(3, 0);
 int vcbscanf(void*, int (*)(void*), int (*)(int, void*), const char* __restrict,
         __gnuc_va_list) __scanf_like(4, 0);
-int vfprintf_unlocked(FILE* __restrict, const char* __restrict,
-        __gnuc_va_list) __printf_like(2, 0);
 
 int __fmodeflags(const char*);
 #endif

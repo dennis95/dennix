@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,11 +21,9 @@
 #include <stdio.h>
 
 int printf(const char* restrict format, ...) {
-    flockfile(stdout);
     va_list ap;
     va_start(ap, format);
-    int result = vfprintf_unlocked(stdout, format, ap);
+    int result = vfprintf(stdout, format, ap);
     va_end(ap);
-    funlockfile(stdout);
     return result;
 }
