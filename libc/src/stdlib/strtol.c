@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2018, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -47,6 +47,9 @@ static STRTOL_RESULT getDigitValue(unsigned char c) {
 STRTOL_RESULT STRTOL_NAME(const char* restrict string, char** restrict end,
         int base) {
     if (base < 0 || base == 1 || base > 36) {
+        if (end) {
+            *end = (char*) string;
+        }
         errno = EINVAL;
         return 0;
     }
@@ -82,7 +85,8 @@ STRTOL_RESULT STRTOL_NAME(const char* restrict string, char** restrict end,
         }
     }
 
-    if (base == 16 && *str == '0' && (str[1] == 'x' || str[1] == 'X')) {
+    if (base == 16 && *str == '0' && (str[1] == 'x' || str[1] == 'X') &&
+            isxdigit(str[2])) {
         str += 2;
     }
 
@@ -105,7 +109,7 @@ STRTOL_RESULT STRTOL_NAME(const char* restrict string, char** restrict end,
 
         if (!negative && STRTOL_RESULT_MAX - result >= digit) {
             result += digit;
-        } else if (negative && result - STRTOL_RESULT_MIN >= digit) {
+        } else if (negative && STRTOL_RESULT_MIN + digit <= result) {
             result -= digit;
         } else {
             overflow = true;
