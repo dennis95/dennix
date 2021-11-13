@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,6 +19,7 @@
 
 #include <err.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,15 +27,18 @@
 #include <sys/stat.h>
 
 #include "builtins.h"
+#include "sh.h"
 #include "variables.h"
 
 static int cd(int argc, char* argv[]);
+static int sh_exit(int argc, char* argv[]);
 static int export(int argc, char* argv[]);
 static int sh_umask(int argc, char* argv[]);
 static int unset(int argc, char* argv[]);
 
 struct builtin builtins[] = {
     { "cd", cd },
+    { "exit", sh_exit },
     { "export", export },
     { "umask", sh_umask },
     { "unset", unset },
@@ -122,6 +126,24 @@ static int cd(int argc, char* argv[]) {
         unsetVariable("PWD");
     }
     return 0;
+}
+
+static int sh_exit(int argc, char* argv[]) {
+    if (argc > 2) {
+        warnx("exit: too many arguments");
+    }
+    if (argc >= 2) {
+        char* end;
+        long value = strtol(argv[1], &end, 10);
+        if (value < INT_MIN || value > INT_MAX || *end) {
+            warnx("exit: invalid exit status '%s'", argv[1]);
+            lastStatus = 255;
+        } else {
+            lastStatus = value;
+        }
+    }
+
+    exit(lastStatus);
 }
 
 static int export(int argc, char* argv[]) {

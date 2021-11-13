@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,11 +25,19 @@
 
 #include "tokenizer.h"
 
+enum {
+    REDIR_INPUT,
+    REDIR_OUTPUT,
+    REDIR_OUTPUT_CLOBBER,
+    REDIR_APPEND,
+    REDIR_DUP,
+    REDIR_READ_WRITE,
+};
+
 struct Redirection {
     int fd;
     const char* filename;
-    bool filenameIsFd;
-    int flags;
+    int type;
 };
 
 struct SimpleCommand {
@@ -83,6 +91,7 @@ enum CommandType {
 };
 
 struct Command {
+    enum CommandType type;
     union {
         struct SimpleCommand simpleCommand;
         struct List compoundList;
@@ -90,7 +99,9 @@ struct Command {
         struct IfClause ifClause;
         struct Loop loop;
     };
-    enum CommandType type;
+    // These are only used for compound commands.
+    struct Redirection* redirections;
+    size_t numRedirections;
 };
 
 struct Pipeline {

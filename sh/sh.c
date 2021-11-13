@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <err.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <setjmp.h>
 #include <signal.h>
@@ -117,8 +118,15 @@ int main(int argc, char* argv[]) {
     }
 
     if (!shellOptions.command && !shellOptions.stdInput && arguments[0]) {
-        inputFile = fopen(arguments[0], "r");
-        if (!inputFile) err(1, "fopen: '%s'", arguments[0]);
+        int fd = open(arguments[0], O_RDONLY);
+        if (fd < 0) err(1, "open: '%s'", arguments[0]);
+        // Make sure to use a file descriptor > 10 because the first 10 file
+        // descriptors are controlled by the script.
+        int fd2 = fcntl(fd, F_DUPFD_CLOEXEC, 10);
+        if (fd2 < 0) err(1, "fcntl");
+        close(fd);
+        inputFile = fdopen(fd2, "r");
+        if (!inputFile) err(1, "fdopen: '%s'", arguments[0]);
     }
 
     // Ignore signals that should not terminate the (interactive) shell.
@@ -153,7 +161,7 @@ int main(int argc, char* argv[]) {
             if (shellOptions.interactive) {
                 fputc('\n', stderr);
             }
-            exit(0);
+            exit(lastStatus);
         }
 
         initParser(&parser);
@@ -176,6 +184,7 @@ noreturn void executeScript(int argc, char** argv) {
     freeCompleteCommand(&command);
     freeInteractive();
     freeParser(&parser);
+    freeRedirections();
 
     for (int i = 0; i <= numArguments; i++) {
         free(arguments[i]);

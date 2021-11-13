@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -36,7 +36,14 @@
 #include "sh.h"
 #include "variables.h"
 
+struct SavedFd {
+    int fd;
+    int saved;
+    struct SavedFd* prev;
+};
+
 static volatile sig_atomic_t pipelineReady;
+static struct SavedFd* savedFds;
 
 static void sigusr1Handler(int signum) {
     (void) signum;
@@ -44,20 +51,19 @@ static void sigusr1Handler(int signum) {
 }
 
 static int executeCommand(struct Command* command, bool subshell);
+static int executeCompoundCommand(struct Command* command, bool subshell);
 static int executeFor(struct ForClause* clause);
 static int executeList(struct List* list);
 static int executePipeline(struct Pipeline* pipeline);
 static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         bool subshell);
 static noreturn void executeUtility(int argc, char** arguments,
-        struct Redirection* redirections, size_t numRedirections,
-        char** assignments, size_t numAssignments);
-static int forkAndExecuteUtility(int argc, char** arguments,
-        struct Redirection* redirections, size_t numRedirections,
         char** assignments, size_t numAssignments);
 static const char* getExecutablePath(const char* command);
+static bool performRedirection(struct Redirection* redirection);
 static bool performRedirections(struct Redirection* redirections,
         size_t numRedirections);
+static void popRedirection(void);
 static void resetSignals(void);
 static int waitForCommand(pid_t pid);
 
@@ -182,10 +188,40 @@ static int executeCommand(struct Command* command, bool subshell) {
         shellOptions.monitor = false;
     }
 
+    if (command->type == COMMAND_SIMPLE) {
+        return executeSimpleCommand(&command->simpleCommand, subshell);
+    } else {
+        for (size_t i = 0; i < command->numRedirections; i++) {
+            struct Redirection redirection = command->redirections[i];
+            redirection.filename = expandWord(redirection.filename);
+            if (!redirection.filename) {
+                for (; i > 0; i--) {
+                    popRedirection();
+                }
+                return 1;
+            }
+            if (!performRedirection(&redirection)) {
+                free((char*) redirection.filename);
+                for (; i > 0; i--) {
+                    popRedirection();
+                }
+                return 1;
+            }
+            free((char*) redirection.filename);
+        }
+
+        int status = executeCompoundCommand(command, subshell);
+
+        for (size_t i = 0; i < command->numRedirections; i++) {
+            popRedirection();
+        }
+        return status;
+    }
+}
+
+static int executeCompoundCommand(struct Command* command, bool subshell) {
     int status = 0;
     switch (command->type) {
-    case COMMAND_SIMPLE:
-        return executeSimpleCommand(&command->simpleCommand, subshell);
     case COMMAND_SUBSHELL:
         if (!subshell) {
             pid_t pid = fork();
@@ -223,8 +259,9 @@ static int executeCommand(struct Command* command, bool subshell) {
             status = executeList(&command->loop.body);
         }
         return status;
+    default:
+        assert(false);
     }
-    assert(false);
 }
 
 static int executeFor(struct ForClause* clause) {
@@ -294,6 +331,17 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
 
     int argc = numArguments - 1;
     const char* command = arguments[0];
+    const struct builtin* builtin = NULL;
+    if (command) {
+        // Check for built-ins.
+        for (const struct builtin* b = builtins; b->name; b++) {
+            if (strcmp(command, b->name) == 0) {
+                builtin = b;
+                break;
+            }
+        }
+    }
+
     if (!command) {
         for (size_t i = 0; i < numAssignments; i++) {
             char* equals = strchr(assignments[i], '=');
@@ -301,32 +349,56 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
             setVariable(assignments[i], equals + 1, false);
             free(assignments[i]);
         }
+        free(assignments);
+        assignments = NULL;
         numAssignments = 0;
         if (numRedirections == 0) {
             // Avoid unnecessary forking.
             result = 0;
             goto cleanup;
         }
-    // Special built-ins
-    } else if (strcmp(command, "exit") == 0) {
-        exit(0);
-    // Regular built-ins
-    } else {
-        // TODO: Handle assignments and redirections for builtins.
-        for (struct builtin* builtin = builtins; builtin->name; builtin++) {
-            if (strcmp(command, builtin->name) == 0) {
-                result = builtin->func(argc, arguments);
-                goto cleanup;
+    }
+
+    if (!builtin && !subshell) {
+        pid_t pid = fork();
+
+        if (pid < 0) {
+            err(1, "fork");
+        } else if (pid == 0) {
+            if (shellOptions.monitor) {
+                setpgid(0, 0);
+                if (inputIsTerminal) {
+                    tcsetpgrp(0, getpgid(0));
+                }
             }
+
+            resetSignals();
+        } else {
+            result = waitForCommand(pid);
+            goto cleanup;
         }
     }
 
-    if (subshell) {
-        executeUtility(argc, arguments, redirections, numRedirections,
-                assignments, numAssignments);
+    if (!performRedirections(redirections, numRedirections)) {
+        if (!builtin) _Exit(1);
+        result = 1;
+        goto cleanup;
+    }
+
+    for (size_t i = 0; i < numRedirections; i++) {
+        free((void*) redirections[i].filename);
+    }
+    free(redirections);
+    redirections = NULL;
+
+    if (builtin) {
+        result = builtin->func(argc, arguments);
     } else {
-        result = forkAndExecuteUtility(argc, arguments, redirections,
-                numRedirections, assignments, numAssignments);
+        executeUtility(argc, arguments, assignments, numAssignments);
+    }
+
+    for (size_t i = 0; i < numRedirections; i++) {
+        popRedirection();
     }
 
 cleanup:
@@ -335,24 +407,24 @@ cleanup:
         free(arguments[i]);
     }
     free(arguments);
-    for (size_t i = 0; i < numRedirections; i++) {
-        free((void*) redirections[i].filename);
+    if (redirections) {
+        for (size_t i = 0; i < numRedirections; i++) {
+            free((void*) redirections[i].filename);
+        }
+        free(redirections);
     }
-    free(redirections);
-    for (size_t i = 0; i < numAssignments; i++) {
-        free(assignments[i]);
+    if (assignments) {
+        for (size_t i = 0; i < numAssignments; i++) {
+            free(assignments[i]);
+        }
+        free(assignments);
     }
-    free(assignments);
     return result;
 }
 
 static noreturn void executeUtility(int argc, char** arguments,
-        struct Redirection* redirections, size_t numRedirections,
         char** assignments, size_t numAssignments) {
     const char* command = arguments[0];
-    if (!performRedirections(redirections, numRedirections)) {
-        _Exit(126);
-    }
 
     for (size_t i = 0; i < numAssignments; i++) {
         char* equals = strchr(assignments[i], '=');
@@ -360,7 +432,9 @@ static noreturn void executeUtility(int argc, char** arguments,
         if (setenv(assignments[i], equals + 1, 1) < 0) {
             _Exit(126);
         }
+        free(assignments[i]);
     }
+    free(assignments);
 
     if (!command) _Exit(0);
 
@@ -372,7 +446,6 @@ static noreturn void executeUtility(int argc, char** arguments,
         execv(command, arguments);
 
         if (errno == ENOEXEC) {
-            free(redirections);
             arguments[0] = (char*) command;
             executeScript(argc, arguments);
         }
@@ -382,29 +455,6 @@ static noreturn void executeUtility(int argc, char** arguments,
     } else {
         warnx("'%s': Command not found", arguments[0]);
         _Exit(127);
-    }
-}
-
-static int forkAndExecuteUtility(int argc, char** arguments,
-        struct Redirection* redirections, size_t numRedirections,
-        char** assignments, size_t numAssignments) {
-    pid_t pid = fork();
-
-    if (pid < 0) {
-        err(1, "fork");
-    } else if (pid == 0) {
-        if (shellOptions.monitor) {
-            setpgid(0, 0);
-            if (inputIsTerminal) {
-                tcsetpgrp(0, getpgid(0));
-            }
-        }
-
-        resetSignals();
-        executeUtility(argc, arguments, redirections, numRedirections,
-                assignments, numAssignments);
-    } else {
-        return waitForCommand(pid);
     }
 }
 
@@ -437,38 +487,132 @@ static const char* getExecutablePath(const char* command) {
     return NULL;
 }
 
-static bool performRedirections(struct Redirection* redirections,
-        size_t numRedirections) {
-    for (size_t i = 0; i < numRedirections; i++) {
-        struct Redirection redirection = redirections[i];
-        int fd;
+static bool performRedirection(struct Redirection* redirection) {
+    if (redirection->fd >= 10) {
+        errno = EBADF;
+        warn("'%d'", redirection->fd);
+        return false;
+    }
 
-        if (redirection.filenameIsFd) {
+    int openFlags = 0;
+    switch (redirection->type) {
+    case REDIR_INPUT:
+        openFlags = O_RDONLY;
+        break;
+    case REDIR_OUTPUT:
+    case REDIR_OUTPUT_CLOBBER:
+        openFlags = O_WRONLY | O_CREAT | O_TRUNC;
+        break;
+    case REDIR_APPEND:
+        openFlags = O_WRONLY | O_CREAT | O_APPEND;
+        break;
+    case REDIR_DUP:
+        break;
+    case REDIR_READ_WRITE:
+        openFlags = O_RDWR | O_CREAT;
+        break;
+    default:
+        assert(false);
+    }
+
+    int fd;
+    if (redirection->type == REDIR_DUP) {
+        if (strcmp(redirection->filename, "-") == 0) {
+            fd = -1;
+        } else {
             char* tail;
-            fd = strtol(redirection.filename, &tail, 10);
-            if (*tail) {
+            fd = strtol(redirection->filename, &tail, 10);
+            if (*tail || fd < 0 || fd >= 10) {
                 errno = EBADF;
-                warn("'%s'", redirection.filename);
+                warn("'%s'", redirection->filename);
+                return false;
+            }
+            // Check that the file secriptor is valid.
+            if (fcntl(fd, F_GETFL) < 0) {
+                warn("'%s'", redirection->filename);
+                return false;
+            }
+        }
+    } else {
+        fd = open(redirection->filename, openFlags, 0666);
+        if (fd < 0) {
+            warn("open: '%s'", redirection->filename);
+            return false;
+        }
+    }
+
+    struct SavedFd* sfd = malloc(sizeof(struct SavedFd));
+    if (!sfd) err(1, "malloc");
+    sfd->fd = redirection->fd;
+    if (fd != redirection->fd) {
+        sfd->saved = fcntl(redirection->fd, F_DUPFD_CLOEXEC, 10);
+        if (sfd->saved < 0) {
+            if (errno != EBADF) {
+                warn("failed to duplicate file descriptor");
+                if (redirection->type != REDIR_DUP) {
+                    close(fd);
+                }
+                free(sfd);
                 return false;
             }
         } else {
-            fd = open(redirection.filename, redirection.flags, 0666);
-            if (fd < 0) {
-                warn("open: '%s'", redirection.filename);
-                return false;
+            close(redirection->fd);
+        }
+        if (fd != -1) {
+            if (dup2(fd, redirection->fd) < 0) err(1, "dup2");
+
+            if (redirection->type != REDIR_DUP) {
+                close(fd);
             }
         }
-
-        if (dup2(fd, redirection.fd) < 0) {
-            warn("dup2: '%s'", redirection.filename);
-            return false;
+    } else {
+        if (redirection->type == REDIR_DUP) {
+            sfd->fd = -1;
         }
-        if (!redirection.filenameIsFd && fd != redirection.fd) {
-            close(fd);
+        sfd->saved = -1;
+    }
+
+    sfd->prev = savedFds;
+    savedFds = sfd;
+    return true;
+}
+
+static bool performRedirections(struct Redirection* redirections,
+        size_t numRedirections) {
+    for (size_t i = 0; i < numRedirections; i++) {
+        if (!performRedirection(&redirections[i])) {
+            for (; i > 0; i--) {
+                popRedirection();
+            }
+            return false;
         }
     }
 
     return true;
+}
+
+static void popRedirection(void) {
+    struct SavedFd* sfd = savedFds;
+    if (sfd->fd != -1) {
+        close(sfd->fd);
+        if (sfd->saved != -1) {
+            dup2(sfd->saved, sfd->fd);
+            close(sfd->saved);
+        }
+    }
+    savedFds = sfd->prev;
+    free(sfd);
+}
+
+void freeRedirections(void) {
+    while (savedFds) {
+        struct SavedFd* sfd = savedFds;
+        if (sfd->saved != -1) {
+            close(sfd->saved);
+        }
+        savedFds = sfd->prev;
+        free(sfd);
+    }
 }
 
 static void resetSignals(void) {

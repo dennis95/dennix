@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -38,7 +38,7 @@ static enum ParserResult parseForClause(struct Parser* parser,
 static enum ParserResult parseIfClause(struct Parser* parser,
         struct IfClause* clause);
 static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
-        int fd, struct Redirection* result);
+        struct Redirection* result);
 static enum ParserResult parseLinebreak(struct Parser* parser);
 static enum ParserResult parseList(struct Parser* parser, struct List* list,
         bool compound);
@@ -262,31 +262,34 @@ static enum ParserResult parseCompoundListWithTerminator(struct Parser* parser,
 static enum ParserResult parseCommand(struct Parser* parser,
         struct Command* command) {
     // TODO: Implement case conditional construct.
-    // TODO: Implement redirections for compound commands.
+    command->redirections = NULL;
+    command->numRedirections = 0;
     struct Token* token = getToken(parser);
+    enum ParserResult result;
     if (!isReservedWord(token->text) && strcmp(token->text, "(") != 0) {
         command->type = COMMAND_SIMPLE;
+        // Redirections are already handled by parseSimpleCommand.
         return parseSimpleCommand(parser, &command->simpleCommand);
     } else if (strcmp(token->text, "(") == 0) {
         command->type = COMMAND_SUBSHELL;
         parser->offset++;
-        return parseCompoundListWithTerminator(parser, &command->compoundList,
+        result = parseCompoundListWithTerminator(parser, &command->compoundList,
                 ")");
     } else if (strcmp(token->text, "{") == 0) {
         command->type = COMMAND_BRACE_GROUP;
         parser->offset++;
-        return parseCompoundListWithTerminator(parser, &command->compoundList,
+        result = parseCompoundListWithTerminator(parser, &command->compoundList,
                 "}");
     } else if (strcmp(token->text, "for") == 0) {
         command->type = COMMAND_FOR;
-        return parseForClause(parser, &command->forClause);
+        result = parseForClause(parser, &command->forClause);
     } else if (strcmp(token->text, "if") == 0) {
         command->type = COMMAND_IF;
-        return parseIfClause(parser, &command->ifClause);
+        result = parseIfClause(parser, &command->ifClause);
     } else if (strcmp(token->text, "while") == 0) {
         command->type = COMMAND_WHILE;
         parser->offset++;
-        enum ParserResult result = parseCompoundListWithTerminator(parser,
+        result = parseCompoundListWithTerminator(parser,
                 &command->loop.condition, "do");
         if (result != PARSER_MATCH) return result;
         result = parseCompoundListWithTerminator(parser, &command->loop.body,
@@ -294,11 +297,10 @@ static enum ParserResult parseCommand(struct Parser* parser,
         if (result != PARSER_MATCH) {
             freeList(&command->loop.condition);
         }
-        return result;
     } else if (strcmp(token->text, "until") == 0) {
         command->type = COMMAND_UNTIL;
         parser->offset++;
-        enum ParserResult result = parseCompoundListWithTerminator(parser,
+        result = parseCompoundListWithTerminator(parser,
                 &command->loop.condition, "do");
         if (result != PARSER_MATCH) return result;
         result = parseCompoundListWithTerminator(parser, &command->loop.body,
@@ -306,10 +308,29 @@ static enum ParserResult parseCommand(struct Parser* parser,
         if (result != PARSER_MATCH) {
             freeList(&command->loop.condition);
         }
-        return result;
     } else {
         return PARSER_SYNTAX;
     }
+
+    if (result != PARSER_MATCH) {
+        return result;
+    }
+
+    // Parse redirections.
+    token = getToken(parser);
+    if (!token) return PARSER_MATCH;
+
+    if (token->type == IO_NUMBER || token->type == OPERATOR) {
+        struct Redirection redirection;
+        result = parseIoRedirect(parser, &redirection);
+
+        if (result == PARSER_BACKTRACK) return PARSER_MATCH;
+        if (result != PARSER_MATCH) return result;
+
+        addToArray((void**) &command->redirections, &command->numRedirections,
+                &redirection, sizeof(redirection));
+    }
+    return PARSER_MATCH;
 }
 
 static bool isName(const char* s, size_t length) {
@@ -337,14 +358,8 @@ static enum ParserResult parseSimpleCommand(struct Parser* parser,
 
     while (true) {
         if (token->type == IO_NUMBER || token->type == OPERATOR) {
-            int fd = -1;
-            if (token->type == IO_NUMBER) {
-                fd = strtol(token->text, NULL, 10);
-                parser->offset++;
-            }
-
             struct Redirection redirection;
-            result = parseIoRedirect(parser, fd, &redirection);
+            result = parseIoRedirect(parser, &redirection);
 
             if (result == PARSER_BACKTRACK) {
                 if (command->numWords > 0 || command->numRedirections > 0 ||
@@ -389,28 +404,33 @@ fail:
 }
 
 static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
-        int fd, struct Redirection* result) {
+        struct Redirection* result) {
     struct Token* token = getToken(parser);
+    assert(token);
+    int fd = -1;
+    if (token->type == IO_NUMBER) {
+        fd = strtol(token->text, NULL, 10);
+        parser->offset++;
+        token = getToken(parser);
+    }
+
     assert(token && token->type == OPERATOR);
     const char* operator = token->text;
 
-    result->filenameIsFd = false;
-    result->flags = 0;
-
     if (strcmp(operator, "<") == 0) {
-        result->flags = O_RDONLY;
+        result->type = REDIR_INPUT;
     } else if (strcmp(operator, ">") == 0) {
-        result->flags = O_WRONLY | O_CREAT | O_TRUNC;
+        result->type = REDIR_OUTPUT;
     } else if (strcmp(operator, ">|") == 0) {
-        result->flags = O_WRONLY | O_CREAT | O_TRUNC;
+        result->type = REDIR_OUTPUT_CLOBBER;
     } else if (strcmp(operator, ">>") == 0) {
-        result->flags = O_WRONLY | O_APPEND | O_CREAT;
+        result->type = REDIR_APPEND;
     } else if (strcmp(operator, "<&") == 0) {
-        result->filenameIsFd = true;
+        result->type = REDIR_DUP;
     } else if (strcmp(operator, ">&") == 0) {
-        result->filenameIsFd = true;
+        result->type = REDIR_DUP;
     } else if (strcmp(operator, "<>") == 0) {
-        result->flags = O_RDWR | O_CREAT;
+        result->type = REDIR_READ_WRITE;
     } else {
         return PARSER_BACKTRACK;
     }
@@ -630,6 +650,7 @@ static void freeCommand(struct Command* command) {
         freeList(&command->loop.body);
         break;
     }
+    free(command->redirections);
 }
 
 static void freeSimpleCommand(struct SimpleCommand* command) {
