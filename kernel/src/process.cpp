@@ -110,10 +110,16 @@ int Process::copyArguments(char* const argv[], char* const envp[],
             PAGESIZE);
 
     vaddr_t page = newAddressSpace->mapMemory(size, PROT_READ | PROT_WRITE);
-    if (!page) return -1;
+    if (!page) {
+        errno = ENOMEM;
+        return -1;
+    }
     vaddr_t pageMapped = kernelSpace->mapFromOtherAddressSpace(newAddressSpace,
             page, size, PROT_WRITE);
-    if (!pageMapped) return -1;
+    if (!pageMapped) {
+        errno = ENOMEM;
+        return -1;
+    }
 
     char* nextString = (char*) pageMapped;
     char** argvMapped = (char**) (pageMapped + stringSizes);
@@ -171,11 +177,15 @@ uintptr_t Process::loadELF(const Reference<Vnode>& vnode,
         if (programHeader.p_flags & PF_R) protection |= PROT_READ;
 
         if (!newAddressSpace->mapMemory(loadAddressAligned, size, protection)) {
+            errno = ENOMEM;
             return 0;
         }
         vaddr_t dest = kernelSpace->mapFromOtherAddressSpace(newAddressSpace,
                 loadAddressAligned, size, PROT_WRITE);
-        if (!dest) return 0;
+        if (!dest) {
+            errno = ENOMEM;
+            return 0;
+        }
         memset((void*) (dest + offset), 0, programHeader.p_memsz);
         readSize = vnode->pread((void*) (dest + offset), programHeader.p_filesz,
                 programHeader.p_offset, 0);
@@ -281,6 +291,7 @@ int Process::execute(Reference<Vnode>& vnode, char* const argv[],
     sigreturn = newAddressSpace->mapMemory(PAGESIZE, PROT_EXEC);
     if (!sigreturn) {
         delete newAddressSpace;
+        errno = ENOMEM;
         return -1;
     }
 
@@ -288,6 +299,7 @@ int Process::execute(Reference<Vnode>& vnode, char* const argv[],
             newAddressSpace, sigreturn, PAGESIZE, PROT_WRITE);
     if (!sigreturnMapped) {
         delete newAddressSpace;
+        errno = ENOMEM;
         return -1;
     }
     memcpy((void*) sigreturnMapped, &beginSigreturn, sigreturnSize);
@@ -297,6 +309,7 @@ int Process::execute(Reference<Vnode>& vnode, char* const argv[],
             PROT_READ | PROT_WRITE);
     if (!userStack) {
         delete newAddressSpace;
+        errno = ENOMEM;
         return -1;
     }
 
@@ -304,6 +317,7 @@ int Process::execute(Reference<Vnode>& vnode, char* const argv[],
             PROT_READ | PROT_WRITE);
     if (!newKernelStack) {
         delete newAddressSpace;
+        errno = ENOMEM;
         return -1;
     }
 
