@@ -292,6 +292,14 @@ static int executeFor(struct ForClause* clause) {
     return status;
 }
 
+static bool isDeclarationUtility(char** words, size_t numWords) {
+    if (numWords == 0) return false;
+    if (strcmp(words[0], "export") == 0) {
+        return true;
+    }
+    return false;
+}
+
 static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         bool subshell) {
     int result = 1;
@@ -304,11 +312,26 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
     char** assignments = calloc(numAssignments, sizeof(char*));
     if (!assignments) err(1, "malloc");
 
+    bool declUtility = isDeclarationUtility(simpleCommand->words,
+            simpleCommand->numWords);
+
     char** arguments = NULL;
     size_t numArguments = 0;
     for (size_t i = 0; i < simpleCommand->numWords; i++) {
         char** fields;
-        ssize_t numFields = expand(simpleCommand->words[i], 0, &fields);
+        int flags = 0;
+        if (declUtility) {
+            char* equals = strchr(simpleCommand->words[i], '=');
+            if (equals) {
+                *equals = '\0';
+                if (isRegularVariableName(simpleCommand->words[i])) {
+                    flags |= EXPAND_NO_FIELD_SPLIT;
+                }
+                *equals = '=';
+            }
+        }
+
+        ssize_t numFields = expand(simpleCommand->words[i], flags, &fields);
         if (numFields < 0) goto cleanup;
         addMultipleToArray((void**) &arguments, &numArguments, fields,
                 sizeof(char*), numFields);
@@ -342,17 +365,21 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         }
     }
 
-    if (!command) {
+    if (!command || builtin) {
         for (size_t i = 0; i < numAssignments; i++) {
             char* equals = strchr(assignments[i], '=');
             *equals = '\0';
-            setVariable(assignments[i], equals + 1, false);
+            if (builtin && !(builtin->flags & BUILTIN_SPECIAL)) {
+                pushVariable(assignments[i], equals + 1);
+            } else {
+                setVariable(assignments[i], equals + 1, false);
+            }
             free(assignments[i]);
         }
         free(assignments);
         assignments = NULL;
         numAssignments = 0;
-        if (numRedirections == 0) {
+        if (numRedirections == 0 && !builtin) {
             // Avoid unnecessary forking.
             result = 0;
             goto cleanup;
@@ -403,6 +430,7 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
 
 cleanup:
     if (subshell) _Exit(result);
+    popVariables();
     for (size_t i = 0; i < numArguments; i++) {
         free(arguments[i]);
     }

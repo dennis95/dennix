@@ -424,7 +424,8 @@ static size_t getCompletions(const char* text, char*** result,
 
     // Now that we know what to complete find all the possible completions.
     if (completionType == COMPLETION_COMMAND) {
-        for (struct builtin* builtin = builtins; builtin->name; builtin++) {
+        for (const struct builtin* builtin = builtins; builtin->name;
+                builtin++) {
             if (strncmp(prefix, builtin->name, prefixLength) == 0) {
                 char* name = strdup(builtin->name);
                 if (!name) {

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,10 +22,15 @@
 
 extern char* pwd;
 
+enum {
+    BUILTIN_SPECIAL = 1 << 0,
+};
+
 struct builtin {
     const char* name;
     int (*func)(int, char* argv[]);
+    int flags;
 };
-extern struct builtin builtins[];
+extern const struct builtin builtins[];
 
 #endif

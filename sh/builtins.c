@@ -36,13 +36,13 @@ static int export(int argc, char* argv[]);
 static int sh_umask(int argc, char* argv[]);
 static int unset(int argc, char* argv[]);
 
-struct builtin builtins[] = {
-    { "cd", cd },
-    { "exit", sh_exit },
-    { "export", export },
-    { "umask", sh_umask },
-    { "unset", unset },
-    { NULL, NULL }
+const struct builtin builtins[] = {
+    { "cd", cd, 0 },
+    { "exit", sh_exit, BUILTIN_SPECIAL },
+    { "export", export, BUILTIN_SPECIAL },
+    { "umask", sh_umask, 0 },
+    { "unset", unset, BUILTIN_SPECIAL },
+    { NULL, NULL, 0 }
 };
 
 char* pwd;
@@ -94,7 +94,7 @@ static int cd(int argc, char* argv[]) {
     if (argc >= 2) {
         newCwd = argv[1];
     } else {
-        newCwd = getenv("HOME");
+        newCwd = getVariable("HOME");
         if (!newCwd) {
             warnx("HOME not set");
             return 1;

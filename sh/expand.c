@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -116,6 +116,8 @@ static void substitute(const char* value, struct StringBuffer* sb,
     struct SubstitutionInfo info;
     info.begin = sb->used;
     info.end = info.begin + strlen(value);
+    info.startField = 0;
+    info.endField = 0;
     info.applyFieldSplitting = !doubleQuoted;
     info.splitAtEnd = splitAtEnd;
     addToArray((void**) &context->substitutions, &context->numSubstitutions,

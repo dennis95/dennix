@@ -17,6 +17,9 @@
  * Shell variables.
  */
 
+#ifndef VARIABLES_H
+#define VARIABLES_H
+
 #include <stdbool.h>
 
 struct ShellVar {
@@ -32,6 +35,10 @@ extern size_t variablesAllocated;
 const char* getVariable(const char* name);
 void initializeVariables(void);
 bool isRegularVariableName(const char* s);
+void popVariables(void);
 void printEnvVariables(void);
+void pushVariable(const char* name, const char* value);
 void setVariable(const char* name, const char* value, bool export);
 void unsetVariable(const char* name);
+
+#endif

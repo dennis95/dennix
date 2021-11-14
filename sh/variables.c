@@ -35,6 +35,8 @@ size_t variablesAllocated;
 
 // This buffer is large enough to contain any $- value or any 32 bit integer.
 static char buffer[15];
+static struct ShellVar* pushedVars;
+static size_t variablesPushed;
 
 const char* getVariable(const char* name) {
     if (isdigit(*name)) {
@@ -72,6 +74,13 @@ const char* getVariable(const char* name) {
         return buffer;
     }
 
+    for (size_t i = 0; i < variablesPushed; i++) {
+        struct ShellVar* var = &pushedVars[i];
+        if (strcmp(name, var->name) == 0) {
+            return var->value;
+        }
+    }
+
     for (size_t i = 0; i < variablesAllocated; i++) {
         struct ShellVar* var = &variables[i];
         if (strcmp(name, var->name) == 0) {
@@ -92,8 +101,9 @@ void initializeVariables(void) {
         free(variables[i].name);
         free(variables[i].value);
     }
-
     variablesAllocated = 0;
+
+    popVariables();
 
     for (const char** envp = (const char**) environ; *envp; envp++) {
         size_t nameLength = strcspn(*envp, "=");
@@ -117,6 +127,17 @@ bool isRegularVariableName(const char* s) {
     return true;
 }
 
+void popVariables(void) {
+    for (size_t i = 0; i < variablesPushed; i++) {
+        free(pushedVars[i].name);
+        free(pushedVars[i].value);
+    }
+
+    free(pushedVars);
+    pushedVars = NULL;
+    variablesPushed = 0;
+}
+
 void printEnvVariables(void) {
     for (size_t i = 0; i < variablesAllocated; i++) {
         struct ShellVar* var = &variables[i];
@@ -128,6 +149,19 @@ void printEnvVariables(void) {
             printf("export %s\n", var->name);
         }
     }
+}
+
+void pushVariable(const char* name, const char* value) {
+    pushedVars = reallocarray(pushedVars, variablesPushed + 1,
+            sizeof(struct ShellVar));
+    if (!pushedVars) err(1, "malloc");
+    pushedVars[variablesPushed].name = strdup(name);
+    pushedVars[variablesPushed].value = strdup(value);
+    if (!pushedVars[variablesPushed].name ||
+            !pushedVars[variablesPushed].value) {
+        err(1, "strdup");
+    }
+    variablesPushed++;
 }
 
 void setVariable(const char* name, const char* value, bool export) {
