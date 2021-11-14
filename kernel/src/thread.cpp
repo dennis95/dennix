@@ -18,6 +18,7 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <sched.h>
 #include <string.h>
 #include <dennix/kernel/process.h>
@@ -29,6 +30,9 @@ Thread* Thread::idleThread;
 static Thread* firstThread;
 
 __fpu_t initFpu;
+
+static int bootErrno;
+extern "C" { int* __errno_location = &bootErrno; }
 
 Thread::Thread(Process* process) {
     contextChanged = false;
@@ -99,6 +103,7 @@ InterruptContext* Thread::schedule(InterruptContext* context) {
 
     setKernelStack(_current->kernelStack + PAGESIZE);
     Registers::restoreFpu(&_current->fpuEnv);
+    __errno_location = &_current->errorNumber;
 
     _current->process->addressSpace->activate();
     _current->checkSigalarm(true);

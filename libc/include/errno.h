@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,8 +27,13 @@
 extern "C" {
 #endif
 
+#if defined(__is_dennix_libk) || defined(__is_dennix_kernel)
+extern int* __errno_location;
+#  define errno (*__errno_location)
+#else
 extern int errno;
-#define errno errno
+#  define errno errno
+#endif
 
 #if __USE_DENNIX
 extern char* program_invocation_name;

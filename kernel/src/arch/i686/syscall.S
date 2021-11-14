@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,7 +42,8 @@ syscallHandler:
 
     call getSyscallHandler
     add $16, %esp
-    movl $0, errno
+    mov __errno_location, %ecx
+    movl $0, (%ecx)
 
     call *%eax
     mov %ebp, %esp
@@ -56,7 +57,8 @@ syscallHandler:
     mov %cx, %ds
     mov %cx, %es
 
-    mov errno, %ecx
+    mov __errno_location, %ecx
+    mov (%ecx), %ecx
 
 1:  iret
 
@@ -66,7 +68,8 @@ syscallHandler:
     push %edi
     push %esi
     push %edx
-    pushl errno
+    mov __errno_location, %ecx
+    pushl (%ecx)
     push %ebx
     push %eax
 

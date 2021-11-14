@@ -32,7 +32,6 @@ COMMON_OBJ = \
 	crt/init \
 	crt/fini \
 	ctype/ctype \
-	errno/errno \
 	getopt/getopt \
 	getopt/getopt_long \
 	inttypes/strtoimax \
@@ -157,6 +156,7 @@ LIBC_OBJ = \
 	err/warn \
 	err/warnc \
 	err/warnx \
+	errno/errno \
 	errno/initProgname \
 	fcntl/fcntl \
 	fcntl/open \

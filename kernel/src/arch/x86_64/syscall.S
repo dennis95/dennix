@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -46,12 +46,14 @@ syscallHandler:
     pop %rsi
     pop %rdi
 
-    movl $0, errno
+    mov __errno_location, %r11
+    movl $0, (%r11)
     call *%rax
 
     add $8, %rsp
 
-    mov errno, %edi
+    mov __errno_location, %r11
+    mov (%r11), %edi
 
     # Check whether signals are pending.
     mov signalPending, %r10
