@@ -1,4 +1,4 @@
-# Copyright (c) 2019 Dennis Wölfing
+# Copyright (c) 2019, 2021 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -15,9 +15,7 @@
 LIBK_FLAGS += -mcmodel=kernel -mno-red-zone -mno-mmx -mno-sse -mno-sse2
 
 CRT_OBJ = \
-	$(BUILD)/arch/x86_64/crt0.o \
-	$(BUILD)/arch/x86_64/crti.o \
-	$(BUILD)/arch/x86_64/crtn.o
+	$(BUILD)/arch/x86_64/crt0.o
 
 LIBC_OBJ += \
 	arch/x86_64/rfork \

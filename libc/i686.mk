@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2018, 2019 Dennis Wölfing
+# Copyright (c) 2016, 2018, 2019, 2021 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -15,9 +15,7 @@
 LIBM_CFLAGS += -msse
 
 CRT_OBJ = \
-	$(BUILD)/arch/i686/crt0.o \
-	$(BUILD)/arch/i686/crti.o \
-	$(BUILD)/arch/i686/crtn.o
+	$(BUILD)/arch/i686/crt0.o
 
 LIBC_OBJ += \
 	arch/i686/rfork \
