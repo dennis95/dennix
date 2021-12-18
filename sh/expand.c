@@ -407,6 +407,10 @@ static size_t splitFields(char* word, struct Context* context,
     return numFields;
 }
 
+static bool isSpecialInDoubleQuotes(char c) {
+    return c == '$' || c == '`' || c == '\\' || c == '"';
+}
+
 static void removeQuotes(char** fields, struct Context* context,
         size_t numFields) {
     size_t substIndex = 0;
@@ -436,7 +440,8 @@ static void removeQuotes(char** fields, struct Context* context,
                     j >= subst->begin))) {
                 // No quote removal for substitution results.
             } else if (!escaped) {
-                if (!singleQuote && c == '\\') {
+                if (!singleQuote && c == '\\' && (!doubleQuote ||
+                        isSpecialInDoubleQuotes(word[j + 1]))) {
                     escaped = true;
                     continue;
                 } else if (!doubleQuote && c == '\'') {
