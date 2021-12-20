@@ -33,6 +33,7 @@
 #include "builtins.h"
 #include "execute.h"
 #include "expand.h"
+#include "match.h"
 #include "sh.h"
 #include "variables.h"
 
@@ -53,6 +54,7 @@ static void sigusr1Handler(int signum) {
 static int executeCommand(struct Command* command, bool subshell);
 static int executeCompoundCommand(struct Command* command, bool subshell);
 static int executeFor(struct ForClause* clause);
+static int executeCase(struct CaseClause* clause);
 static int executeList(struct List* list);
 static int executePipeline(struct Pipeline* pipeline);
 static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
@@ -238,6 +240,8 @@ static int executeCompoundCommand(struct Command* command, bool subshell) {
         return executeList(&command->compoundList);
     case COMMAND_FOR:
         return executeFor(&command->forClause);
+    case COMMAND_CASE:
+        return executeCase(&command->caseClause);
     case COMMAND_IF:
         for (size_t i = 0; i < command->ifClause.numConditions; i++) {
             if (executeList(&command->ifClause.conditions[i]) == 0) {
@@ -289,6 +293,37 @@ static int executeFor(struct ForClause* clause) {
         free(items[i]);
     }
     free(items);
+    return status;
+}
+
+static int executeCase(struct CaseClause* clause) {
+    char* word = expandWord(clause->word);
+    if (!word) return 1;
+
+    int status = 0;
+    for (size_t i = 0; i < clause->numItems; i++) {
+        struct CaseItem* item = &clause->items[i];
+
+        for (size_t j = 0; j < item->numPatterns; j++) {
+            if (matchesPattern(word, item->patterns[j])) {
+                if (item->hasList) {
+                    status = executeList(&item->list);
+                }
+                if (item->fallthrough) {
+                    for (i = i + 1; i < clause->numItems; i++) {
+                        item = &clause->items[i];
+                        if (item->hasList) {
+                            status = executeList(&item->list);
+                        }
+                        if (!item->fallthrough) break;
+                    }
+                }
+                free(word);
+                return status;
+            }
+        }
+    }
+    free(word);
     return status;
 }
 

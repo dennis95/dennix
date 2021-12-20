@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -246,7 +246,7 @@ static bool canContinueOperator(const char* s, size_t opLength, char c) {
     if (s[0] == '&') {
         return c == '&';
     } else if (s[0] == ';') {
-        return c == ';';
+        return c == ';' || c == '&';
     } else if (s[0] == '<') {
         return c == '<' || c == '&' || c == '>';
     } else if (s[0] == '>') {

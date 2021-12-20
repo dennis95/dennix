@@ -28,27 +28,12 @@
 #include "stringbuffer.h"
 #include "variables.h"
 
-struct SubstitutionInfo {
-    size_t begin;
-    size_t end;
-    size_t startField;
-    size_t endField;
-    bool applyFieldSplitting;
-    bool splitAtEnd;
-};
-
-struct Context {
-    struct SubstitutionInfo* substitutions;
-    size_t numSubstitutions;
-    int flags;
-    bool deleteIfEmpty;
-};
-
 static ssize_t doParameterSubstitution(const char* word, bool doubleQuoted,
-        struct StringBuffer* sb, struct Context* context);
-static char* doSubstitutions(const char* word, struct Context* context);
-static size_t splitFields(char* word, struct Context* context, char*** result);
-static void removeQuotes(char** fields, struct Context* context,
+        struct StringBuffer* sb, struct ExpandContext* context);
+static char* doSubstitutions(const char* word, struct ExpandContext* context);
+static size_t splitFields(char* word, struct ExpandContext* context,
+        char*** result);
+static void removeQuotes(char** fields, struct ExpandContext* context,
         size_t numFields);
 
 char* expandWord(const char* word) {
@@ -61,16 +46,16 @@ char* expandWord(const char* word) {
     return result;
 }
 
-ssize_t expand(const char* word, int flags, char*** result) {
-    struct Context context;
-    context.substitutions = NULL;
-    context.numSubstitutions = 0;
-    context.flags = flags;
-    context.deleteIfEmpty = false;
+ssize_t expand2(const char* word, int flags, char*** result,
+        struct ExpandContext* context) {
+    context->substitutions = NULL;
+    context->numSubstitutions = 0;
+    context->flags = flags;
+    context->deleteIfEmpty = false;
 
-    char* str = doSubstitutions(word, &context);
-    if (!str) {
-        free(context.substitutions);
+    context->temp = doSubstitutions(word, context);
+    if (!context->temp) {
+        free(context->substitutions);
         return -1;
     }
 
@@ -79,11 +64,20 @@ ssize_t expand(const char* word, int flags, char*** result) {
     if (flags & EXPAND_NO_FIELD_SPLIT) {
         fields = malloc(sizeof(char*));
         if (!fields) err(1, "malloc");
-        fields[0] = str;
+        fields[0] = context->temp;
         numFields = 1;
     } else {
-        numFields = splitFields(str, &context, &fields);
+        numFields = splitFields(context->temp, context, &fields);
     }
+
+    *result = fields;
+    return numFields;
+}
+
+ssize_t expand(const char* word, int flags, char*** result) {
+    struct ExpandContext context;
+    char** fields;
+    ssize_t numFields = expand2(word, flags, &fields, &context);
 
     removeQuotes(fields, &context, numFields);
 
@@ -94,7 +88,7 @@ ssize_t expand(const char* word, int flags, char*** result) {
     }
 
     free(context.substitutions);
-    free(str);
+    free(context.temp);
     *result = fields;
     return numFields;
 }
@@ -111,7 +105,7 @@ static bool isSpecialParameter(char c) {
 }
 
 static void substitute(const char* value, struct StringBuffer* sb,
-        struct Context* context, bool doubleQuoted, bool splitAtEnd) {
+        struct ExpandContext* context, bool doubleQuoted, bool splitAtEnd) {
     if (!value) value = "";
     struct SubstitutionInfo info;
     info.begin = sb->used;
@@ -126,7 +120,7 @@ static void substitute(const char* value, struct StringBuffer* sb,
 }
 
 static void substituteExpansion(const char* word, struct StringBuffer* sb,
-        struct Context* context, bool doubleQuoted) {
+        struct ExpandContext* context, bool doubleQuoted) {
     char** fields;
     int flags = context->flags;
     if (doubleQuoted) flags |= EXPAND_NO_FIELD_SPLIT;
@@ -144,7 +138,7 @@ static void substituteExpansion(const char* word, struct StringBuffer* sb,
 }
 
 static ssize_t doParameterSubstitution(const char* word, bool doubleQuoted,
-        struct StringBuffer* sb, struct Context* context) {
+        struct StringBuffer* sb, struct ExpandContext* context) {
     const char* begin = word;
     char c = *word;
     if (c == '{') {
@@ -308,7 +302,7 @@ static ssize_t doParameterSubstitution(const char* word, bool doubleQuoted,
     return word - begin;
 }
 
-static char* doSubstitutions(const char* word, struct Context* context) {
+static char* doSubstitutions(const char* word, struct ExpandContext* context) {
     struct StringBuffer sb;
     initStringBuffer(&sb);
 
@@ -344,7 +338,7 @@ static char* doSubstitutions(const char* word, struct Context* context) {
     return finishStringBuffer(&sb);
 }
 
-static size_t splitFields(char* word, struct Context* context,
+static size_t splitFields(char* word, struct ExpandContext* context,
         char*** result) {
     const char* ifs = getVariable("IFS");
     if (!ifs) ifs = " \t\n";
@@ -411,7 +405,7 @@ static bool isSpecialInDoubleQuotes(char c) {
     return c == '$' || c == '`' || c == '\\' || c == '"';
 }
 
-static void removeQuotes(char** fields, struct Context* context,
+static void removeQuotes(char** fields, struct ExpandContext* context,
         size_t numFields) {
     size_t substIndex = 0;
     struct SubstitutionInfo* subst = context->substitutions;

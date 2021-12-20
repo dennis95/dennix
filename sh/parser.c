@@ -35,6 +35,8 @@ static enum ParserResult parseCompoundListWithTerminator(struct Parser* parser,
         struct List* list, const char* terminator);
 static enum ParserResult parseForClause(struct Parser* parser,
         struct ForClause* clause);
+static enum ParserResult parseCaseClause(struct Parser* parser,
+        struct CaseClause* clause);
 static enum ParserResult parseIfClause(struct Parser* parser,
         struct IfClause* clause);
 static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
@@ -261,7 +263,6 @@ static enum ParserResult parseCompoundListWithTerminator(struct Parser* parser,
 
 static enum ParserResult parseCommand(struct Parser* parser,
         struct Command* command) {
-    // TODO: Implement case conditional construct.
     command->redirections = NULL;
     command->numRedirections = 0;
     struct Token* token = getToken(parser);
@@ -283,6 +284,9 @@ static enum ParserResult parseCommand(struct Parser* parser,
     } else if (strcmp(token->text, "for") == 0) {
         command->type = COMMAND_FOR;
         result = parseForClause(parser, &command->forClause);
+    } else if (strcmp(token->text, "case") == 0) {
+        command->type = COMMAND_CASE;
+        result = parseCaseClause(parser, &command->caseClause);
     } else if (strcmp(token->text, "if") == 0) {
         command->type = COMMAND_IF;
         result = parseIfClause(parser, &command->ifClause);
@@ -502,6 +506,128 @@ syntax:
     return PARSER_SYNTAX;
 }
 
+static enum ParserResult parseCaseClause(struct Parser* parser,
+        struct CaseClause* clause) {
+    clause->items = NULL;
+    clause->numItems = 0;
+    parser->offset++;
+    struct Token* token = getToken(parser);
+    if (!token || token->type != TOKEN) {
+        return PARSER_SYNTAX;
+    }
+    clause->word = token->text;
+    parser->offset++;
+
+    enum ParserResult result = parseLinebreak(parser);
+    if (result != PARSER_MATCH) return result;
+
+    token = getToken(parser);
+    if (!token || strcmp(token->text, "in") != 0) {
+        return PARSER_SYNTAX;
+    }
+    parser->offset++;
+
+    result = parseLinebreak(parser);
+    if (result != PARSER_MATCH) return result;
+
+    token = getToken(parser);
+    if (!token) return PARSER_SYNTAX;
+
+    while (strcmp(token->text, "esac") != 0) {
+        struct CaseItem item;
+        item.patterns = NULL;
+        item.numPatterns = 0;
+        item.hasList = false;
+        item.fallthrough = false;
+
+        if (token->type != TOKEN) {
+            if (strcmp(token->text, "(") != 0) goto syntax;
+            parser->offset++;
+            token = getToken(parser);
+            if (!token) goto syntax;
+        }
+
+        while (true) {
+            if (token->type != TOKEN) goto fail;
+            addToArray((void**) &item.patterns, &item.numPatterns, &token->text,
+                    sizeof(char*));
+            parser->offset++;
+            token = getToken(parser);
+            if (!token) goto fail;
+
+            if (token->type == OPERATOR && strcmp(token->text, "|") == 0) {
+                parser->offset++;
+                token = getToken(parser);
+                if (!token) goto fail;
+            } else {
+                break;
+            }
+        }
+
+        if (token->type != OPERATOR || strcmp(token->text, ")") != 0 ||
+                item.numPatterns == 0) {
+            goto fail;
+        }
+        parser->offset++;
+        result = parseLinebreak(parser);
+        if (result != PARSER_MATCH) goto fail;
+        token = getToken(parser);
+        if (!token) goto fail;
+
+        if (strcmp(token->text, "esac") != 0 &&
+                strcmp(token->text, ";;") != 0 &&
+                strcmp(token->text, ";&") != 0) {
+            result = parseList(parser, &item.list, true);
+            if (result != PARSER_MATCH) goto fail;
+            item.hasList = true;
+        }
+
+        token = getToken(parser);
+        if (!token) goto fail;
+
+        if (token->type == OPERATOR) {
+            if (strcmp(token->text, ";;") == 0) {
+                parser->offset++;
+            } else if (strcmp(token->text, ";&") == 0) {
+                item.fallthrough = true;
+                parser->offset++;
+            } else {
+                goto fail;
+            }
+
+            result = parseLinebreak(parser);
+            if (result != PARSER_MATCH) goto fail;
+            token = getToken(parser);
+            if (!token) goto fail;
+        } else if (strcmp(token->text, "esac") != 0) {
+            goto fail;
+        }
+
+        addToArray((void**) &clause->items, &clause->numItems, &item,
+                sizeof(struct CaseItem));
+
+        continue;
+fail:
+        free(item.patterns);
+        if (item.hasList) {
+            freeList(&item.list);
+        }
+        goto syntax;
+    }
+    parser->offset++;
+    return PARSER_MATCH;
+
+syntax:
+    for (size_t i = 0; i < clause->numItems; i++) {
+        free(clause->items[i].patterns);
+        if (clause->items[i].hasList) {
+            freeList(&clause->items[i].list);
+        }
+    }
+    free(clause->items);
+    return PARSER_SYNTAX;
+}
+
 static enum ParserResult parseIfClause(struct Parser* parser,
         struct IfClause* clause) {
     clause->numConditions = 0;
@@ -633,6 +759,15 @@ static void freeCommand(struct Command* command) {
     case COMMAND_FOR:
         free(command->forClause.words);
         freeList(&command->forClause.body);
+        break;
+    case COMMAND_CASE:
+        for (size_t i = 0; i < command->caseClause.numItems; i++) {
+            free(command->caseClause.items[i].patterns);
+            if (command->caseClause.items[i].hasList) {
+                freeList(&command->caseClause.items[i].list);
+            }
+        }
+        free(command->caseClause.items);
         break;
     case COMMAND_IF:
         for (size_t i = 0; i < command->ifClause.numConditions; i++) {

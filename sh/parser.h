@@ -61,6 +61,20 @@ enum {
     LIST_SEMI,
 };
 
+struct CaseItem {
+    char** patterns;
+    size_t numPatterns;
+    struct List list;
+    bool hasList;
+    bool fallthrough;
+};
+
+struct CaseClause {
+    char* word;
+    struct CaseItem* items;
+    size_t numItems;
+};
+
 struct ForClause {
     char* name;
     char** words;
@@ -85,6 +99,7 @@ enum CommandType {
     COMMAND_SUBSHELL,
     COMMAND_BRACE_GROUP,
     COMMAND_FOR,
+    COMMAND_CASE,
     COMMAND_IF,
     COMMAND_WHILE,
     COMMAND_UNTIL,
@@ -96,6 +111,7 @@ struct Command {
         struct SimpleCommand simpleCommand;
         struct List compoundList;
         struct ForClause forClause;
+        struct CaseClause caseClause;
         struct IfClause ifClause;
         struct Loop loop;
     };

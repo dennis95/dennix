@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2021 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,39 +13,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* sh/expand.h
- * Word expansion.
+/* sh/match.h
+ * Pattern matching.
  */
 
-#ifndef EXPAND_H
-#define EXPAND_H
+#ifndef MATCH_H
+#define MATCH_H
 
-#include "sh.h"
+#include <stdbool.h>
 
-struct SubstitutionInfo {
-    size_t begin;
-    size_t end;
-    size_t startField;
-    size_t endField;
-    bool applyFieldSplitting;
-    bool splitAtEnd;
-};
-
-struct ExpandContext {
-    struct SubstitutionInfo* substitutions;
-    size_t numSubstitutions;
-    int flags;
-    bool deleteIfEmpty;
-    char* temp;
-};
-
-enum {
-    EXPAND_NO_FIELD_SPLIT = 1 << 0,
-};
-
-NO_DISCARD ssize_t expand(const char* word, int flags, char*** result);
-NO_DISCARD ssize_t expand2(const char* word, int flags, char*** fields,
-        struct ExpandContext* context);
-char* expandWord(const char* word);
+bool matchesPattern(const char* expandedWord, const char* pattern);
 
 #endif
