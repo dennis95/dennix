@@ -324,15 +324,20 @@ static enum ParserResult parseCommand(struct Parser* parser,
     token = getToken(parser);
     if (!token) return PARSER_MATCH;
 
-    if (token->type == IO_NUMBER || token->type == OPERATOR) {
+    while (token->type == IO_NUMBER || token->type == OPERATOR) {
         struct Redirection redirection;
         result = parseIoRedirect(parser, &redirection);
 
         if (result == PARSER_BACKTRACK) return PARSER_MATCH;
-        if (result != PARSER_MATCH) return result;
+        if (result != PARSER_MATCH) {
+            freeCommand(command);
+            return result;
+        }
 
         addToArray((void**) &command->redirections, &command->numRedirections,
                 &redirection, sizeof(redirection));
+        token = getToken(parser);
+        if (!token) return PARSER_MATCH;
     }
     return PARSER_MATCH;
 }
