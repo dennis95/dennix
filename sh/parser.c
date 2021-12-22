@@ -703,6 +703,8 @@ fail:
         freeList(&clause->conditions[i]);
         freeList(&clause->bodies[i]);
     }
+    free(clause->conditions);
+    free(clause->bodies);
     return result;
 }
 
@@ -783,6 +785,8 @@ static void freeCommand(struct Command* command) {
             freeList(&command->ifClause.bodies[
                     command->ifClause.numConditions]);
         }
+        free(command->ifClause.conditions);
+        free(command->ifClause.bodies);
         break;
     case COMMAND_WHILE:
     case COMMAND_UNTIL:
