@@ -162,6 +162,8 @@ LIBC_OBJ = \
 	fcntl/open \
 	fcntl/openat \
 	fnmatch/fnmatch \
+	glob/glob \
+	glob/globfree \
 	grp/getgrgid \
 	langinfo/nl_langinfo \
 	locale/localeconv \
