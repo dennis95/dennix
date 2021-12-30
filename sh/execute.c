@@ -70,6 +70,9 @@ static void resetSignals(void);
 static int waitForCommand(pid_t pid);
 
 int execute(struct CompleteCommand* command) {
+    // Flush files before executing any commands so that file offsets are
+    // consistent with child processes.
+    fflush(NULL);
     return executeList(&command->list);
 }
 
