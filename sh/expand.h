@@ -41,11 +41,14 @@ struct ExpandContext {
 
 enum {
     EXPAND_NO_FIELD_SPLIT = 1 << 0,
+    EXPAND_PATHNAMES = 1 << 1,
 };
 
 NO_DISCARD ssize_t expand(const char* word, int flags, char*** result);
 NO_DISCARD ssize_t expand2(const char* word, int flags, char*** fields,
         struct ExpandContext* context);
 char* expandWord(const char* word);
+char* removeQuotes(const char* word, size_t fieldIndex,
+        struct SubstitutionInfo* substitutions, size_t numSubstitutions);
 
 #endif

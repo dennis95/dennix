@@ -20,8 +20,11 @@
 #ifndef MATCH_H
 #define MATCH_H
 
-#include <stdbool.h>
+#include "expand.h"
 
 bool matchesPattern(const char* expandedWord, const char* pattern);
+bool expandPathnames(char** fields, size_t numFields, char*** pathnames,
+        size_t* numPathnames, struct SubstitutionInfo* subst,
+        size_t numSubstitutions);
 
 #endif

@@ -17,8 +17,11 @@
  * Pattern matching.
  */
 
+#include <err.h>
 #include <fnmatch.h>
+#include <glob.h>
 #include <stdlib.h>
+#include <string.h>
 #include "expand.h"
 #include "match.h"
 #include "stringbuffer.h"
@@ -33,6 +36,7 @@ static bool isSpecialInDoubleQuotes(char c) {
 
 struct context {
     const char* pattern;
+    size_t fieldIndex;
     size_t i;
     struct SubstitutionInfo* subst;
     size_t numSubstitutions;
@@ -43,14 +47,21 @@ struct context {
 };
 
 static bool nextChar(struct context* ctx, char* character) {
+    struct SubstitutionInfo* subst = ctx->subst;
     while (ctx->pattern[ctx->i]) {
-        while (ctx->substIndex < ctx->numSubstitutions &&
-                ctx->subst[ctx->substIndex].end >= ctx->i) {
+        while (subst && !(ctx->fieldIndex < subst->endField ||
+                (ctx->fieldIndex == subst->endField && ctx->i < subst->end))) {
             ctx->substIndex++;
+            if (ctx->substIndex < ctx->numSubstitutions) {
+                subst = &ctx->subst[ctx->substIndex];
+            } else {
+                subst = NULL;
+            }
         }
 
-        bool inSubstitution = ctx->substIndex < ctx->numSubstitutions &&
-                ctx->subst[ctx->substIndex].begin >= ctx->i;
+        bool inSubstitution = subst && (ctx->fieldIndex > subst->startField ||
+                (ctx->fieldIndex == subst->startField &&
+                ctx->i >= subst->begin));
 
         if (ctx->pattern[ctx->i] == '\'' && !ctx->doubleQuoted &&
                 !ctx->escaped && !inSubstitution) {
@@ -78,11 +89,12 @@ static bool nextChar(struct context* ctx, char* character) {
     return false;
 }
 
-static size_t prepareBracketExpression(const char* pattern,
+static size_t prepareBracketExpression(const char* pattern, size_t fieldIndex,
         struct SubstitutionInfo* subst, size_t numSubstitutions,
-        size_t expressionBegin, struct StringBuffer* buffer) {
+        size_t expressionBegin, struct StringBuffer* buffer, bool pathname) {
     struct context context;
     context.pattern = pattern;
+    context.fieldIndex = fieldIndex;
     context.subst = subst;
     context.numSubstitutions = numSubstitutions;
     context.substIndex = 0;
@@ -98,7 +110,10 @@ static size_t prepareBracketExpression(const char* pattern,
     char c;
     bool literal = nextChar(&context, &c);
     while (c != '\0') {
-        if (literal && isSpecialCharInBracketExpressions(c)) {
+        if (pathname && c == '/') {
+            free(finishStringBuffer(&expr));
+            return 0;
+        } else if (literal && isSpecialCharInBracketExpressions(c)) {
             // We use collating symbols to force a character to be taken
             // literally.
             appendStringToStringBuffer(&expr, "[.");
@@ -165,13 +180,15 @@ static size_t prepareBracketExpression(const char* pattern,
     return context.i - expressionBegin;
 }
 
-static char* preparePattern(const char* pattern, struct SubstitutionInfo* subst,
-        size_t numSubstitutions) {
+static char* preparePattern(const char* pattern, size_t fieldIndex,
+        struct SubstitutionInfo* subst, size_t numSubstitutions, bool pathname,
+        bool* containsSpecial) {
     struct StringBuffer buffer;
     initStringBuffer(&buffer);
 
     struct context context;
     context.pattern = pattern;
+    context.fieldIndex = fieldIndex;
     context.i = 0;
     context.subst = subst;
     context.numSubstitutions = numSubstitutions;
@@ -179,6 +196,7 @@ static char* preparePattern(const char* pattern, struct SubstitutionInfo* subst,
     context.singleQuoted = false;
     context.doubleQuoted = false;
     context.escaped = false;
+    *containsSpecial = false;
 
     char c;
     bool literal = nextChar(&context, &c);
@@ -188,17 +206,21 @@ static char* preparePattern(const char* pattern, struct SubstitutionInfo* subst,
             appendToStringBuffer(&buffer, '\\');
             appendToStringBuffer(&buffer, c);
         } else if (c == '[') {
-            size_t length = prepareBracketExpression(pattern, subst,
-                    numSubstitutions, context.i - 1, &buffer);
+            size_t length = prepareBracketExpression(pattern, fieldIndex, subst,
+                    numSubstitutions, context.i - 1, &buffer, pathname);
             if (length == 0) {
                 // Not a valid bracket expression
                 appendToStringBuffer(&buffer, '\\');
                 appendToStringBuffer(&buffer, '[');
             } else {
                 context.i += length - 1;
+                *containsSpecial = true;
             }
         } else {
             appendToStringBuffer(&buffer, c);
+            if (c == '?' || c == '*') {
+                *containsSpecial = true;
+            }
         }
 
         literal = nextChar(&context, &c);
@@ -214,8 +236,9 @@ bool matchesPattern(const char* expandedWord, const char* pattern) {
             &context);
     if (numFields < 0) return false;
 
-    char* prepared = preparePattern(fields[0], context.substitutions,
-            context.numSubstitutions);
+    bool containsSpecial;
+    char* prepared = preparePattern(fields[0], 0, context.substitutions,
+            context.numSubstitutions, false, &containsSpecial);
 
     bool result = fnmatch(prepared, expandedWord, 0) == 0;
     free(prepared);
@@ -223,4 +246,42 @@ bool matchesPattern(const char* expandedWord, const char* pattern) {
     free(context.temp);
     free(fields);
     return result;
+}
+
+bool expandPathnames(char** fields, size_t numFields, char*** pathnames,
+        size_t* numPathnames, struct SubstitutionInfo* subst,
+        size_t numSubstitutions) {
+    for (size_t i = 0; i < numFields; i++) {
+        bool containsSpecial;
+        char* pattern = preparePattern(fields[i], i, subst, numSubstitutions,
+                true, &containsSpecial);
+        if (containsSpecial) {
+            glob_t data;
+            int result = glob(pattern, 0, NULL, &data);
+
+            if (result == 0) {
+                for (size_t j = 0; j < data.gl_pathc; j++) {
+                    char* str = strdup(data.gl_pathv[j]);
+                    if (!str) err(1, "malloc");
+                    addToArray((void**) pathnames, numPathnames, &str,
+                            sizeof(char*));
+                }
+            } else if (result == GLOB_NOMATCH) {
+                char* str = removeQuotes(fields[i], i, subst, numSubstitutions);
+                addToArray((void**) pathnames, numPathnames, &str,
+                        sizeof(char*));
+            } else {
+                warnx("pathname expansion error");
+                globfree(&data);
+                return false;
+            }
+            globfree(&data);
+        } else {
+            char* str = removeQuotes(fields[i], i, subst, numSubstitutions);
+            addToArray((void**) pathnames, numPathnames, &str, sizeof(char*));
+        }
+        free(pattern);
+    }
+
+    return true;
 }

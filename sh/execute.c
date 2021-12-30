@@ -273,7 +273,7 @@ static int executeFor(struct ForClause* clause) {
     size_t numItems = 0;
     for (size_t i = 0; i < clause->numWords; i++) {
         char** fields;
-        ssize_t numFields = expand(clause->words[i], 0, &fields);
+        ssize_t numFields = expand(clause->words[i], EXPAND_PATHNAMES, &fields);
         if (numFields < 0) {
             for (size_t j = 0; j < numItems; j++) {
                 free(items[j]);
@@ -354,13 +354,13 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
     size_t numArguments = 0;
     for (size_t i = 0; i < simpleCommand->numWords; i++) {
         char** fields;
-        int flags = 0;
+        int flags = EXPAND_PATHNAMES;
         if (declUtility) {
             char* equals = strchr(simpleCommand->words[i], '=');
             if (equals) {
                 *equals = '\0';
                 if (isRegularVariableName(simpleCommand->words[i])) {
-                    flags |= EXPAND_NO_FIELD_SPLIT;
+                    flags = EXPAND_NO_FIELD_SPLIT;
                 }
                 *equals = '=';
             }

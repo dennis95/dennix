@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "expand.h"
+#include "match.h"
 #include "stringbuffer.h"
 #include "variables.h"
 
@@ -33,8 +34,6 @@ static ssize_t doParameterSubstitution(const char* word, bool doubleQuoted,
 static char* doSubstitutions(const char* word, struct ExpandContext* context);
 static size_t splitFields(char* word, struct ExpandContext* context,
         char*** result);
-static void removeQuotes(char** fields, struct ExpandContext* context,
-        size_t numFields);
 
 char* expandWord(const char* word) {
     char** fields;
@@ -78,8 +77,28 @@ ssize_t expand(const char* word, int flags, char*** result) {
     struct ExpandContext context;
     char** fields;
     ssize_t numFields = expand2(word, flags, &fields, &context);
+    if (numFields < 0) return -1;
 
-    removeQuotes(fields, &context, numFields);
+    if (flags & EXPAND_PATHNAMES && !shellOptions.noglob) {
+        char** newFields = NULL;
+        size_t numNewFields = 0;
+
+        if (!expandPathnames(fields, numFields, &newFields, &numNewFields,
+                context.substitutions, context.numSubstitutions)) {
+            free(context.substitutions);
+            free(context.temp);
+            return -1;
+        }
+
+        free(fields);
+        fields = newFields;
+        numFields = numNewFields;
+    } else {
+        for (ssize_t i = 0; i < numFields; i++) {
+            fields[i] = removeQuotes(fields[i], i, context.substitutions,
+                    context.numSubstitutions);
+        }
+    }
 
     if (context.deleteIfEmpty && numFields == 1 && *fields[0] == '\0' &&
             context.numSubstitutions == 0) {
@@ -405,51 +424,48 @@ static bool isSpecialInDoubleQuotes(char c) {
     return c == '$' || c == '`' || c == '\\' || c == '"';
 }
 
-static void removeQuotes(char** fields, struct ExpandContext* context,
-        size_t numFields) {
+char* removeQuotes(const char* word, size_t fieldIndex,
+        struct SubstitutionInfo* substitutions, size_t numSubstitutions) {
     size_t substIndex = 0;
-    struct SubstitutionInfo* subst = context->substitutions;
+    struct SubstitutionInfo* subst = substitutions;
 
     bool escaped = false;
     bool singleQuote = false;
     bool doubleQuote = false;
 
-    for (size_t i = 0; i < numFields; i++) {
-        struct StringBuffer buffer;
-        initStringBuffer(&buffer);
-        const char* word = fields[i];
+    struct StringBuffer buffer;
+    initStringBuffer(&buffer);
 
-        for (size_t j = 0; word[j]; j++) {
-            while (subst && !(i < subst->endField || (i == subst->endField &&
-                    j < subst->end))) {
-                substIndex++;
-                if (substIndex < context->numSubstitutions) {
-                    subst = &context->substitutions[substIndex];
-                } else {
-                    subst = NULL;
-                }
+    for (size_t i = 0; word[i]; i++) {
+        while (subst && !(fieldIndex < subst->endField ||
+                (fieldIndex == subst->endField && i < subst->end))) {
+            substIndex++;
+            if (substIndex < numSubstitutions) {
+                subst = &substitutions[substIndex];
+            } else {
+                subst = NULL;
             }
-            char c = word[j];
-            if (subst && (i > subst->startField || (i == subst->startField &&
-                    j >= subst->begin))) {
-                // No quote removal for substitution results.
-            } else if (!escaped) {
-                if (!singleQuote && c == '\\' && (!doubleQuote ||
-                        isSpecialInDoubleQuotes(word[j + 1]))) {
-                    escaped = true;
-                    continue;
-                } else if (!doubleQuote && c == '\'') {
-                    singleQuote = !singleQuote;
-                    continue;
-                } else if (!singleQuote && c == '"') {
-                    doubleQuote = !doubleQuote;
-                    continue;
-                }
-            }
-
-            escaped = false;
-            appendToStringBuffer(&buffer, c);
         }
-        fields[i] = finishStringBuffer(&buffer);
+        char c = word[i];
+        if (subst && (fieldIndex > subst->startField ||
+                (fieldIndex == subst->startField && i >= subst->begin))) {
+            // No quote removal for substitution results.
+        } else if (!escaped) {
+            if (!singleQuote && c == '\\' && (!doubleQuote ||
+                    isSpecialInDoubleQuotes(word[i + 1]))) {
+                escaped = true;
+                continue;
+            } else if (!doubleQuote && c == '\'') {
+                singleQuote = !singleQuote;
+                continue;
+            } else if (!singleQuote && c == '"') {
+                doubleQuote = !doubleQuote;
+                continue;
+            }
+        }
+
+        escaped = false;
+        appendToStringBuffer(&buffer, c);
     }
+    return finishStringBuffer(&buffer);
 }
