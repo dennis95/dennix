@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,12 @@
  */
 
 /* libc/src/stdio/feof_unlocked.c
- * Checks the end-of-file indicator.
+ * Checks the end-of-file indicator. (called from C89)
  */
 
 #include "FILE.h"
 
-int feof_unlocked(FILE* file) {
+int __feof_unlocked(FILE* file) {
     return file->flags & FILE_FLAG_EOF;
 }
+__weak_alias(__feof_unlocked, feof_unlocked);

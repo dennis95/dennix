@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/unistd/fdatasync.
- * Synchronize file data.
+ * Synchronize file data. (POSIX2008)
  */
 
+#define fssync __fssync
 #include <unistd.h>
 #include <sys/fs.h>
 

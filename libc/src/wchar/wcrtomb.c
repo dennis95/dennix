@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,13 +14,13 @@
  */
 
 /* libc/src/wchar/wcrtomb.c
- * Convert a wide character to a multibyte character.
+ * Convert a wide character to a multibyte character. (C95, called from C89)
  */
 
 #include <errno.h>
 #include <wchar.h>
 
-size_t wcrtomb(char* restrict s, wchar_t wc, mbstate_t* restrict ps) {
+size_t __wcrtomb(char* restrict s, wchar_t wc, mbstate_t* restrict ps) {
     (void) ps;
     if (!s) return 1;
 
@@ -49,3 +49,4 @@ size_t wcrtomb(char* restrict s, wchar_t wc, mbstate_t* restrict ps) {
         return 4;
     }
 }
+__weak_alias(__wcrtomb, wcrtomb);

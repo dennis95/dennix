@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,11 @@
  */
 
 /* libc/src/time/localtime.c
- * Converts time_t to broken-down local time.
+ * Converts time_t to broken-down local time. (C89)
  */
 
+#define timezone __timezone
+#define tzset __tzset
 #include <time.h>
 
 struct tm* localtime(const time_t* time) {

@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,12 @@
  */
 
 /* libc/src/poll/ppoll.c
- * Polling files.
+ * Polling files. (called from POSIX2008)
  */
 
 #include <poll.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_PPOLL, int, ppoll, (struct pollfd[], nfds_t,
+DEFINE_SYSCALL_GLOBAL(SYSCALL_PPOLL, int, __ppoll, (struct pollfd[], nfds_t,
         const struct timespec* restrict, const sigset_t* restrict));
+DEFINE_SYSCALL_WEAK_ALIAS(__ppoll, ppoll);

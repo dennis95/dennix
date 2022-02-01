@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +14,7 @@
  */
 
 /* libc/src/stdlib/canonicalize_file_name.c
- * Canonicalizes the name of a file.
+ * Canonicalizes the name of a file. (called from POSIX2008)
  */
 
 #include <dirent.h>
@@ -104,7 +104,7 @@ static int openParentDir(const char* path) {
     return fd;
 }
 
-char* canonicalize_file_name(const char* path) {
+char* __canonicalize_file_name(const char* path) {
     if (!path) {
         errno = EINVAL;
         return NULL;
@@ -182,3 +182,4 @@ char* canonicalize_file_name(const char* path) {
         }
     }
 }
+__weak_alias(__canonicalize_file_name, canonicalize_file_name);

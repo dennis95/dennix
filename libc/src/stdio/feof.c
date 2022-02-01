@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,12 @@
  */
 
 /* libc/src/stdio/feof.c
- * Checks the end-of-file indicator.
+ * Checks the end-of-file indicator. (C89)
  */
 
+#define feof_unlocked __feof_unlocked
+#define flockfile __flockfile
+#define funlockfile __funlockfile
 #include <stdio.h>
 
 int feof(FILE* file) {

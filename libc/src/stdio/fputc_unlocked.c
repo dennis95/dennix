@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,14 +14,16 @@
  */
 
 /* libc/src/stdio/fputc_unlocked.c
- * Puts a character into a file without locking.
+ * Puts a character into a file without locking. (called from C89)
  */
 
+#define fwrite_unlocked __fwrite_unlocked
 #include <stdio.h>
 
-int fputc_unlocked(int c, FILE* file) {
+int __fputc_unlocked(int c, FILE* file) {
     if (fwrite_unlocked(&c, 1, 1, file) != 1) {
         return EOF;
     }
     return (unsigned char) c;
 }
+__weak_alias(__fputc_unlocked, fputc_unlocked);

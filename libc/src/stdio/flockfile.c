@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,12 @@
  */
 
 /* libc/src/stdio/flockfile.c
- * File locking.
+ * File locking. (POSIX2008, called from C89)
  */
 
 #include <stdio.h>
 
-void flockfile(FILE* file) {
+void __flockfile(FILE* file) {
     (void) file;
 }
+__weak_alias(__flockfile, flockfile);

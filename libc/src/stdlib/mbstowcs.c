@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/stdlib/mbstowcs.c
- * Convert a multi byte string to a wide character string.
+ * Convert a multi byte string to a wide character string. (C89)
  */
 
+#define mbsrtowcs __mbsrtowcs
 #include <stdlib.h>
 #include <wchar.h>
 

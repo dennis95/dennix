@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/stdio/vsscanf.c
- * Scan formatted input.
+ * Scan formatted input. (C99, called from C89)
  */
 
+#define vcbscanf __vcbscanf
 #include <stdio.h>
 
 static int get(void* arg) {
@@ -34,6 +35,7 @@ static int unget(int c, void* arg) {
     return c;
 }
 
-int vsscanf(const char* restrict s, const char* restrict format, va_list ap) {
+int __vsscanf(const char* restrict s, const char* restrict format, va_list ap) {
     return vcbscanf((void*) &s, get, unget, format, ap);
 }
+__weak_alias(__vsscanf, vsscanf);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,14 +14,18 @@
  */
 
 /* libc/src/stdio/ftello.c
- * Get file position.
+ * Get file position. (POSIX2008, called from C89)
  */
 
+#define flockfile __flockfile
+#define ftello_unlocked __ftello_unlocked
+#define funlockfile __funlockfile
 #include <stdio.h>
 
-off_t ftello(FILE* file) {
+off_t __ftello(FILE* file) {
     flockfile(file);
     off_t result = ftello_unlocked(file);
     funlockfile(file);
     return result;
 }
+__weak_alias(__ftello, ftello);

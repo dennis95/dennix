@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,18 @@
  */
 
 /* libc/src/stdio/freopen.c
- * Reopen a file.
+ * Reopen a file. (C89)
  */
 
+#define clearerr_unlocked __clearerr_unlocked
+#define close __close
+#define fcntl __fcntl
+#define fflush_unlocked __fflush_unlocked
+#define flockfile __flockfile
+#define funlockfile __funlockfile
+#define isatty __isatty
+#define lseek __lseek
+#define open __open
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>

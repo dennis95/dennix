@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/wctype/iswctype.c
- * Wide character classification.
+ * Wide character classification. (C95)
  */
 
+#define iswblank __iswblank
 #include <string.h>
 #include <wctype.h>
 

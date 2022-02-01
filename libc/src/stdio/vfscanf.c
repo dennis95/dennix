@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,14 @@
  */
 
 /* libc/src/stdio/vfscanf.c
- * Scan formatted input.
+ * Scan formatted input. (C99, called from C89)
  */
 
+#define fgetc_unlocked __fgetc_unlocked
+#define flockfile __flockfile
+#define funlockfile __funlockfile
+#define ungetc_unlocked __ungetc_unlocked
+#define vcbprintf __vcbprintf
 #include <stdio.h>
 
 static int get(void* file) {
@@ -27,9 +32,10 @@ static int unget(int c, void* file) {
     return ungetc_unlocked(c, (FILE*) file);
 }
 
-int vfscanf(FILE* restrict file, const char* restrict format, va_list ap) {
+int __vfscanf(FILE* restrict file, const char* restrict format, va_list ap) {
     flockfile(file);
     int result = vcbscanf(file, get, unget, format, ap);
     funlockfile(file);
     return result;
 }
+__weak_alias(__vfscanf, vfscanf);

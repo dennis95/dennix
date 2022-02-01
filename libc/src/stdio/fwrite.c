@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,12 @@
  */
 
 /* libc/src/stdio/fwrite.c
- * Writes data to a file.
+ * Writes data to a file. (C89)
  */
 
+#define flockfile __flockfile
+#define funlockfile __funlockfile
+#define fwrite_unlocked __fwrite_unlocked
 #include <stdio.h>
 
 size_t fwrite(const void* restrict ptr, size_t size, size_t count,

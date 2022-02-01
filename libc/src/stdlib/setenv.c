@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2017, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/stdlib/setenv.c
- * Sets the value of an environment variable.
+ * Sets the value of an environment variable. (POSIX2008)
  */
 
+#define reallocarray __reallocarray
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,12 @@
  */
 
 /* libc/src/unistd/write.c
- * Write to a file.
+ * Write to a file. (POSIX2008, called from C89)
  */
 
 #include <unistd.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_WRITE, ssize_t, write,
+DEFINE_SYSCALL_GLOBAL(SYSCALL_WRITE, ssize_t, __write,
         (int, const void*, size_t));
+DEFINE_SYSCALL_WEAK_ALIAS(__write, write);

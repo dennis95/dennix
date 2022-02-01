@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,13 @@
  */
 
 /* libc/src/stdio/putc_unlocked.c
- * Puts a character into a file without locking.
+ * Puts a character into a file without locking. (POSIX2008, called from C89)
  */
 
+#define fputc_unlocked __fputc_unlocked
 #include <stdio.h>
 
-int putc_unlocked(int c, FILE* file) {
+int __putc_unlocked(int c, FILE* file) {
     return fputc_unlocked(c, file);
 }
+__weak_alias(__putc_unlocked, putc_unlocked);

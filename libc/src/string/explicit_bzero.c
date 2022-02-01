@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,12 +14,13 @@
  */
 
 /* libc/src/string/explicit_bzero.c
- * Delete sensitive data from memory.
+ * Delete sensitive data from memory. (called from C89)
  */
 
 #include <string.h>
 
-void explicit_bzero(void* buffer, size_t size) {
+void __explicit_bzero(void* buffer, size_t size) {
     memset(buffer, 0, size);
     asm volatile("" :: "m"(buffer) : "memory");
 }
+__weak_alias(__explicit_bzero, explicit_bzero);

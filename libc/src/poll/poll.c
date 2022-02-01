@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/poll/poll.c
- * Polling files.
+ * Polling files. (POSIX2008)
  */
 
+#define ppoll __ppoll
 #include <poll.h>
 #include <stddef.h>
 

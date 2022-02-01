@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,16 +14,22 @@
  */
 
 /* libc/src/time/tzset.c
- * Timezone information.
+ * Timezone information. (POSIX2008, called from C89)
  */
 
 #include <time.h>
 
-long altzone = 0;
-int daylight = 0;
-long timezone = 0;
-char* tzname[2] = { "UTC", "UTC" };
+long __altzone = 0;
+int __daylight = 0;
+long __timezone = 0;
+char* __tzname[2] = { "UTC", "UTC" };
 
-void tzset(void) {
+__weak_alias(__altzone, altzone);
+__weak_alias(__daylight, daylight);
+__weak_alias(__timezone, timezone);
+__weak_alias(__tzname, tzname);
+
+void __tzset(void) {
     // TODO: Set timezone information based on TZ environment variable.
 }
+__weak_alias(__tzset, tzset);

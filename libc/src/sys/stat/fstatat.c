@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,12 @@
  */
 
 /* libc/src/sys/stat/fstatat.c
- * File information.
+ * File information. (POSIX2008, called from C89)
  */
 
 #include <sys/stat.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_FSTATAT, int, fstatat,
+DEFINE_SYSCALL_GLOBAL(SYSCALL_FSTATAT, int, __fstatat,
         (int, const char* restrict, struct stat* restrict, int));
+DEFINE_SYSCALL_WEAK_ALIAS(__fstatat, fstatat);

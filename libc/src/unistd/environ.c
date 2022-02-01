@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,8 +18,11 @@
  */
 
 #include <stddef.h>
+#include <unistd.h>
 
-char** environ;
+char** __environ;
 char** __mallocedEnviron;
 size_t __environLength;
 size_t __environSize;
+
+__weak_alias(__environ, environ);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +14,7 @@
  */
 
 /* libc/src/time/timegm.c
- * Converts broken down time to time_t.
+ * Converts broken down time to time_t. (called from C89)
  */
 
 #include <errno.h>
@@ -112,7 +112,7 @@ static bool normalizeEntries(struct tm* tm) {
     return true;
 }
 
-time_t timegm(struct tm* tm) {
+time_t __timegm(struct tm* tm) {
     // The values in the tm structure might be outside of their usual range.
     // We need to normalize them before we can use them.
     if (!normalizeEntries(tm)) {
@@ -160,3 +160,4 @@ time_t timegm(struct tm* tm) {
 
     return secondsSinceEpoch;
 }
+__weak_alias(__timegm, timegm);

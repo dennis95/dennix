@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2017, 2019, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/getopt/getopt_long.c
- * Option parsing.
+ * Option parsing. (called from POSIX2008)
  */
 
+#define warnx __warnx
 #include <err.h>
 #include <getopt.h>
 #include <stdbool.h>
@@ -109,7 +110,7 @@ static int handleLongOption(char* option, const struct option* longopts,
     return '?';
 }
 
-int getopt_long(int argc, char* const argv[], const char* optstring,
+int __getopt_long(int argc, char* const argv[], const char* optstring,
         const struct option* longopts, int* longindex) {
     optarg = NULL;
     optopt = 0;
@@ -147,3 +148,4 @@ int getopt_long(int argc, char* const argv[], const char* optstring,
                 colonMode);
     }
 }
+__weak_alias(__getopt_long, getopt_long);

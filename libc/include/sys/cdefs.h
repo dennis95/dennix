@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -37,5 +37,8 @@
    inline functions in libc, so that applications can redeclare a function
    without accidentally emitting code for it. */
 #define __gnu_inline __inline__ __attribute__((__gnu_inline__))
+
+#define __weak_alias(target, alias) \
+    extern __typeof(target) alias __attribute__((__weak__, __alias__(#target)))
 
 #endif

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,13 +14,13 @@
  */
 
 /* libc/src/stdio/fflush_unlocked.c
- * Flush a file stream.
+ * Flush a file stream. (called from C89)
  */
 
 #include <errno.h>
 #include "FILE.h"
 
-int fflush_unlocked(FILE* file) {
+int __fflush_unlocked(FILE* file) {
     if (fileWasRead(file)) {
         off_t offset = -(off_t) (file->readEnd - file->readPosition);
         if (file->readPosition < UNGET_BYTES) {
@@ -53,3 +53,4 @@ int fflush_unlocked(FILE* file) {
 
     return 0;
 }
+__weak_alias(__fflush_unlocked, fflush_unlocked);

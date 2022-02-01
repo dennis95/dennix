@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,12 +14,12 @@
  */
 
 /* libc/src/stdio/ftello_unlocked.c
- * Get file position.
+ * Get file position. (called from C89)
  */
 
 #include "FILE.h"
 
-off_t ftello_unlocked(FILE* file) {
+off_t __ftello_unlocked(FILE* file) {
     off_t offset = file->seek(file, 0, SEEK_CUR);
     if (offset < 0) return offset;
 
@@ -28,3 +28,4 @@ off_t ftello_unlocked(FILE* file) {
 
     return offset;
 }
+__weak_alias(__ftello_unlocked, ftello_unlocked);

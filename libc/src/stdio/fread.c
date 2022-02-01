@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,12 @@
  */
 
 /* libc/src/stdio/fread.c
- * Read data from file.
+ * Read data from file. (C89)
  */
 
+#define flockfile __flockfile
+#define fread_unlocked __fread_unlocked
+#define funlockfile __funlockfile
 #include <stdio.h>
 
 size_t fread(void* restrict ptr, size_t size, size_t count,

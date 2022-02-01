@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,13 @@
  */
 
 /* libc/src/stdlib/mkstemp.c
- * Create a temporary file.
+ * Create a temporary file. (called from C89)
  */
 
+#define mkostemps __mkostemps
 #include <stdlib.h>
 
-int mkstemp(char* template) {
+int __mkstemp(char* template) {
     return mkostemps(template, 0, 0);
 }
+__weak_alias(__mkstemp, mkstemp);

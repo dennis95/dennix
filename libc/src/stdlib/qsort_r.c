@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +14,7 @@
  */
 
 /* libc/src/stdlib/qsort_r.c
- * Sorting.
+ * Sorting. (called from C89)
  */
 
 #include <limits.h>
@@ -107,7 +107,7 @@ static void trinkle(void* base, size_t width,
 #define up(b, c) do { size_t temp = b; b += c + 1; c = temp; } while (0)
 #define down(b, c) do { size_t temp = b; b = c; c = temp - c - 1; } while (0)
 
-void qsort_r(void* base, size_t N, size_t width,
+void __qsort_r(void* base, size_t N, size_t width,
         int (*compare)(const void*, const void*, void*), void* arg) {
     size_t q = 1;
     p_type p = {0};
@@ -183,6 +183,7 @@ void qsort_r(void* base, size_t N, size_t width,
         }
     }
 }
+__weak_alias(__qsort_r, qsort_r);
 
 static void semitrinkle(void* base, size_t width,
         int (*compare)(const void*, const void*, void*), void* arg,

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,12 @@
  */
 
 /* libc/src/stdio/clearerr_unlocked.c
- * Clears end-of-file and error indicators.
+ * Clears end-of-file and error indicators. (called from C89)
  */
 
 #include "FILE.h"
 
-void clearerr_unlocked(FILE* file) {
+void __clearerr_unlocked(FILE* file) {
     file->flags &= ~(FILE_FLAG_EOF | FILE_FLAG_ERROR);
 }
+__weak_alias(__clearerr_unlocked, clearerr_unlocked);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,15 +14,16 @@
  */
 
 /* libc/src/unistd/access.c
- * Checks accessibility of a file.
+ * Checks accessibility of a file. (POSIX2008, called from C89)
  */
 
+#define stat __stat
 #include <errno.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <sys/stat.h>
 
-int access(const char* path, int mode) {
+int __access(const char* path, int mode) {
     struct stat st;
     if (stat(path, &st) < 0) {
         return -1;
@@ -46,3 +47,4 @@ int access(const char* path, int mode) {
     }
     return 0;
 }
+__weak_alias(__access, access);

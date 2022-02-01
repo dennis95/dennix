@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/dirent/scandir.c
- * Scanning a directory.
+ * Scanning a directory. (POSIX2008)
  */
 
+#define reallocarray __reallocarray
 #include <dirent.h>
 #include <errno.h>
 #include <limits.h>

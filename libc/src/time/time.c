@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/time/time.c
- * Gets the current time.
+ * Gets the current time. (C89)
  */
 
+#define clock_gettime __clock_gettime
 #include <time.h>
 
 time_t time(time_t* result) {

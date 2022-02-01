@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +14,7 @@
  */
 
 /* libc/src/fcntl/openat.c
- * Opens a file.
+ * Opens a file. (POSIX2008, called from C89)
  */
 
 #include <stdarg.h>
@@ -24,7 +24,7 @@
 DEFINE_SYSCALL(SYSCALL_OPENAT, int, sys_openat,
         (int, const char*, int, mode_t));
 
-int openat(int fd, const char* path, int flags, ...) {
+int __openat(int fd, const char* path, int flags, ...) {
     mode_t mode = 0;
 
     if (flags & O_CREAT) {
@@ -36,3 +36,4 @@ int openat(int fd, const char* path, int flags, ...) {
 
     return sys_openat(fd, path, flags, mode);
 }
+__weak_alias(__openat, openat);

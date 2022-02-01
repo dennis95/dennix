@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,13 +14,13 @@
  */
 
 /* libc/src/stdlib/reallocarray.c
- * Changes the size of an allocation.
+ * Changes the size of an allocation. (called from C89)
  */
 
 #include <errno.h>
 #include <stdlib.h>
 
-void* reallocarray(void* ptr, size_t size1, size_t size2) {
+void* __reallocarray(void* ptr, size_t size1, size_t size2) {
     size_t resultSize;
     if (__builtin_mul_overflow(size1, size2, &resultSize)) {
         errno = ENOMEM;
@@ -28,3 +28,4 @@ void* reallocarray(void* ptr, size_t size1, size_t size2) {
     }
     return realloc(ptr, resultSize);
 }
+__weak_alias(__reallocarray, reallocarray);

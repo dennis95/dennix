@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,12 @@
  */
 
 /* libc/src/sys/socket/accept4.c
- * Accept an incoming connection on a socket.
+ * Accept an incoming connection on a socket. (called from POSIX2008)
  */
 
 #include <sys/socket.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_ACCEPT4, int, accept4,
+DEFINE_SYSCALL_GLOBAL(SYSCALL_ACCEPT4, int, __accept4,
         (int, struct sockaddr* restrict, socklen_t* restrict, int));
+DEFINE_SYSCALL_WEAK_ALIAS(__accept4, accept4);

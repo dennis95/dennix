@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,12 @@
  */
 
 /* libc/src/signal/sigaction.c
- * Sets the action for a signal.
+ * Sets the action for a signal. (POSIX2008, called from C89)
  */
 
 #include <signal.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_SIGACTION, int, sigaction,
+DEFINE_SYSCALL_GLOBAL(SYSCALL_SIGACTION, int, __sigaction,
         (int, const struct sigaction* restrict, struct sigaction* restrict));
+DEFINE_SYSCALL_WEAK_ALIAS(__sigaction, sigaction);

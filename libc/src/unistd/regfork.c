@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,10 +14,11 @@
  */
 
 /* libc/src/unistd/regfork.c
- * Creates a new process.
+ * Creates a new process. (called from C89)
  */
 
 #include <unistd.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_REGFORK, pid_t, regfork, (int, regfork_t*));
+DEFINE_SYSCALL_GLOBAL(SYSCALL_REGFORK, pid_t, __regfork, (int, regfork_t*));
+DEFINE_SYSCALL_WEAK_ALIAS(__regfork, regfork);

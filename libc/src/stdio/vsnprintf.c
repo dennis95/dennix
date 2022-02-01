@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/stdio/vsnprintf.c
- * Print formatted output.
+ * Print formatted output. (C99, called from C89)
  */
 
+#define vcbprintf __vcbprintf
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
@@ -39,7 +40,7 @@ static size_t callback(void* arg, const char* s, size_t length) {
     return length;
 }
 
-int vsnprintf(char* restrict s, size_t n, const char* restrict format,
+int __vsnprintf(char* restrict s, size_t n, const char* restrict format,
         va_list ap) {
     if (n > INT_MAX) {
         errno = EOVERFLOW;
@@ -57,3 +58,4 @@ int vsnprintf(char* restrict s, size_t n, const char* restrict format,
     }
     return result;
 }
+__weak_alias(__vsnprintf, vsnprintf);

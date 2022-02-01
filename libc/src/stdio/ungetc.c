@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,12 @@
  */
 
 /* libc/src/stdio/ungetc.c
- * Push back byte to file stream.
+ * Push back byte to file stream. (C89)
  */
 
+#define flockfile __flockfile
+#define funlockfile __funlockfile
+#define ungetc_unlocked __ungetc_unlocked
 #include <stdio.h>
 
 int ungetc(int c, FILE* file) {

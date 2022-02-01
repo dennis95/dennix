@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +14,7 @@
  */
 
 /* libc/src/wchar/mbrtowc.c
- * Convert a multi byte character to a wide character.
+ * Convert a multi byte character to a wide character. (C95, called from C89)
  */
 
 #include <errno.h>
@@ -22,7 +22,7 @@
 
 static mbstate_t staticPs;
 
-size_t mbrtowc(wchar_t* restrict wc, const char* restrict s, size_t size,
+size_t __mbrtowc(wchar_t* restrict wc, const char* restrict s, size_t size,
         mbstate_t* restrict ps) {
     if (!s) {
         wc = NULL;
@@ -95,3 +95,4 @@ size_t mbrtowc(wchar_t* restrict wc, const char* restrict s, size_t size,
 
     return -2;
 }
+__weak_alias(__mbrtowc, mbrtowc);

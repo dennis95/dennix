@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,11 @@
  */
 
 /* libc/src/signal/signal.c
- * Sets the action for a signal.
+ * Sets the action for a signal. (C89)
  */
 
+#define sigaction __sigaction
+#define sigemptyset __sigemptyset
 #include <signal.h>
 
 void (*signal(int signum, void (*handler)(int)))(int) {

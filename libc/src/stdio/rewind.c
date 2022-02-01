@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,12 @@
  */
 
 /* libc/src/stdio/rewind.c
- * Reset file position.
+ * Reset file position. (C89)
  */
 
+#define flockfile __flockfile
+#define fseeko_unlocked __fseeko_unlocked
+#define funlockfile __funlockfile
 #include "FILE.h"
 
 void rewind(FILE* file) {

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +14,7 @@
  */
 
 /* libc/src/fcntl/fcntl.c
- * File control.
+ * File control. (POSIX2008, called from C89)
  */
 
 #include <fcntl.h>
@@ -23,7 +23,7 @@
 
 DEFINE_SYSCALL(SYSCALL_FCNTL, int, sys_fcntl, (int, int, int));
 
-int fcntl(int fd, int cmd, ...) {
+int __fcntl(int fd, int cmd, ...) {
     va_list ap;
     va_start(ap, cmd);
     int param = 0;
@@ -38,3 +38,4 @@ int fcntl(int fd, int cmd, ...) {
 
     return sys_fcntl(fd, cmd, param);
 }
+__weak_alias(__fcntl, fcntl);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,19 +18,22 @@
  */
 
 #include <errno.h>
+#include <stddef.h>
 
-char* program_invocation_name;
-char* program_invocation_short_name;
+char* __program_invocation_name;
+char* __program_invocation_short_name;
+__weak_alias(__program_invocation_name, program_invocation_name);
+__weak_alias(__program_invocation_short_name, program_invocation_short_name);
 
 void __initProgname(char* argv[]) {
-    program_invocation_name = argv[0] ? argv[0] : "";
-    program_invocation_short_name = program_invocation_name;
+    __program_invocation_name = argv[0] ? argv[0] : "";
+    __program_invocation_short_name = __program_invocation_name;
 
     // Get the last part of argv[0].
-    char* s = program_invocation_name;
+    char* s = __program_invocation_name;
     while (*s) {
         if (*s++ == '/') {
-            program_invocation_short_name = s;
+            __program_invocation_short_name = s;
         }
     }
 }

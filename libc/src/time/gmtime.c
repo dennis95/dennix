@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/time/gmtime.c
- * Converts time_t to broken-down time.
+ * Converts time_t to broken-down time. (C89)
  */
 
+#define gmtime_r __gmtime_r
 #include <time.h>
 
 static struct tm buffer;

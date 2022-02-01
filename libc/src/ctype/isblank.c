@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2022 Dennis Wölfing
+/* Copyright (c) 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,29 +13,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/stdlib/getenv.c
- * Gets the value of an environment variable. (C89)
+/* libc/src/ctype/isblank.c
+ * Character types. (C99)
  */
 
-#define environ __environ
-#include <stdlib.h>
-#include <string.h>
+#include <ctype.h>
 
-extern char** environ;
-
-char* getenv(const char* name) {
-    size_t nameLength = strlen(name);
-
-    char** envp = environ;
-
-    while (*envp) {
-        size_t length = strcspn(*envp, "=");
-        if (length == nameLength && strncmp(name, *envp, length) == 0) {
-            return *envp + length + 1;
-        }
-
-        envp++;
-    }
-
-    return NULL;
-}
+__gnu_inline int isblank(int);

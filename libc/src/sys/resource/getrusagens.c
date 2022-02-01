@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,12 @@
  */
 
 /* libc/src/sys/resource/getrusagens.c
- * Get resource usage.
+ * Get resource usage. (called from POSIX2008)
  */
 
 #include <sys/resource.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_GETRUSAGENS, int, getrusagens,
+DEFINE_SYSCALL_GLOBAL(SYSCALL_GETRUSAGENS, int, __getrusagens,
         (int, struct rusagens*));
+DEFINE_SYSCALL_WEAK_ALIAS(__getrusagens, getrusagens);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,13 +14,13 @@
  */
 
 /* libc/src/stdio/fwrite_unlocked.c
- * Writes data to a file.
+ * Writes data to a file. (called from C89)
  */
 
 #include <string.h>
 #include "FILE.h"
 
-size_t fwrite_unlocked(const void* restrict ptr, size_t size, size_t count,
+size_t __fwrite_unlocked(const void* restrict ptr, size_t size, size_t count,
         FILE* restrict file) {
     size_t bytes = size * count;
     if (!bytes) return 0;
@@ -67,3 +67,4 @@ size_t fwrite_unlocked(const void* restrict ptr, size_t size, size_t count,
     file->writePosition += bytes - written;
     return count;
 }
+__weak_alias(__fwrite_unlocked, fwrite_unlocked);

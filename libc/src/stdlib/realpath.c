@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/stdlib/realpath.c
- * Canonicalize a file name.
+ * Canonicalize a file name. (POSIX2008)
  */
 
+#define canonicalize_file_name __canonicalize_file_name
 #include <stdlib.h>
 
 char* realpath(const char* restrict filename, char* restrict null) {

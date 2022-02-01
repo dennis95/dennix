@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,13 @@
  */
 
 /* libc/src/stdio/getchar_unlocked.c
- * Gets a character from stdin without locking.
+ * Gets a character from stdin without locking. (POSIX2008, called from C89)
  */
 
+#define getc_unlocked __getc_unlocked
 #include <stdio.h>
 
-int getchar_unlocked(void) {
+int __getchar_unlocked(void) {
     return getc_unlocked(stdin);
 }
+__weak_alias(__getchar_unlocked, getchar_unlocked);

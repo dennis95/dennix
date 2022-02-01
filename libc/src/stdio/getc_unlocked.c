@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,13 @@
  */
 
 /* libc/src/stdio/getc_unlocked.c
- * Gets a character from a file without locking.
+ * Gets a character from a file without locking. (POSIX2008, called from C89)
  */
 
+#define fgetc_unlocked __fgetc_unlocked
 #include <stdio.h>
 
-int getc_unlocked(FILE* file) {
+int __getc_unlocked(FILE* file) {
     return fgetc_unlocked(file);
 }
+__weak_alias(__getc_unlocked, getc_unlocked);

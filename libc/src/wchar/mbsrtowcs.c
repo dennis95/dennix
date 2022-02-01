@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,14 +15,16 @@
 
 /* libc/src/wchar/mbsrtowcs.c
  * Convert a multi byte string to a wide character string.
+ * (C95, called from C89)
  */
 
+#define mbrtowc __mbrtowc
 #include <stdint.h>
 #include <wchar.h>
 
 static mbstate_t staticPs;
 
-size_t mbsrtowcs(wchar_t* restrict wcs, const char** restrict s, size_t size,
+size_t __mbsrtowcs(wchar_t* restrict wcs, const char** restrict s, size_t size,
         mbstate_t* restrict ps) {
     if (!ps) {
         ps = &staticPs;
@@ -42,3 +44,4 @@ size_t mbsrtowcs(wchar_t* restrict wcs, const char** restrict s, size_t size,
 
     return size;
 }
+__weak_alias(__mbsrtowcs, mbsrtowcs);

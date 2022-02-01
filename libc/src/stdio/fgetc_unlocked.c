@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,12 +14,13 @@
  */
 
 /* libc/src/stdio/fgetc_unlocked.c
- * Gets a character from a file without locking.
+ * Gets a character from a file without locking. (called from C89)
  */
 
+#define fread_unlocked __fread_unlocked
 #include <stdio.h>
 
-int fgetc_unlocked(FILE* file) {
+int __fgetc_unlocked(FILE* file) {
     unsigned char result;
     if (fread_unlocked(&result, 1, 1, file) != 1) {
         return EOF;
@@ -27,3 +28,4 @@ int fgetc_unlocked(FILE* file) {
 
     return result;
 }
+__weak_alias(__fgetc_unlocked, fgetc_unlocked);

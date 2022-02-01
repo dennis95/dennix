@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,10 +14,11 @@
  */
 
 /* libc/src/sys/wait/waitpid.c
- * Waits until a child process terminates.
+ * Waits until a child process terminates. (POSIX2008, called from C89)
  */
 
 #include <sys/syscall.h>
 #include <sys/wait.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_WAITPID, pid_t, waitpid, (pid_t, int*, int));
+DEFINE_SYSCALL_GLOBAL(SYSCALL_WAITPID, pid_t, __waitpid, (pid_t, int*, int));
+DEFINE_SYSCALL_WEAK_ALIAS(__waitpid, waitpid);

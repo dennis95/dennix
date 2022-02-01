@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,10 +14,11 @@
  */
 
 /* libc/src/signal/kill.c
- * Sends a signal to a process.
+ * Sends a signal to a process. (POSIX2008, called from C89)
  */
 
 #include <signal.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_KILL, int, kill, (pid_t, int));
+DEFINE_SYSCALL_GLOBAL(SYSCALL_KILL, int, __kill, (pid_t, int));
+DEFINE_SYSCALL_WEAK_ALIAS(__kill, kill);

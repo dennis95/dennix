@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,10 +14,11 @@
  */
 
 /* libc/src/unistd/getentropy.c
- * Get entropy.
+ * Get entropy. (called from C89)
  */
 
 #include <unistd.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_GETENTROPY, int, getentropy, (void*, size_t));
+DEFINE_SYSCALL_GLOBAL(SYSCALL_GETENTROPY, int, __getentropy, (void*, size_t));
+DEFINE_SYSCALL_WEAK_ALIAS(__getentropy, getentropy);

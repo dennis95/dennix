@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,14 +14,16 @@
  */
 
 /* libc/src/stdio/fputs_unlocked.c
- * Puts a string into a file without locking.
+ * Puts a string into a file without locking. (called from C89)
  */
 
+#define fputc_unlocked __fputc_unlocked
 #include <stdio.h>
 
-int fputs_unlocked(const char* restrict s, FILE* restrict file) {
+int __fputs_unlocked(const char* restrict s, FILE* restrict file) {
     while (*s) {
         if (fputc_unlocked(*s++, file) < 0) return EOF;
     }
     return 1;
 }
+__weak_alias(__fputs_unlocked, fputs_unlocked);

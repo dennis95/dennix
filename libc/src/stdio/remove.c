@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/stdio/remove.c
- * Removes a file.
+ * Removes a file. (C89)
  */
 
+#define unlinkat __unlinkat
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2021 Dennis Wölfing
+/* Copyright (c) 2018, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/stdlib/mkdtemp.c
- * Create a temporary directory.
+ * Create a temporary directory. (POSIX2008)
  */
 
+#define arc4random_buf __arc4random_buf
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>

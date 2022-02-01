@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,12 @@
  */
 
 /* libc/src/unistd/execve.c
- * Executes a program.
+ * Executes a program. (POSIX2008, called from C89)
  */
 
 #include <unistd.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_EXECVE, int, execve,
+DEFINE_SYSCALL_GLOBAL(SYSCALL_EXECVE, int, __execve,
         (const char*, char* const[], char* const[]));
+DEFINE_SYSCALL_WEAK_ALIAS(__execve, execve);

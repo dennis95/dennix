@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,12 +14,12 @@
  */
 
 /* libc/src/arch/i686/rfork.S
- * Creates a new process.
+ * Creates a new process. (called from C89)
  */
 
-.global rfork
-.type rfork, @function
-rfork:
+.global __rfork
+.type __rfork, @function
+__rfork:
     push %ebp
     mov %esp, %ebp
     sub $8, %esp
@@ -38,7 +38,9 @@ rfork:
     push %esp
     push 8(%ebp)
 
-    call regfork
+    call __regfork
 1:  leave
     ret
-.size rfork, . - rfork
+.size __rfork, . - __rfork
+.weak rfork
+.set rfork, __rfork

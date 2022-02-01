@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,13 +14,13 @@
  */
 
 /* libc/src/signal/sigaddset.c
- * Adds a signal to a sigset.
+ * Adds a signal to a sigset. (POSIX2008, called from C89)
  */
 
 #include <errno.h>
 #include <signal.h>
 
-int sigaddset(sigset_t* set, int signal) {
+int __sigaddset(sigset_t* set, int signal) {
     if ((size_t) signal > sizeof(sigset_t) * 8) {
         errno = EINVAL;
         return -1;
@@ -29,3 +29,4 @@ int sigaddset(sigset_t* set, int signal) {
     *set |= _SIGSET(signal);
     return 0;
 }
+__weak_alias(__sigaddset, sigaddset);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,6 +20,7 @@
 #ifndef _SYS_MMAN_H
 #define _SYS_MMAN_H
 
+#include <sys/cdefs.h>
 #define __need_mode_t
 #define __need_off_t
 #define __need_size_t

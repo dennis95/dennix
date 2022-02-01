@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,14 +14,18 @@
  */
 
 /* libc/src/stdio/fseeko.c
- * Set file position.
+ * Set file position. (POSIX2008, called from C89)
  */
 
+#define flockfile __flockfile
+#define fseeko_unlocked __fseeko_unlocked
+#define funlockfile __funlockfile
 #include <stdio.h>
 
-int fseeko(FILE* file, off_t offset, int whence) {
+int __fseeko(FILE* file, off_t offset, int whence) {
     flockfile(file);
     int result = fseeko_unlocked(file, offset, whence);
     funlockfile(file);
     return result;
 }
+__weak_alias(__fseeko, fseeko);

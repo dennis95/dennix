@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +14,7 @@
  */
 
 /* libc/src/sys/mman/mmap.c
- * Map pages.
+ * Map pages. (POSIX2008, called from C89)
  */
 
 #include <sys/mman.h>
@@ -22,7 +22,7 @@
 
 DEFINE_SYSCALL(SYSCALL_MMAP, void*, sys_mmap, (struct __mmapRequest*));
 
-void* mmap(void* addr, size_t size, int protection, int flags, int fd,
+void* __mmap(void* addr, size_t size, int protection, int flags, int fd,
         off_t offset) {
     struct __mmapRequest request = {
         ._addr = addr,
@@ -35,3 +35,4 @@ void* mmap(void* addr, size_t size, int protection, int flags, int fd,
 
     return sys_mmap(&request);
 }
+__weak_alias(__mmap, mmap);

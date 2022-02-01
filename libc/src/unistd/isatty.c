@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,10 +14,11 @@
  */
 
 /* libc/src/unistd/isatty.c
- * Check whether a file is a terminal.
+ * Check whether a file is a terminal. (POSIX2008, called from C89)
  */
 
 #include <unistd.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_ISATTY, int, isatty, (int));
+DEFINE_SYSCALL_GLOBAL(SYSCALL_ISATTY, int, __isatty, (int));
+DEFINE_SYSCALL_WEAK_ALIAS(__isatty, isatty);

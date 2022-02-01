@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -22,7 +22,8 @@ BUILD = $(BUILD_DIR)/libc
 
 ARFLAGS = -crs
 CFLAGS ?= -O2 -g
-CFLAGS += --sysroot=$(SYSROOT) -std=gnu11 -ffreestanding -Wall -Wextra
+CFLAGS += --sysroot=$(SYSROOT) -std=gnu11 -ffreestanding -fno-common
+CFLAGS += -Wall -Wextra
 CPPFLAGS += -I include -D_ALL_SOURCE
 
 LIBC_FLAGS += -D__is_dennix_libc
@@ -32,6 +33,7 @@ COMMON_OBJ = \
 	crt/init \
 	crt/fini \
 	ctype/ctype \
+	ctype/isblank \
 	getopt/getopt \
 	getopt/getopt_long \
 	inttypes/strtoimax \

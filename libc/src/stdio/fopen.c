@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,12 @@
  */
 
 /* libc/src/stdio/fopen.c
- * Opens a file.
+ * Opens a file. (C89)
  */
 
+#define close __close
+#define fdopen __fdopen
+#define open __open
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>

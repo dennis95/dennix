@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,12 @@
  */
 
 /* libc/src/stdio/fputs.c
- * Puts a string into a file.
+ * Puts a string into a file. (C89)
  */
 
+#define flockfile __flockfile
+#define fputs_unlocked __fputs_unlocked
+#define funlockfile __funlockfile
 #include <stdio.h>
 
 int fputs(const char* restrict s, FILE* restrict file) {

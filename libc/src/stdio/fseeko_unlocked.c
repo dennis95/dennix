@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,13 +14,14 @@
  */
 
 /* libc/src/stdio/fseeko_unlocked.c
- * Set file position.
+ * Set file position. (called from C89)
  */
 
+#define fflush_unlocked __fflush_unlocked
 #include "FILE.h"
 #include <errno.h>
 
-int fseeko_unlocked(FILE* file, off_t offset, int whence) {
+int __fseeko_unlocked(FILE* file, off_t offset, int whence) {
     if (fileWasWritten(file) && fflush_unlocked(file) == EOF) {
         return -1;
     }
@@ -40,3 +41,4 @@ int fseeko_unlocked(FILE* file, off_t offset, int whence) {
     file->readEnd = UNGET_BYTES;
     return 0;
 }
+__weak_alias(__fseeko_unlocked, fseeko_unlocked);

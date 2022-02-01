@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,14 +14,13 @@
  */
 
 /* libc/src/ctype/ctype.c
- * Character types.
+ * Character types. (C89)
  */
 
 #include <ctype.h>
 
 __gnu_inline int isalnum(int);
 __gnu_inline int isalpha(int);
-__gnu_inline int isblank(int);
 __gnu_inline int iscntrl(int);
 __gnu_inline int isdigit(int);
 __gnu_inline int isgraph(int);

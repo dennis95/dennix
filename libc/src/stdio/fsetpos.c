@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/stdio/fsetpos.c
- * Set file position.
+ * Set file position. (C89)
  */
 
+#define fseeko __fseeko
 #include <stdio.h>
 
 int fsetpos(FILE* restrict file, const fpos_t* restrict pos) {

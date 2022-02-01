@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,11 @@
  */
 
 /* libc/src/stdlib/mkostemps.c
- * Create a temporary file.
+ * Create a temporary file. (called from C89)
  */
 
+#define arc4random_buf __arc4random_buf
+#define open __open
 #include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
@@ -26,7 +28,7 @@
 static const char* letters =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
-int mkostemps(char* template, int suffixLength, int flags) {
+int __mkostemps(char* template, int suffixLength, int flags) {
     size_t length = strlen(template);
     if (length < (size_t) suffixLength + 6) {
         errno = EINVAL;
@@ -53,3 +55,4 @@ int mkostemps(char* template, int suffixLength, int flags) {
 
     return -1;
 }
+__weak_alias(__mkostemps, mkostemps);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,9 +28,10 @@ int iswalpha(wint_t c) {
     return c <= 255 ? isalpha(c) : 0;
 }
 
-int iswblank(wint_t c) {
-    return c <= 255 ? isblank(c) : 0;
+int __iswblank(wint_t c) {
+    return c == L'\t' || c == L' ';
 }
+__weak_alias(__iswblank, iswblank);
 
 int iswcntrl(wint_t c) {
     return c <= 255 ? iscntrl(c) : 0;

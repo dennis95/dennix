@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,12 +14,14 @@
  */
 
 /* libc/src/sys/stat/stat.c
- * File information.
+ * File information. (POSIX2008, called from C89)
  */
 
+#define fstatat __fstatat
 #include <fcntl.h>
 #include <sys/stat.h>
 
-int stat(const char* restrict path, struct stat* restrict result) {
+int __stat(const char* restrict path, struct stat* restrict result) {
     return fstatat(AT_FDCWD, path, result, 0);
 }
+__weak_alias(__stat, stat);

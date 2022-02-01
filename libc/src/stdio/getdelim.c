@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2017, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,11 @@
  */
 
 /* libc/src/stdio/getdelim.c
- * Reads from a file until a given delimiter.
+ * Reads from a file until a given delimiter. (POSIX2008)
  */
 
+#define fgetc_unlocked __fgetc_unlocked
+#define reallocarray __reallocarray
 #include <errno.h>
 #include <stdlib.h>
 #include "FILE.h"

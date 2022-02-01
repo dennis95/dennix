@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,12 +14,13 @@
  */
 
 /* libc/src/signal/sigemptyset.c
- * Empties a sigset.
+ * Empties a sigset. (POSIX2008, called from C89)
  */
 
 #include <signal.h>
 
-int sigemptyset(sigset_t* set) {
+int __sigemptyset(sigset_t* set) {
     *set = 0;
     return 0;
 }
+__weak_alias(__sigemptyset, sigemptyset);

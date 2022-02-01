@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,13 @@
  */
 
 /* libc/src/stdio/tmpfile.c
- * Create a temporary file.
+ * Create a temporary file. (C89)
  */
 
+#define close __close
+#define fdopen __fdopen
+#define mkstemp __mkstemp
+#define unlink __unlink
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

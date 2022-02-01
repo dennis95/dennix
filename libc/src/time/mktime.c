@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,13 @@
  */
 
 /* libc/src/time/mktime.c
- * Converts broken-down local time to time_t.
+ * Converts broken-down local time to time_t. (C89)
  */
 
+#define altzone __altzone
+#define timegm __timegm
+#define timezone __timezone
+#define tzset __tzset
 #include <errno.h>
 #include <time.h>
 

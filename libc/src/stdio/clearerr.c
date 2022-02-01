@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,12 @@
  */
 
 /* libc/src/stdio/clearerr.c
- * Clears end-of-file and error indicators.
+ * Clears end-of-file and error indicators. (C89)
  */
 
+#define clearerr_unlocked __clearerr_unlocked
+#define flockfile __flockfile
+#define funlockfile __funlockfile
 #include <stdio.h>
 
 void clearerr(FILE* file) {

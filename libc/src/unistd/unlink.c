@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,12 +14,14 @@
  */
 
 /* libc/src/unistd/unlink.c
- * Unlinks a file.
+ * Unlinks a file. (POSIX2008, called from C89)
  */
 
+#define unlinkat __unlinkat
 #include <fcntl.h>
 #include <unistd.h>
 
-int unlink(const char* path) {
+int __unlink(const char* path) {
     return unlinkat(AT_FDCWD, path, 0);
 }
+__weak_alias(__unlink, unlink);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,15 +14,16 @@
  */
 
 /* libc/src/err/vwarnx.c
- * Prints an error message.
+ * Prints an error message. (called from POSIX2008)
  */
 
+#define program_invocation_short_name __program_invocation_short_name
 #include <err.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 
-void vwarnx(const char* format, va_list ap) {
+void __vwarnx(const char* format, va_list ap) {
     fputs(program_invocation_short_name, stderr);
     fputs(": ", stderr);
     if (format) {
@@ -30,3 +31,4 @@ void vwarnx(const char* format, va_list ap) {
     }
     fputc('\n', stderr);
 }
+__weak_alias(__vwarnx, vwarnx);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,6 +24,8 @@
 #include <stdlib.h>
 
 #if __is_dennix_libc
+#  define mmap __mmap
+#  define munmap __munmap
 #  include <sys/mman.h>
 #  define mapMemory(size) mmap(NULL, size, PROT_READ | PROT_WRITE, \
         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)

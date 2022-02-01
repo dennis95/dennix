@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,13 +14,16 @@
  */
 
 /* libc/src/unistd/execv.c
- * Executes a program.
+ * Executes a program. (POSIX2008, called from C89)
  */
 
+#define environ __environ
+#define execve __execve
 #include <unistd.h>
 
 extern char** environ;
 
-int execv(const char* path, char* const argv[]) {
+int __execv(const char* path, char* const argv[]) {
     return execve(path, argv, environ);
 }
+__weak_alias(__execv, execv);

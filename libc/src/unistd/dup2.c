@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/unistd/dup2.c
- * Duplicates a file descriptor.
+ * Duplicates a file descriptor. (POSIX2008)
  */
 
+#define dup3 __dup3
 #include <unistd.h>
 
 int dup2(int fd1, int fd2) {

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +14,7 @@
  */
 
 /* libc/src/time/gmtime_r.c
- * Converts time_t to broken-down time.
+ * Converts time_t to broken-down time. (POSIX2008, called from C89)
  */
 
 #include <errno.h>
@@ -65,7 +65,7 @@ static time_t daysPerMonth(int month, time_t year) {
     }
 }
 
-struct tm* gmtime_r(const time_t* restrict time, struct tm* restrict tm) {
+struct tm* __gmtime_r(const time_t* restrict time, struct tm* restrict tm) {
     time_t secondsLeft = *time;
     time_t year = 1970;
     time_t daysSinceEpoch = 0;
@@ -118,3 +118,4 @@ struct tm* gmtime_r(const time_t* restrict time, struct tm* restrict tm) {
 
     return tm;
 }
+__weak_alias(__gmtime_r, gmtime_r);

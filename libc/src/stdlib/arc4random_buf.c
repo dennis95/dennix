@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,14 @@
  */
 
 /* libc/src/stdlib/arc4random_buf.c
- * Generate random bytes using the ChaCha20 algorithm.
+ * Generate random bytes using the ChaCha20 algorithm. (called from C89)
  */
 
+#ifndef __is_dennix_libk
+#  define explicit_bzero __explicit_bzero
+#  define getentropy __getentropy
+#  define getpid __getpid
+#endif
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -83,7 +88,7 @@ static void stir(void) {
     explicit_bzero(entropy, sizeof(entropy));
 }
 
-void arc4random_buf(void* result, size_t size) {
+void __arc4random_buf(void* result, size_t size) {
 #ifdef __is_dennix_libk
     __lockRandom();
 #endif
@@ -115,3 +120,4 @@ void arc4random_buf(void* result, size_t size) {
     __unlockRandom();
 #endif
 }
+__weak_alias(__arc4random_buf, arc4random_buf);

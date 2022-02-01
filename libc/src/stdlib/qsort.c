@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/stdlib/qsort.c
- * Sorting.
+ * Sorting. (C89)
  */
 
+#define qsort_r __qsort_r
 #include <stdlib.h>
 
 int compareWrapper(const void* a, const void* b, void* arg) {

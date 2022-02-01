@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,14 +14,15 @@
  */
 
 /* libc/src/unistd/execl.c
- * Executes a program.
+ * Executes a program. (POSIX2008, called from C89)
  */
 
+#define execv __execv
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-int execl(const char* path, const char* argv0, ...) {
+int __execl(const char* path, const char* argv0, ...) {
     // Count the arguments
     int argc = 1;
     va_list ap;
@@ -49,3 +50,4 @@ int execl(const char* path, const char* argv0, ...) {
     free(argv);
     return -1;
 }
+__weak_alias(__execl, execl);

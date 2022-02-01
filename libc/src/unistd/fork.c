@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,13 @@
  */
 
 /* libc/src/unistd/fork.c
- * Creates a copy of the current process.
+ * Creates a copy of the current process. (POSIX2008, called from C89)
  */
 
+#define rfork __rfork
 #include <unistd.h>
 
-pid_t fork(void) {
+pid_t __fork(void) {
     return rfork(_RFFORK);
 }
+__weak_alias(__fork, fork);

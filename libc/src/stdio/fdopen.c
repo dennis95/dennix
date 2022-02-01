@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,14 +14,15 @@
  */
 
 /* libc/src/stdio/fdopen.c
- * Associates a file with a file descriptor.
+ * Associates a file with a file descriptor. (POSIX2008, called from C89)
  */
 
+#define isatty __isatty
 #include <stdlib.h>
 #include <unistd.h>
 #include "FILE.h"
 
-FILE* fdopen(int fd, const char* mode) {
+FILE* __fdopen(int fd, const char* mode) {
     (void) mode;
 
     FILE* file = malloc(sizeof(FILE));
@@ -57,3 +58,4 @@ FILE* fdopen(int fd, const char* mode) {
     __firstFile = file;
     return file;
 }
+__weak_alias(__fdopen, fdopen);

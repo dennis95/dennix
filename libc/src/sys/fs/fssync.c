@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,10 +14,11 @@
  */
 
 /* libc/src/sys/fs/fssync.c
- * Filesystem synchronization.
+ * Filesystem synchronization. (called from POSIX2008)
  */
 
 #include <sys/fs.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_FSSYNC, int, fssync, (int, int));
+DEFINE_SYSCALL_GLOBAL(SYSCALL_FSSYNC, int, __fssync, (int, int));
+DEFINE_SYSCALL_WEAK_ALIAS(__fssync, fssync);

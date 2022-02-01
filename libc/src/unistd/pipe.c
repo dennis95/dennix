@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/unistd/pipe.c
- * Create a pipe.
+ * Create a pipe. (POSIX2008)
  */
 
+#define pipe2 __pipe2
 #include <unistd.h>
 
 int pipe(int fd[2]) {

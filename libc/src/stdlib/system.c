@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,17 @@
  */
 
 /* libc/src/stdlib/system.c
- * Execute a command.
+ * Execute a command. (C89)
  */
 
+#define access __access
+#define execl __execl
+#define fork __fork
+#define sigaction __sigaction
+#define sigaddset __sigaddset
+#define sigemptyset __sigemptyset
+#define sigprocmask __sigprocmask
+#define waitpid __waitpid
 #include <errno.h>
 #include <signal.h>
 #include <stdlib.h>

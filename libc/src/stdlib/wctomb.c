@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/stdlib/wctomb.c
- * Convert a wide character to a multibyte character.
+ * Convert a wide character to a multibyte character. (C89)
  */
 
+#define wcrtomb __wcrtomb
 #include <stdlib.h>
 #include <wchar.h>
 

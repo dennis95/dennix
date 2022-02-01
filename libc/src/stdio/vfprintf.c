@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,12 @@
  */
 
 /* libc/src/stdio/vfprintf.c
- * Print format.
+ * Print format. (C89)
  */
 
+#define flockfile __flockfile
+#define funlockfile __funlockfile
+#define fwrite_unlocked __fwrite_unlocked
 #include <stdarg.h>
 #include <stdio.h>
 

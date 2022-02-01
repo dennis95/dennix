@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/stdio/rename.c
- * Renames a file.
+ * Renames a file. (C89)
  */
 
+#define renameat __renameat
 #include <fcntl.h>
 #include <stdio.h>
 

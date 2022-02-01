@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,13 +14,13 @@
  */
 
 /* libc/src/stdlib/mbtowc.c
- * Convert a multi byte character to a wide character.
+ * Convert a multi byte character to a wide character. (C89)
  */
 
+#define mbrtowc __mbrtowc
 #include <errno.h>
 #include <stdlib.h>
 #include <wchar.h>
-
 
 int mbtowc(wchar_t* restrict wc, const char* restrict s, size_t size) {
     if (!s) return 0;

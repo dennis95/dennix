@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,13 +14,14 @@
  */
 
 /* libc/src/fcntl/open.c
- * Opens a file.
+ * Opens a file. (POSIX2008, called from C89)
  */
 
+#define openat __openat
 #include <stdarg.h>
 #include <fcntl.h>
 
-int open(const char* path, int flags, ...) {
+int __open(const char* path, int flags, ...) {
     mode_t mode = 0;
 
     if (flags & O_CREAT) {
@@ -32,3 +33,4 @@ int open(const char* path, int flags, ...) {
 
     return openat(AT_FDCWD, path, flags, mode);
 }
+__weak_alias(__open, open);

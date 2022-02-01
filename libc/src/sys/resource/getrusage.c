@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/sys/resource/getrusage.c
- * Get resource usage.
+ * Get resource usage. (POSIX2008)
  */
 
+#define getrusagens __getrusagens
 #include <sys/resource.h>
 
 int getrusage(int who, struct rusage* usage) {

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,13 @@
  */
 
 /* libc/src/stdio/putchar_unlocked.c
- * Puts a character into stdout without locking.
+ * Puts a character into stdout without locking. (POSIX2008, called from C89)
  */
 
+#define putc_unlocked __putc_unlocked
 #include <stdio.h>
 
-int putchar_unlocked(int c) {
+int __putchar_unlocked(int c) {
     return putc_unlocked(c, stdout);
 }
+__weak_alias(__putchar_unlocked, putchar_unlocked);

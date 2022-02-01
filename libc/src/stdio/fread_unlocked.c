@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,13 +14,13 @@
  */
 
 /* libc/src/stdio/fread_unlocked.c
- * Read data from file.
+ * Read data from file. (called from C89)
  */
 
 #include <string.h>
 #include "FILE.h"
 
-size_t fread_unlocked(void* restrict ptr, size_t size, size_t count,
+size_t __fread_unlocked(void* restrict ptr, size_t size, size_t count,
         FILE* restrict file) {
     size_t bytes = size * count;
     if (!bytes) return 0;
@@ -56,3 +56,4 @@ size_t fread_unlocked(void* restrict ptr, size_t size, size_t count,
     file->readPosition += toCopy;
     return (bufferFilled + toCopy) / size;
 }
+__weak_alias(__fread_unlocked, fread_unlocked);

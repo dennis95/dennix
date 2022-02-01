@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,10 +14,11 @@
  */
 
 /* libc/src/unistd/pipe2.c
- * Create a pipe.
+ * Create a pipe. (called from POSIX2008)
  */
 
 #include <unistd.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_PIPE2, int, pipe2, (int[2], int));
+DEFINE_SYSCALL_GLOBAL(SYSCALL_PIPE2, int, __pipe2, (int[2], int));
+DEFINE_SYSCALL_WEAK_ALIAS(__pipe2, pipe2);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/sys/socket/accept.c
- * Accept an incoming connection on a socket.
+ * Accept an incoming connection on a socket. (POSIX2008)
  */
 
+#define accept4 __accept4
 #include <sys/socket.h>
 #include <sys/syscall.h>
 

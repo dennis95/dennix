@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/stdio/vcbscanf.c
- * Scan formatted input.
+ * Scan formatted input. (called from C89)
  */
 
+#define reallocarray __reallocarray
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -42,7 +43,7 @@ enum {
 static unsigned int getDigitValue(int c);
 static void storeInt(va_list* ap, int length, bool sign, uintmax_t value);
 
-int vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
+int __vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
         const char* restrict format, va_list list) {
     size_t bytesRead = 0;
     int conversions = 0;
@@ -324,6 +325,7 @@ fail:
     if (!conversions && c == EOF) return EOF;
     return conversions;
 }
+__weak_alias(__vcbscanf, vcbscanf);
 
 static unsigned int getDigitValue(int c) {
     if (c >= '0' && c <= '9') {

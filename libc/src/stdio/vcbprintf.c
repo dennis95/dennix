@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +14,7 @@
  */
 
 /* libc/src/stdio/vcbprintf.c
- * Print formatted output.
+ * Print formatted output. (called from C89)
  */
 
 #include <errno.h>
@@ -64,7 +64,7 @@ enum {
     FLAG_LEADING_ZEROS = 1 << 5
 };
 
-int vcbprintf(void* param, size_t (*callback)(void*, const char*, size_t),
+int __vcbprintf(void* param, size_t (*callback)(void*, const char*, size_t),
         const char* format, va_list ap) {
     if (!callback) {
         callback = noop;
@@ -296,6 +296,7 @@ overflow:
     errno = EOVERFLOW;
     return -1;
 }
+__weak_alias(__vcbprintf, vcbprintf);
 
 static int integerToString(char* output, uintmax_t value, unsigned int base,
         const char* digits) {

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -39,5 +39,10 @@
 #define DEFINE_SYSCALL_GLOBAL(number, type, name, params) \
     asm(".global " #name); \
     DEFINE_SYSCALL(number, type, name, params)
+
+#define DEFINE_SYSCALL_WEAK_ALIAS(target, alias) \
+    asm(".weak " #alias "\n" \
+    ".set " #alias ", " #target); \
+    extern __typeof(target) alias
 
 #endif

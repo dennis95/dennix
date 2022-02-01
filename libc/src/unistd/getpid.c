@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,10 +14,11 @@
  */
 
 /* libc/src/unistd/getpid.c
- * Gets the current PID.
+ * Gets the current PID. (called from C89)
  */
 
 #include <unistd.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_GETPID, pid_t, getpid, (void));
+DEFINE_SYSCALL_GLOBAL(SYSCALL_GETPID, pid_t, __getpid, (void));
+DEFINE_SYSCALL_WEAK_ALIAS(__getpid, getpid);

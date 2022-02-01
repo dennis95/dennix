@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,15 +15,17 @@
 
 /* libc/src/wchar/wcsrtombs.c
  * Convert a wide character string to a multibyte character string.
+ * (C95, called from C89)
  */
 
+#define wcrtomb __wcrtomb
 #include <limits.h>
 #include <string.h>
 #include <wchar.h>
 
 static mbstate_t staticPs;
 
-size_t wcsrtombs(char* restrict s, const wchar_t** restrict wcs, size_t size,
+size_t __wcsrtombs(char* restrict s, const wchar_t** restrict wcs, size_t size,
         mbstate_t* restrict ps) {
     if (!ps) {
         ps = &staticPs;
@@ -54,3 +56,4 @@ size_t wcsrtombs(char* restrict s, const wchar_t** restrict wcs, size_t size,
         length += bytes;
     }
 }
+__weak_alias(__wcsrtombs, wcsrtombs);
