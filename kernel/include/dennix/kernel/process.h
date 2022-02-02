@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -56,6 +56,7 @@ public:
     int setpgid(pid_t pgid);
     pid_t setsid();
     void terminateBySignal(siginfo_t siginfo);
+    mode_t umask(const mode_t* newMask = nullptr);
     Process* waitpid(pid_t pid, int flags);
 private:
     void removeFromGroup();
@@ -64,30 +65,40 @@ public:
     AddressSpace* addressSpace;
     Clock childrenSystemCpuClock;
     Clock childrenUserCpuClock;
-    Reference<Terminal> controllingTerminal;
     Clock cpuClock;
-    Reference<FileDescription> cwdFd;
     Thread mainThread;
     pid_t pid;
-    pid_t pgid;
-    pid_t sid;
-    Reference<FileDescription> rootFd;
-    struct sigaction sigactions[NSIG];
-    vaddr_t sigreturn;
     Clock systemCpuClock;
     bool terminated;
     siginfo_t terminationStatus;
-    mode_t umask;
     Clock userCpuClock;
+
+    kthread_mutex_t fdMutex;
+    Reference<FileDescription> cwdFd;
+    Reference<FileDescription> rootFd;
+
+    kthread_mutex_t jobControlMutex;
+    Reference<Terminal> controllingTerminal;
+    pid_t pgid;
+    pid_t sid;
+
+    kthread_mutex_t signalMutex;
+    struct sigaction sigactions[NSIG];
 private:
     struct timespec alarmTime;
-    kthread_mutex_t childrenMutex;
-    kthread_mutex_t groupMutex;
     DynamicArray<FdTableEntry, int> fdTable;
-    Process* firstChild;
-    Process* nextChild;
     Process* parent;
+    vaddr_t sigreturn;
+
+    kthread_mutex_t childrenMutex;
+    Process* firstChild;
     Process* prevChild;
+    Process* nextChild;
+
+    kthread_mutex_t fileMaskMutex;
+    mode_t fileMask;
+
+    kthread_mutex_t groupMutex;
     Process* prevInGroup;
     Process* nextInGroup;
 public:

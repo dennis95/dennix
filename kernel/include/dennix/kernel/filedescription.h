@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,6 +42,7 @@ public:
 public:
     Reference<Vnode> vnode;
 private:
+    kthread_mutex_t mutex;
     void* dents;
     size_t dentsSize;
     off_t offset;

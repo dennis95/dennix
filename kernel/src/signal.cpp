@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -134,7 +134,9 @@ InterruptContext* Thread::handleSignal(InterruptContext* context) {
     updatePendingSignals();
     kthread_mutex_unlock(&signalMutex);
 
+    kthread_mutex_lock(&process->signalMutex);
     struct sigaction action = process->sigactions[siginfo.si_signo];
+    kthread_mutex_unlock(&process->signalMutex);
     assert(!(action.sa_handler == SIG_IGN || (action.sa_handler == SIG_DFL &&
             sigismember(&defaultIgnoredSignals, siginfo.si_signo))));
 
@@ -183,6 +185,7 @@ InterruptContext* Thread::handleSignal(InterruptContext* context) {
     }
     if (action.sa_flags & SA_RESETHAND &&
             !sigismember(&unresettableSignals, siginfo.si_signo)) {
+        AutoLock lock(&process->signalMutex);
         process->sigactions[siginfo.si_signo].sa_handler = SIG_DFL;
         process->sigactions[siginfo.si_signo].sa_flags &= ~SA_SIGINFO;
     }
@@ -215,7 +218,9 @@ void Thread::raiseSignal(siginfo_t siginfo) {
 }
 
 void Thread::raiseSignalUnlocked(siginfo_t siginfo) {
+    kthread_mutex_lock(&process->signalMutex);
     struct sigaction action = process->sigactions[siginfo.si_signo];
+    kthread_mutex_unlock(&process->signalMutex);
 
     if (action.sa_handler == SIG_IGN || (action.sa_handler == SIG_DFL &&
             sigismember(&defaultIgnoredSignals, siginfo.si_signo))) {
@@ -322,6 +327,8 @@ int Syscall::kill(pid_t pid, int signal) {
 
 int Syscall::sigaction(int signal, const struct sigaction* restrict action,
         struct sigaction* restrict old) {
+    AutoLock lock(&Process::current()->signalMutex);
+
     if (signal <= 0 || signal >= NSIG) {
         errno = EINVAL;
         return -1;

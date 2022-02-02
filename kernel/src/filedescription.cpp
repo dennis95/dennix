@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -32,6 +32,7 @@
 
 FileDescription::FileDescription(const Reference<Vnode>& vnode, int flags)
         : vnode(vnode) {
+    mutex = KTHREAD_MUTEX_INITIALIZER;
     offset = 0;
     fileFlags = flags & (O_ACCMODE | FILE_STATUS_FLAGS);
     dents = nullptr;
@@ -60,6 +61,8 @@ int FileDescription::connect(const struct sockaddr* address, socklen_t length) {
 }
 
 int FileDescription::fcntl(int cmd, int param) {
+    AutoLock lock(&mutex);
+
     switch (cmd) {
     case F_GETFL:
         return fileFlags;
@@ -78,6 +81,7 @@ ssize_t FileDescription::getdents(void* buffer, size_t size, int flags) {
         return -1;
     }
 
+    AutoLock lock(&mutex);
     if (!dents) {
         dentsSize = vnode->getDirectoryEntries(&dents, flags);
         if (!dents) return -1;
@@ -116,6 +120,8 @@ ssize_t FileDescription::getdents(void* buffer, size_t size, int flags) {
 }
 
 off_t FileDescription::lseek(off_t offset, int whence) {
+    AutoLock lock(&mutex);
+
     if (whence == SEEK_CUR) {
         if (__builtin_add_overflow(offset, this->offset, &offset)) {
             errno = EOVERFLOW;
@@ -172,6 +178,7 @@ Reference<FileDescription> FileDescription::openat(const char* path, int flags,
 
 ssize_t FileDescription::read(void* buffer, size_t size) {
     if (vnode->isSeekable()) {
+        AutoLock lock(&mutex);
         ssize_t result = vnode->pread(buffer, size, offset, fileFlags);
 
         if (result != -1) {
@@ -192,7 +199,9 @@ int FileDescription::tcsetattr(int flags, const struct termios* termio) {
 
 ssize_t FileDescription::write(const void* buffer, size_t size) {
     if (vnode->isSeekable()) {
+        AutoLock lock(&mutex);
         ssize_t result = vnode->pwrite(buffer, size, offset, fileFlags);
+
         if (result != -1) {
             offset = fileFlags & O_APPEND ? vnode->stat().st_size :
                     offset + result;

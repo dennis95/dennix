@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -105,8 +105,10 @@ static const void* syscallList[NUM_SYSCALLS] = {
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
     if (path[0] == '/') {
+        AutoLock lock(&Process::current()->fdMutex);
         return Process::current()->rootFd;
     } else if (fd == AT_FDCWD) {
+        AutoLock lock(&Process::current()->fdMutex);
         return Process::current()->cwdFd;
     } else {
         return Process::current()->getFd(fd);
@@ -239,9 +241,11 @@ int Syscall::fchdir(int fd) {
         errno = ENOTDIR;
         return -1;
     }
+
     Reference<FileDescription> newCwd = new FileDescription(descr->vnode,
             O_SEARCH);
     if (!newCwd) return -1;
+    AutoLock lock(&Process::current()->fdMutex);
     Process::current()->cwdFd = newCwd;
     return 0;
 }
@@ -258,6 +262,7 @@ int Syscall::fchdirat(int fd, const char* path) {
 
     Reference<FileDescription> newCwd = new FileDescription(vnode, O_SEARCH);
     if (!newCwd) return -1;
+    AutoLock lock(&Process::current()->fdMutex);
     Process::current()->cwdFd = newCwd;
     return 0;
 }
@@ -451,7 +456,7 @@ int Syscall::mkdirat(int fd, const char* path, mode_t mode) {
         return -1;
     }
 
-    return vnode->mkdir(name, mode & ~Process::current()->umask);
+    return vnode->mkdir(name, mode & ~Process::current()->umask());
 }
 
 static void* mmapImplementation(void* /*addr*/, size_t size,
@@ -531,7 +536,7 @@ int Syscall::openat(int fd, const char* path, int flags, mode_t mode) {
     if (!descr) return -1;
 
     Reference<FileDescription> result = descr->openat(path, flags,
-            mode & ~Process::current()->umask);
+            mode & ~Process::current()->umask());
     if (!result) return -1;
 
     int fdFlags = 0;
@@ -742,7 +747,7 @@ int Syscall::socket(int domain, int type, int protocol) {
                 return -1;
             }
 
-            socket = new StreamSocket(0666 & ~Process::current()->umask);
+            socket = new StreamSocket(0666 & ~Process::current()->umask());
             if (!socket) return -1;
         } else {
             errno = ESOCKTNOSUPPORT;
@@ -786,9 +791,7 @@ int Syscall::tcsetattr(int fd, int flags, const struct termios* termio) {
 }
 
 mode_t Syscall::umask(mode_t newMask) {
-    mode_t oldMask = Process::current()->umask;
-    Process::current()->umask = newMask & 0777;
-    return oldMask;
+    return Process::current()->umask(&newMask);
 }
 
 int Syscall::unlinkat(int fd, const char* path, int flags) {

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -54,26 +54,37 @@ extern symbol_t endSigreturn;
 
 Process::Process() : mainThread(this) {
     addressSpace = nullptr;
-    alarmTime.tv_nsec = -1;
-    childrenMutex = KTHREAD_MUTEX_INITIALIZER;
-    controllingTerminal = nullptr;
-    cwdFd = nullptr;
-    firstChild = nullptr;
-    groupMutex = KTHREAD_MUTEX_INITIALIZER;
-    nextChild = nullptr;
-    nextInGroup = nullptr;
-    parent = nullptr;
-    prevChild = nullptr;
-    prevInGroup = nullptr;
-    pgid = -1;
     pid = -1;
-    sid = -1;
-    rootFd = nullptr;
-    memset(sigactions, '\0', sizeof(sigactions));
-    sigreturn = 0;
     terminated = false;
     terminationStatus = {};
-    umask = S_IWGRP | S_IWOTH;
+
+    fdMutex = KTHREAD_MUTEX_INITIALIZER;
+    cwdFd = nullptr;
+    rootFd = nullptr;
+
+    jobControlMutex = KTHREAD_MUTEX_INITIALIZER;
+    controllingTerminal = nullptr;
+    pgid = -1;
+    sid = -1;
+
+    signalMutex = KTHREAD_MUTEX_INITIALIZER;
+    memset(sigactions, '\0', sizeof(sigactions));
+
+    alarmTime.tv_nsec = -1;
+    parent = nullptr;
+    sigreturn = 0;
+
+    childrenMutex = KTHREAD_MUTEX_INITIALIZER;
+    firstChild = nullptr;
+    prevChild = nullptr;
+    nextChild = nullptr;
+
+    fileMaskMutex = KTHREAD_MUTEX_INITIALIZER;
+    fileMask = S_IWGRP | S_IWOTH;
+
+    groupMutex = KTHREAD_MUTEX_INITIALIZER;
+    prevInGroup = nullptr;
+    nextInGroup = nullptr;
 }
 
 Process::~Process() {
@@ -206,6 +217,7 @@ uintptr_t Process::loadELF(const Reference<Vnode>& vnode,
 
 int Process::addFileDescriptor(const Reference<FileDescription>& descr,
         int flags) {
+    AutoLock lock(&fdMutex);
     int fd = fdTable.add({ descr, flags });
 
     if (fd < 0) {
@@ -240,6 +252,7 @@ unsigned int Process::alarm(unsigned int seconds) {
 }
 
 int Process::close(int fd) {
+    AutoLock lock(&fdMutex);
     if (fd < 0 || fd >= fdTable.allocatedSize || !fdTable[fd]) {
         errno = EBADF;
         return -1;
@@ -255,6 +268,7 @@ int Process::dup3(int fd1, int fd2, int flags) {
         return -1;
     }
 
+    AutoLock lock(&fdMutex);
     if (fd1 < 0 || fd1 >= fdTable.allocatedSize || !fdTable[fd1]) {
         errno = EBADF;
         return -1;
@@ -386,6 +400,7 @@ void Process::exit(int status) {
 }
 
 int Process::fcntl(int fd, int cmd, int param) {
+    AutoLock lock(&fdMutex);
     if (fd < 0 || fd >= fdTable.allocatedSize || !fdTable[fd]) {
         errno = EBADF;
         return -1;
@@ -420,6 +435,7 @@ Process* Process::get(pid_t pid) {
 }
 
 Reference<FileDescription> Process::getFd(int fd) {
+    AutoLock lock(&fdMutex);
     if (fd < 0 || fd >= fdTable.allocatedSize || !fdTable[fd]) {
         errno = EBADF;
         return nullptr;
@@ -469,22 +485,29 @@ Process* Process::regfork(int /*flags*/, regfork_t* registers) {
     }
 
     // Copy the file descriptor table except for fds with FD_CLOFORK set.
+    kthread_mutex_lock(&fdMutex);
     for (int i = fdTable.next(-1); i >= 0; i = fdTable.next(i)) {
         if (fdTable[i].flags & FD_CLOFORK) continue;
         if (process->fdTable.insert(i, fdTable[i]) < 0) {
+            kthread_mutex_unlock(&fdMutex);
             process->terminate();
             delete process;
             return nullptr;
         }
     }
-
-    process->controllingTerminal = controllingTerminal;
     process->cwdFd = cwdFd;
+    process->rootFd = rootFd;
+    kthread_mutex_unlock(&fdMutex);
+
+    kthread_mutex_lock(&jobControlMutex);
+    process->controllingTerminal = controllingTerminal;
     process->pgid = pgid;
     process->sid = sid;
-    process->rootFd = rootFd;
+    kthread_mutex_unlock(&jobControlMutex);
     process->sigreturn = sigreturn;
-    process->umask = umask;
+    kthread_mutex_lock(&fileMaskMutex);
+    process->fileMask = fileMask;
+    kthread_mutex_unlock(&fileMaskMutex);
 
     if (!addProcess(process)) {
         process->terminate();
@@ -548,6 +571,8 @@ void Process::removeFromGroup() {
 }
 
 int Process::setpgid(pid_t pgid) {
+    AutoLock lock(&jobControlMutex);
+
     if (pgid == 0) {
         pgid = pid;
     }
@@ -559,7 +584,7 @@ int Process::setpgid(pid_t pgid) {
         return -1;
     }
 
-    AutoLock lock(&processesMutex);
+    AutoLock lock2(&processesMutex);
     if (pgid >= processes.allocatedSize ||
             (!processes[pgid].processGroup && pgid != pid) ||
             (processes[pgid].processGroup &&
@@ -576,7 +601,7 @@ int Process::setpgid(pid_t pgid) {
     } else {
         Process* groupLeader = processes[pgid].processGroup;
 
-        AutoLock lock2(&groupLeader->groupMutex);
+        AutoLock lock3(&groupLeader->groupMutex);
         prevInGroup = groupLeader;
         nextInGroup = groupLeader->nextInGroup;
         groupLeader->nextInGroup = this;
@@ -589,7 +614,8 @@ int Process::setpgid(pid_t pgid) {
 }
 
 pid_t Process::setsid() {
-    AutoLock lock(&processesMutex);
+    AutoLock lock(&jobControlMutex);
+    AutoLock lock2(&processesMutex);
     if (processes[pid].processGroup) {
         errno = EPERM;
         return -1;
@@ -679,6 +705,16 @@ void Process::terminateBySignal(siginfo_t siginfo) {
     terminationStatus.si_status = siginfo.si_signo;
 
     terminate();
+}
+
+mode_t Process::umask(const mode_t* newMask /*= nullptr*/) {
+    AutoLock lock(&fileMaskMutex);
+
+    mode_t oldMask = fileMask;
+    if (newMask) {
+        fileMask = *newMask & 0777;
+    }
+    return oldMask;
 }
 
 Process* Process::waitpid(pid_t pid, int flags) {

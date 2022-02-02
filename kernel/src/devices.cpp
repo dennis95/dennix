@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -100,6 +100,7 @@ public:
     DevTty() : Vnode(S_IFCHR | 0666, DevFS::dev) {}
 
     Reference<Vnode> resolve() override {
+        AutoLock lock(&Process::current()->jobControlMutex);
         return Process::current()->controllingTerminal;
     }
 };

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -140,10 +140,13 @@ int Terminal::devctl(int command, void* restrict data, size_t size,
             return EINVAL;
         }
 
+        kthread_mutex_lock(&Process::current()->jobControlMutex);
         if (Process::current()->controllingTerminal != this) {
+            kthread_mutex_unlock(&Process::current()->jobControlMutex);
             *info = -1;
             return ENOTTY;
         }
+        kthread_mutex_unlock(&Process::current()->jobControlMutex);
 
         pid_t* pgid = (pid_t*) data;
 
@@ -172,10 +175,13 @@ int Terminal::devctl(int command, void* restrict data, size_t size,
             return EINVAL;
         }
 
+        kthread_mutex_lock(&Process::current()->jobControlMutex);
         if (Process::current()->controllingTerminal != this) {
+            kthread_mutex_unlock(&Process::current()->jobControlMutex);
             *info = -1;
             return ENOTTY;
         }
+        kthread_mutex_unlock(&Process::current()->jobControlMutex);
 
         const pid_t* pgid = (const pid_t*) data;
 
@@ -240,7 +246,9 @@ int Terminal::devctl(int command, void* restrict data, size_t size,
         }
 
         Process* process = Process::current();
+        kthread_mutex_lock(&process->jobControlMutex);
         if (process->sid != process->pid) {
+            kthread_mutex_unlock(&process->jobControlMutex);
             *info = -1;
             return EPERM;
         }
@@ -248,6 +256,7 @@ int Terminal::devctl(int command, void* restrict data, size_t size,
         process->controllingTerminal = this;
         sid = process->sid;
         foregroundGroup = process->pgid;
+        kthread_mutex_unlock(&process->jobControlMutex);
         *info = 0;
         return 0;
     } break;
