@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2018, 2019, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -36,7 +36,6 @@
 #define __need_nlink_t
 #define __need_off_t
 #define __need_pid_t
-/* pthreads ... */
 #define __need_reclen_t
 #define __need_size_t
 #define __need_ssize_t
@@ -45,5 +44,6 @@
 #define __need_timer_t
 #define __need_uid_t
 #include <bits/types.h>
+#include <bits/pthread.h>
 
 #endif

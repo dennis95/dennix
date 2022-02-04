@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2022 Dennis Wölfing
+/* Copyright (c) 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,46 +13,21 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/arch/i686/crt0.S
- * Program initialization.
+/* libc/src/thread/thrd_create.c
+ * Create a thread. (C11)
  */
 
-.section .text
-.global _start
-.type _start, @function
-_start:
-    # The kernel has put argc into eax, argv into ebx and envp into ecx.
+#define sched_yield __sched_yield
+#include "thread.h"
+#include <stdnoreturn.h>
 
-    # Create a stack frame
-    push $0
-    push $0
-    mov %esp, %ebp
+static noreturn void wrapperFunc(thrd_start_t func, void* arg) {
+    while (__thread_self()->uthread.tid == -1) {
+        sched_yield();
+    }
+    thrd_exit(func(arg));
+}
 
-    sub $12, %esp
-    push %ecx # envp
-    push %ebx # argv
-    push %eax # argc
-
-    # Push argv for __initProgname
-    sub $12, %esp
-    push %ebx # argv
-
-    # Set environ
-    mov %ecx, __environ
-
-    # Call global constructors
-    call _init
-
-    # Initialize libc
-    call __initProgname
-    call __initializeThreads
-    add $16, %esp
-
-    call main
-
-    add $4, %esp
-    push %eax
-    call exit
-
-
-.size _start, . - _start
+int thrd_create(thrd_t* thread, thrd_start_t func, void* arg) {
+    return threadWrapper(__thread_create(thread, NULL, wrapperFunc, func, arg));
+}

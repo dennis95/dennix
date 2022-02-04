@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -89,7 +89,7 @@ extern "C" {
 /* #define _POSIX_THREAD_ROBUST_PRIO_PROTECT */
 #define _POSIX_THREAD_SAFE_FUNCTIONS _POSIX_VERSION
 /* #define _POSIX_THREAD_SPORADIC_SERVER */
-/* TODO: #define _POSIX_THREADS */
+#define _POSIX_THREADS _POSIX_VERSION
 /* TODO: #define _POSIX_TIMEOUTS */
 #define _POSIX_TIMERS _POSIX_VERSION
 /* #define _POSIX_TYPED_MEMORY_OBJECTS */

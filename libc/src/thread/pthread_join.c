@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2022 Dennis Wölfing
+/* Copyright (c) 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,46 +13,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/arch/i686/crt0.S
- * Program initialization.
+/* libc/src/thread/pthread_join.c
+ * Wait for thread termination. (POSIX2008, called from C11)
  */
 
-.section .text
-.global _start
-.type _start, @function
-_start:
-    # The kernel has put argc into eax, argv into ebx and envp into ecx.
+#define munmap __munmap
+#include "thread.h"
+#include <sys/mman.h>
 
-    # Create a stack frame
-    push $0
-    push $0
-    mov %esp, %ebp
+int __thread_join(__thread_t thread, union ThreadResult* result) {
+    __mutex_lock(&thread->joinMutex);
+    *result = thread->result;
+    munmap(thread->uthread.tlsCopy, thread->mappingSize);
+    return 0;
+}
 
-    sub $12, %esp
-    push %ecx # envp
-    push %ebx # argv
-    push %eax # argc
-
-    # Push argv for __initProgname
-    sub $12, %esp
-    push %ebx # argv
-
-    # Set environ
-    mov %ecx, __environ
-
-    # Call global constructors
-    call _init
-
-    # Initialize libc
-    call __initProgname
-    call __initializeThreads
-    add $16, %esp
-
-    call main
-
-    add $4, %esp
-    push %eax
-    call exit
-
-
-.size _start, . - _start
+int __pthread_join(pthread_t thread, void** result) {
+    union ThreadResult threadResult;
+    int ret = __thread_join(thread, &threadResult);
+    if (result) *result = threadResult.p;
+    return ret;
+}
+__weak_alias(__pthread_join, pthread_join);

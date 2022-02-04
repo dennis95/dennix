@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019 Dennis Wölfing
+/* Copyright (c) 2017, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,12 +14,12 @@
  */
 
 /* libc/src/sched/sched_yield.c
- * Yields the processor.
+ * Yields the processor. (POSIX2008, called from C89)
  */
 
 #include <sched.h>
 
-int sched_yield(void) {
+int __sched_yield(void) {
 #if defined(__i386__) || defined(__x86_64__)
     asm volatile("int $0x31");
 #else
@@ -27,3 +27,4 @@ int sched_yield(void) {
 #endif
     return 0;
 }
+__weak_alias(__sched_yield, sched_yield);

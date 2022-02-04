@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2022 Dennis Wölfing
+/* Copyright (c) 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,46 +13,43 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/arch/i686/crt0.S
- * Program initialization.
+/* libc/include/threads.h
+ * Threads.
  */
 
-.section .text
-.global _start
-.type _start, @function
-_start:
-    # The kernel has put argc into eax, argv into ebx and envp into ecx.
+#ifndef _THREADS_H
+#define _THREADS_H
 
-    # Create a stack frame
-    push $0
-    push $0
-    mov %esp, %ebp
+#include <time.h>
+#include <bits/thread.h>
 
-    sub $12, %esp
-    push %ecx # envp
-    push %ebx # argv
-    push %eax # argc
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-    # Push argv for __initProgname
-    sub $12, %esp
-    push %ebx # argv
+#define thread_local _Thread_local
 
-    # Set environ
-    mov %ecx, __environ
+typedef __mutex_t mtx_t;
+typedef __thread_t thrd_t;
+typedef int (*thrd_start_t)(void *);
 
-    # Call global constructors
-    call _init
+enum {
+    thrd_success,
+    thrd_busy,
+    thrd_error,
+    thrd_nomem,
+    thrd_timedout
+};
 
-    # Initialize libc
-    call __initProgname
-    call __initializeThreads
-    add $16, %esp
+int mtx_lock(mtx_t*);
+int mtx_unlock(mtx_t*);
+int thrd_create(thrd_t*, thrd_start_t, void*);
+thrd_t thrd_current(void);
+__noreturn void thrd_exit(int);
+int thrd_join(thrd_t, int*);
 
-    call main
+#ifdef __cplusplus
+}
+#endif
 
-    add $4, %esp
-    push %eax
-    call exit
-
-
-.size _start, . - _start
+#endif

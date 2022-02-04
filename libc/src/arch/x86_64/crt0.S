@@ -37,6 +37,7 @@ _start:
 
     mov 16(%rsp), %rdi
     call __initProgname
+    call __initializeThreads
 
     add $8, %rsp
     pop %rdx

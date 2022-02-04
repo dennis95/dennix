@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2022 Dennis Wölfing
+/* Copyright (c) 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,46 +13,33 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/arch/i686/crt0.S
- * Program initialization.
+/* libc/include/pthread.h
+ * Threads.
  */
 
-.section .text
-.global _start
-.type _start, @function
-_start:
-    # The kernel has put argc into eax, argv into ebx and envp into ecx.
+#ifndef _PTHREAD_H
+#define _PTHREAD_H
 
-    # Create a stack frame
-    push $0
-    push $0
-    mov %esp, %ebp
+#include <sched.h>
+#include <time.h>
+#include <bits/pthread.h>
 
-    sub $12, %esp
-    push %ecx # envp
-    push %ebx # argv
-    push %eax # argc
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-    # Push argv for __initProgname
-    sub $12, %esp
-    push %ebx # argv
+#define PTHREAD_MUTEX_INITIALIZER _MUTEX_INIT(_MUTEX_NORMAL)
 
-    # Set environ
-    mov %ecx, __environ
+int pthread_create(pthread_t* __restrict, const pthread_attr_t* __restrict,
+        void* (*)(void*), void* __restrict);
+__noreturn void pthread_exit(void*);
+int pthread_join(pthread_t, void**);
+int pthread_mutex_lock(pthread_mutex_t*);
+int pthread_mutex_unlock(pthread_mutex_t*);
+pthread_t pthread_self(void);
 
-    # Call global constructors
-    call _init
+#ifdef __cplusplus
+}
+#endif
 
-    # Initialize libc
-    call __initProgname
-    call __initializeThreads
-    add $16, %esp
-
-    call main
-
-    add $4, %esp
-    push %eax
-    call exit
-
-
-.size _start, . - _start
+#endif

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2022 Dennis Wölfing
+/* Copyright (c) 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,46 +13,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/arch/i686/crt0.S
- * Program initialization.
+/* libc/include/bits/pthread.h
+ * Pthread types.
  */
 
-.section .text
-.global _start
-.type _start, @function
-_start:
-    # The kernel has put argc into eax, argv into ebx and envp into ecx.
+#ifndef _BITS_PTHREAD_H
+#define _BITS_PTHREAD_H
 
-    # Create a stack frame
-    push $0
-    push $0
-    mov %esp, %ebp
+#include <bits/thread.h>
 
-    sub $12, %esp
-    push %ecx # envp
-    push %ebx # argv
-    push %eax # argc
+typedef __thread_t pthread_t;
+typedef __thread_attr_t pthread_attr_t;
+typedef __mutex_t pthread_mutex_t;
 
-    # Push argv for __initProgname
-    sub $12, %esp
-    push %ebx # argv
-
-    # Set environ
-    mov %ecx, __environ
-
-    # Call global constructors
-    call _init
-
-    # Initialize libc
-    call __initProgname
-    call __initializeThreads
-    add $16, %esp
-
-    call main
-
-    add $4, %esp
-    push %eax
-    call exit
-
-
-.size _start, . - _start
+#endif

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2022 Dennis Wölfing
+/* Copyright (c) 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,46 +13,29 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/arch/i686/crt0.S
- * Program initialization.
+/* libc/include/bits/thread.h
+ * Threads.
  */
 
-.section .text
-.global _start
-.type _start, @function
-_start:
-    # The kernel has put argc into eax, argv into ebx and envp into ecx.
+#ifndef _BITS_THREAD_H
+#define _BITS_THREAD_H
 
-    # Create a stack frame
-    push $0
-    push $0
-    mov %esp, %ebp
+#include <dennix/types.h>
 
-    sub $12, %esp
-    push %ecx # envp
-    push %ebx # argv
-    push %eax # argc
+typedef struct __threadStruct* __thread_t;
 
-    # Push argv for __initProgname
-    sub $12, %esp
-    push %ebx # argv
+typedef int __thread_attr_t;
 
-    # Set environ
-    mov %ecx, __environ
+typedef struct {
+    char __type;
+    char __state;
+    __pid_t __owner;
+    __SIZE_TYPE__ __count;
+} __mutex_t;
 
-    # Call global constructors
-    call _init
+#define _MUTEX_NORMAL 0
+#define _MUTEX_RECURSIVE 1
 
-    # Initialize libc
-    call __initProgname
-    call __initializeThreads
-    add $16, %esp
+#define _MUTEX_INIT(type) { (type), 0, -1, 0 }
 
-    call main
-
-    add $4, %esp
-    push %eax
-    call exit
-
-
-.size _start, . - _start
+#endif
