@@ -38,7 +38,7 @@
 #include <dennix/kernel/syscall.h>
 
 static const void* syscallList[NUM_SYSCALLS] = {
-    /*[SYSCALL_EXIT] =*/ (void*) Syscall::exit,
+    /*[SYSCALL_EXIT_THREAD] =*/ (void*) Syscall::exit_thread,
     /*[SYSCALL_WRITE] =*/ (void*) Syscall::write,
     /*[SYSCALL_READ] =*/ (void*) Syscall::read,
     /*[SYSCALL_MMAP] =*/ (void*) Syscall::mmap,
@@ -228,10 +228,12 @@ int Syscall::execve(const char* path, char* const argv[], char* const envp[]) {
     __builtin_unreachable();
 }
 
-NORETURN void Syscall::exit(int status) {
-    Process::current()->exit(status);
-    sched_yield();
-    __builtin_unreachable();
+NORETURN void Syscall::exit_thread(const struct exit_thread* data) {
+    struct exit_thread copy = *data;
+    if (copy.unmapAddress) {
+        Syscall::munmap(copy.unmapAddress, copy.unmapSize);
+    }
+    Process::current()->exitThread(&copy);
 }
 
 int Syscall::fchdir(int fd) {
@@ -661,15 +663,19 @@ ssize_t Syscall::readlinkat(int fd, const char* restrict path,
 }
 
 pid_t Syscall::regfork(int flags, regfork_t* registers) {
-    if (!((flags & RFPROC) && (flags & RFFDG))) {
+    if (flags == (RFPROC | RFFDG)) {
+        Process* newProcess = Process::current()->regfork(flags, registers);
+        if (!newProcess) return -1;
+
+        return newProcess->pid;
+    } else if (flags == (RFTHREAD | RFMEM)) {
+        Thread* thread = Process::current()->newThread(flags, registers);
+        if (!thread) return -1;
+        return thread->tid;
+    } else {
         errno = EINVAL;
         return -1;
     }
-
-    Process* newProcess = Process::current()->regfork(flags, registers);
-    if (!newProcess) return -1;
-
-    return newProcess->pid;
 }
 
 int Syscall::renameat(int oldFd, const char* oldPath, int newFd,

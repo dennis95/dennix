@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2022 Dennis Wölfing
+/* Copyright (c) 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,24 +13,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/registers.h
- * CPU registers.
+/* kernel/include/dennix/uthread.h
+ * Thread structure.
  */
 
-#ifndef KERNEL_REGISTERS_H
-#define KERNEL_REGISTERS_H
+#ifndef _DENNIX_UTHREAD_H
+#define _DENNIX_UTHREAD_H
 
-#include <dennix/kernel/interrupts.h>
+#include <dennix/types.h>
 
-namespace Registers {
-void dumpInterruptContext(const InterruptContext* context);
-void restore(InterruptContext* context, const __registers_t* registers);
-void restoreFpu(const __fpu_t* fpu);
-void save(const InterruptContext* context, __registers_t* registers);
-void saveFpu(__fpu_t* fpu);
-}
+#define UTHREAD_SIZE 128
 
-uintptr_t getTlsBase();
-void setTlsBase(uintptr_t tlsbase);
+struct uthread {
+    struct uthread* self;
+    void* tlsMaster;
+    __SIZE_TYPE__ tlsSize;
+    void* tlsCopy;
+    void* stack;
+    __SIZE_TYPE__ stackSize;
+    __pid_t tid;
+};
 
 #endif

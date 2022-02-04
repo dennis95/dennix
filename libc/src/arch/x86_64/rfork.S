@@ -22,7 +22,10 @@
 __rfork:
     push %rbp
     mov %rsp, %rbp
+    sub $8, %rsp
 
+    mov %fs:0, %rax
+    push %rax # tlsbase
     push $0 # rsp
     pushf
     push $1f

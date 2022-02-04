@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -164,6 +164,13 @@ gdt_entry gdt[] = {
 
     // Task State Segment
     GDT_ENTRY_TSS(/*(uintptr_t) &tss*/ 0L, sizeof(tss) - 1),
+
+#ifdef __i386__
+    // TLS segment.
+    GDT_ENTRY(0, 0xFFFFFFF,
+            GDT_PRESENT | GDT_SEGMENT | GDT_RING3 | GDT_READ_WRITE,
+            GDT_GRANULARITY_4K | GDT_MODE),
+#endif
 };
 
 uint16_t gdt_size = sizeof(gdt) - 1;
@@ -177,3 +184,17 @@ void setKernelStack(uintptr_t stack) {
     tss.rsp0_high = stack >> 32;
 #endif
 }
+
+#ifdef __i386__
+uintptr_t getTlsBase() {
+    return gdt[6].base_low | (gdt[6].base_middle << 16) |
+            (gdt[6].base_high << 24);
+}
+
+void setTlsBase(uintptr_t tlsbase) {
+    gdt[6].base_low = tlsbase & 0xFFFF;
+    gdt[6].base_middle = tlsbase >> 16;
+    gdt[6].base_high = tlsbase >> 24;
+    asm("mov %0, %%gs" :: "r"(0x33));
+}
+#endif

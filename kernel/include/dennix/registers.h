@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,6 +34,7 @@ typedef struct {
     __reg_t __eip;
     __reg_t __eflags;
     __reg_t __esp;
+    __reg_t __tlsbase;
 #elif defined(__x86_64__)
     __reg_t __rax;
     __reg_t __rbx;
@@ -53,6 +54,7 @@ typedef struct {
     __reg_t __rip;
     __reg_t __rflags;
     __reg_t __rsp;
+    __reg_t __tlsbase;
 #else
 #  error "__registers_t is undefined for this architecture."
 #endif

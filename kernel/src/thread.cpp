@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -36,6 +36,7 @@ extern "C" { int* __errno_location = &bootErrno; }
 
 Thread::Thread(Process* process) {
     contextChanged = false;
+    forceKill = false;
     interruptContext = nullptr;
     kernelStack = 0;
     next = nullptr;
@@ -46,6 +47,8 @@ Thread::Thread(Process* process) {
     signalMask = 0;
     signalMutex = KTHREAD_MUTEX_INITIALIZER;
     signalCond = KTHREAD_COND_INITIALIZER;
+    tid = -1;
+    tlsBase = 0;
 }
 
 Thread::~Thread() {
@@ -57,7 +60,9 @@ void Thread::initializeIdleThread() {
     idleProcess->addressSpace = kernelSpace;
     Process::addProcess(idleProcess);
     assert(idleProcess->pid == 0);
-    idleThread = &idleProcess->mainThread;
+    idleThread = xnew Thread(idleProcess);
+    idleThread->tid = idleProcess->threads.add(idleThread);
+    assert(idleThread->tid == 0);
     _current = idleThread;
 }
 
@@ -87,6 +92,7 @@ InterruptContext* Thread::schedule(InterruptContext* context) {
     if (likely(!_current->contextChanged)) {
         _current->interruptContext = context;
         Registers::saveFpu(&_current->fpuEnv);
+        _current->tlsBase = getTlsBase();
     } else {
         _current->contextChanged = false;
     }
@@ -103,12 +109,40 @@ InterruptContext* Thread::schedule(InterruptContext* context) {
 
     setKernelStack(_current->kernelStack + PAGESIZE);
     Registers::restoreFpu(&_current->fpuEnv);
+    setTlsBase(_current->tlsBase);
     __errno_location = &_current->errorNumber;
 
     _current->process->addressSpace->activate();
     _current->checkSigalarm(true);
     _current->updatePendingSignals();
     return _current->interruptContext;
+}
+
+static void deleteThread(void* thread) {
+    delete (Thread*) thread;
+}
+
+NORETURN void Thread::terminate(bool alsoTerminateProcess) {
+    assert(this == Thread::current());
+
+    kthread_mutex_lock(&process->threadsMutex);
+    process->threads[tid] = nullptr;
+    kthread_mutex_unlock(&process->threadsMutex);
+
+    WorkerJob job;
+    job.func = deleteThread;
+    job.context = this;
+
+    Interrupts::disable();
+    Thread::removeThread(this);
+    WorkerThread::addJob(&job);
+    if (alsoTerminateProcess) {
+        WorkerThread::addJob(&process->terminationJob);
+    }
+    Interrupts::enable();
+
+    sched_yield();
+    __builtin_unreachable();
 }
 
 static void deallocateStack(void* address) {

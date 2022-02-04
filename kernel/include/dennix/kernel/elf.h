@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -75,6 +75,7 @@ typedef ProgramHeader64 ProgramHeader;
 #endif
 
 #define PT_LOAD 1
+#define PT_TLS 7
 #define PF_X 1
 #define PF_W 2
 #define PF_R 4

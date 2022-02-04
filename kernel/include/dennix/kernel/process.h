@@ -21,12 +21,14 @@
 #define KERNEL_PROCESS_H
 
 #include <sys/types.h>
+#include <dennix/exit.h>
 #include <dennix/fork.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/dynarray.h>
 #include <dennix/kernel/filedescription.h>
 #include <dennix/kernel/terminal.h>
 #include <dennix/kernel/thread.h>
+#include <dennix/kernel/worker.h>
 
 struct FdTableEntry {
     Reference<FileDescription> descr;
@@ -44,33 +46,33 @@ public:
     unsigned int alarm(unsigned int seconds);
     int close(int fd);
     int dup3(int fd1, int fd2, int flags);
-    void exit(int status);
+    NORETURN void exitThread(const struct exit_thread* data);
     int execute(Reference<Vnode>& vnode, char* const argv[],
             char* const envp[]);
     int fcntl(int fd, int cmd, int param);
     Reference<FileDescription> getFd(int fd);
     bool isParentOf(Process* process);
+    Thread* newThread(int flags, regfork_t* registers, bool start = true);
     void raiseSignal(siginfo_t siginfo);
     void raiseSignalForGroup(siginfo_t siginfo);
     Process* regfork(int flags, regfork_t* registers);
     int setpgid(pid_t pgid);
     pid_t setsid();
+    void terminate();
     void terminateBySignal(siginfo_t siginfo);
     mode_t umask(const mode_t* newMask = nullptr);
     Process* waitpid(pid_t pid, int flags);
 private:
     void removeFromGroup();
-    void terminate();
 public:
     AddressSpace* addressSpace;
     Clock childrenSystemCpuClock;
     Clock childrenUserCpuClock;
     Clock cpuClock;
-    Thread mainThread;
     pid_t pid;
     Clock systemCpuClock;
-    bool terminated;
     siginfo_t terminationStatus;
+    DynamicArray<Thread*, pid_t> threads;
     Clock userCpuClock;
 
     kthread_mutex_t fdMutex;
@@ -89,6 +91,9 @@ private:
     DynamicArray<FdTableEntry, int> fdTable;
     Process* parent;
     vaddr_t sigreturn;
+    bool terminated;
+    WorkerJob terminationJob;
+    kthread_mutex_t threadsMutex;
 
     kthread_mutex_t childrenMutex;
     Process* firstChild;
@@ -111,7 +116,8 @@ private:
     static int copyArguments(char* const argv[], char* const envp[],
             char**& newArgv, char**& newEnvp, AddressSpace* newAddressSpace);
     static uintptr_t loadELF(const Reference<Vnode>& vnode,
-            AddressSpace* newAddressSpace);
+            AddressSpace* newAddressSpace, vaddr_t& tlsbase,
+            vaddr_t& userStack);
 };
 
 #endif

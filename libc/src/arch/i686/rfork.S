@@ -22,8 +22,10 @@
 __rfork:
     push %ebp
     mov %esp, %ebp
-    sub $8, %esp
+    sub $4, %esp
 
+    mov %gs:0, %eax
+    push %eax # tlsbase
     push $0 # esp
     pushf # eflags
     push $1f # eip

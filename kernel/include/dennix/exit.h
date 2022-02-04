@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2022 Dennis Wölfing
+/* Copyright (c) 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,24 +13,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/kernel/registers.h
- * CPU registers.
+/* kernel/include/dennix/exit.h
+ * Exiting.
  */
 
-#ifndef KERNEL_REGISTERS_H
-#define KERNEL_REGISTERS_H
+#ifndef _DENNIX_EXIT_H
+#define _DENNIX_EXIT_H
 
-#include <dennix/kernel/interrupts.h>
+struct exit_thread {
+    int flags;
+    int status;
+    void* unmapAddress;
+    size_t unmapSize;
+};
 
-namespace Registers {
-void dumpInterruptContext(const InterruptContext* context);
-void restore(InterruptContext* context, const __registers_t* registers);
-void restoreFpu(const __fpu_t* fpu);
-void save(const InterruptContext* context, __registers_t* registers);
-void saveFpu(__fpu_t* fpu);
-}
-
-uintptr_t getTlsBase();
-void setTlsBase(uintptr_t tlsbase);
+#define EXIT_PROCESS (1 << 0)
 
 #endif

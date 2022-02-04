@@ -105,6 +105,10 @@ extern "C" InterruptContext* handleSignal(InterruptContext* context) {
 }
 
 InterruptContext* Thread::handleSignal(InterruptContext* context) {
+    if (forceKill) {
+        terminate(false);
+    }
+
     kthread_mutex_lock(&signalMutex);
     assert(pendingSignals);
     assert(signalPending);
@@ -194,7 +198,9 @@ InterruptContext* Thread::handleSignal(InterruptContext* context) {
 }
 
 void Process::raiseSignal(siginfo_t siginfo) {
-    mainThread.raiseSignal(siginfo);
+    // TODO: We should select a thread where the signal is unblocked.
+    AutoLock lock(&threadsMutex);
+    threads[threads.next(-1)]->raiseSignal(siginfo);
 }
 
 void Process::raiseSignalForGroup(siginfo_t siginfo) {
@@ -265,6 +271,11 @@ void Thread::raiseSignalUnlocked(siginfo_t siginfo) {
 }
 
 void Thread::updatePendingSignals() {
+    if (forceKill) {
+        signalPending = true;
+        return;
+    }
+
     PendingSignal* pending = pendingSignals;
     while (pending) {
         if (!sigismember(&signalMask, pending->siginfo.si_signo)) {

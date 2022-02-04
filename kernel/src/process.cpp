@@ -23,6 +23,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <dennix/fcntl.h>
+#include <dennix/uthread.h>
 #include <dennix/wait.h>
 #include <dennix/kernel/elf.h>
 #include <dennix/kernel/file.h>
@@ -52,10 +53,13 @@ extern symbol_t beginSigreturn;
 extern symbol_t endSigreturn;
 }
 
-Process::Process() : mainThread(this) {
+static void terminateProcess(void* process) {
+    ((Process*) process)->terminate();
+}
+
+Process::Process() {
     addressSpace = nullptr;
     pid = -1;
-    terminated = false;
     terminationStatus = {};
 
     fdMutex = KTHREAD_MUTEX_INITIALIZER;
@@ -73,6 +77,10 @@ Process::Process() : mainThread(this) {
     alarmTime.tv_nsec = -1;
     parent = nullptr;
     sigreturn = 0;
+    terminated = false;
+    terminationJob.func = terminateProcess;
+    terminationJob.context = this;
+    threadsMutex = KTHREAD_MUTEX_INITIALIZER;
 
     childrenMutex = KTHREAD_MUTEX_INITIALIZER;
     firstChild = nullptr;
@@ -155,7 +163,7 @@ int Process::copyArguments(char* const argv[], char* const envp[],
 }
 
 uintptr_t Process::loadELF(const Reference<Vnode>& vnode,
-        AddressSpace* newAddressSpace) {
+        AddressSpace* newAddressSpace, vaddr_t& tlsbase, vaddr_t& userStack) {
     ElfHeader header;
     ssize_t readSize = vnode->pread(&header, sizeof(header), 0, 0);
     if (readSize < 0) return 0;
@@ -164,6 +172,9 @@ uintptr_t Process::loadELF(const Reference<Vnode>& vnode,
         errno = ENOEXEC;
         return 0;
     }
+
+    vaddr_t tlsMaster = 0;
+    size_t tlsMasterSize = 0;
 
     for (size_t i = 0; i < header.e_phnum; i++) {
         ProgramHeader programHeader;
@@ -175,22 +186,46 @@ uintptr_t Process::loadELF(const Reference<Vnode>& vnode,
             return 0;
         }
 
-        if (programHeader.p_type != PT_LOAD) continue;
+        if (programHeader.p_type != PT_LOAD && programHeader.p_type != PT_TLS) {
+            continue;
+        }
 
-        vaddr_t loadAddressAligned = programHeader.p_vaddr & ~PAGE_MISALIGN;
-        ptrdiff_t offset = programHeader.p_vaddr - loadAddressAligned;
-
-        size_t size = ALIGNUP(programHeader.p_memsz + offset, PAGESIZE);
+        if (programHeader.p_type == PT_TLS && tlsMaster != 0) {
+            errno = ENOEXEC;
+            return 0;
+        }
 
         int protection = 0;
         if (programHeader.p_flags & PF_X) protection |= PROT_EXEC;
         if (programHeader.p_flags & PF_W) protection |= PROT_WRITE;
         if (programHeader.p_flags & PF_R) protection |= PROT_READ;
 
-        if (!newAddressSpace->mapMemory(loadAddressAligned, size, protection)) {
-            errno = ENOMEM;
-            return 0;
+        vaddr_t loadAddressAligned = 0;
+        ptrdiff_t offset = 0;
+        size_t size = 0;
+        if (programHeader.p_type == PT_LOAD) {
+            loadAddressAligned = programHeader.p_vaddr & ~PAGE_MISALIGN;
+            offset = programHeader.p_vaddr - loadAddressAligned;
+
+            size = ALIGNUP(programHeader.p_memsz + offset, PAGESIZE);
+
+            if (!newAddressSpace->mapMemory(loadAddressAligned, size,
+                    protection)) {
+                errno = ENOMEM;
+                return 0;
+            }
+        } else if (programHeader.p_type == PT_TLS) {
+            size = ALIGNUP(programHeader.p_memsz, PAGESIZE);
+            loadAddressAligned = newAddressSpace->mapMemory(size, protection);
+            tlsMaster = loadAddressAligned;
+            tlsMasterSize = programHeader.p_memsz;
+            if (!loadAddressAligned) {
+                errno = ENOMEM;
+                return 0;
+            }
+            offset = 0;
         }
+
         vaddr_t dest = kernelSpace->mapFromOtherAddressSpace(newAddressSpace,
                 loadAddressAligned, size, PROT_WRITE);
         if (!dest) {
@@ -212,6 +247,59 @@ uintptr_t Process::loadELF(const Reference<Vnode>& vnode,
         kernelSpace->unmapPhysical(dest, size);
     }
 
+    size_t uthreadOffset = ALIGNUP(tlsMasterSize, alignof(struct uthread));
+    size_t tlsCopySize = ALIGNUP(uthreadOffset + UTHREAD_SIZE, PAGESIZE);
+
+    vaddr_t tlsCopy = newAddressSpace->mapMemory(tlsCopySize,
+            PROT_READ | PROT_WRITE);
+    if (!tlsCopy) {
+        errno = ENOMEM;
+        return 0;
+    }
+
+    vaddr_t src;
+    if (tlsMaster) {
+        src = kernelSpace->mapFromOtherAddressSpace(newAddressSpace,
+            tlsMaster, ALIGNUP(tlsMasterSize, PAGESIZE), PROT_READ);
+        if (!src) {
+            errno = ENOMEM;
+            return 0;
+        }
+    }
+
+    vaddr_t dest = kernelSpace->mapFromOtherAddressSpace(newAddressSpace,
+            tlsCopy, tlsCopySize, PROT_WRITE);
+    if (!dest) {
+        if (tlsMaster) {
+            kernelSpace->unmapPhysical(src, ALIGNUP(tlsMasterSize, PAGESIZE));
+        }
+        errno = ENOMEM;
+        return 0;
+    }
+    memset((void*) dest, 0, tlsCopySize);
+    if (tlsMaster) {
+        memcpy((void*) dest, (void*) src, tlsMasterSize);
+        kernelSpace->unmapPhysical(src, ALIGNUP(tlsMasterSize, PAGESIZE));
+    }
+
+    userStack = newAddressSpace->mapMemory(USER_STACK_SIZE,
+            PROT_READ | PROT_WRITE);
+    if (!userStack) {
+        kernelSpace->unmapPhysical(dest, tlsCopySize);
+        errno = ENOMEM;
+        return 0;
+    }
+
+    tlsbase = tlsCopy + uthreadOffset;
+    struct uthread* uthread = (struct uthread*) (dest + uthreadOffset);
+    uthread->self = (struct uthread*) tlsbase;
+    uthread->tlsMaster = (void*) tlsMaster;
+    uthread->tlsSize = tlsMasterSize;
+    uthread->tlsCopy = (void*) tlsCopy;
+    uthread->stack = (void*) userStack;
+    uthread->stackSize = USER_STACK_SIZE;
+    uthread->tid = 0;
+    kernelSpace->unmapPhysical(dest, tlsCopySize);
     return header.e_entry;
 }
 
@@ -292,7 +380,9 @@ int Process::execute(Reference<Vnode>& vnode, char* const argv[],
     // Load the program
     AddressSpace* newAddressSpace = new AddressSpace();
     if (!newAddressSpace) return -1;
-    uintptr_t entry = loadELF(vnode, newAddressSpace);
+    vaddr_t tlsbase;
+    vaddr_t userStack;
+    uintptr_t entry = loadELF(vnode, newAddressSpace, tlsbase, userStack);
     if (!entry) {
         delete newAddressSpace;
         return -1;
@@ -318,14 +408,6 @@ int Process::execute(Reference<Vnode>& vnode, char* const argv[],
     }
     memcpy((void*) sigreturnMapped, &beginSigreturn, sigreturnSize);
     kernelSpace->unmapPhysical(sigreturnMapped, PAGESIZE);
-
-    vaddr_t userStack = newAddressSpace->mapMemory(USER_STACK_SIZE,
-            PROT_READ | PROT_WRITE);
-    if (!userStack) {
-        delete newAddressSpace;
-        errno = ENOMEM;
-        return -1;
-    }
 
     vaddr_t newKernelStack = kernelSpace->mapMemory(PAGESIZE,
             PROT_READ | PROT_WRITE);
@@ -369,6 +451,31 @@ int Process::execute(Reference<Vnode>& vnode, char* const argv[],
     newInterruptContext->rsp = userStack + USER_STACK_SIZE;
     newInterruptContext->ss = 0x23;
 #endif
+
+    kthread_mutex_lock(&threadsMutex);
+    if (Thread::current()->forceKill) {
+        // If the thread is being killed, do not proceed.
+        kthread_mutex_unlock(&threadsMutex);
+        kernelSpace->unmapMemory(newKernelStack, PAGESIZE);
+        delete newAddressSpace;
+        return -1;
+    }
+
+    for (pid_t tid = threads.next(-1); tid >= 0; tid = threads.next(tid)) {
+        if (tid != Thread::current()->tid) {
+            threads[tid]->forceKill = true;
+        }
+    }
+
+    while (threads.next(-1) != -1 &&
+            (threads.next(-1) != Thread::current()->tid ||
+            threads.next(Thread::current()->tid) != -1)) {
+        kthread_mutex_unlock(&threadsMutex);
+        sched_yield();
+        kthread_mutex_lock(&threadsMutex);
+    }
+    kthread_mutex_unlock(&threadsMutex);
+
     // Close all file descriptors marked with FD_CLOEXEC.
     for (int i = fdTable.next(-1); i >= 0; i = fdTable.next(i)) {
         if (fdTable[i].flags & FD_CLOEXEC) {
@@ -385,18 +492,70 @@ int Process::execute(Reference<Vnode>& vnode, char* const argv[],
 
     memset(sigactions, '\0', sizeof(sigactions));
 
-    mainThread.updateContext(newKernelStack, newInterruptContext, &initFpu);
+    if (threads.next(-1) == -1) {
+        Thread* thread = new Thread(this);
+        if (!thread) {
+            kernelSpace->unmapMemory(newKernelStack, PAGESIZE);
+            delete newAddressSpace;
+            return -1;
+        }
+        thread->tid = threads.add(thread);
+        if (thread->tid == -1) {
+            kernelSpace->unmapMemory(newKernelStack, PAGESIZE);
+            delete thread;
+            delete newAddressSpace;
+            return -1;
+        }
+        thread->tlsBase = tlsbase;
+        thread->updateContext(newKernelStack, newInterruptContext, &initFpu);
+    } else {
+        Thread* thread = threads[threads.next(-1)];
+        if (thread->tid != 0) {
+            threads[thread->tid] = nullptr;
+            threads[0] = thread;
+            thread->tid = 0;
+        }
+        thread->tlsBase = tlsbase;
+        thread->updateContext(newKernelStack, newInterruptContext, &initFpu);
+    }
 
     return 0;
 }
 
-void Process::exit(int status) {
-    terminationStatus.si_signo = SIGCHLD;
-    terminationStatus.si_code = CLD_EXITED;
-    terminationStatus.si_pid = pid;
-    terminationStatus.si_status = status;
+void Process::exitThread(const struct exit_thread* data) {
+    kthread_mutex_lock(&threadsMutex);
+    if (Thread::current()->forceKill) {
+        kthread_mutex_unlock(&threadsMutex);
+        Thread::current()->terminate(false);
+    }
 
-    terminate();
+    if (data->flags & EXIT_PROCESS) {
+        for (pid_t tid = threads.next(-1); tid >= 0; tid = threads.next(tid)) {
+            if (tid != Thread::current()->tid) {
+                threads[tid]->forceKill = true;
+            }
+        }
+
+        while (threads.next(-1) != Thread::current()->tid ||
+                    threads.next(Thread::current()->tid) != -1) {
+            kthread_mutex_unlock(&threadsMutex);
+            sched_yield();
+            kthread_mutex_lock(&threadsMutex);
+        }
+    }
+
+    bool terminating = false;
+    if (threads.next(-1) == Thread::current()->tid &&
+            threads.next(Thread::current()->tid) == -1) {
+        terminating = true;
+        terminationStatus.si_signo = SIGCHLD;
+        terminationStatus.si_code = CLD_EXITED;
+        terminationStatus.si_pid = pid;
+        terminationStatus.si_status = data->status;
+    }
+    kthread_mutex_unlock(&threadsMutex);
+
+    Thread::current()->terminate(terminating);
 }
 
 int Process::fcntl(int fd, int cmd, int param) {
@@ -457,29 +616,69 @@ bool Process::isParentOf(Process* process) {
     return this == process->parent;
 }
 
-Process* Process::regfork(int /*flags*/, regfork_t* registers) {
+Thread* Process::newThread(int /*flags*/, regfork_t* registers,
+        bool start /*= true*/) {
+    AutoLock lock(&threadsMutex);
+
+    if (Thread::current()->forceKill) {
+        return nullptr;
+    }
+
+    vaddr_t kernelStack = kernelSpace->mapMemory(PAGESIZE,
+            PROT_READ | PROT_WRITE);
+    if (!kernelStack) {
+        errno = ENOMEM;
+        return nullptr;
+    }
+
+    InterruptContext* newInterruptContext = (InterruptContext*)
+            (kernelStack + PAGESIZE - sizeof(InterruptContext));
+    Registers::restore(newInterruptContext, registers);
+
+    Thread* thread = new Thread(this);
+    if (!thread) {
+        kernelSpace->unmapMemory(kernelStack, PAGESIZE);
+        return nullptr;
+    }
+
+    thread->tlsBase = registers->__tlsbase;
+    pid_t tid = threads.add(thread);
+    if (tid < 0) {
+        delete thread;
+        kernelSpace->unmapMemory(kernelStack, PAGESIZE);
+        return nullptr;
+    }
+    thread->tid = tid;
+
+    __fpu_t fpuEnvironment;
+    Registers::saveFpu(&fpuEnvironment);
+    thread->updateContext(kernelStack, newInterruptContext, &fpuEnvironment);
+    thread->signalMask = Thread::current()->signalMask;
+
+    if (start) {
+        Thread::addThread(thread);
+    }
+    return thread;
+}
+
+Process* Process::regfork(int flags, regfork_t* registers) {
     Process* process = new Process();
     if (!process) return nullptr;
     process->parent = this;
 
-    vaddr_t newKernelStack = kernelSpace->mapMemory(PAGESIZE,
-            PROT_READ | PROT_WRITE);
-    if (!newKernelStack) {
+    Thread* thread = process->newThread(flags, registers, false);
+    if (!thread) {
         process->terminate();
         delete process;
         return nullptr;
     }
-    InterruptContext* newInterruptContext = (InterruptContext*)
-            (newKernelStack + PAGESIZE - sizeof(InterruptContext));
-    Registers::restore(newInterruptContext, registers);
-
-    process->mainThread.updateContext(newKernelStack, newInterruptContext,
-            &mainThread.fpuEnv);
+    thread->signalMask = Thread::current()->signalMask;
 
     // Fork the address space
     process->addressSpace = addressSpace->fork();
     if (!process->addressSpace) {
         process->terminate();
+        delete thread;
         delete process;
         return nullptr;
     }
@@ -491,6 +690,7 @@ Process* Process::regfork(int /*flags*/, regfork_t* registers) {
         if (process->fdTable.insert(i, fdTable[i]) < 0) {
             kthread_mutex_unlock(&fdMutex);
             process->terminate();
+            delete thread;
             delete process;
             return nullptr;
         }
@@ -511,6 +711,7 @@ Process* Process::regfork(int /*flags*/, regfork_t* registers) {
 
     if (!addProcess(process)) {
         process->terminate();
+        delete thread;
         delete process;
         return nullptr;
     }
@@ -534,7 +735,7 @@ Process* Process::regfork(int /*flags*/, regfork_t* registers) {
     nextInGroup = process;
     kthread_mutex_unlock(&groupLeader->groupMutex);
 
-    Thread::addThread(&process->mainThread);
+    Thread::addThread(thread);
     return process;
 }
 
@@ -629,13 +830,9 @@ pid_t Process::setsid() {
     return pgid;
 }
 
-static void cleanup(void* proc) {
-    Process* process = (Process*) proc;
-    delete process->addressSpace;
-    process->terminated = true;
-}
-
 void Process::terminate() {
+    assert(threads.next(-1) == -1);
+
     kthread_mutex_lock(&processesMutex);
     removeFromGroup();
     kthread_mutex_unlock(&processesMutex);
@@ -675,36 +872,34 @@ void Process::terminate() {
         parent->raiseSignal(terminationStatus);
     }
 
-    if (this == current()) {
-        Interrupts::disable();
-
-        // The AddressSpace destructor needs to acquire locks so we cannot run
-        // it with interrupts disabled.
-        WorkerJob job;
-        job.func = cleanup;
-        job.context = this;
-        WorkerThread::addJob(&job);
-
-        Thread::removeThread(&mainThread);
-        Interrupts::enable();
-        sched_yield();
-        __builtin_unreachable();
-    } else {
-        Interrupts::disable();
-        Thread::removeThread(&mainThread);
-        Interrupts::enable();
-        delete addressSpace;
-        terminated = true;
-    }
+    delete addressSpace;
+    terminated = true;
 }
 
 void Process::terminateBySignal(siginfo_t siginfo) {
+    assert(this == Process::current());
+    kthread_mutex_lock(&threadsMutex);
+
+    for (pid_t tid = threads.next(-1); tid >= 0; tid = threads.next(tid)) {
+        if (tid != Thread::current()->tid) {
+            threads[tid]->forceKill = true;
+        }
+    }
+
+    while (threads.next(-1) != Thread::current()->tid ||
+                threads.next(Thread::current()->tid) != -1) {
+        kthread_mutex_unlock(&threadsMutex);
+        sched_yield();
+        kthread_mutex_lock(&threadsMutex);
+    }
+
     terminationStatus.si_signo = SIGCHLD;
     terminationStatus.si_code = CLD_KILLED;
     terminationStatus.si_pid = pid;
     terminationStatus.si_status = siginfo.si_signo;
 
-    terminate();
+    kthread_mutex_unlock(&threadsMutex);
+    Thread::current()->terminate(true);
 }
 
 mode_t Process::umask(const mode_t* newMask /*= nullptr*/) {

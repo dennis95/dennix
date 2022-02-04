@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,6 +23,7 @@
 #include <signal.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <dennix/exit.h>
 #include <dennix/fork.h>
 #include <dennix/poll.h>
 #include <dennix/syscall.h>
@@ -50,7 +51,7 @@ int devctl(int fd, int command, void* restrict data, size_t size,
         int* restrict info);
 int dup3(int fd1, int fd2, int flags);
 int execve(const char* path, char* const argv[], char* const envp[]);
-NORETURN void exit(int status);
+NORETURN void exit_thread(const struct exit_thread* data);
 int fchdir(int);
 int fchdirat(int fd, const char* path);
 int fchmod(int fd, mode_t mode);

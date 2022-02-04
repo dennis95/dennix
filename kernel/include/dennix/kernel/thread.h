@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -41,6 +41,7 @@ public:
     void raiseSignal(siginfo_t siginfo);
     int sigtimedwait(const sigset_t* set, siginfo_t* info,
             const struct timespec* timeout);
+    NORETURN void terminate(bool alsoTerminateProcess);
     void updateContext(vaddr_t newKernelStack, InterruptContext* newContext,
             const __fpu_t* newFpuEnv);
     void updatePendingSignals();
@@ -49,10 +50,13 @@ private:
     void raiseSignalUnlocked(siginfo_t siginfo);
 public:
     Clock cpuClock;
+    bool forceKill;
     __fpu_t fpuEnv;
     Process* process;
     sigset_t returnSignalMask;
     sigset_t signalMask;
+    pid_t tid;
+    uintptr_t tlsBase;
 private:
     bool contextChanged;
     int errorNumber;

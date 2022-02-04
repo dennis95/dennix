@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,7 @@
 #ifndef _DENNIX_SYSCALL_H
 #define _DENNIX_SYSCALL_H
 
-#define SYSCALL_EXIT 0
+#define SYSCALL_EXIT_THREAD 0
 #define SYSCALL_WRITE 1
 #define SYSCALL_READ 2
 #define SYSCALL_MMAP 3

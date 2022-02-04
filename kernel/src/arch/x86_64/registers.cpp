@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2019, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -89,4 +89,16 @@ void Registers::save(const InterruptContext* context,
 
 void Registers::saveFpu(__fpu_t* fpu) {
     asm("fxsave (%0)" :: "r"(*fpu));
+}
+
+uintptr_t getTlsBase() {
+    uint32_t eax;
+    uint32_t edx;
+    asm("rdmsr" : "=a"(eax), "=d"(edx) : "c"(0xC0000100));
+    return (uintptr_t) edx << 32 | eax;
+}
+
+void setTlsBase(uintptr_t tlsbase) {
+    asm("wrmsr" :: "a"(tlsbase & 0xFFFFFFFF), "d"(tlsbase >> 32),
+            "c"(0xC0000100));
 }

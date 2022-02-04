@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,6 +24,8 @@
 
 #define RFPROC (1 << 0)
 #define RFFDG (1 << 1)
+#define RFMEM (1 << 2)
+#define RFTHREAD (1 << 3)
 
 #define _RFFORK (RFPROC | RFFDG)
 
