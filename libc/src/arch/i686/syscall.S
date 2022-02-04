@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Dennis Wölfing
+/* Copyright (c) 2016, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -43,7 +43,7 @@ __syscall:
     # unchanged and puts errno into %ecx otherwise.
     test %ecx, %ecx
     jz 1f
-    mov %ecx, errno
+    mov %ecx, %gs:errno@ntpoff
 
 1:  add $12, %esp
     pop %ebx

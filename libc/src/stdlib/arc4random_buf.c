@@ -21,7 +21,10 @@
 #  define explicit_bzero __explicit_bzero
 #  define getentropy __getentropy
 #  define getpid __getpid
+#  define pthread_mutex_lock __mutex_lock
+#  define pthread_mutex_unlock __mutex_unlock
 #endif
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -31,6 +34,8 @@
 #ifdef __is_dennix_libk
 void __lockRandom(void);
 void __unlockRandom(void);
+#else
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
 static inline uint32_t rotl(uint32_t value, unsigned int n) {
@@ -91,9 +96,9 @@ static void stir(void) {
 void __arc4random_buf(void* result, size_t size) {
 #ifdef __is_dennix_libk
     __lockRandom();
-#endif
+#else
+    pthread_mutex_lock(&mutex);
 
-#ifndef __is_dennix_libk
     static pid_t pid = 0;
     if (pid != getpid()) {
         // TODO: This is not reliable because pids are reused in Dennix.
@@ -118,6 +123,8 @@ void __arc4random_buf(void* result, size_t size) {
 
 #ifdef __is_dennix_libk
     __unlockRandom();
+#else
+    pthread_mutex_unlock(&mutex);
 #endif
 }
 __weak_alias(__arc4random_buf, arc4random_buf);

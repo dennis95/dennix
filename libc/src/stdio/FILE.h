@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,6 +20,7 @@
 #ifndef FILE_H
 #define FILE_H
 
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -33,6 +34,7 @@ struct __FILE {
     size_t writePosition;
     FILE* prev;
     FILE* next;
+    __mutex_t mutex;
     size_t (*read)(FILE*, unsigned char*, size_t);
     size_t (*write)(FILE*, const unsigned char*, size_t);
     off_t (*seek)(FILE*, off_t, int);

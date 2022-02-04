@@ -1,4 +1,4 @@
-/* Copyright (c) 2019 Dennis Wölfing
+/* Copyright (c) 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,7 +28,7 @@ __syscall:
 
     test %edi, %edi
     jz 1f
-    mov %edi, errno
+    mov %edi, %fs:errno@tpoff
 
 1:  pop %rbp
     ret

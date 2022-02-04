@@ -17,9 +17,10 @@
  * File unlocking. (POSIX2008, called from C89)
  */
 
-#include <stdio.h>
+#define pthread_mutex_unlock __mutex_unlock
+#include "FILE.h"
 
 void __funlockfile(FILE* file) {
-    (void) file;
+    pthread_mutex_unlock(&file->mutex);
 }
 __weak_alias(__funlockfile, funlockfile);

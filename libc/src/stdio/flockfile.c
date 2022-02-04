@@ -17,9 +17,10 @@
  * File locking. (POSIX2008, called from C89)
  */
 
-#include <stdio.h>
+#define pthread_mutex_lock __mutex_lock
+#include "FILE.h"
 
 void __flockfile(FILE* file) {
-    (void) file;
+    pthread_mutex_lock(&file->mutex);
 }
 __weak_alias(__flockfile, flockfile);

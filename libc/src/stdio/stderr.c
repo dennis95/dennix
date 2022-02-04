@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,6 +27,7 @@ static FILE __stderr = {
     .bufferSize = sizeof(buffer),
     .readPosition = UNGET_BYTES,
     .readEnd = UNGET_BYTES,
+    .mutex = _MUTEX_INIT(_MUTEX_RECURSIVE),
     .read = __file_read,
     .write = __file_write,
     .seek = __file_seek,

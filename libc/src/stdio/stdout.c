@@ -30,6 +30,7 @@ static FILE __stdout = {
     .bufferSize = sizeof(buffer),
     .readPosition = UNGET_BYTES,
     .readEnd = UNGET_BYTES,
+    .mutex = _MUTEX_INIT(_MUTEX_RECURSIVE),
     .read = __file_read,
     .write = __file_write,
     .seek = __file_seek,

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -31,7 +31,7 @@ extern "C" {
 extern int* __errno_location;
 #  define errno (*__errno_location)
 #else
-extern int errno;
+extern __thread int errno;
 #  define errno errno
 #endif
 

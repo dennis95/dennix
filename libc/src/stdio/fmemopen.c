@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2019, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -89,6 +89,7 @@ FILE* fmemopen(void* restrict buffer, size_t size, const char* restrict mode) {
     file->readPosition = UNGET_BYTES;
     file->readEnd = UNGET_BYTES;
     file->writePosition = 0;
+    file->mutex = (__mutex_t) _MUTEX_INIT(_MUTEX_RECURSIVE);
 
     file->read = fmemopen_read;
     file->write = fmemopen_write;

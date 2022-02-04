@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,7 +17,10 @@
  * Internal functions for memory allocations.
  */
 
+#define pthread_mutex_lock __mutex_lock
+#define pthread_mutex_unlock __mutex_unlock
 #include <assert.h>
+#include <pthread.h>
 #include <stdint.h>
 #include "malloc.h"
 
@@ -91,11 +94,13 @@ Chunk* __unifyChunks(Chunk* first, Chunk* second) {
 }
 
 #ifdef __is_dennix_libc
-void __lockHeap(void) {
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+void __lockHeap(void) {
+    pthread_mutex_lock(&mutex);
 }
 
 void __unlockHeap(void) {
-
+    pthread_mutex_unlock(&mutex);
 }
 #endif

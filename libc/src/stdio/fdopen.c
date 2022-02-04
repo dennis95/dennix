@@ -42,6 +42,7 @@ FILE* __fdopen(int fd, const char* mode) {
     file->readEnd = UNGET_BYTES;
     file->writePosition = 0;
 
+    file->mutex = (__mutex_t) _MUTEX_INIT(_MUTEX_RECURSIVE);
     file->read = __file_read;
     file->write = __file_write;
     file->seek = __file_seek;
