@@ -416,7 +416,7 @@ LIBC_OBJ = \
 
 LIBK_OBJ = $(COMMON_OBJ)
 
-EMPTY_LIBS = libm.a
+EMPTY_LIBS = libm.a libpthread.a librt.a libxnet.a
 LIBS = $(addprefix $(BUILD)/, libc.a libk.a $(EMPTY_LIBS))
 
 all:
