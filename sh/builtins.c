@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -31,12 +31,14 @@
 #include "variables.h"
 
 static int cd(int argc, char* argv[]);
+static int colon(int argc, char* argv[]);
 static int sh_exit(int argc, char* argv[]);
 static int export(int argc, char* argv[]);
 static int sh_umask(int argc, char* argv[]);
 static int unset(int argc, char* argv[]);
 
 const struct builtin builtins[] = {
+    { ":", colon, BUILTIN_SPECIAL }, // : must be the first entry in this list.
     { "cd", cd, 0 },
     { "exit", sh_exit, BUILTIN_SPECIAL },
     { "export", export, BUILTIN_SPECIAL },
@@ -125,6 +127,11 @@ static int cd(int argc, char* argv[]) {
     } else {
         unsetVariable("PWD");
     }
+    return 0;
+}
+
+static int colon(int argc, char* argv[]) {
+    (void) argc; (void) argv;
     return 0;
 }
 

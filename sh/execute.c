@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -401,9 +401,11 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
                 break;
             }
         }
+    } else {
+        builtin = &builtins[0]; // the : builtin
     }
 
-    if (!command || builtin) {
+    if (builtin) {
         for (size_t i = 0; i < numAssignments; i++) {
             char* equals = strchr(assignments[i], '=');
             *equals = '\0';
@@ -417,11 +419,6 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         free(assignments);
         assignments = NULL;
         numAssignments = 0;
-        if (numRedirections == 0 && !builtin) {
-            // Avoid unnecessary forking.
-            result = 0;
-            goto cleanup;
-        }
     }
 
     if (!builtin && !subshell) {
