@@ -32,7 +32,7 @@ struct ShellOptions {
     bool hashall; // unimplemented
     bool ignoreeof; // unimplemented
     bool monitor;
-    bool noclobber; // unimplemented
+    bool noclobber;
     bool noexec; // unimplemented
     bool noglob;
     bool nolog; // unimplemented

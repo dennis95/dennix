@@ -28,6 +28,7 @@
 #include <stdnoreturn.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 
 #include "builtins.h"
@@ -550,6 +551,33 @@ static const char* getExecutablePath(const char* command) {
     return NULL;
 }
 
+static int open_noclobber(const char* path) {
+#ifdef O_NOCLOBBER
+    return open(path, O_WRONLY | O_CREAT | O_NOCLOBBER, 0666);
+#else
+    struct stat st;
+    if (stat(path, &st) == 0 && S_ISREG(st.st_mode)) {
+        errno = EEXIST;
+        return -1;
+    }
+
+    int fd = open(path, O_WRONLY);
+    if (fd >= 0) {
+        fstat(fd, &st);
+        if (S_ISREG(st.st_mode)) {
+            close(fd);
+            errno = EEXIST;
+            return -1;
+        }
+        return fd;
+    }
+
+    // This may spuriously fail with EEXIST if a non-regular file is created
+    // concurrently. This failure is allowed by POSIX.
+    return open(path, O_WRONLY | O_CREAT | O_EXCL, 0666);
+#endif
+}
+
 static bool performRedirection(struct Redirection* redirection) {
     if (redirection->fd >= 10) {
         errno = EBADF;
@@ -590,14 +618,18 @@ static bool performRedirection(struct Redirection* redirection) {
                 warn("'%s'", redirection->filename);
                 return false;
             }
-            // Check that the file secriptor is valid.
+            // Check that the file descriptor is valid.
             if (fcntl(fd, F_GETFL) < 0) {
                 warn("'%s'", redirection->filename);
                 return false;
             }
         }
     } else {
-        fd = open(redirection->filename, openFlags, 0666);
+        if (redirection->type == REDIR_OUTPUT && shellOptions.noclobber) {
+            fd = open_noclobber(redirection->filename);
+        } else {
+            fd = open(redirection->filename, openFlags, 0666);
+        }
         if (fd < 0) {
             warn("open: '%s'", redirection->filename);
             return false;
