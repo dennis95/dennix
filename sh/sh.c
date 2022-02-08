@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -202,6 +202,60 @@ noreturn void executeScript(int argc, char** argv) {
     longjmp(jumpBuffer, 1);
 }
 
+bool handleShortOption(bool plusOption, char option) {
+    switch (option) {
+    case 'a': shellOptions.allexport = !plusOption; break;
+    case 'b': shellOptions.notify = !plusOption; break;
+    case 'C': shellOptions.noclobber = !plusOption; break;
+    case 'e': shellOptions.errexit = !plusOption; break;
+    case 'f': shellOptions.noglob = !plusOption; break;
+    case 'h': shellOptions.hashall = !plusOption; break;
+    case 'm': shellOptions.monitor = !plusOption; break;
+    case 'n': shellOptions.noexec = !plusOption; break;
+    case 'u': shellOptions.nounset = !plusOption; break;
+    case 'v': shellOptions.verbose = !plusOption; break;
+    case 'x': shellOptions.xtrace = !plusOption; break;
+
+    default: return false;
+    }
+    return true;
+}
+
+bool handleLongOption(bool plusOption, const char* option) {
+    if (strcmp(option, "allexport") == 0) {
+        shellOptions.allexport = !plusOption;
+    } else if (strcmp(option, "errexit") == 0) {
+        shellOptions.errexit = !plusOption;
+    } else if (strcmp(option, "hashall") == 0) {
+        shellOptions.hashall = !plusOption;
+    } else if (strcmp(option, "ignoreeof") == 0) {
+        shellOptions.ignoreeof = !plusOption;
+    } else if (strcmp(option, "monitor") == 0) {
+        shellOptions.monitor = !plusOption;
+    } else if (strcmp(option, "noclobber") == 0) {
+        shellOptions.noclobber = !plusOption;
+    } else if (strcmp(option, "noexec") == 0) {
+        shellOptions.noexec = !plusOption;
+    } else if (strcmp(option, "noglob") == 0) {
+        shellOptions.noglob = !plusOption;
+    } else if (strcmp(option, "nolog") == 0) {
+        shellOptions.nolog = !plusOption;
+    } else if (strcmp(option, "notify") == 0) {
+        shellOptions.notify = !plusOption;
+    } else if (strcmp(option, "nounset") == 0) {
+        shellOptions.nounset = !plusOption;
+    } else if (strcmp(option, "verbose") == 0) {
+        shellOptions.verbose = !plusOption;
+    } else if (strcmp(option, "vi") == 0) {
+        shellOptions.vi = !plusOption;
+    } else if (strcmp(option, "xtrace") == 0) {
+        shellOptions.xtrace = !plusOption;
+    } else {
+        return false;
+    }
+    return true;
+}
+
 static void help(const char* argv0) {
     printf("Usage: %s [OPTIONS] [COMMAND] [ARGUMENT...]\n"
             "  -c                       execute COMMAND\n"
@@ -240,90 +294,35 @@ static int parseOptions(int argc, char* argv[]) {
             }
         } else {
             for (size_t j = 1; arg[j]; j++) {
-                switch (arg[j]) {
-                case 'a': shellOptions.allexport = !plusOption; break;
-                case 'b': shellOptions.notify = !plusOption; break;
-                case 'C': shellOptions.noclobber = !plusOption; break;
-                case 'e': shellOptions.errexit = !plusOption; break;
-                case 'f': shellOptions.noglob = !plusOption; break;
-                case 'h': shellOptions.hashall = !plusOption; break;
-                case 'm': shellOptions.monitor = !plusOption; break;
-                case 'n': shellOptions.noexec = !plusOption; break;
-                case 'u': shellOptions.nounset = !plusOption; break;
-                case 'v': shellOptions.verbose = !plusOption; break;
-                case 'x': shellOptions.xtrace = !plusOption; break;
+                if (!handleShortOption(plusOption, arg[j])) {
+                    if (arg[j] == 'o') {
+                        if (arg[j + 1]) {
+                            errx(1, "unexpected '%c' after %co", arg[j + 1],
+                                    arg[0]);
+                        }
 
-                case 'o': {
-                    if (arg[j + 1]) {
-                        errx(1, "unexpected '%c' after %co", arg[j + 1],
-                                arg[0]);
-                    }
+                        const char* option = argv[++i];
+                        if (!option) {
+                            errx(1, "%co requires an argument", arg[0]);
+                        }
 
-                    const char* option = argv[++i];
-                    if (!option) {
-                        errx(1, "%co requires an argument", arg[0]);
-                    }
-
-                    if (strcmp(option, "allexport") == 0) {
-                        shellOptions.allexport = !plusOption;
-                    } else if (strcmp(option, "errexit") == 0) {
-                        shellOptions.errexit = !plusOption;
-                    } else if (strcmp(option, "hashall") == 0) {
-                        shellOptions.hashall = !plusOption;
-                    } else if (strcmp(option, "ignoreeof") == 0) {
-                        shellOptions.ignoreeof = !plusOption;
-                    } else if (strcmp(option, "monitor") == 0) {
-                        shellOptions.monitor = !plusOption;
-                    } else if (strcmp(option, "noclobber") == 0) {
-                        shellOptions.noclobber = !plusOption;
-                    } else if (strcmp(option, "noexec") == 0) {
-                        shellOptions.noexec = !plusOption;
-                    } else if (strcmp(option, "noglob") == 0) {
-                        shellOptions.noglob = !plusOption;
-                    } else if (strcmp(option, "nolog") == 0) {
-                        shellOptions.nolog = !plusOption;
-                    } else if (strcmp(option, "notify") == 0) {
-                        shellOptions.notify = !plusOption;
-                    } else if (strcmp(option, "nounset") == 0) {
-                        shellOptions.nounset = !plusOption;
-                    } else if (strcmp(option, "verbose") == 0) {
-                        shellOptions.verbose = !plusOption;
-                    } else if (strcmp(option, "vi") == 0) {
-                        shellOptions.vi = !plusOption;
-                    } else if (strcmp(option, "xtrace") == 0) {
-                        shellOptions.xtrace = !plusOption;
-                    } else {
-                        errx(1, "invalid option name '%s'", option);
-                    }
-
-                    goto nextArg;
-                }
-
-                case 'c':
-                    if (!plusOption) {
-                        shellOptions.command = true;
+                        if (!handleLongOption(plusOption, option)) {
+                            errx(1, "invalid option name '%s'", option);
+                        }
                         break;
-                    }
-                    // fallthrough
-                case 'i':
-                    if (!plusOption) {
+                    } else if (!plusOption && arg[j] == 'c') {
+                        shellOptions.command = true;
+                    } else if (!plusOption && arg[j] == 'i') {
                         shellOptions.interactive = true;
                         shellOptions.monitor = true;
-                        break;
-                    }
-                    // fallthrough
-                case 's':
-                    if (!plusOption) {
+                    } else if (!plusOption && arg[j] == 's') {
                         shellOptions.stdInput = true;
-                        break;
+                    } else {
+                        errx(1, "invalid option '%c%c'", arg[0], arg[j]);
                     }
-                    // fallthrough
-                default:
-                    errx(1, "invalid option '%c%c'", arg[0], arg[j]);
                 }
             }
         }
-nextArg:;
     }
 
     if (shellOptions.command && shellOptions.stdInput) {

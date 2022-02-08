@@ -34,6 +34,7 @@ static int cd(int argc, char* argv[]);
 static int colon(int argc, char* argv[]);
 static int sh_exit(int argc, char* argv[]);
 static int export(int argc, char* argv[]);
+static int set(int argc, char* argv[]);
 static int sh_umask(int argc, char* argv[]);
 static int unset(int argc, char* argv[]);
 
@@ -42,6 +43,7 @@ const struct builtin builtins[] = {
     { "cd", cd, 0 },
     { "exit", sh_exit, BUILTIN_SPECIAL },
     { "export", export, BUILTIN_SPECIAL },
+    { "set", set, BUILTIN_SPECIAL },
     { "umask", sh_umask, 0 },
     { "unset", unset, BUILTIN_SPECIAL },
     { NULL, NULL, 0 }
@@ -178,7 +180,7 @@ static int export(int argc, char* argv[]) {
     }
 
     if (print || i == argc) {
-        printEnvVariables();
+        printVariables(true);
         return 0;
     }
 
@@ -195,6 +197,101 @@ static int export(int argc, char* argv[]) {
         setVariable(argv[i], equals ? equals + 1 : NULL, true);
     }
     return success ? 0 : 1;
+}
+
+static void printOptionStatus(bool plusOption, const char* optionName,
+        bool optionValue) {
+    if (plusOption) {
+        printf("set %co %s\n", optionValue ? '-' : '+', optionName);
+    } else {
+        printf("%-16s%s\n", optionName, optionValue ? "on" : "off");
+    }
+}
+
+static void printOptions(bool plusOption) {
+    printOptionStatus(plusOption, "allexport", shellOptions.allexport);
+    printOptionStatus(plusOption, "errexit", shellOptions.errexit);
+    printOptionStatus(plusOption, "hashall", shellOptions.hashall);
+    printOptionStatus(plusOption, "ignoreeof", shellOptions.ignoreeof);
+    printOptionStatus(plusOption, "monitor", shellOptions.monitor);
+    printOptionStatus(plusOption, "noclobber", shellOptions.noclobber);
+    printOptionStatus(plusOption, "noexec", shellOptions.noexec);
+    printOptionStatus(plusOption, "noglob", shellOptions.noglob);
+    printOptionStatus(plusOption, "nolog", shellOptions.nolog);
+    printOptionStatus(plusOption, "notify", shellOptions.notify);
+    printOptionStatus(plusOption, "nounset", shellOptions.nounset);
+    printOptionStatus(plusOption, "verbose", shellOptions.verbose);
+    printOptionStatus(plusOption, "vi", shellOptions.vi);
+    printOptionStatus(plusOption, "xtrace", shellOptions.xtrace);
+}
+
+static int set(int argc, char* argv[]) {
+    bool setArguments = false;
+    int i;
+    for (i = 1; i < argc; i++) {
+        if ((argv[i][0] != '-' && argv[i][0] != '+') || argv[i][1] == '\0') {
+            break;
+        }
+        if (argv[i][0] == '-' && argv[i][1] == '-' && argv[i][2] == '\0') {
+            i++;
+            setArguments = true;
+            break;
+        }
+
+        const char* arg = argv[i];
+        bool plusOption = arg[0] == '+';
+        for (size_t j = 1; arg[j]; j++) {
+            if (!handleShortOption(plusOption, arg[j])) {
+                if (arg[j] != 'o') {
+                    warnx("set: invalid option '%c%c'", arg[0], arg[j]);
+                    return 1;
+                }
+
+                if (arg[j + 1]) {
+                    warnx("set: unexpected '%c' after %co", arg[j + 1],
+                            arg[0]);
+                    return 1;
+                }
+
+                const char* option = argv[++i];
+                if (!option) {
+                    printOptions(plusOption);
+                    return 0;
+                }
+
+                if (!handleLongOption(plusOption, option)) {
+                    warnx("set: invalid option name '%s'", option);
+                    return 1;
+                }
+                break;
+            }
+        }
+    }
+
+    if (argc == 1) {
+        printVariables(false);
+        return 0;
+    }
+
+    if (i < argc || setArguments) {
+        int numArgs = argc - i;
+        char** newArguments = malloc((numArgs + 1) * sizeof(char*));
+        if (!newArguments) err(1, "malloc");
+        newArguments[0] = arguments[0];
+        for (int j = 0; j < numArgs; j++) {
+            newArguments[j + 1] = strdup(argv[i + j]);
+            if (!newArguments[j + 1]) err(1, "malloc");
+        }
+
+        for (int j = 1; j <= numArguments; j++) {
+            free(arguments[j]);
+        }
+        free(arguments);
+        arguments = newArguments;
+        numArguments = numArgs;
+    }
+
+    return 0;
 }
 
 static int sh_umask(int argc, char* argv[]) {

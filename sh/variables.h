@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -36,7 +36,7 @@ const char* getVariable(const char* name);
 void initializeVariables(void);
 bool isRegularVariableName(const char* s);
 void popVariables(void);
-void printEnvVariables(void);
+void printVariables(bool exported);
 void pushVariable(const char* name, const char* value);
 void setVariable(const char* name, const char* value, bool export);
 void unsetVariable(const char* name);

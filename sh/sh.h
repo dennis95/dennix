@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,20 +27,20 @@
 #define NO_DISCARD __attribute__((warn_unused_result))
 
 struct ShellOptions {
-    bool allexport;
-    bool errexit;
-    bool hashall;
-    bool ignoreeof;
+    bool allexport; // unimplemented
+    bool errexit; // unimplemented
+    bool hashall; // unimplemented
+    bool ignoreeof; // unimplemented
     bool monitor;
-    bool noclobber;
-    bool noexec;
+    bool noclobber; // unimplemented
+    bool noexec; // unimplemented
     bool noglob;
-    bool nolog;
-    bool notify;
-    bool nounset;
-    bool verbose;
-    bool vi;
-    bool xtrace;
+    bool nolog; // unimplemented
+    bool notify; // unimplemented
+    bool nounset; // unimplemented
+    bool verbose; // unimplemented
+    bool vi; // unimplemented
+    bool xtrace; // unimplemented
 
     bool command;
     bool interactive;
@@ -53,6 +53,8 @@ extern int lastStatus;
 extern struct ShellOptions shellOptions;
 
 noreturn void executeScript(int argc, char** argv);
+bool handleShortOption(bool plusOption, char option);
+bool handleLongOption(bool plusOption, const char* option);
 void addToArray(void** array, size_t* used, const void* value, size_t size);
 void addMultipleToArray(void** array, size_t* used, const void* values,
         size_t size, size_t amount);

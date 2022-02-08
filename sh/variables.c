@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -138,13 +138,33 @@ void popVariables(void) {
     variablesPushed = 0;
 }
 
-void printEnvVariables(void) {
+static void printQuoted(const char* string) {
+    fputc('\'', stdout);
+    while (*string) {
+        if (*string == '\'') {
+            fputs("'\\''", stdout);
+        } else {
+            fputc(*string, stdout);
+        }
+        string++;
+    }
+    fputc('\'', stdout);
+}
+
+void printVariables(bool exported) {
     for (size_t i = 0; i < variablesAllocated; i++) {
         struct ShellVar* var = &variables[i];
-        if (var->value) continue;
-        const char* value = getenv(var->name);
+        const char* value;
+        if (var->value) {
+            if (exported) continue;
+            value = var->value;
+        } else {
+            value = getenv(var->name);
+        }
         if (value) {
-            printf("export %s=%s\n", var->name, value);
+            printf("%s%s=", exported ? "export " : "", var->name);
+            printQuoted(value);
+            fputc('\n', stdout);
         } else {
             printf("export %s\n", var->name);
         }
