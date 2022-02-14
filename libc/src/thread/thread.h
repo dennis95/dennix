@@ -51,14 +51,17 @@ _Static_assert(alignof(struct __threadStruct) == alignof(struct uthread),
 static inline int threadWrapper(int error) {
     switch (error) {
     case 0: return thrd_success;
-    case EAGAIN: return thrd_busy;
+    case EBUSY: return thrd_busy;
     case ENOMEM: return thrd_nomem;
     case ETIMEDOUT: return thrd_timedout;
     default: return thrd_error;
     }
 }
 
+int __mutex_clocklock(__mutex_t* restrict mutex, clockid_t clock,
+        const struct timespec* restrict abstime);
 int __mutex_lock(__mutex_t* mutex);
+int __mutex_trylock(__mutex_t* mutex);
 int __mutex_unlock(__mutex_t* mutex);
 int __thread_create(__thread_t* restrict thread,
         const __thread_attr_t* restrict attr, void* restrict wrapper,

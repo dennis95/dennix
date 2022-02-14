@@ -34,6 +34,12 @@ typedef __thread_t thrd_t;
 typedef int (*thrd_start_t)(void *);
 
 enum {
+    mtx_plain = _MUTEX_NORMAL,
+    mtx_recursive = _MUTEX_RECURSIVE,
+    mtx_timed = _MUTEX_NORMAL,
+};
+
+enum {
     thrd_success,
     thrd_busy,
     thrd_error,
@@ -41,7 +47,11 @@ enum {
     thrd_timedout
 };
 
+void mtx_destroy(mtx_t*);
+int mtx_init(mtx_t*, int);
 int mtx_lock(mtx_t*);
+int mtx_timedlock(mtx_t* __restrict, const struct timespec* __restrict);
+int mtx_trylock(mtx_t*);
 int mtx_unlock(mtx_t*);
 int thrd_create(thrd_t*, thrd_start_t, void*);
 thrd_t thrd_current(void);

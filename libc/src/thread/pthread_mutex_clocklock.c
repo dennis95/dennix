@@ -13,20 +13,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/thread/pthread_mutex_lock.c
- * Lock a mutex. (POSIX2008, called from C89)
+/* libc/src/thread/pthread_mutex_clocklock.c
+ * Try to lock a mutex within a given time. (called from C11)
  */
 
+#define clock_gettime __clock_gettime
 #define sched_yield __sched_yield
 #include "thread.h"
 #include <stdbool.h>
 
-int __mutex_lock(__mutex_t* mutex) {
-    int result;
+static bool timespecLess(struct timespec ts1, struct timespec ts2) {
+    if (ts1.tv_sec < ts2.tv_sec) return true;
+    if (ts1.tv_sec > ts2.tv_sec) return false;
+    return ts1.tv_nsec < ts2.tv_nsec;
+}
+
+int __mutex_clocklock(__mutex_t* restrict mutex, clockid_t clock,
+        const struct timespec* restrict abstime) {
     while (true) {
-        result = __mutex_trylock(mutex);
+        int result = __mutex_trylock(mutex);
         if (result != EBUSY) return result;
+
+        if (abstime->tv_nsec < 0 || abstime->tv_nsec >= 1000000000) {
+            return EINVAL;
+        }
+        struct timespec now;
+        if (clock_gettime(clock, &now) != 0) return EINVAL;
+        if (!timespecLess(now, *abstime)) {
+            return ETIMEDOUT;
+        }
+
         sched_yield();
     }
 }
-__weak_alias(__mutex_lock, pthread_mutex_lock);
+__weak_alias(__mutex_clocklock, pthread_mutex_clocklock);

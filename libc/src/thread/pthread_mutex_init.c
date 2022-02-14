@@ -13,18 +13,21 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/bits/pthread.h
- * Pthread types.
+/* libc/src/thread/pthread_mutex_init.c
+ * Initialize a mutex. (POSIX2008)
  */
 
-#ifndef _BITS_PTHREAD_H
-#define _BITS_PTHREAD_H
+#include "thread.h"
 
-#include <bits/thread.h>
-
-typedef __thread_t pthread_t;
-typedef __thread_attr_t pthread_attr_t;
-typedef __mutex_t pthread_mutex_t;
-typedef int pthread_mutexattr_t;
-
-#endif
+int pthread_mutex_init(pthread_mutex_t* restrict mutex,
+        const pthread_mutexattr_t* restrict attr) {
+    if (attr) {
+        mutex->__type = *attr;
+    } else {
+        mutex->__type = PTHREAD_MUTEX_DEFAULT;
+    }
+    mutex->__state = UNLOCKED;
+    mutex->__owner = -1;
+    mutex->__count = 0;
+    return 0;
+}

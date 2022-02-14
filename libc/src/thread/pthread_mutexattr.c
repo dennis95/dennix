@@ -13,18 +13,32 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/bits/pthread.h
- * Pthread types.
+/* libc/src/thread/pthread_mutexattr.c
+ * Mutex attributes. (POSIX2008)
  */
 
-#ifndef _BITS_PTHREAD_H
-#define _BITS_PTHREAD_H
+#include "thread.h"
 
-#include <bits/thread.h>
+int pthread_mutexattr_destroy(pthread_mutexattr_t* attr) {
+    (void) attr;
+    return 0;
+}
 
-typedef __thread_t pthread_t;
-typedef __thread_attr_t pthread_attr_t;
-typedef __mutex_t pthread_mutex_t;
-typedef int pthread_mutexattr_t;
+int pthread_mutexattr_gettype(const pthread_mutexattr_t* restrict attr,
+        int* restrict type) {
+    *type = *attr;
+    return 0;
+}
 
-#endif
+int pthread_mutexattr_init(pthread_mutexattr_t* attr) {
+    *attr = PTHREAD_MUTEX_DEFAULT;
+    return 0;
+}
+
+int pthread_mutexattr_settype(pthread_mutexattr_t* attr, int type) {
+    if (type != _MUTEX_NORMAL && type != _MUTEX_RECURSIVE) {
+        return EINVAL;
+    }
+    *attr = type;
+    return 0;
+}

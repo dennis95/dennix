@@ -13,18 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/bits/pthread.h
- * Pthread types.
+/* libc/src/thread/mtx_destroy.c
+ * Destroy a mutex. (C11)
  */
 
-#ifndef _BITS_PTHREAD_H
-#define _BITS_PTHREAD_H
+#include "thread.h"
 
-#include <bits/thread.h>
-
-typedef __thread_t pthread_t;
-typedef __thread_attr_t pthread_attr_t;
-typedef __mutex_t pthread_mutex_t;
-typedef int pthread_mutexattr_t;
-
-#endif
+void mtx_destroy(mtx_t* mutex) {
+    (void) mutex;
+}
