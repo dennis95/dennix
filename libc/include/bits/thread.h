@@ -26,6 +26,19 @@ typedef struct __threadStruct* __thread_t;
 
 typedef int __thread_attr_t;
 
+struct __cond_waiter {
+    struct __cond_waiter* __prev;
+    struct __cond_waiter* __next;
+    char __blocked;
+};
+
+typedef struct {
+    struct __cond_waiter* __first;
+    struct __cond_waiter* __last;
+    __clockid_t __clock;
+    char __state;
+} __cond_t;
+
 typedef struct {
     char __type;
     char __state;
@@ -36,6 +49,7 @@ typedef struct {
 #define _MUTEX_NORMAL 0
 #define _MUTEX_RECURSIVE 1
 
+#define _COND_INIT { (void*) 0, (void*) 0, CLOCK_REALTIME, 0 }
 #define _MUTEX_INIT(type) { (type), 0, -1, 0 }
 
 #endif

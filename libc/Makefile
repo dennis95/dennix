@@ -325,12 +325,26 @@ LIBC_OBJ = \
 	termios/tcsetattr \
 	termios/tcsetsid \
 	termios/tcsetwinsize \
+	thread/cnd_broadcast \
+	thread/cnd_destroy \
+	thread/cnd_init \
+	thread/cnd_signal \
+	thread/cnd_timedwait \
+	thread/cnd_wait \
 	thread/mtx_destroy \
 	thread/mtx_init \
 	thread/mtx_lock \
 	thread/mtx_timedlock \
 	thread/mtx_trylock \
 	thread/mtx_unlock \
+	thread/pthread_cond_broadcast \
+	thread/pthread_cond_clockwait \
+	thread/pthread_cond_destroy \
+	thread/pthread_cond_init \
+	thread/pthread_cond_signal \
+	thread/pthread_cond_timedwait \
+	thread/pthread_cond_wait \
+	thread/pthread_condattr \
 	thread/pthread_create \
 	thread/pthread_exit \
 	thread/pthread_join \

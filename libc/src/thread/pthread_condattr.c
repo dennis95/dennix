@@ -13,20 +13,32 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/bits/pthread.h
- * Pthread types.
+/* libc/src/thread/pthread_condattr.c
+ * Condition variable attributes. (POSIX2008)
  */
 
-#ifndef _BITS_PTHREAD_H
-#define _BITS_PTHREAD_H
+#include "thread.h"
 
-#include <bits/thread.h>
+int pthread_condattr_destroy(pthread_condattr_t* attr) {
+    (void) attr;
+    return 0;
+}
 
-typedef __thread_t pthread_t;
-typedef __thread_attr_t pthread_attr_t;
-typedef __cond_t pthread_cond_t;
-typedef __clockid_t pthread_condattr_t;
-typedef __mutex_t pthread_mutex_t;
-typedef int pthread_mutexattr_t;
+int pthread_condattr_getclock(const pthread_condattr_t* restrict attr,
+        clockid_t* restrict clock) {
+    *clock = *attr;
+    return 0;
+}
 
-#endif
+int pthread_condattr_init(pthread_condattr_t* attr) {
+    *attr = CLOCK_REALTIME;
+    return 0;
+}
+
+int pthread_condattr_setclock(pthread_condattr_t* attr, clockid_t clock) {
+    if (clock != CLOCK_REALTIME && clock != CLOCK_MONOTONIC) {
+        return EINVAL;
+    }
+    *attr = clock;
+    return 0;
+}

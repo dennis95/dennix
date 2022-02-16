@@ -13,20 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/bits/pthread.h
- * Pthread types.
+/* libc/src/thread/cnd_wait.c
+ * Wait on a condition variable. (C11)
  */
 
-#ifndef _BITS_PTHREAD_H
-#define _BITS_PTHREAD_H
+#include "thread.h"
 
-#include <bits/thread.h>
-
-typedef __thread_t pthread_t;
-typedef __thread_attr_t pthread_attr_t;
-typedef __cond_t pthread_cond_t;
-typedef __clockid_t pthread_condattr_t;
-typedef __mutex_t pthread_mutex_t;
-typedef int pthread_mutexattr_t;
-
-#endif
+int cnd_wait(cnd_t* cond, mtx_t* mutex) {
+    return cnd_timedwait(cond, mutex, NULL);
+}

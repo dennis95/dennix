@@ -13,20 +13,26 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/bits/pthread.h
- * Pthread types.
+/* libc/src/thread/pthread_cond_broadcast.c
+ * Broadcast a condition variable. (POSIX2008, called from C11)
  */
 
-#ifndef _BITS_PTHREAD_H
-#define _BITS_PTHREAD_H
+#define sched_yield __sched_yield
+#include "thread.h"
 
-#include <bits/thread.h>
+int __cond_broadcast(__cond_t* cond) {
+    while (__atomic_test_and_set(&cond->__state, __ATOMIC_ACQUIRE)) {
+        sched_yield();
+    }
 
-typedef __thread_t pthread_t;
-typedef __thread_attr_t pthread_attr_t;
-typedef __cond_t pthread_cond_t;
-typedef __clockid_t pthread_condattr_t;
-typedef __mutex_t pthread_mutex_t;
-typedef int pthread_mutexattr_t;
+    while (cond->__first) {
+        struct __cond_waiter* waiter = cond->__first;
+        cond->__first = waiter->__next;
+        __atomic_store_n(&waiter->__blocked, 0, __ATOMIC_RELEASE);
+    }
+    cond->__last = NULL;
 
-#endif
+    __atomic_clear(&cond->__state, __ATOMIC_RELEASE);
+    return 0;
+}
+__weak_alias(__cond_broadcast, pthread_cond_broadcast);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2017, 2019, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,13 +25,12 @@
 int kthread_cond_broadcast(kthread_cond_t* cond) {
     kthread_mutex_lock(&cond->mutex);
     while (cond->first) {
-        cond->first->prev = nullptr;
-        __atomic_store_n(&cond->first->blocked, false, __ATOMIC_RELEASE);
-        cond->first = cond->first->next;
+        kthread_cond_waiter* waiter = cond->first;
+        cond->first = waiter->next;
+        __atomic_store_n(&waiter->blocked, false, __ATOMIC_RELEASE);
     }
-    if (!cond->first) {
-        cond->last = nullptr;
-    }
+    cond->last = nullptr;
+
     kthread_mutex_unlock(&cond->mutex);
     return 0;
 }
@@ -74,15 +73,20 @@ int kthread_cond_sigclockwait(kthread_cond_t* cond, kthread_mutex_t* mutex,
 
     if (result) {
         kthread_mutex_lock(&cond->mutex);
-        if (waiter.prev) {
-            waiter.prev->next = waiter.next;
-        } else {
-            cond->first = waiter.next;
-        }
-        if (waiter.next) {
-            waiter.next->prev = waiter.prev;
-        } else {
-            cond->last = waiter.prev;
+
+        // Only remove the waiter from the list if we were not unblocked
+        // concurrently. In that case the waiter was already removed.
+        if (__atomic_load_n(&waiter.blocked, __ATOMIC_RELAXED)) {
+            if (waiter.prev) {
+                waiter.prev->next = waiter.next;
+            } else {
+                cond->first = waiter.next;
+            }
+            if (waiter.next) {
+                waiter.next->prev = waiter.prev;
+            } else {
+                cond->last = waiter.prev;
+            }
         }
         kthread_mutex_unlock(&cond->mutex);
     }
@@ -94,8 +98,9 @@ int kthread_cond_sigclockwait(kthread_cond_t* cond, kthread_mutex_t* mutex,
 int kthread_cond_signal(kthread_cond_t* cond) {
     kthread_mutex_lock(&cond->mutex);
     if (cond->first) {
-        __atomic_store_n(&cond->first->blocked, false, __ATOMIC_RELEASE);
-        cond->first = cond->first->next;
+        kthread_cond_waiter* waiter = cond->first;
+        cond->first = waiter->next;
+        __atomic_store_n(&waiter->blocked, false, __ATOMIC_RELEASE);
     }
     if (cond->first) {
         cond->first->prev = nullptr;

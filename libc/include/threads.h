@@ -29,6 +29,7 @@ extern "C" {
 
 #define thread_local _Thread_local
 
+typedef __cond_t cnd_t;
 typedef __mutex_t mtx_t;
 typedef __thread_t thrd_t;
 typedef int (*thrd_start_t)(void *);
@@ -47,6 +48,13 @@ enum {
     thrd_timedout
 };
 
+int cnd_broadcast(cnd_t*);
+void cnd_destroy(cnd_t*);
+int cnd_init(cnd_t*);
+int cnd_signal(cnd_t*);
+int cnd_timedwait(cnd_t* __restrict, mtx_t* __restrict,
+        const struct timespec* __restrict);
+int cnd_wait(cnd_t*, mtx_t*);
 void mtx_destroy(mtx_t*);
 int mtx_init(mtx_t*, int);
 int mtx_lock(mtx_t*);
