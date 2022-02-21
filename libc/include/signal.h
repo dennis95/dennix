@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2017, 2019, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -48,6 +48,7 @@ void (*signal(int, void(*)(int)))(int);
 
 #if __USE_DENNIX || __USE_POSIX
 int kill(pid_t, int);
+int pthread_sigmask(int, const sigset_t* __restrict, sigset_t* __restrict);
 int sigaction(int, const struct sigaction* __restrict,
         struct sigaction* __restrict);
 int sigaddset(sigset_t*, int);

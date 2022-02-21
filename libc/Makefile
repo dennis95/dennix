@@ -178,6 +178,7 @@ LIBC_OBJ = \
 	search/tsearch \
 	search/twalk \
 	signal/kill \
+	signal/pthread_sigmask \
 	signal/raise \
 	signal/sigaction \
 	signal/signal \
