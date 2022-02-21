@@ -325,6 +325,7 @@ LIBC_OBJ = \
 	termios/tcsetattr \
 	termios/tcsetsid \
 	termios/tcsetwinsize \
+	thread/call_once \
 	thread/cnd_broadcast \
 	thread/cnd_destroy \
 	thread/cnd_init \
@@ -356,6 +357,7 @@ LIBC_OBJ = \
 	thread/pthread_mutex_trylock \
 	thread/pthread_mutex_unlock \
 	thread/pthread_mutexattr \
+	thread/pthread_once \
 	thread/pthread_self \
 	thread/thrd_create \
 	thread/thrd_exit \

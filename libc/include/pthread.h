@@ -34,6 +34,7 @@ extern "C" {
 
 #define PTHREAD_COND_INITIALIZER _COND_INIT
 #define PTHREAD_MUTEX_INITIALIZER _MUTEX_INIT(_MUTEX_NORMAL)
+#define PTHREAD_ONCE_INIT _ONCE_INIT
 
 int pthread_cond_broadcast(pthread_cond_t*);
 int pthread_cond_clockwait(pthread_cond_t* __restrict,
@@ -70,6 +71,7 @@ int pthread_mutexattr_gettype(const pthread_mutexattr_t* __restrict,
         int* __restrict);
 int pthread_mutexattr_init(pthread_mutexattr_t*);
 int pthread_mutexattr_settype(pthread_mutexattr_t*, int);
+int pthread_once(pthread_once_t*, void (*)(void));
 pthread_t pthread_self(void);
 
 #ifdef __cplusplus

@@ -13,21 +13,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/bits/pthread.h
- * Pthread types.
+/* libc/src/thread/pthread_once.c
+ * One-time initialization. (POSIX2008)
  */
 
-#ifndef _BITS_PTHREAD_H
-#define _BITS_PTHREAD_H
+#include "thread.h"
 
-#include <bits/thread.h>
-
-typedef __thread_t pthread_t;
-typedef __thread_attr_t pthread_attr_t;
-typedef __cond_t pthread_cond_t;
-typedef __clockid_t pthread_condattr_t;
-typedef __mutex_t pthread_mutex_t;
-typedef int pthread_mutexattr_t;
-typedef __once_t pthread_once_t;
-
-#endif
+int pthread_once(pthread_once_t* once, void (*func)(void)) {
+    __call_once(once, func);
+    return 0;
+}

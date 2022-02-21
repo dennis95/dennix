@@ -58,6 +58,7 @@ static inline int threadWrapper(int error) {
     }
 }
 
+void __call_once(__once_t* once, void (*func)(void));
 int __cond_broadcast(__cond_t* cond);
 int __cond_clockwait(__cond_t* restrict cond, __mutex_t* restrict mutex,
         clockid_t clock, const struct timespec* restrict abstime);

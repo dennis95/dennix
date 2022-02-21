@@ -28,9 +28,11 @@ extern "C" {
 #endif
 
 #define thread_local _Thread_local
+#define ONCE_FLAG_INIT _ONCE_INIT
 
 typedef __cond_t cnd_t;
 typedef __mutex_t mtx_t;
+typedef __once_t once_flag;
 typedef __thread_t thrd_t;
 typedef int (*thrd_start_t)(void *);
 
@@ -48,6 +50,7 @@ enum {
     thrd_timedout
 };
 
+void call_once(once_flag*, void (*)(void));
 int cnd_broadcast(cnd_t*);
 void cnd_destroy(cnd_t*);
 int cnd_init(cnd_t*);
