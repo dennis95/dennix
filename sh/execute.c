@@ -77,6 +77,41 @@ int execute(struct CompleteCommand* command) {
     return executeList(&command->list);
 }
 
+int executeAndRead(struct CompleteCommand* command, struct StringBuffer* sb) {
+    fflush(NULL);
+
+    int pipeFds[2];
+    if (pipe(pipeFds) < 0) err(1, "pipe");
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        err(1, "fork");
+    } else if (pid == 0) {
+        close(pipeFds[0]);
+        if (!moveFd(pipeFds[1], 1)) err(1, "cannot move file descriptor");
+
+        exit(execute(command));
+    } else {
+        close(pipeFds[1]);
+
+        while (true) {
+            char buffer[4096 + 1];
+
+            ssize_t bytesRead = read(pipeFds[0], buffer, sizeof(buffer) - 1);
+            if (bytesRead < 0) {
+                err(1, "read");
+            } else if (bytesRead == 0) {
+                break;
+            } else {
+                buffer[bytesRead] = '\0';
+                appendStringToStringBuffer(sb, buffer);
+            }
+        }
+
+        return waitForCommand(pid);
+    }
+}
+
 static int executeList(struct List* list) {
     for (size_t i = 0; i < list->numPipelines; i++) {
         lastStatus = executePipeline(&list->pipelines[i]);

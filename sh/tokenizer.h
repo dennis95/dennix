@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -31,13 +31,13 @@ enum TokenType {
 struct Token {
     enum TokenType type;
     char* text;
+    size_t endColumn;
 };
 
 enum TokenStatus {
     TOKEN_TOPLEVEL,
     TOKEN_DOUBLE_QUOTED,
     TOKEN_PARAMETER_EXP,
-    TOKEN_COMMAND_SUBS,
 
     TOKEN_COMMENT,
     TOKEN_SINGLE_QUOTED,
@@ -56,6 +56,7 @@ enum TokenizerResult {
     TOKENIZER_DONE,
     TOKENIZER_NEED_INPUT,
     TOKENIZER_PREMATURE_EOF,
+    TOKENIZER_SYNTAX_ERROR,
 };
 
 struct TokenizerContext {
@@ -75,7 +76,7 @@ struct Tokenizer {
 
 void initTokenizer(struct Tokenizer* tokenizer);
 enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
-        const char* input);
+        const char** input);
 void freeTokenizer(struct Tokenizer* tokenizer);
 
 #endif

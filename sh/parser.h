@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -133,6 +133,9 @@ struct CompleteCommand {
 struct Parser {
     struct Tokenizer tokenizer;
     size_t offset;
+    const char* str;
+    bool parsingString;
+    bool tokenizerNeedsInput;
 };
 
 enum ParserResult {
@@ -147,6 +150,11 @@ void freeParser(struct Parser* parser);
 void initParser(struct Parser* parser);
 enum ParserResult parse(struct Parser* parser,
         struct CompleteCommand* command);
+enum ParserResult parseCommandSubstitution(struct Parser* parser,
+        const char** input, struct StringBuffer* stringBuffer,
+        struct CompleteCommand* command);
+enum ParserResult parseString(struct Parser* parser,
+        struct CompleteCommand* command, const char* string);
 void freeCompleteCommand(struct CompleteCommand* command);
 
 #endif
