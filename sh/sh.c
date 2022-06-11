@@ -168,6 +168,8 @@ int main(int argc, char* argv[]) {
         enum ParserResult parserResult = parse(&parser, &command);
 
         if (parserResult == PARSER_MATCH) {
+            fflush(inputFile);
+
             execute(&command);
             freeCompleteCommand(&command);
         } else if (parserResult == PARSER_SYNTAX) {
