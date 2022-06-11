@@ -165,7 +165,7 @@ static char* readOldCommandSubst(const char** word) {
     initStringBuffer(&sb);
 
     bool escaped = false;
-    while (true) {
+    while (**word) {
         if (**word == '\\') {
             if (escaped) {
                 appendToStringBuffer(&sb, '\\');
@@ -195,26 +195,45 @@ static char* readOldCommandSubst(const char** word) {
 
         (*word)++;
     }
+
+    free(finishStringBuffer(&sb));
+    return NULL;
+}
+
+static void readCommandFromString(const char** str, bool newCommand,
+        void* context) {
+    (void) newCommand;
+
+    const char** word = context;
+    *str = *word;
+    *word = "";
 }
 
 static bool doCommandSubstitution(const char** word,
         struct StringBuffer* sb, struct ExpandContext* context,
         bool doubleQuoted, bool oldStyle) {
     struct Parser parser;
-    initParser(&parser);
     struct CompleteCommand command;
     char* commandString = NULL;
     enum ParserResult result;
 
     if (oldStyle) {
         commandString = readOldCommandSubst(word);
-        result = parseString(&parser, &command, commandString);
+        if (!commandString) return false;
+        const char* ctx = commandString;
+        initParser(&parser, readCommandFromString, &ctx);
+        result = parse(&parser, &command, true);
     } else {
-        result = parseCommandSubstitution(&parser, word, NULL, &command);
+        const char* ctx = *word;
+        initParser(&parser, readCommandFromString, &ctx);
+        size_t inputRemaining = 0;
+        result = parseCommandSubstitution(&parser, &command, &inputRemaining);
+        *word += strlen(*word) - inputRemaining;
     }
 
     if (result != PARSER_MATCH && result != PARSER_NO_CMD) {
         free(commandString);
+        freeParser(&parser);
         return false;
     }
 

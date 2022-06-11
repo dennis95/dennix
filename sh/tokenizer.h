@@ -31,7 +31,6 @@ enum TokenType {
 struct Token {
     enum TokenType type;
     char* text;
-    size_t endColumn;
 };
 
 enum TokenStatus {
@@ -54,7 +53,6 @@ enum WordStatus {
 
 enum TokenizerResult {
     TOKENIZER_DONE,
-    TOKENIZER_NEED_INPUT,
     TOKENIZER_PREMATURE_EOF,
     TOKENIZER_SYNTAX_ERROR,
 };
@@ -72,11 +70,15 @@ struct Tokenizer {
     struct Token* tokens;
     enum TokenStatus tokenStatus;
     enum WordStatus wordStatus;
+    const char* input;
+    void (*readCommand)(const char** str, bool newCommand, void* context);
+    void* context;
 };
 
-void initTokenizer(struct Tokenizer* tokenizer);
-enum TokenizerResult splitTokens(struct Tokenizer* tokenizer,
-        const char** input);
+void initTokenizer(struct Tokenizer* tokenizer,
+        void (*readCommand)(const char** str, bool newCommand, void* context),
+        void* context);
+enum TokenizerResult splitTokens(struct Tokenizer* tokenizer);
 void freeTokenizer(struct Tokenizer* tokenizer);
 
 #endif

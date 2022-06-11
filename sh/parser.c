@@ -56,19 +56,16 @@ static void freePipeline(struct Pipeline* pipeline);
 static void freeSimpleCommand(struct SimpleCommand* command);
 
 static inline struct Token* getToken(struct Parser* parser) {
-    while (parser->offset >= parser->tokenizer.numTokens) {
-        if (!parser->tokenizerNeedsInput || parser->parsingString) return NULL;
+    if (parser->offset >= parser->tokenizer.numTokens) {
+        if (!*parser->tokenizer.input) return NULL;
 
-        readCommand(&parser->str, false);
-        enum TokenizerResult tokenResult = splitTokens(&parser->tokenizer,
-                &parser->str);
+        enum TokenizerResult tokenResult = splitTokens(&parser->tokenizer);
         if (tokenResult == TOKENIZER_PREMATURE_EOF) {
             syntaxError(NULL);
             return NULL;
         } else if (tokenResult == TOKENIZER_SYNTAX_ERROR) {
             return NULL;
         }
-        parser->tokenizerNeedsInput = tokenResult == TOKENIZER_NEED_INPUT;
     }
     return &parser->tokenizer.tokens[parser->offset];
 }
@@ -77,12 +74,11 @@ void freeParser(struct Parser* parser) {
     freeTokenizer(&parser->tokenizer);
 }
 
-void initParser(struct Parser* parser) {
+void initParser(struct Parser* parser,
+        void (*readCommand)(const char** str, bool newCommand, void* context),
+        void* context) {
     parser->offset = 0;
-    parser->str = NULL;
-    parser->parsingString = false;
-    parser->tokenizerNeedsInput = false;
-    initTokenizer(&parser->tokenizer);
+    initTokenizer(&parser->tokenizer, readCommand, context);
 }
 
 static bool isReservedWord(const char* word) {
@@ -109,30 +105,29 @@ static bool isCompoundListTerminator(const char* word) {
 }
 
 enum ParserResult parse(struct Parser* parser,
-        struct CompleteCommand* command) {
-    readCommand(&parser->str, true);
-    enum TokenizerResult tokenResult = splitTokens(&parser->tokenizer,
-            &parser->str);
-    if (tokenResult == TOKENIZER_PREMATURE_EOF) {
-        syntaxError(NULL);
-        return PARSER_SYNTAX;
-    } else if (tokenResult == TOKENIZER_SYNTAX_ERROR) {
-        return PARSER_SYNTAX;
-    }
-    parser->tokenizerNeedsInput = tokenResult == TOKENIZER_NEED_INPUT;
-    if (!getToken(parser)) return PARSER_SYNTAX;
+        struct CompleteCommand* command, bool oldCommandSubst) {
+    splitTokens(&parser->tokenizer);
+    struct Token* token = getToken(parser);
+    if (oldCommandSubst) {
+        if (!token) return PARSER_NO_CMD;
+        enum ParserResult result = parseLinebreak(parser);
+        if (result != PARSER_MATCH) return result;
+        if (!getToken(parser)) return PARSER_NO_CMD;
+    } else {
+        if (!token) return PARSER_SYNTAX;
 
-    if (parser->tokenizer.numTokens == 1 &&
-            parser->tokenizer.tokens[0].type == OPERATOR &&
-            parser->tokenizer.tokens[0].text[0] == '\n') {
-        return PARSER_NO_CMD;
+        if (token->type == OPERATOR && token->text[0] == '\n') {
+            return PARSER_NO_CMD;
+        }
     }
 
-    enum ParserResult result = parseList(parser, &command->list, false, false);
+    enum ParserResult result = parseList(parser, &command->list, false,
+            oldCommandSubst);
     assert(result != PARSER_BACKTRACK);
 
-    if (result == PARSER_MATCH &&
-            parser->offset < parser->tokenizer.numTokens - 1) {
+    if (result == PARSER_MATCH && (*parser->tokenizer.input ||
+            parser->tokenizer.wordStatus != WORDSTATUS_NONE ||
+            parser->offset < parser->tokenizer.numTokens - 1)) {
         syntaxError(getToken(parser));
         freeList(&command->list);
         return PARSER_SYNTAX;
@@ -145,18 +140,8 @@ enum ParserResult parse(struct Parser* parser,
 }
 
 enum ParserResult parseCommandSubstitution(struct Parser* parser,
-        const char** input, struct StringBuffer* stringBuffer,
-        struct CompleteCommand* command) {
-    parser->str = *input;
-    enum TokenizerResult tokenResult = splitTokens(&parser->tokenizer,
-            &parser->str);
-    if (tokenResult == TOKENIZER_PREMATURE_EOF) {
-        syntaxError(NULL);
-        return PARSER_SYNTAX;
-    } else if (tokenResult == TOKENIZER_SYNTAX_ERROR) {
-        return PARSER_SYNTAX;
-    }
-    parser->tokenizerNeedsInput = tokenResult == TOKENIZER_NEED_INPUT;
+        struct CompleteCommand* command, size_t* inputRemaining) {
+    splitTokens(&parser->tokenizer);
 
     enum ParserResult result = parseLinebreak(parser);
     if (result != PARSER_MATCH) return result;
@@ -164,10 +149,7 @@ enum ParserResult parseCommandSubstitution(struct Parser* parser,
     struct Token* token = getToken(parser);
     if (!token) return PARSER_SYNTAX;
     if (token->type == OPERATOR && strcmp(token->text, ")") == 0) {
-        if (stringBuffer) {
-            appendToStringBuffer(stringBuffer, ')');
-        }
-        *input = parser->str + token->endColumn;
+        *inputRemaining = strlen(parser->tokenizer.input);
         return PARSER_NO_CMD;
     }
 
@@ -182,56 +164,13 @@ enum ParserResult parseCommandSubstitution(struct Parser* parser,
         token = getToken(parser);
         if (!token || token->type != OPERATOR ||
                 strcmp(token->text, ")") != 0) {
+            if (command) {
+                freeCompleteCommand(command);
+            }
             return PARSER_SYNTAX;
         }
 
-        if (stringBuffer) {
-            for (size_t i = 0; i < parser->offset; i++) {
-                appendStringToStringBuffer(stringBuffer,
-                        parser->tokenizer.tokens[i].text);
-                appendToStringBuffer(stringBuffer, ' ');
-            }
-            appendToStringBuffer(stringBuffer, ')');
-        }
-
-        *input = parser->str + token->endColumn;
-    }
-    return result;
-}
-
-enum ParserResult parseString(struct Parser* parser,
-        struct CompleteCommand* command, const char* string) {
-    parser->str = string;
-    parser->parsingString = true;
-
-    enum TokenizerResult tokenResult = splitTokens(&parser->tokenizer,
-            &parser->str);
-    if (tokenResult == TOKENIZER_PREMATURE_EOF ||
-            tokenResult == TOKENIZER_NEED_INPUT) {
-        syntaxError(NULL);
-        return PARSER_SYNTAX;
-    } else if (tokenResult == TOKENIZER_SYNTAX_ERROR) {
-        return PARSER_SYNTAX;
-    }
-
-    if (parser->tokenizer.numTokens == 0) return PARSER_NO_CMD;
-
-    enum ParserResult result = parseLinebreak(parser);
-    if (result != PARSER_MATCH) return result;
-    if (!getToken(parser)) return PARSER_NO_CMD;
-
-    result = parseList(parser, &command->list, false, true);
-    assert(result != PARSER_BACKTRACK);
-
-    if (result == PARSER_MATCH &&
-            parser->offset < parser->tokenizer.numTokens - 1) {
-        syntaxError(getToken(parser));
-        freeList(&command->list);
-        return PARSER_SYNTAX;
-    }
-
-    if (result == PARSER_SYNTAX) {
-        syntaxError(getToken(parser));
+        *inputRemaining = strlen(parser->tokenizer.input);
     }
     return result;
 }
@@ -286,7 +225,10 @@ static enum ParserResult parseList(struct Parser* parser, struct List* list,
         token = getToken(parser);
 
         if (compound && list->separators[list->numPipelines - 1] == LIST_SEMI) {
-            if (!token) return PARSER_SYNTAX;
+            if (!token) {
+                result = PARSER_SYNTAX;
+                goto fail;
+            }
             if (isCompoundListTerminator(token->text)) {
                 return PARSER_MATCH;
             }
@@ -813,7 +755,13 @@ static enum ParserResult parseLinebreak(struct Parser* parser) {
         parser->offset++;
         token = getToken(parser);
         if (!token) {
-            parser->tokenizerNeedsInput = true;
+            enum TokenizerResult tokenResult = splitTokens(&parser->tokenizer);
+            if (tokenResult == TOKENIZER_PREMATURE_EOF) {
+                syntaxError(NULL);
+                return PARSER_SYNTAX;
+            } else if (tokenResult == TOKENIZER_SYNTAX_ERROR) {
+                return PARSER_SYNTAX;
+            }
             token = getToken(parser);
         }
     }

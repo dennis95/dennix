@@ -57,6 +57,7 @@ static const char* username;
 
 static void help(const char* argv0);
 static int parseOptions(int argc, char* argv[]);
+static void readCommand(const char** str, bool newCommand, void* context);
 
 int main(int argc, char* argv[]) {
     int optionIndex = parseOptions(argc, argv);
@@ -164,8 +165,8 @@ int main(int argc, char* argv[]) {
             exit(lastStatus);
         }
 
-        initParser(&parser);
-        enum ParserResult parserResult = parse(&parser, &command);
+        initParser(&parser, readCommand, NULL);
+        enum ParserResult parserResult = parse(&parser, &command, false);
 
         if (parserResult == PARSER_MATCH) {
             fflush(inputFile);
@@ -355,7 +356,9 @@ int printPrompt(bool newCommand) {
     }
 }
 
-void readCommand(const char** str, bool newCommand) {
+static void readCommand(const char** str, bool newCommand, void* context) {
+    (void) context;
+
     if (interactiveInput) {
         return readCommandInteractive(str, newCommand);
     }

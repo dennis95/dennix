@@ -60,6 +60,5 @@ void addMultipleToArray(void** array, size_t* used, const void* values,
         size_t size, size_t amount);
 NO_DISCARD bool moveFd(int old, int new);
 int printPrompt(bool newCommand);
-void readCommand(const char** str, bool newCommand);
 
 #endif

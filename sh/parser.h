@@ -133,9 +133,6 @@ struct CompleteCommand {
 struct Parser {
     struct Tokenizer tokenizer;
     size_t offset;
-    const char* str;
-    bool parsingString;
-    bool tokenizerNeedsInput;
 };
 
 enum ParserResult {
@@ -147,14 +144,13 @@ enum ParserResult {
 };
 
 void freeParser(struct Parser* parser);
-void initParser(struct Parser* parser);
+void initParser(struct Parser* parser,
+        void (*readCommand)(const char** str, bool newCommand, void* context),
+        void* context);
 enum ParserResult parse(struct Parser* parser,
-        struct CompleteCommand* command);
+        struct CompleteCommand* command, bool oldCommandSubst);
 enum ParserResult parseCommandSubstitution(struct Parser* parser,
-        const char** input, struct StringBuffer* stringBuffer,
-        struct CompleteCommand* command);
-enum ParserResult parseString(struct Parser* parser,
-        struct CompleteCommand* command, const char* string);
+        struct CompleteCommand* command, size_t* inputRemaining);
 void freeCompleteCommand(struct CompleteCommand* command);
 
 #endif
