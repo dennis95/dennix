@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -33,6 +33,8 @@ struct StringBuffer {
 
 void initStringBuffer(struct StringBuffer* buffer);
 void appendToStringBuffer(struct StringBuffer* buffer, char c);
+void appendBytesToStringBuffer(struct StringBuffer* buffer, const char* s,
+        size_t length);
 void appendStringToStringBuffer(struct StringBuffer* buffer, const char* s);
 char* finishStringBuffer(struct StringBuffer* buffer);
 

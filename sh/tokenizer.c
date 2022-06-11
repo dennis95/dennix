@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "expand.h"
 #include "parser.h"
 #include "tokenizer.h"
 
@@ -30,6 +31,7 @@ static bool canBeginOperator(char c);
 static bool canContinueOperator(const char* s, size_t opLength, char c);
 static void delimit(struct Tokenizer* tokenizer, enum TokenType type);
 static void nest(struct Tokenizer* tokenizer, enum TokenStatus status);
+static bool readHereDocument(struct Tokenizer* tokenizer);
 static void unnest(struct Tokenizer* tokenizer);
 
 void initTokenizer(struct Tokenizer* tokenizer,
@@ -39,6 +41,8 @@ void initTokenizer(struct Tokenizer* tokenizer,
     tokenizer->numTokens = 0;
     tokenizer->prev = NULL;
     tokenizer->tokens = NULL;
+    tokenizer->numHereDocs = 0;
+    tokenizer->hereDocs = NULL;
     tokenizer->tokenStatus = TOKEN_TOPLEVEL;
     tokenizer->wordStatus = WORDSTATUS_NONE;
     tokenizer->input = NULL;
@@ -76,6 +80,12 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer) {
                     tokenizer->wordStatus == WORDSTATUS_OPERATOR) {
                 delimit(tokenizer, OPERATOR);
                 tokenizer->wordStatus = WORDSTATUS_NONE;
+
+                if (tokenizer->numHereDocs > 0 && !tokenizer->hereDocs[
+                        tokenizer->numHereDocs - 1].content) {
+                    tokenizer->wordStatus = WORDSTATUS_HERE_DOC;
+                }
+
                 return TOKENIZER_DONE;
             }
 
@@ -88,6 +98,17 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer) {
                 }
                 return TOKENIZER_DONE;
             }
+            continue;
+        }
+
+        if (tokenizer->wordStatus == WORDSTATUS_HERE_DOC) {
+            if (readHereDocument(tokenizer)) {
+                if (tokenizer->hereDocs[tokenizer->numHereDocs - 1].content) {
+                    tokenizer->wordStatus = WORDSTATUS_NONE;
+                }
+                return TOKENIZER_DONE;
+            }
+
             continue;
         }
 
@@ -127,6 +148,26 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer) {
             } else {
                 delimit(tokenizer, OPERATOR);
                 tokenizer->wordStatus = WORDSTATUS_NONE;
+
+                char* op = tokenizer->tokens[tokenizer->numTokens - 1].text;
+                if (strcmp(op, "<<") == 0 || strcmp(op, "<<-") == 0) {
+                    tokenizer->numHereDocs++;
+                    tokenizer->hereDocs = reallocarray(tokenizer->hereDocs,
+                            tokenizer->numHereDocs, sizeof(struct HereDoc));
+                    if (!tokenizer->hereDocs) err(1, "malloc");
+
+                    struct HereDoc* newHereDoc =
+                            &tokenizer->hereDocs[tokenizer->numHereDocs - 1];
+                    newHereDoc->content = NULL;
+                    newHereDoc->delimiter = NULL;
+                    newHereDoc->stripTabs = op[2] == '-';
+                } else if (strcmp(op, "\n") == 0) {
+                    if (tokenizer->numHereDocs > 0 && !tokenizer->hereDocs[
+                            tokenizer->numHereDocs - 1].content) {
+                        tokenizer->wordStatus = WORDSTATUS_HERE_DOC;
+                    }
+                }
+
                 return TOKENIZER_DONE;
             }
         }
@@ -256,6 +297,12 @@ void freeTokenizer(struct Tokenizer* tokenizer) {
         free(tokenizer->tokens[i].text);
     }
     free(tokenizer->tokens);
+
+    for (size_t i = 0; i < tokenizer->numHereDocs; i++) {
+        free(tokenizer->hereDocs[i].content);
+        free(tokenizer->hereDocs[i].delimiter);
+    }
+    free(tokenizer->hereDocs);
     free(tokenizer->buffer.buffer);
 }
 
@@ -295,6 +342,12 @@ static void delimit(struct Tokenizer* tokenizer, enum TokenType type) {
     addToArray((void**) &tokenizer->tokens, &tokenizer->numTokens,
             &token, sizeof(struct Token));
     initStringBuffer(&tokenizer->buffer);
+
+    if (tokenizer->numHereDocs > 0 &&
+            !tokenizer->hereDocs[tokenizer->numHereDocs - 1].delimiter) {
+        char* delimiter = removeQuotes(token.text, 0, NULL, 0);
+        tokenizer->hereDocs[tokenizer->numHereDocs - 1].delimiter = delimiter;
+    }
 }
 
 static void nest(struct Tokenizer* tokenizer, enum TokenStatus status) {
@@ -305,6 +358,47 @@ static void nest(struct Tokenizer* tokenizer, enum TokenStatus status) {
     prev->tokenStatus = tokenizer->tokenStatus;
     tokenizer->prev = prev;
     tokenizer->tokenStatus = status;
+}
+
+static bool readHereDocument(struct Tokenizer* tokenizer) {
+    size_t i = 0;
+    while (tokenizer->hereDocs[i].content) {
+        i++;
+    }
+
+    const char* delimiter = tokenizer->hereDocs[i].delimiter;
+    size_t delimLength = strlen(delimiter);
+    bool stripTabs = tokenizer->hereDocs[i].stripTabs;
+
+    while (*tokenizer->input) {
+        while (stripTabs && *tokenizer->input == '\t') {
+            tokenizer->input++;
+        }
+
+        size_t lineLength = strcspn(tokenizer->input, "\n");
+        if (lineLength == delimLength && memcmp(tokenizer->input, delimiter,
+                lineLength) == 0) {
+            tokenizer->hereDocs[i].content =
+                    finishStringBuffer(&tokenizer->buffer);
+            initStringBuffer(&tokenizer->buffer);
+            tokenizer->input += lineLength;
+            if (*tokenizer->input) {
+                tokenizer->input++;
+            }
+            return true;
+        }
+
+        appendBytesToStringBuffer(&tokenizer->buffer, tokenizer->input,
+                lineLength);
+        appendToStringBuffer(&tokenizer->buffer, '\n');
+
+        tokenizer->input += lineLength;
+        if (*tokenizer->input) {
+            tokenizer->input++;
+        }
+    }
+
+    return false;
 }
 
 static void unnest(struct Tokenizer* tokenizer) {

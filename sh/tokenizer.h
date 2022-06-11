@@ -49,6 +49,7 @@ enum WordStatus {
     WORDSTATUS_OPERATOR,
     WORDSTATUS_DOLLAR_SIGN,
     WORDSTATUS_NUMBER,
+    WORDSTATUS_HERE_DOC,
 };
 
 enum TokenizerResult {
@@ -62,12 +63,20 @@ struct TokenizerContext {
     enum TokenStatus tokenStatus;
 };
 
+struct HereDoc {
+    char* content;
+    char* delimiter;
+    bool stripTabs;
+};
+
 struct Tokenizer {
     bool backslash;
     struct StringBuffer buffer;
     size_t numTokens;
     struct TokenizerContext* prev;
     struct Token* tokens;
+    size_t numHereDocs;
+    struct HereDoc* hereDocs;
     enum TokenStatus tokenStatus;
     enum WordStatus wordStatus;
     const char* input;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,12 +42,14 @@ struct ExpandContext {
 enum {
     EXPAND_NO_FIELD_SPLIT = 1 << 0,
     EXPAND_PATHNAMES = 1 << 1,
+    EXPAND_NO_QUOTE_REMOVAL = 1 << 2,
 };
 
 NO_DISCARD ssize_t expand(const char* word, int flags, char*** result);
 NO_DISCARD ssize_t expand2(const char* word, int flags, char*** fields,
         struct ExpandContext* context);
 char* expandWord(const char* word);
+char* expandWord2(const char* word, int flags);
 char* removeQuotes(const char* word, size_t fieldIndex,
         struct SubstitutionInfo* substitutions, size_t numSubstitutions);
 

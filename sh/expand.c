@@ -39,14 +39,18 @@ static char* doSubstitutions(const char* word, struct ExpandContext* context);
 static size_t splitFields(char* word, struct ExpandContext* context,
         char*** result);
 
-char* expandWord(const char* word) {
+char* expandWord2(const char* word, int flags) {
     char** fields;
-    ssize_t numFields = expand(word, EXPAND_NO_FIELD_SPLIT, &fields);
+    ssize_t numFields = expand(word, flags | EXPAND_NO_FIELD_SPLIT, &fields);
     if (numFields < 0) return NULL;
     assert(numFields == 1);
     char* result = fields[0];
     free(fields);
     return result;
+}
+
+char* expandWord(const char* word) {
+    return expandWord2(word, 0);
 }
 
 ssize_t expand2(const char* word, int flags, char*** result,
@@ -97,6 +101,11 @@ ssize_t expand(const char* word, int flags, char*** result) {
         free(fields);
         fields = newFields;
         numFields = numNewFields;
+    } else if (flags & EXPAND_NO_QUOTE_REMOVAL) {
+        for (ssize_t i = 0; i < numFields; i++) {
+            fields[i] = strdup(fields[i]);
+            if (!fields[i]) err(1, "strdup");
+        }
     } else {
         for (ssize_t i = 0; i < numFields; i++) {
             fields[i] = removeQuotes(fields[i], i, context.substitutions,

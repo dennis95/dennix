@@ -25,7 +25,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "expand.h"
 #include "parser.h"
+#include "stringbuffer.h"
 
 #define BACKTRACKING // specify that a function might return PARSER_BACKTRACK.
 
@@ -78,6 +80,7 @@ void initParser(struct Parser* parser,
         void (*readCommand)(const char** str, bool newCommand, void* context),
         void* context) {
     parser->offset = 0;
+    parser->hereDocOffset = 0;
     initTokenizer(&parser->tokenizer, readCommand, context);
 }
 
@@ -479,6 +482,8 @@ static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
         result->type = REDIR_DUP;
     } else if (strcmp(operator, "<>") == 0) {
         result->type = REDIR_READ_WRITE;
+    } else if (strcmp(operator, "<<") == 0 || strcmp(operator, "<<-") == 0 ) {
+        result->type = REDIR_HERE_DOC;
     } else {
         return PARSER_BACKTRACK;
     }
@@ -489,11 +494,27 @@ static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
     result->fd = fd;
 
     parser->offset++;
-    struct Token* filename = getToken(parser);
-    if (!filename || filename->type != TOKEN) {
+    struct Token* word = getToken(parser);
+    if (!word || word->type != TOKEN) {
         return PARSER_SYNTAX;
     }
-    result->filename = filename->text;
+    result->filename = word->text;
+    if (result->type == REDIR_HERE_DOC) {
+        struct HereDoc* hereDoc =
+                &parser->tokenizer.hereDocs[parser->hereDocOffset];
+        if (strcmp(hereDoc->delimiter, word->text) != 0) {
+            result->type = REDIR_HERE_DOC_QUOTED;
+        }
+
+        while (!hereDoc->content) {
+            if (splitTokens(&parser->tokenizer) != TOKENIZER_DONE) {
+                return PARSER_SYNTAX;
+            }
+            hereDoc = &parser->tokenizer.hereDocs[parser->hereDocOffset];
+        }
+        result->filename = hereDoc->content;
+        parser->hereDocOffset++;
+    }
 
     parser->offset++;
     return PARSER_MATCH;

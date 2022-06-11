@@ -229,21 +229,29 @@ static int executeCommand(struct Command* command, bool subshell) {
     } else {
         for (size_t i = 0; i < command->numRedirections; i++) {
             struct Redirection redirection = command->redirections[i];
-            redirection.filename = expandWord(redirection.filename);
-            if (!redirection.filename) {
-                for (; i > 0; i--) {
-                    popRedirection();
+            if (redirection.type != REDIR_HERE_DOC_QUOTED) {
+                int flags = redirection.type == REDIR_HERE_DOC ?
+                        EXPAND_NO_QUOTE_REMOVAL : 0;
+                redirection.filename = expandWord2(redirection.filename, flags);
+                if (!redirection.filename) {
+                    for (; i > 0; i--) {
+                        popRedirection();
+                    }
+                    return 1;
                 }
-                return 1;
             }
             if (!performRedirection(&redirection)) {
-                free((char*) redirection.filename);
+                if (redirection.type != REDIR_HERE_DOC_QUOTED) {
+                    free((char*) redirection.filename);
+                }
                 for (; i > 0; i--) {
                     popRedirection();
                 }
                 return 1;
             }
-            free((char*) redirection.filename);
+            if (redirection.type != REDIR_HERE_DOC_QUOTED) {
+                free((char*) redirection.filename);
+            }
         }
 
         int status = executeCompoundCommand(command, subshell);
@@ -412,8 +420,13 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
 
     for (size_t i = 0; i < numRedirections; i++) {
         redirections[i] = simpleCommand->redirections[i];
-        redirections[i].filename = expandWord(redirections[i].filename);
-        if (!redirections[i].filename) goto cleanup;
+        if (redirections[i].type != REDIR_HERE_DOC_QUOTED) {
+            int flags = redirections[i].type == REDIR_HERE_DOC ?
+                    EXPAND_NO_QUOTE_REMOVAL : 0;
+            redirections[i].filename = expandWord2(redirections[i].filename,
+                    flags);
+            if (!redirections[i].filename) goto cleanup;
+        }
     }
 
     for (size_t i = 0; i < numAssignments; i++) {
@@ -479,7 +492,9 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
     }
 
     for (size_t i = 0; i < numRedirections; i++) {
-        free((void*) redirections[i].filename);
+        if (redirections[i].type != REDIR_HERE_DOC_QUOTED) {
+            free((void*) redirections[i].filename);
+        }
     }
     free(redirections);
     redirections = NULL;
@@ -503,7 +518,9 @@ cleanup:
     free(arguments);
     if (redirections) {
         for (size_t i = 0; i < numRedirections; i++) {
-            free((void*) redirections[i].filename);
+            if (redirections[i].type != REDIR_HERE_DOC_QUOTED) {
+                free((void*) redirections[i].filename);
+            }
         }
         free(redirections);
     }
@@ -632,6 +649,9 @@ static bool performRedirection(struct Redirection* redirection) {
     case REDIR_READ_WRITE:
         openFlags = O_RDWR | O_CREAT;
         break;
+    case REDIR_HERE_DOC:
+    case REDIR_HERE_DOC_QUOTED:
+        break;
     default:
         assert(false);
     }
@@ -653,6 +673,29 @@ static bool performRedirection(struct Redirection* redirection) {
                 warn("'%s'", redirection->filename);
                 return false;
             }
+        }
+    } else if (redirection->type == REDIR_HERE_DOC ||
+            redirection->type == REDIR_HERE_DOC_QUOTED) {
+        int pfd[2];
+        if (pipe(pfd) < 0) err(1, "pipe");
+
+        pid_t pid = fork();
+        if (pid < 0) {
+            err(1, "fork");
+        } else if (pid == 0) {
+            close(pfd[0]);
+            size_t length = strlen(redirection->filename);
+            size_t written = 0;
+            while (written < length) {
+                ssize_t bytesWritten = write(pfd[1],
+                        redirection->filename + written, length - written);
+                if (bytesWritten < 0) err(1, "write");
+                written += bytesWritten;
+            }
+            exit(0);
+        } else {
+            close(pfd[1]);
+            fd = pfd[0];
         }
     } else {
         if (redirection->type == REDIR_OUTPUT && shellOptions.noclobber) {

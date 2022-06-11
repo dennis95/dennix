@@ -32,12 +32,14 @@ enum {
     REDIR_APPEND,
     REDIR_DUP,
     REDIR_READ_WRITE,
+    REDIR_HERE_DOC,
+    REDIR_HERE_DOC_QUOTED,
 };
 
 struct Redirection {
     int fd;
-    const char* filename;
     int type;
+    const char* filename; // or here-document contents
 };
 
 struct SimpleCommand {
@@ -133,6 +135,7 @@ struct CompleteCommand {
 struct Parser {
     struct Tokenizer tokenizer;
     size_t offset;
+    size_t hereDocOffset;
 };
 
 enum ParserResult {
