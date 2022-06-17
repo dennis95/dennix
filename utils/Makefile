@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -43,6 +43,7 @@ BIN_PROGRAMS = \
 	mv \
 	pwd \
 	rm \
+	seq \
 	sleep \
 	snake \
 	sync \
