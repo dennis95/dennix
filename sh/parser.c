@@ -117,9 +117,7 @@ enum ParserResult parse(struct Parser* parser,
         if (result != PARSER_MATCH) return result;
         if (!getToken(parser)) return PARSER_NO_CMD;
     } else {
-        if (!token) return PARSER_SYNTAX;
-
-        if (token->type == OPERATOR && token->text[0] == '\n') {
+        if (!token || (token->type == OPERATOR && token->text[0] == '\n')) {
             return PARSER_NO_CMD;
         }
     }

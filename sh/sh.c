@@ -367,7 +367,19 @@ static void readCommand(const char** str, bool newCommand, void* context) {
     }
 
     ssize_t length = getline(&buffer, &bufferSize, inputFile);
+
     if (length < 0 && !feof(inputFile)) err(1, "getline");
+    if (length > 0 && buffer[length - 1] != '\n') {
+        // Make sure that the input ends with a newline.
+        if (bufferSize < (size_t) length + 2) {
+            buffer = realloc(buffer, length + 2);
+            if (!buffer) err(1, "realloc");
+        }
+
+        buffer[length] = '\n';
+        buffer[length + 1] = '\0';
+    }
+
     *str = buffer;
     if (length < 0) *str = "";
 }
