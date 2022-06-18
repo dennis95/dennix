@@ -345,7 +345,7 @@ static void delimit(struct Tokenizer* tokenizer, enum TokenType type) {
 
     if (tokenizer->numHereDocs > 0 &&
             !tokenizer->hereDocs[tokenizer->numHereDocs - 1].delimiter) {
-        char* delimiter = removeQuotes(token.text, 0, NULL, 0);
+        char* delimiter = removeQuotes(token.text, 0, NULL, 0, false);
         tokenizer->hereDocs[tokenizer->numHereDocs - 1].delimiter = delimiter;
     }
 }

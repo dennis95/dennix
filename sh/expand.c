@@ -101,15 +101,11 @@ ssize_t expand(const char* word, int flags, char*** result) {
         free(fields);
         fields = newFields;
         numFields = numNewFields;
-    } else if (flags & EXPAND_NO_QUOTE_REMOVAL) {
-        for (ssize_t i = 0; i < numFields; i++) {
-            fields[i] = strdup(fields[i]);
-            if (!fields[i]) err(1, "strdup");
-        }
     } else {
         for (ssize_t i = 0; i < numFields; i++) {
             fields[i] = removeQuotes(fields[i], i, context.substitutions,
-                    context.numSubstitutions);
+                    context.numSubstitutions,
+                    flags & EXPAND_REMOVE_BACKSLASH_ONLY);
         }
     }
 
@@ -549,18 +545,19 @@ static size_t splitFields(char* word, struct ExpandContext* context,
     return numFields;
 }
 
-static bool isSpecialInDoubleQuotes(char c) {
-    return c == '$' || c == '`' || c == '\\' || c == '"';
+static bool isSpecialInDoubleQuotes(char c, bool backslashOnly) {
+    return c == '$' || c == '`' || c == '\\' || (!backslashOnly && c == '"');
 }
 
 char* removeQuotes(const char* word, size_t fieldIndex,
-        struct SubstitutionInfo* substitutions, size_t numSubstitutions) {
+        struct SubstitutionInfo* substitutions, size_t numSubstitutions,
+        bool backslashOnly) {
     size_t substIndex = 0;
     struct SubstitutionInfo* subst = substitutions;
 
     bool escaped = false;
     bool singleQuote = false;
-    bool doubleQuote = false;
+    bool doubleQuote = backslashOnly;
 
     struct StringBuffer buffer;
     initStringBuffer(&buffer);
@@ -581,13 +578,13 @@ char* removeQuotes(const char* word, size_t fieldIndex,
             // No quote removal for substitution results.
         } else if (!escaped) {
             if (!singleQuote && c == '\\' && (!doubleQuote ||
-                    isSpecialInDoubleQuotes(word[i + 1]))) {
+                    isSpecialInDoubleQuotes(word[i + 1], backslashOnly))) {
                 escaped = true;
                 continue;
-            } else if (!doubleQuote && c == '\'') {
+            } else if (!doubleQuote && !backslashOnly && c == '\'') {
                 singleQuote = !singleQuote;
                 continue;
-            } else if (!singleQuote && c == '"') {
+            } else if (!singleQuote && !backslashOnly && c == '"') {
                 doubleQuote = !doubleQuote;
                 continue;
             }

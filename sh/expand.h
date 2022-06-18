@@ -42,7 +42,7 @@ struct ExpandContext {
 enum {
     EXPAND_NO_FIELD_SPLIT = 1 << 0,
     EXPAND_PATHNAMES = 1 << 1,
-    EXPAND_NO_QUOTE_REMOVAL = 1 << 2,
+    EXPAND_REMOVE_BACKSLASH_ONLY = 1 << 2,
 };
 
 NO_DISCARD ssize_t expand(const char* word, int flags, char*** result);
@@ -51,6 +51,7 @@ NO_DISCARD ssize_t expand2(const char* word, int flags, char*** fields,
 char* expandWord(const char* word);
 char* expandWord2(const char* word, int flags);
 char* removeQuotes(const char* word, size_t fieldIndex,
-        struct SubstitutionInfo* substitutions, size_t numSubstitutions);
+        struct SubstitutionInfo* substitutions, size_t numSubstitutions,
+        bool backslashOnly);
 
 #endif

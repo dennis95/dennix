@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -267,7 +267,8 @@ bool expandPathnames(char** fields, size_t numFields, char*** pathnames,
                             sizeof(char*));
                 }
             } else if (result == GLOB_NOMATCH) {
-                char* str = removeQuotes(fields[i], i, subst, numSubstitutions);
+                char* str = removeQuotes(fields[i], i, subst, numSubstitutions,
+                        false);
                 addToArray((void**) pathnames, numPathnames, &str,
                         sizeof(char*));
             } else {
@@ -277,7 +278,8 @@ bool expandPathnames(char** fields, size_t numFields, char*** pathnames,
             }
             globfree(&data);
         } else {
-            char* str = removeQuotes(fields[i], i, subst, numSubstitutions);
+            char* str = removeQuotes(fields[i], i, subst, numSubstitutions,
+                    false);
             addToArray((void**) pathnames, numPathnames, &str, sizeof(char*));
         }
         free(pattern);
