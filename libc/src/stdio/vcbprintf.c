@@ -42,6 +42,8 @@ static int printString(void* param,
         int length, int fieldWidth, int flags);
 
 enum {
+    // Powers of two N >= 8 represent length modifier wN.
+    // N+1 represents length modifier wfN.
     LENGTH_CHAR,
     LENGTH_SHORT,
     LENGTH_INT,
@@ -50,7 +52,7 @@ enum {
     LENGTH_INTMAX,
     LENGTH_SIZE,
     LENGTH_PTRDIFF,
-    LENGTH_LONG_DOUBLE
+    LENGTH_LONG_DOUBLE = 10
 };
 
 enum {
@@ -76,6 +78,7 @@ int __vcbprintf(void* param, size_t (*callback)(void*, const char*, size_t),
         if (__builtin_add_overflow(result, (x), &result)) goto overflow
 
     while (*format) {
+loopBegin:
         if (*format != '%' || invalidConversion) {
             if (callback(param, format, 1) != 1) return -1;
             INCREMENT_RESULT(1);
@@ -143,18 +146,30 @@ int __vcbprintf(void* param, size_t (*callback)(void*, const char*, size_t),
                     }
                     length = LENGTH_LONG;
                     continue;
-                case 'j':
-                    length = LENGTH_INTMAX;
-                    break;
-                case 'z':
-                    length = LENGTH_SIZE;
-                    break;
-                case 't':
-                    length = LENGTH_PTRDIFF;
-                    break;
-                case 'L':
-                    length = LENGTH_LONG_DOUBLE;
-                    break;
+                case 'j': length = LENGTH_INTMAX; break;
+                case 'z': length = LENGTH_SIZE; break;
+                case 't': length = LENGTH_PTRDIFF; break;
+                case 'L': length = LENGTH_LONG_DOUBLE; break;
+                case 'w': {
+                    bool fast = false;
+                    if (*format == 'f') {
+                        fast = true;
+                        format++;
+                    }
+                    size_t width = 0;
+                    while (*format >= '0' && *format <= '9') {
+                        width = width * 10 + *format - '0';
+                        format++;
+                    }
+                    if (width != 8 && width != 16 && width != 32 &&
+                            width != 64) {
+                        invalidConversion = true;
+                        format = specifierBegin;
+                        goto loopBegin;
+                    }
+
+                    length = width + fast;
+                } break;
                 default:
                     format--;
                 }
@@ -163,65 +178,48 @@ int __vcbprintf(void* param, size_t (*callback)(void*, const char*, size_t),
 
             char specifier = *format;
             uintmax_t value = 0;
+#define GET_ARG(type) (sizeof(type) >= sizeof(int) ? va_arg(ap, type) : \
+        (type) va_arg(ap, int))
 
-            if (specifier == 'o' || specifier == 'u' || specifier == 'x' ||
-                    specifier == 'X') {
-                switch (length) {
-                case LENGTH_CHAR:
-                    value = (unsigned char) va_arg(ap, unsigned int);
-                    break;
-                case LENGTH_SHORT:
-                    value = (unsigned short) va_arg(ap, unsigned int);
-                    break;
-                case LENGTH_INT:
-                    value = va_arg(ap, unsigned int);
-                    break;
-                case LENGTH_LONG:
-                    value = va_arg(ap, unsigned long);
-                    break;
-                case LENGTH_LONG_LONG:
-                    value = va_arg(ap, unsigned long long);
-                    break;
-                case LENGTH_INTMAX:
-                    value = va_arg(ap, uintmax_t);
-                    break;
-                case LENGTH_SIZE:
-                    value = va_arg(ap, size_t);
-                    break;
-                case LENGTH_PTRDIFF:
-                    value = va_arg(ap, ptrdiff_t);
-                    break;
-                }
+            if (specifier == 'b' || specifier == 'B' || specifier == 'o' ||
+                    specifier == 'u' || specifier == 'x' || specifier == 'X') {
+                value = length == LENGTH_CHAR ? GET_ARG(unsigned char) :
+                        length == LENGTH_SHORT ? GET_ARG(unsigned short) :
+                        length == LENGTH_INT ? GET_ARG(unsigned int) :
+                        length == LENGTH_LONG ? GET_ARG(unsigned long) :
+                        length == LENGTH_LONG_LONG ?
+                        GET_ARG(unsigned long long) :
+                        length == LENGTH_INTMAX ? GET_ARG(uintmax_t) :
+                        length == LENGTH_SIZE ? GET_ARG(size_t) :
+                        length == LENGTH_PTRDIFF ?
+                        (uintmax_t) GET_ARG(ptrdiff_t) :
+                        length == 8 ? GET_ARG(uint8_t) :
+                        length == 16 ? GET_ARG(uint16_t) :
+                        length == 32 ? GET_ARG(uint32_t) :
+                        length == 64 ? GET_ARG(uint64_t) :
+                        length == 8 + 1 ? GET_ARG(uint_fast8_t) :
+                        length == 16 + 1 ? GET_ARG(uint_fast16_t) :
+                        length == 32 + 1 ? GET_ARG(uint_fast32_t) :
+                        length == 64 + 1 ? GET_ARG(uint_fast64_t) :
+                        0;
             } else if (specifier == 'd' || specifier == 'i') {
-                intmax_t signedValue = 0;
-                switch (length) {
-                case LENGTH_CHAR:
-                    signedValue = (signed char) va_arg(ap, int);
-                    break;
-                case LENGTH_SHORT:
-                    signedValue = (short) va_arg(ap, int);
-                    break;
-                case LENGTH_INT:
-                    signedValue = va_arg(ap, int);
-                    break;
-                case LENGTH_LONG:
-                    signedValue = va_arg(ap, long);
-                    break;
-                case LENGTH_LONG_LONG:
-                    signedValue = va_arg(ap, long long);
-                    break;
-                case LENGTH_INTMAX:
-                    signedValue = va_arg(ap, intmax_t);
-                    break;
-                case LENGTH_SIZE:
-                    signedValue = va_arg(ap, ssize_t);
-                    break;
-                case LENGTH_PTRDIFF:
-                    signedValue = va_arg(ap, ptrdiff_t);
-                    break;
-                }
-
-                value = (uintmax_t) signedValue;
+                value = length == LENGTH_CHAR ? GET_ARG(signed char) :
+                        length == LENGTH_SHORT ? GET_ARG(short) :
+                        length == LENGTH_INT ? GET_ARG(int) :
+                        length == LENGTH_LONG ? GET_ARG(long) :
+                        length == LENGTH_LONG_LONG ? GET_ARG(long long) :
+                        length == LENGTH_INTMAX ? GET_ARG(intmax_t) :
+                        length == LENGTH_SIZE ? GET_ARG(ssize_t) :
+                        length == LENGTH_PTRDIFF ? GET_ARG(ptrdiff_t) :
+                        length == 8 ? GET_ARG(int8_t) :
+                        length == 16 ? GET_ARG(int16_t) :
+                        length == 32 ? GET_ARG(int32_t) :
+                        length == 64 ? GET_ARG(int64_t) :
+                        length == 8 + 1 ? GET_ARG(int_fast8_t) :
+                        length == 16 + 1 ? GET_ARG(int_fast16_t) :
+                        length == 32 + 1 ? GET_ARG(int_fast32_t) :
+                        length == 64 + 1 ? GET_ARG(int_fast64_t) :
+                        0;
             }
 
             size_t size;
@@ -230,7 +228,8 @@ int __vcbprintf(void* param, size_t (*callback)(void*, const char*, size_t),
             int written;
 
             switch (specifier) {
-            case 'd': case 'i': case 'o': case 'u': case 'x': case 'X':
+            case 'b': case 'B': case 'd': case 'i': case 'o': case 'u':
+            case 'x': case 'X':
                 if (precision < 0) {
                     precision = 1;
                 } else {
@@ -272,7 +271,23 @@ int __vcbprintf(void* param, size_t (*callback)(void*, const char*, size_t),
                 INCREMENT_RESULT(written);
                 break;
             case 'n':
-                *va_arg(ap, int*) = result;
+                length == LENGTH_CHAR ? *va_arg(ap, signed char*) = result :
+                length == LENGTH_SHORT ? *va_arg(ap, short*) = result :
+                length == LENGTH_INT ? *va_arg(ap, int*) = result :
+                length == LENGTH_LONG ? *va_arg(ap, long*) = result :
+                length == LENGTH_LONG_LONG ? *va_arg(ap, long long*) = result :
+                length == LENGTH_INTMAX ? *va_arg(ap, intmax_t*) = result :
+                length == LENGTH_SIZE ? *va_arg(ap, ssize_t*) = result :
+                length == LENGTH_PTRDIFF ? *va_arg(ap, ptrdiff_t*) = result :
+                length == 8 ? *va_arg(ap, int8_t*) = result :
+                length == 16 ? *va_arg(ap, int16_t*) = result :
+                length == 32 ? *va_arg(ap, int32_t*) = result :
+                length == 64 ? *va_arg(ap, int64_t*) = result :
+                length == 8 + 1 ? *va_arg(ap, int_fast8_t*) = result :
+                length == 16 + 1 ? *va_arg(ap, int_fast16_t*) = result :
+                length == 32 + 1 ? *va_arg(ap, int_fast32_t*) = result :
+                length == 64 + 1 ? *va_arg(ap, int_fast64_t*) = result :
+                        (void) 0;
                 break;
             case '%':
                 if (callback(param, "%", 1) != 1) return -1;
@@ -339,11 +354,13 @@ static int printInteger(void* param,
         flags &= ~(FLAG_PLUS | FLAG_SPACE);
     }
 
-    char buffer[(sizeof(uintmax_t) * 3)];
+    char buffer[(sizeof(uintmax_t) * CHAR_BIT)];
     const char* digits = specifier == 'X' ? upperDigits : lowerDigits;
     unsigned int base = 10;
 
-    if (specifier == 'o') {
+    if (specifier == 'b' || specifier == 'B') {
+        base = 2;
+    } else if (specifier == 'o') {
         base = 8;
     } else if (specifier == 'x' || specifier == 'X') {
         base = 16;
@@ -366,8 +383,8 @@ static int printInteger(void* param,
             return -1;
         }
     }
-    if (flags & FLAG_ALTERNATIVE && (specifier == 'x' || specifier == 'X') &&
-            value != 0) {
+    if (flags & FLAG_ALTERNATIVE && value != 0 && (specifier == 'x' ||
+            specifier == 'X' || specifier == 'b' || specifier == 'B')) {
         if (__builtin_add_overflow(unpaddedLength, 2, &unpaddedLength)) {
             errno = EOVERFLOW;
             return -1;
@@ -385,11 +402,15 @@ static int printInteger(void* param,
         if (callback(param, &sign, 1) != 1) return -1;
     }
 
-    if (flags & FLAG_ALTERNATIVE) {
-        if (specifier == 'x' && value != 0) {
+    if (flags & FLAG_ALTERNATIVE && value != 0) {
+        if (specifier == 'x') {
             if (callback(param, "0x", 2) != 2) return -1;
-        } else if (specifier == 'X' && value != 0) {
+        } else if (specifier == 'X') {
             if (callback(param, "0X", 2) != 2) return -1;
+        } else if (specifier == 'b') {
+            if (callback(param, "0b", 2) != 2) return -1;
+        } else if (specifier == 'B') {
+            if (callback(param, "0B", 2) != 2) return -1;
         }
     }
 
