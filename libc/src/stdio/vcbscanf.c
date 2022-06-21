@@ -29,6 +29,8 @@
 // TODO: Support numbered arguments
 
 enum {
+    // Powers of two N >= 8 represent length modifier wN.
+    // N+1 represents length modifier wfN.
     LENGTH_CHAR,
     LENGTH_SHORT,
     LENGTH_INT,
@@ -37,7 +39,7 @@ enum {
     LENGTH_INTMAX,
     LENGTH_SIZE,
     LENGTH_PTRDIFF,
-    LENGTH_LONG_DOUBLE
+    LENGTH_LONG_DOUBLE = 10
 };
 
 static unsigned int getDigitValue(int c);
@@ -109,18 +111,29 @@ int __vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
                     }
                     length = LENGTH_LONG;
                     continue;
-                case 'j':
-                    length = LENGTH_INTMAX;
-                    break;
-                case 'z':
-                    length = LENGTH_SIZE;
-                    break;
-                case 't':
-                    length = LENGTH_PTRDIFF;
-                    break;
-                case 'L':
-                    length = LENGTH_LONG_DOUBLE;
-                    break;
+                case 'j': length = LENGTH_INTMAX; break;
+                case 'z': length = LENGTH_SIZE; break;
+                case 't': length = LENGTH_PTRDIFF; break;
+                case 'L': length = LENGTH_LONG_DOUBLE; break;
+                case 'w': {
+                    bool fast = false;
+                    if (*format == 'f') {
+                        fast = true;
+                        format++;
+                    }
+                    size_t width = 0;
+                    while (*format >= '0' && *format <= '9') {
+                        width = width * 10 + *format - '0';
+                        format++;
+                    }
+                    if (width != 8 && width != 16 && width != 32 &&
+                            width != 64) {
+                        va_end(ap);
+                        return conversions;
+                    }
+
+                    length = width + fast;
+                } break;
                 default:
                     format--;
                 }
@@ -128,6 +141,7 @@ int __vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
             }
 
             switch (*format) {
+            case 'b': case 'B':
             case 'd':
             case 'i':
             case 'o':
@@ -162,7 +176,8 @@ int __vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
                     return conversions;
                 }
 
-                unsigned int base = *format == 'd' ? 10 :
+                unsigned int base = *format == 'b' || *format == 'B' ? 2 :
+                        *format == 'd' ? 10 :
                         *format == 'i' ? 0 :
                         *format == 'o' ? 8 :
                         *format == 'u' ? 10 : 16;
@@ -172,13 +187,14 @@ int __vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
                 if (base == 0) {
                     if (c == '0') {
                         c = GET();
-                        if (fieldWidth > 1 && (c == 'x' || c == 'X')) {
+                        if (fieldWidth > 1 && (c == 'x' || c == 'X' ||
+                                c == 'b' || c == 'B')) {
                             fieldWidth -= 2;
                             if (!fieldWidth) {
                                 va_end(ap);
                                 return conversions;
                             }
-                            base = 16;
+                            base = c == 'b' || c == 'B' ? 2 : 16;
                             c = GET();
                         } else {
                             UNGET(c);
@@ -188,9 +204,11 @@ int __vcbscanf(void* arg, int (*get)(void*), int (*unget)(int, void*),
                     } else {
                         base = 10;
                     }
-                } else if (base == 16 && c == '0') {
+                } else if (c == '0' && (base == 2 || base == 16)) {
                     c = GET();
-                    if (fieldWidth > 1 && (c == 'x' || c == 'X')) {
+                    if (fieldWidth > 1 &&
+                            ((base == 2 && (c == 'b' || c == 'B')) ||
+                            (base == 16 && (c == 'x' || c == 'X')))) {
                         fieldWidth -= 2;
                         if (!fieldWidth) {
                             va_end(ap);
@@ -341,58 +359,40 @@ static unsigned int getDigitValue(int c) {
 
 static void storeInt(va_list* ap, int length, bool sign, uintmax_t value) {
     if (sign) {
-        switch (length) {
-        case LENGTH_CHAR:
-            *va_arg(*ap, signed char*) = value;
-            break;
-        case LENGTH_SHORT:
-            *va_arg(*ap, short*) = value;
-            break;
-        case LENGTH_INT:
-            *va_arg(*ap, int*) = value;
-            break;
-        case LENGTH_LONG:
-            *va_arg(*ap, long*) = value;
-            break;
-        case LENGTH_LONG_LONG:
-            *va_arg(*ap, long long*) = value;
-            break;
-        case LENGTH_INTMAX:
-            *va_arg(*ap, intmax_t*) = value;
-            break;
-        case LENGTH_SIZE:
-            *va_arg(*ap, ssize_t*) = value;
-            break;
-        case LENGTH_PTRDIFF:
-            *va_arg(*ap, ptrdiff_t*) = value;
-            break;
-        }
+        length == LENGTH_CHAR ? *va_arg(*ap, signed char*) = value :
+        length == LENGTH_SHORT ? *va_arg(*ap, short*) = value :
+        length == LENGTH_INT ? *va_arg(*ap, int*) = value :
+        length == LENGTH_LONG ? *va_arg(*ap, long*) = value :
+        length == LENGTH_LONG_LONG ? *va_arg(*ap, long long*) = value :
+        length == LENGTH_INTMAX ? *va_arg(*ap, intmax_t*) = value :
+        length == LENGTH_SIZE ? *va_arg(*ap, ssize_t*) = value :
+        length == LENGTH_PTRDIFF ? *va_arg(*ap, ptrdiff_t*) = value :
+        length == 8 ? *va_arg(*ap, int8_t*) = value :
+        length == 16 ? *va_arg(*ap, int16_t*) = value :
+        length == 32 ? *va_arg(*ap, int32_t*) = value :
+        length == 64 ? *va_arg(*ap, int64_t*) = value :
+        length == 8 + 1 ? *va_arg(*ap, int_fast8_t*) = value :
+        length == 16 + 1 ? *va_arg(*ap, int_fast16_t*) = value :
+        length == 32 + 1 ? *va_arg(*ap, int_fast32_t*) = value :
+        length == 64 + 1 ? *va_arg(*ap, int_fast64_t*) = value :
+                (void) 0;
     } else {
-        switch (length) {
-        case LENGTH_CHAR:
-            *va_arg(*ap, unsigned char*) = value;
-            break;
-        case LENGTH_SHORT:
-            *va_arg(*ap, unsigned short*) = value;
-            break;
-        case LENGTH_INT:
-            *va_arg(*ap, unsigned int*) = value;
-            break;
-        case LENGTH_LONG:
-            *va_arg(*ap, unsigned long*) = value;
-            break;
-        case LENGTH_LONG_LONG:
-            *va_arg(*ap, unsigned long long*) = value;
-            break;
-        case LENGTH_INTMAX:
-            *va_arg(*ap, uintmax_t*) = value;
-            break;
-        case LENGTH_SIZE:
-            *va_arg(*ap, size_t*) = value;
-            break;
-        case LENGTH_PTRDIFF:
-            *va_arg(*ap, ptrdiff_t*) = value;
-            break;
-        }
+        length == LENGTH_CHAR ? *va_arg(*ap, unsigned char*) = value :
+        length == LENGTH_SHORT ? *va_arg(*ap, unsigned short*) = value :
+        length == LENGTH_INT ? *va_arg(*ap, unsigned int*) = value :
+        length == LENGTH_LONG ? *va_arg(*ap, unsigned long*) = value :
+        length == LENGTH_LONG_LONG ? *va_arg(*ap, unsigned long long*) = value :
+        length == LENGTH_INTMAX ? *va_arg(*ap, uintmax_t*) = value :
+        length == LENGTH_SIZE ? *va_arg(*ap, size_t*) = value :
+        length == LENGTH_PTRDIFF ? *va_arg(*ap, ptrdiff_t*) = value :
+        length == 8 ? *va_arg(*ap, uint8_t*) = value :
+        length == 16 ? *va_arg(*ap, uint16_t*) = value :
+        length == 32 ? *va_arg(*ap, uint32_t*) = value :
+        length == 64 ? *va_arg(*ap, uint64_t*) = value :
+        length == 8 + 1 ? *va_arg(*ap, uint_fast8_t*) = value :
+        length == 16 + 1 ? *va_arg(*ap, uint_fast16_t*) = value :
+        length == 32 + 1 ? *va_arg(*ap, uint_fast32_t*) = value :
+        length == 64 + 1 ? *va_arg(*ap, uint_fast64_t*) = value :
+                (void) 0;
     }
 }
