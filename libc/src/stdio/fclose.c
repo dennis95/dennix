@@ -18,6 +18,8 @@
  */
 
 #define close __close
+#define pthread_mutex_lock __mutex_lock
+#define pthread_mutex_unlock __mutex_unlock
 #include <stdlib.h>
 #include <unistd.h>
 #include "FILE.h"
@@ -27,6 +29,7 @@ int fclose(FILE* file) {
     if (fflush(file) == EOF) result = EOF;
 
     // Remove the file from the file list.
+    pthread_mutex_lock(&__fileListMutex);
     if (file == __firstFile) {
         __firstFile = file->next;
     }
@@ -36,6 +39,7 @@ int fclose(FILE* file) {
     if (file->next) {
         file->next->prev = file->prev;
     }
+    pthread_mutex_unlock(&__fileListMutex);
 
     if (file->fd != -1 && close(file->fd) < 0) {
         result = EOF;

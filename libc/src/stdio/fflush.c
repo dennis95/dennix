@@ -20,9 +20,12 @@
 #define fflush_unlocked __fflush_unlocked
 #define flockfile __flockfile
 #define funlockfile __funlockfile
+#define pthread_mutex_lock __mutex_lock
+#define pthread_mutex_unlock __mutex_unlock
 #include "FILE.h"
 
 FILE* __firstFile;
+__mutex_t __fileListMutex = _MUTEX_INIT(_MUTEX_NORMAL);
 
 int fflush(FILE* file) {
     if (!file) {
@@ -31,11 +34,13 @@ int fflush(FILE* file) {
         result |= fflush(stdout);
         result |= fflush(stderr);
 
+        pthread_mutex_lock(&__fileListMutex);
         file = __firstFile;
         while (file) {
             result |= fflush(file);
             file = file->next;
         }
+        pthread_mutex_unlock(&__fileListMutex);
 
         return result;
     }

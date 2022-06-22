@@ -49,6 +49,7 @@ struct __FILE {
 #define UNGET_BYTES 8
 
 extern FILE* __firstFile;
+extern __mutex_t __fileListMutex;
 
 static inline bool fileWasRead(FILE* file) {
     return file->readPosition != file->readEnd;

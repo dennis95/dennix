@@ -14,7 +14,7 @@
  */
 
 /* libc/src/stdio/fmemopen.c
- * Open a memory buffer stream.
+ * Open a memory buffer stream. (POSIX2008)
  */
 
 #include <errno.h>
@@ -108,12 +108,15 @@ FILE* fmemopen(void* restrict buffer, size_t size, const char* restrict mode) {
     memfile->binary = binary;
     memfile->update = (flags & O_RDWR) == O_RDWR;
 
+    pthread_mutex_lock(&__fileListMutex);
     file->prev = NULL;
     file->next = __firstFile;
     if (file->next) {
         file->next->prev = file;
     }
     __firstFile = file;
+    pthread_mutex_unlock(&__fileListMutex);
+
     return file;
 }
 

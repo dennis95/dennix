@@ -18,6 +18,8 @@
  */
 
 #define isatty __isatty
+#define pthread_mutex_lock __mutex_lock
+#define pthread_mutex_unlock __mutex_unlock
 #include <stdlib.h>
 #include <unistd.h>
 #include "FILE.h"
@@ -51,12 +53,15 @@ FILE* __fdopen(int fd, const char* mode) {
         file->flags |= FILE_FLAG_LINEBUFFER;
     }
 
+    pthread_mutex_lock(&__fileListMutex);
     file->prev = NULL;
     file->next = __firstFile;
     if (file->next) {
         file->next->prev = file;
     }
     __firstFile = file;
+    pthread_mutex_unlock(&__fileListMutex);
+
     return file;
 }
 __weak_alias(__fdopen, fdopen);
