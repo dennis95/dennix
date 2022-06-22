@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -45,6 +45,10 @@ extern "C" void __lockRandom(void) {
 
 extern "C" void* __mapMemory(size_t size) {
     return (void*) kernelSpace->mapMemory(size, PROT_READ | PROT_WRITE);
+}
+
+extern "C" NORETURN void __stack_chk_fail(void) {
+    PANIC("Stack smashing detected");
 }
 
 extern "C" void __unlockHeap(void) {

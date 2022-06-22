@@ -1,4 +1,4 @@
-# Copyright (c) 2021 Dennis Wölfing
+# Copyright (c) 2021, 2022 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -22,7 +22,7 @@ BUILD = $(BUILD_DIR)/libdxui
 
 ARFLAGS = -crs
 CFLAGS ?= -O2 -g
-CFLAGS += --sysroot=$(SYSROOT) -Wall -Wextra
+CFLAGS += --sysroot=$(SYSROOT) -fstack-protector-strong -Wall -Wextra
 CPPFLAGS += -I include -D_DENNIX_SOURCE -Ddxui_internal=internal
 
 OBJ = \

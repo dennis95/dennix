@@ -23,6 +23,7 @@ BUILD = $(BUILD_DIR)/libc
 ARFLAGS = -crs
 CFLAGS ?= -O2 -g
 CFLAGS += --sysroot=$(SYSROOT) -std=gnu11 -ffreestanding -fno-common
+CFLAGS += -fstack-protector-strong
 CFLAGS += -Wall -Wextra
 CPPFLAGS += -I include -D_ALL_SOURCE
 
@@ -40,6 +41,7 @@ COMMON_OBJ = \
 	inttypes/strtoumax \
 	libgen/basename \
 	libgen/dirname \
+	misc/ssp \
 	sched/sched_yield \
 	signal/sigaddset \
 	signal/sigdelset \

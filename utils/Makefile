@@ -22,7 +22,7 @@ include $(REPO_ROOT)/build-aux/version.mk
 BUILD = $(BUILD_DIR)/utils
 
 CFLAGS ?= -O2 -g
-CFLAGS += --sysroot=$(SYSROOT) -std=c11 -Wall -Wextra
+CFLAGS += --sysroot=$(SYSROOT) -std=c11 -fstack-protector-strong -Wall -Wextra
 CPPFLAGS += -D_DENNIX_SOURCE -DDENNIX_VERSION=\"$(VERSION)\"
 
 BIN_PROGRAMS = \

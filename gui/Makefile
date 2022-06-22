@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021 Dennis Wölfing
+# Copyright (c) 2020, 2021, 2022 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -22,7 +22,7 @@ include $(REPO_ROOT)/build-aux/version.mk
 BUILD = $(BUILD_DIR)/gui
 
 CFLAGS ?= -O2 -g
-CFLAGS += --sysroot=$(SYSROOT) -Wall -Wextra
+CFLAGS += --sysroot=$(SYSROOT) -fstack-protector-strong -Wall -Wextra
 CPPFLAGS += -D_DENNIX_SOURCE -DDENNIX_VERSION=\"$(VERSION)\"
 LIBS = -ldxui
 
