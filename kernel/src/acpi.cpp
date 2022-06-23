@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -32,7 +32,7 @@ struct Rsdp {
     char oemid[6];
     uint8_t revision;
     uint32_t rsdt;
-};
+} PACKED;
 
 struct IsdtHeader {
     char signature[4];
@@ -44,24 +44,24 @@ struct IsdtHeader {
     uint32_t oemRevision;
     uint32_t creatorId;
     uint32_t creatorRevision;
-};
+} PACKED;
 
 struct Rsdt {
     IsdtHeader header;
     uint32_t tables[];
-};
+} PACKED;
 
 struct Madt {
     IsdtHeader header;
     uint32_t localApicAddress;
     uint32_t flags;
     char entries[];
-};
+} PACKED;
 
 struct MadtEntryHeader {
     uint8_t type;
     uint8_t length;
-};
+} PACKED;
 
 struct MadtIoApic {
     MadtEntryHeader header;
@@ -69,7 +69,7 @@ struct MadtIoApic {
     uint8_t reserved;
     uint32_t ioApicAddress;
     uint32_t globalSystemInterruptBase;
-};
+} PACKED;
 
 struct MadtInterruptSourceOverride {
     MadtEntryHeader header;
@@ -77,7 +77,7 @@ struct MadtInterruptSourceOverride {
     uint8_t irqSource;
     uint32_t globalSystemInterrupt;
     uint16_t flags;
-};
+} PACKED;
 
 struct GenericAddressStructure {
     uint8_t addressSpace;
@@ -94,7 +94,7 @@ struct HpetTable {
     uint8_t hpetNumber;
     uint16_t minimumClockTick;
     uint8_t pageProtection;
-};
+} PACKED;
 
 static paddr_t getRsdt(const multiboot_info* multiboot);
 static void scanHpet(paddr_t address, size_t length);
