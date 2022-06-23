@@ -145,11 +145,11 @@ int Process::copyArguments(char* const argv[], char* const envp[],
     char** envpMapped = argvMapped + argc + 1;
 
     for (int i = 0; i < argc; i++) {
-        argvMapped[i] = nextString - pageMapped + page;
+        argvMapped[i] = (char*) ((vaddr_t) nextString - pageMapped + page);
         nextString = stpcpy(nextString, argv[i]) + 1;
     }
     for (int i = 0; i < envc; i++) {
-        envpMapped[i] = nextString - pageMapped + page;
+        envpMapped[i] = (char*) ((vaddr_t) nextString - pageMapped + page);
         nextString = stpcpy(nextString, envp[i]) + 1;
     }
     argvMapped[argc] = nullptr;
