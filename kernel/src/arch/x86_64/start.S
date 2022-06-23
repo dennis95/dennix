@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -78,7 +78,8 @@ _start:
 
     movl $(kernelPdpt + PAGE_WRITE), kernelPml4 + 0xFF8
     movl $(kernelPageDir + PAGE_WRITE), kernelPdpt + 0xFF0
-    movl $(kernelPageTable + PAGE_WRITE), kernelPageDir
+    movl $(kernelPageTable1 + PAGE_WRITE), kernelPageDir
+    movl $(kernelPageTable2 + PAGE_WRITE), kernelPageDir + 8
 
     # Identity-map the bootstrap section
     mov $numBootstrapPages, %ecx
@@ -92,7 +93,7 @@ _start:
 
     # Map the executable part of the kernel
     mov $numExecPages, %ecx
-    add $(kernelPageTable - bootstrapPageTable), %edi
+    add $(kernelPageTable1 - bootstrapPageTable), %edi
     mov $(kernelPhysicalBegin + PAGE_READONLY), %edx
 
 1:  mov %edx, (%edi)
@@ -189,7 +190,9 @@ kernelPdpt:
     .skip 4096
 kernelPageDir:
     .skip 4096
-kernelPageTable:
+kernelPageTable1:
+    .skip 4096
+kernelPageTable2:
     .skip 4096
 
 .code64
