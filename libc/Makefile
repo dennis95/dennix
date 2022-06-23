@@ -42,6 +42,7 @@ COMMON_OBJ = \
 	libgen/basename \
 	libgen/dirname \
 	misc/ssp \
+	misc/ubsan \
 	sched/sched_yield \
 	signal/sigaddset \
 	signal/sigdelset \

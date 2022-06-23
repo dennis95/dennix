@@ -35,6 +35,12 @@ extern "C" NORETURN void __assertionFailure(const char* assertion,
     panic(file, line, func, "Assertion failed: '%s'", assertion);
 }
 
+extern "C" NORETURN void __handleUbsan(const char* file, uint32_t line,
+        uint32_t column, const char* message) {
+    PANIC("Undefined behavior detected: %s\nat %s:%u:%u", message, file, line,
+            column);
+}
+
 extern "C" void __lockHeap(void) {
     kthread_mutex_lock(&heapLock);
 }
