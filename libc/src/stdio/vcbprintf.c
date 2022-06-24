@@ -348,7 +348,7 @@ static int printInteger(void* param,
         intmax_t signedValue = (intmax_t) value;
         if (signedValue < 0) {
             negative = true;
-            value = (uintmax_t) -signedValue;
+            value = -value;
         }
     } else {
         flags &= ~(FLAG_PLUS | FLAG_SPACE);
