@@ -163,6 +163,7 @@ LIBC_OBJ = \
 	err/warnx \
 	errno/errno \
 	errno/initProgname \
+	fcntl/creat \
 	fcntl/fcntl \
 	fcntl/open \
 	fcntl/openat \
