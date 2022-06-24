@@ -239,6 +239,7 @@ LIBC_OBJ = \
 	stdio/getdelim \
 	stdio/getline \
 	stdio/perror \
+	stdio/popen \
 	stdio/printf \
 	stdio/putc_unlocked \
 	stdio/putc \

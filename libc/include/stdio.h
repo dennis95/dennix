@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -129,6 +129,8 @@ int getc_unlocked(FILE*);
 int getchar_unlocked(void);
 ssize_t getdelim(char** __restrict, size_t* __restrict, int, FILE* __restrict);
 ssize_t getline(char** __restrict, size_t* __restrict, FILE* __restrict);
+int pclose(FILE*);
+FILE* popen(const char*, const char*);
 int putc_unlocked(int, FILE*);
 int putchar_unlocked(int);
 int renameat(int, const char*, int, const char*);
