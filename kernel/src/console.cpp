@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -494,6 +494,12 @@ void Console::printCharacterRaw(char c) {
         } else {
             cursorPos.x--;
         }
+        return;
+    }
+
+    if (wc == L'\r') {
+        cursorPos.x = 0;
+        endOfLine = false;
         return;
     }
 
