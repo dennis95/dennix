@@ -151,7 +151,7 @@ void initParser(struct Parser* parser,
         void (*readCommand)(const char** str, bool newCommand, void* context),
         void* context);
 enum ParserResult parse(struct Parser* parser,
-        struct CompleteCommand* command, bool oldCommandSubst);
+        struct CompleteCommand* command, bool readWholeScript);
 enum ParserResult parseCommandSubstitution(struct Parser* parser,
         struct CompleteCommand* command, size_t* inputRemaining);
 void freeCompleteCommand(struct CompleteCommand* command);

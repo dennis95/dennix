@@ -108,10 +108,10 @@ static bool isCompoundListTerminator(const char* word) {
 }
 
 enum ParserResult parse(struct Parser* parser,
-        struct CompleteCommand* command, bool oldCommandSubst) {
+        struct CompleteCommand* command, bool readWholeScript) {
     splitTokens(&parser->tokenizer);
     struct Token* token = getToken(parser);
-    if (oldCommandSubst) {
+    if (readWholeScript) {
         if (!token) return PARSER_NO_CMD;
         enum ParserResult result = parseLinebreak(parser);
         if (result != PARSER_MATCH) return result;
@@ -123,7 +123,7 @@ enum ParserResult parse(struct Parser* parser,
     }
 
     enum ParserResult result = parseList(parser, &command->list, false,
-            oldCommandSubst);
+            readWholeScript);
     assert(result != PARSER_BACKTRACK);
 
     if (result == PARSER_MATCH && (*parser->tokenizer.input ||

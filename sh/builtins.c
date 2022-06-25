@@ -27,11 +27,13 @@
 #include <sys/stat.h>
 
 #include "builtins.h"
-#include "sh.h"
+#include "execute.h"
+#include "stringbuffer.h"
 #include "variables.h"
 
 static int cd(int argc, char* argv[]);
 static int colon(int argc, char* argv[]);
+static int eval(int argc, char* argv[]);
 static int sh_exit(int argc, char* argv[]);
 static int export(int argc, char* argv[]);
 static int set(int argc, char* argv[]);
@@ -41,6 +43,7 @@ static int unset(int argc, char* argv[]);
 const struct builtin builtins[] = {
     { ":", colon, BUILTIN_SPECIAL }, // : must be the first entry in this list.
     { "cd", cd, 0 },
+    { "eval", eval, BUILTIN_SPECIAL },
     { "exit", sh_exit, BUILTIN_SPECIAL },
     { "export", export, BUILTIN_SPECIAL },
     { "set", set, BUILTIN_SPECIAL },
@@ -135,6 +138,48 @@ static int cd(int argc, char* argv[]) {
 static int colon(int argc, char* argv[]) {
     (void) argc; (void) argv;
     return 0;
+}
+
+static void readCommandFromString(const char** str, bool newCommand,
+        void* context) {
+    (void) newCommand;
+
+    const char** word = context;
+    *str = *word;
+    *word = "";
+}
+
+static int eval(int argc, char* argv[]) {
+    struct StringBuffer buffer;
+    initStringBuffer(&buffer);
+
+    for (int i = 1; i < argc; i++) {
+        if (i != 1) {
+            appendToStringBuffer(&buffer, ' ');
+        }
+        appendStringToStringBuffer(&buffer, argv[i]);
+    }
+    appendToStringBuffer(&buffer, '\n');
+
+    char* string = finishStringBuffer(&buffer);
+    struct Parser parser;
+    const char* context = string;
+    initParser(&parser, readCommandFromString, &context);
+
+    struct CompleteCommand command;
+    enum ParserResult parserResult = parse(&parser, &command, true);
+
+    int status = 0;
+    if (parserResult == PARSER_MATCH) {
+        status = execute(&command);
+        freeCompleteCommand(&command);
+    } else if (parserResult == PARSER_SYNTAX) {
+        status = 1;
+    }
+
+    freeParser(&parser);
+    free(string);
+    return status;
 }
 
 static int sh_exit(int argc, char* argv[]) {
