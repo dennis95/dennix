@@ -41,6 +41,7 @@ BIN_PROGRAMS = \
 	meminfo \
 	mkdir \
 	mv \
+	printf \
 	pwd \
 	rm \
 	seq \
