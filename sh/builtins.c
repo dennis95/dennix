@@ -34,6 +34,7 @@
 static int cd(int argc, char* argv[]);
 static int colon(int argc, char* argv[]);
 static int eval(int argc, char* argv[]);
+static int exec(int argc, char* argv[]);
 static int sh_exit(int argc, char* argv[]);
 static int export(int argc, char* argv[]);
 static int set(int argc, char* argv[]);
@@ -44,6 +45,7 @@ const struct builtin builtins[] = {
     { ":", colon, BUILTIN_SPECIAL }, // : must be the first entry in this list.
     { "cd", cd, 0 },
     { "eval", eval, BUILTIN_SPECIAL },
+    { "exec", exec, BUILTIN_SPECIAL },
     { "exit", sh_exit, BUILTIN_SPECIAL },
     { "export", export, BUILTIN_SPECIAL },
     { "set", set, BUILTIN_SPECIAL },
@@ -180,6 +182,22 @@ static int eval(int argc, char* argv[]) {
     freeParser(&parser);
     free(string);
     return status;
+}
+
+static int exec(int argc, char* argv[]) {
+    int i;
+    for (i = 1; i < argc; i++) {
+        if (argv[i][0] != '-' || argv[i][1] == '\0') break;
+        if (argv[i][1] == '-' && argv[i][2] == '\0') {
+            i++;
+            break;
+        }
+        warnx("exec: invalid option '-%c'", argv[i][1]);
+        return 1;
+    }
+
+    if (i == argc) return 0;
+    executeUtility(argc - i, argv + i, NULL, 0);
 }
 
 static int sh_exit(int argc, char* argv[]) {

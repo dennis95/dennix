@@ -24,6 +24,8 @@
 
 int execute(struct CompleteCommand* command);
 int executeAndRead(struct CompleteCommand* command, struct StringBuffer* sb);
+noreturn void executeUtility(int argc, char** arguments, char** assignments,
+        size_t numAssignments);
 void freeRedirections(void);
 
 #endif

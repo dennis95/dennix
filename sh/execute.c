@@ -60,12 +60,10 @@ static int executeList(struct List* list);
 static int executePipeline(struct Pipeline* pipeline);
 static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         bool subshell);
-static noreturn void executeUtility(int argc, char** arguments,
-        char** assignments, size_t numAssignments);
 static const char* getExecutablePath(const char* command);
-static bool performRedirection(struct Redirection* redirection);
+static bool performRedirection(struct Redirection* redirection, bool noSave);
 static bool performRedirections(struct Redirection* redirections,
-        size_t numRedirections);
+        size_t numRedirections, bool noSave);
 static void popRedirection(void);
 static void resetSignals(void);
 static int waitForCommand(pid_t pid);
@@ -240,7 +238,7 @@ static int executeCommand(struct Command* command, bool subshell) {
                     return 1;
                 }
             }
-            if (!performRedirection(&redirection)) {
+            if (!performRedirection(&redirection, false)) {
                 if (redirection.type != REDIR_HERE_DOC_QUOTED) {
                     free((char*) redirection.filename);
                 }
@@ -485,7 +483,8 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         }
     }
 
-    if (!performRedirections(redirections, numRedirections)) {
+    bool noSave = builtin && strcmp(builtin->name, "exec") == 0;
+    if (!performRedirections(redirections, numRedirections, noSave)) {
         if (!builtin) _Exit(1);
         result = 1;
         goto cleanup;
@@ -505,8 +504,10 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         executeUtility(argc, arguments, assignments, numAssignments);
     }
 
-    for (size_t i = 0; i < numRedirections; i++) {
-        popRedirection();
+    if (!noSave) {
+        for (size_t i = 0; i < numRedirections; i++) {
+            popRedirection();
+        }
     }
 
 cleanup:
@@ -533,8 +534,8 @@ cleanup:
     return result;
 }
 
-static noreturn void executeUtility(int argc, char** arguments,
-        char** assignments, size_t numAssignments) {
+noreturn void executeUtility(int argc, char** arguments, char** assignments,
+        size_t numAssignments) {
     const char* command = arguments[0];
 
     for (size_t i = 0; i < numAssignments; i++) {
@@ -625,7 +626,7 @@ static int open_noclobber(const char* path) {
 #endif
 }
 
-static bool performRedirection(struct Redirection* redirection) {
+static bool performRedirection(struct Redirection* redirection, bool noSave) {
     if (redirection->fd >= 10) {
         errno = EBADF;
         warn("'%d'", redirection->fd);
@@ -709,6 +710,20 @@ static bool performRedirection(struct Redirection* redirection) {
         }
     }
 
+    if (noSave) {
+        if (fd != redirection->fd) {
+            close(redirection->fd);
+            if (fd != -1) {
+                if (dup2(fd, redirection->fd) < 0) err(1, "dup2");
+
+                if (redirection->type != REDIR_DUP) {
+                    close(fd);
+                }
+            }
+        }
+        return true;
+    }
+
     struct SavedFd* sfd = malloc(sizeof(struct SavedFd));
     if (!sfd) err(1, "malloc");
     sfd->fd = redirection->fd;
@@ -746,10 +761,10 @@ static bool performRedirection(struct Redirection* redirection) {
 }
 
 static bool performRedirections(struct Redirection* redirections,
-        size_t numRedirections) {
+        size_t numRedirections, bool noSave) {
     for (size_t i = 0; i < numRedirections; i++) {
-        if (!performRedirection(&redirections[i])) {
-            for (; i > 0; i--) {
+        if (!performRedirection(&redirections[i], noSave)) {
+            for (; i > 0 && !noSave; i--) {
                 popRedirection();
             }
             return false;
