@@ -31,8 +31,10 @@
 #include "stringbuffer.h"
 #include "variables.h"
 
+static int sh_break(int argc, char* argv[]);
 static int cd(int argc, char* argv[]);
 static int colon(int argc, char* argv[]);
+static int sh_continue(int argc, char* argv[]);
 static int eval(int argc, char* argv[]);
 static int exec(int argc, char* argv[]);
 static int sh_exit(int argc, char* argv[]);
@@ -43,7 +45,9 @@ static int unset(int argc, char* argv[]);
 
 const struct builtin builtins[] = {
     { ":", colon, BUILTIN_SPECIAL }, // : must be the first entry in this list.
+    { "break", sh_break, BUILTIN_SPECIAL },
     { "cd", cd, 0 },
+    { "continue", sh_continue, BUILTIN_SPECIAL },
     { "eval", eval, BUILTIN_SPECIAL },
     { "exec", exec, BUILTIN_SPECIAL },
     { "exit", sh_exit, BUILTIN_SPECIAL },
@@ -53,6 +57,34 @@ const struct builtin builtins[] = {
     { "unset", unset, BUILTIN_SPECIAL },
     { NULL, NULL, 0 }
 };
+
+static int sh_break(int argc, char* argv[]) {
+    if (argc > 2) {
+        warnx("break: too many arguments");
+        return 1;
+    }
+    unsigned long breaks = 1;
+    if (argc == 2) {
+        char* end;
+        errno = 0;
+        breaks = strtoul(argv[1], &end, 10);
+        if (errno || breaks == 0 || *end) {
+            warnx("break: invalid number '%s'", argv[1]);
+            return 1;
+        }
+    }
+
+    if (!loopCounter) {
+        warnx("break: used outside of loop");
+        return 1;
+    }
+
+    numBreaks = breaks;
+    if (numBreaks > loopCounter) {
+        numBreaks = loopCounter;
+    }
+    return 0;
+}
 
 char* pwd;
 
@@ -139,6 +171,34 @@ static int cd(int argc, char* argv[]) {
 
 static int colon(int argc, char* argv[]) {
     (void) argc; (void) argv;
+    return 0;
+}
+
+static int sh_continue(int argc, char* argv[]) {
+    if (argc > 2) {
+        warnx("continue: too many arguments");
+        return 1;
+    }
+    unsigned long continues = 1;
+    if (argc == 2) {
+        char* end;
+        errno = 0;
+        continues = strtoul(argv[1], &end, 10);
+        if (errno || continues == 0 || *end) {
+            warnx("continue: invalid number '%s'", argv[1]);
+            return 1;
+        }
+    }
+
+    if (!loopCounter) {
+        warnx("continue: used outside of loop");
+        return 1;
+    }
+
+    numContinues = continues;
+    if (numContinues > loopCounter) {
+        numContinues = loopCounter;
+    }
     return 0;
 }
 

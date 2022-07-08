@@ -38,6 +38,10 @@
 #include "sh.h"
 #include "variables.h"
 
+unsigned long loopCounter;
+unsigned long numBreaks;
+unsigned long numContinues;
+
 struct SavedFd {
     int fd;
     int saved;
@@ -108,6 +112,7 @@ int executeAndRead(struct CompleteCommand* command, struct StringBuffer* sb) {
 static int executeList(struct List* list) {
     for (size_t i = 0; i < list->numPipelines; i++) {
         lastStatus = executePipeline(&list->pipelines[i]);
+        if (numBreaks || numContinues) return 0;
         while (list->separators[i] == LIST_AND && lastStatus != 0) i++;
         while (list->separators[i] == LIST_OR && lastStatus == 0) i++;
     }
@@ -285,8 +290,10 @@ static int executeCompoundCommand(struct Command* command, bool subshell) {
     case COMMAND_IF:
         for (size_t i = 0; i < command->ifClause.numConditions; i++) {
             if (executeList(&command->ifClause.conditions[i]) == 0) {
+                if (numBreaks || numContinues) return 0;
                 return executeList(&command->ifClause.bodies[i]);
             }
+            if (numBreaks || numContinues) return 0;
         }
         if (command->ifClause.hasElse) {
             return executeList(&command->ifClause.bodies[
@@ -294,15 +301,38 @@ static int executeCompoundCommand(struct Command* command, bool subshell) {
         }
         return 0;
     case COMMAND_WHILE:
-        while (executeList(&command->loop.condition) == 0) {
+    case COMMAND_UNTIL: {
+        bool isUntil = command->type == COMMAND_UNTIL;
+        loopCounter++;
+        while (true) {
+            bool condition = executeList(&command->loop.condition) == 0;
+            if (numBreaks) {
+                numBreaks--;
+                break;
+            }
+            if (numContinues) {
+                numContinues--;
+                if (numContinues) break;
+                continue;
+            }
+            if (condition == isUntil) break;
+
             status = executeList(&command->loop.body);
+
+            if (numBreaks) {
+                numBreaks--;
+                break;
+            }
+            if (numContinues) {
+                numContinues--;
+                if (numContinues) break;
+                continue;
+            }
         }
+
+        loopCounter--;
         return status;
-    case COMMAND_UNTIL:
-        while (executeList(&command->loop.condition) != 0) {
-            status = executeList(&command->loop.body);
-        }
-        return status;
+    }
     default:
         assert(false);
     }
@@ -326,10 +356,25 @@ static int executeFor(struct ForClause* clause) {
         free(fields);
     }
 
+    loopCounter++;
     int status = 0;
-    for (size_t i = 0; i < numItems; i++) {
+    size_t i;
+    for (i = 0; i < numItems; i++) {
         setVariable(clause->name, items[i], false);
         status = executeList(&clause->body);
+        if (numBreaks) {
+            numBreaks--;
+            break;
+        }
+        if (numContinues) {
+            numContinues--;
+            if (numContinues) break;
+        }
+        free(items[i]);
+    }
+    loopCounter--;
+
+    for (; i < numItems; i++) {
         free(items[i]);
     }
     free(items);
@@ -349,7 +394,7 @@ static int executeCase(struct CaseClause* clause) {
                 if (item->hasList) {
                     status = executeList(&item->list);
                 }
-                if (item->fallthrough) {
+                if (item->fallthrough && !numBreaks && !numContinues) {
                     for (i = i + 1; i < clause->numItems; i++) {
                         item = &clause->items[i];
                         if (item->hasList) {

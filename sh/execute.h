@@ -22,6 +22,10 @@
 
 #include "parser.h"
 
+extern unsigned long loopCounter;
+extern unsigned long numBreaks;
+extern unsigned long numContinues;
+
 int execute(struct CompleteCommand* command);
 int executeAndRead(struct CompleteCommand* command, struct StringBuffer* sb);
 noreturn void executeUtility(int argc, char** arguments, char** assignments,
