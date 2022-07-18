@@ -26,12 +26,14 @@ CFLAGS += --sysroot=$(SYSROOT) -std=c11 -fstack-protector-strong -Wall -Wextra
 CPPFLAGS += -D_DENNIX_SOURCE -DDENNIX_VERSION=\"$(VERSION)\"
 
 BIN_PROGRAMS = \
+	basename \
 	cat \
 	chmod \
 	chvideomode \
 	clear \
 	cp \
 	date \
+	dirname \
 	echo \
 	editor \
 	false \
