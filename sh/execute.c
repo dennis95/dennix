@@ -38,9 +38,14 @@
 #include "sh.h"
 #include "variables.h"
 
+struct Function** functions;
+size_t numFunctions;
+
 unsigned long loopCounter;
 unsigned long numBreaks;
 unsigned long numContinues;
+bool returning;
+int returnStatus;
 
 struct SavedFd {
     int fd;
@@ -59,6 +64,7 @@ static void sigusr1Handler(int signum) {
 static int executeCommand(struct Command* command, bool subshell);
 static int executeCompoundCommand(struct Command* command, bool subshell);
 static int executeFor(struct ForClause* clause);
+static int executeFunction(struct Function* function, int argc, char** argv);
 static int executeCase(struct CaseClause* clause);
 static int executeList(struct List* list);
 static int executePipeline(struct Pipeline* pipeline);
@@ -73,7 +79,9 @@ static void resetSignals(void);
 static int waitForCommand(pid_t pid);
 
 int execute(struct CompleteCommand* command) {
-    return executeList(&command->list);
+    int result = executeList(&command->list);
+    returning = false;
+    return result;
 }
 
 int executeAndRead(struct CompleteCommand* command, struct StringBuffer* sb) {
@@ -112,7 +120,7 @@ int executeAndRead(struct CompleteCommand* command, struct StringBuffer* sb) {
 static int executeList(struct List* list) {
     for (size_t i = 0; i < list->numPipelines; i++) {
         lastStatus = executePipeline(&list->pipelines[i]);
-        if (numBreaks || numContinues) return 0;
+        if (returning || numBreaks || numContinues) return 0;
         while (list->separators[i] == LIST_AND && lastStatus != 0) i++;
         while (list->separators[i] == LIST_OR && lastStatus == 0) i++;
     }
@@ -222,6 +230,20 @@ static int executePipeline(struct Pipeline* pipeline) {
     assert(false); // This should be unreachable.
 }
 
+static void addFunction(struct Function* function) {
+    function->refcount++;
+    for (size_t i = 0; i < numFunctions; i++) {
+        if (strcmp(functions[i]->name, function->name) == 0) {
+            freeFunction(functions[i]);
+            functions[i] = function;
+            return;
+        }
+    }
+
+    addToArray((void**) &functions, &numFunctions, &function,
+            sizeof(struct Function*));
+}
+
 static int executeCommand(struct Command* command, bool subshell) {
     if (subshell) {
         shellOptions.monitor = false;
@@ -229,6 +251,9 @@ static int executeCommand(struct Command* command, bool subshell) {
 
     if (command->type == COMMAND_SIMPLE) {
         return executeSimpleCommand(&command->simpleCommand, subshell);
+    } else if (command->type == COMMAND_FUNCTION_DEFINITION) {
+        addFunction(command->function);
+        return 0;
     } else {
         for (size_t i = 0; i < command->numRedirections; i++) {
             struct Redirection redirection = command->redirections[i];
@@ -290,10 +315,10 @@ static int executeCompoundCommand(struct Command* command, bool subshell) {
     case COMMAND_IF:
         for (size_t i = 0; i < command->ifClause.numConditions; i++) {
             if (executeList(&command->ifClause.conditions[i]) == 0) {
-                if (numBreaks || numContinues) return 0;
+                if (returning || numBreaks || numContinues) return 0;
                 return executeList(&command->ifClause.bodies[i]);
             }
-            if (numBreaks || numContinues) return 0;
+            if (returning || numBreaks || numContinues) return 0;
         }
         if (command->ifClause.hasElse) {
             return executeList(&command->ifClause.bodies[
@@ -306,6 +331,7 @@ static int executeCompoundCommand(struct Command* command, bool subshell) {
         loopCounter++;
         while (true) {
             bool condition = executeList(&command->loop.condition) == 0;
+            if (returning) break;
             if (numBreaks) {
                 numBreaks--;
                 break;
@@ -319,6 +345,7 @@ static int executeCompoundCommand(struct Command* command, bool subshell) {
 
             status = executeList(&command->loop.body);
 
+            if (returning) break;
             if (numBreaks) {
                 numBreaks--;
                 break;
@@ -362,6 +389,7 @@ static int executeFor(struct ForClause* clause) {
     for (i = 0; i < numItems; i++) {
         setVariable(clause->name, items[i], false);
         status = executeList(&clause->body);
+        if (returning) break;
         if (numBreaks) {
             numBreaks--;
             break;
@@ -381,6 +409,40 @@ static int executeFor(struct ForClause* clause) {
     return status;
 }
 
+static int executeFunction(struct Function* function, int argc, char** argv) {
+    char** newArguments = malloc((argc + 1) * sizeof(char*));
+    if (!newArguments) err(1, "malloc");
+    newArguments[0] = arguments[0];
+    for (int i = 1; i < argc; i++) {
+        newArguments[i] = strdup(argv[i]);
+        if (!newArguments[i]) err(1, "malloc");
+    }
+
+    char** oldArguments = arguments;
+    size_t oldNumArguments = numArguments;
+
+    arguments = newArguments;
+    numArguments = argc - 1;
+
+    function->refcount++;
+    int result = executeCommand(&function->body, false);
+    freeFunction(function);
+
+    for (int i = 1; i <= numArguments; i++) {
+        free(arguments[i]);
+    }
+    free(arguments);
+
+    arguments = oldArguments;
+    numArguments = oldNumArguments;
+
+    if (returning) {
+        returning = false;
+        return returnStatus;
+    }
+    return result;
+}
+
 static int executeCase(struct CaseClause* clause) {
     char* word = expandWord(clause->word);
     if (!word) return 1;
@@ -394,7 +456,8 @@ static int executeCase(struct CaseClause* clause) {
                 if (item->hasList) {
                     status = executeList(&item->list);
                 }
-                if (item->fallthrough && !numBreaks && !numContinues) {
+                if (item->fallthrough && !returning && !numBreaks &&
+                        !numContinues) {
                     for (i = i + 1; i < clause->numItems; i++) {
                         item = &clause->items[i];
                         if (item->hasList) {
@@ -480,6 +543,7 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
     int argc = numArguments - 1;
     const char* command = arguments[0];
     const struct builtin* builtin = NULL;
+    struct Function* function = NULL;
     if (command) {
         // Check for built-ins.
         for (const struct builtin* b = builtins; b->name; b++) {
@@ -488,15 +552,24 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
                 break;
             }
         }
+        if (!builtin || !(builtin->flags & BUILTIN_SPECIAL)) {
+            for (size_t i = 0; i < numFunctions; i++) {
+                if (strcmp(command, functions[i]->name) == 0) {
+                    builtin = NULL;
+                    function = functions[i];
+                    break;
+                }
+            }
+        }
     } else {
         builtin = &builtins[0]; // the : builtin
     }
 
-    if (builtin) {
+    if (builtin || function) {
         for (size_t i = 0; i < numAssignments; i++) {
             char* equals = strchr(assignments[i], '=');
             *equals = '\0';
-            if (builtin && !(builtin->flags & BUILTIN_SPECIAL)) {
+            if (!builtin || !(builtin->flags & BUILTIN_SPECIAL)) {
                 pushVariable(assignments[i], equals + 1);
             } else {
                 setVariable(assignments[i], equals + 1, false);
@@ -508,7 +581,7 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         numAssignments = 0;
     }
 
-    if (!builtin && !subshell) {
+    if (!builtin && !function && !subshell) {
         pid_t pid = fork();
 
         if (pid < 0) {
@@ -545,6 +618,8 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
 
     if (builtin) {
         result = builtin->func(argc, arguments);
+    } else if (function) {
+        result = executeFunction(function, argc, arguments);
     } else {
         executeUtility(argc, arguments, assignments, numAssignments);
     }
@@ -850,6 +925,28 @@ static void resetSignals(void) {
     signal(SIGTSTP, SIG_DFL);
     signal(SIGTTIN, SIG_DFL);
     signal(SIGTTOU, SIG_DFL);
+}
+
+void unsetFunction(const char* name) {
+    for (size_t i = 0; i < numFunctions; i++) {
+        if (strcmp(functions[i]->name, name) == 0) {
+            freeFunction(functions[i]);
+            if (i != numFunctions - 1) {
+                functions[i] = functions[numFunctions - 1];
+            }
+            numFunctions--;
+            return;
+        }
+    }
+}
+
+void unsetFunctions(void) {
+    for (size_t i = 0; i < numFunctions; i++) {
+        freeFunction(functions[i]);
+    }
+    free(functions);
+    functions = NULL;
+    numFunctions = 0;
 }
 
 static int waitForCommand(pid_t pid) {

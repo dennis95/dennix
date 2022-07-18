@@ -37,6 +37,8 @@ static enum ParserResult parseCompoundListWithTerminator(struct Parser* parser,
         struct List* list, const char* terminator);
 static enum ParserResult parseForClause(struct Parser* parser,
         struct ForClause* clause);
+static enum ParserResult parseFunctionDefinition(struct Parser* parser,
+        struct Function** function);
 static enum ParserResult parseCaseClause(struct Parser* parser,
         struct CaseClause* clause);
 static enum ParserResult parseIfClause(struct Parser* parser,
@@ -56,6 +58,7 @@ static void freeCommand(struct Command* command);
 static void freeList(struct List* list);
 static void freePipeline(struct Pipeline* pipeline);
 static void freeSimpleCommand(struct SimpleCommand* command);
+static void freeRedirection(struct Redirection* redirection);
 
 static inline struct Token* getToken(struct Parser* parser) {
     if (parser->offset >= parser->tokenizer.numTokens) {
@@ -105,6 +108,14 @@ static bool isCompoundListTerminator(const char* word) {
         i++;
     }
     return false;
+}
+
+static bool isName(const char* s, size_t length) {
+    if (!isalpha(s[0]) && s[0] != '_') return false;
+    for (size_t i = 1; i < length; i++) {
+        if (!isalnum(s[i]) && s[i] != '_') return false;
+    }
+    return true;
 }
 
 enum ParserResult parse(struct Parser* parser,
@@ -308,6 +319,17 @@ static enum ParserResult parseCommand(struct Parser* parser,
     struct Token* token = getToken(parser);
     enum ParserResult result;
     if (!isReservedWord(token->text) && strcmp(token->text, "(") != 0) {
+        if (isName(token->text, strlen(token->text))) {
+            // Look forward to determine whether this is a function definition.
+            parser->offset++;
+            token = getToken(parser);
+            parser->offset--;
+            if (token && strcmp(token->text, "(") == 0) {
+                command->type = COMMAND_FUNCTION_DEFINITION;
+                return parseFunctionDefinition(parser, &command->function);
+            }
+        }
+
         command->type = COMMAND_SIMPLE;
         // Redirections are already handled by parseSimpleCommand.
         return parseSimpleCommand(parser, &command->simpleCommand);
@@ -382,14 +404,6 @@ static enum ParserResult parseCommand(struct Parser* parser,
     return PARSER_MATCH;
 }
 
-static bool isName(const char* s, size_t length) {
-    if (!isalpha(s[0]) && s[0] != '_') return false;
-    for (size_t i = 1; i < length; i++) {
-        if (!isalnum(s[i]) && s[i] != '_') return false;
-    }
-    return true;
-}
-
 static enum ParserResult parseSimpleCommand(struct Parser* parser,
         struct SimpleCommand* command) {
     command->assignmentWords = NULL;
@@ -430,13 +444,17 @@ static enum ParserResult parseSimpleCommand(struct Parser* parser,
             const char* equals = strchr(token->text, '=');
             if (!hadNonAssignmentWord && equals && equals != token->text &&
                     isName(token->text, equals - token->text)) {
+                char* word = strdup(token->text);
+                if (!word) err(1, "malloc");
                 addToArray((void**) &command->assignmentWords,
-                        &command->numAssignmentWords, &token->text,
+                        &command->numAssignmentWords, &word,
                         sizeof(char*));
             } else {
                 hadNonAssignmentWord = true;
+                char* word = strdup(token->text);
+                if (!word) err(1, "malloc");
                 addToArray((void**) &command->words, &command->numWords,
-                        &token->text, sizeof(char*));
+                        &word, sizeof(char*));
             }
             parser->offset++;
         }
@@ -454,6 +472,7 @@ fail:
 
 static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
         struct Redirection* result) {
+    result->filename = NULL;
     struct Token* token = getToken(parser);
     assert(token);
     int fd = -1;
@@ -496,7 +515,7 @@ static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
     if (!word || word->type != TOKEN) {
         return PARSER_SYNTAX;
     }
-    result->filename = word->text;
+
     if (result->type == REDIR_HERE_DOC) {
         struct HereDoc* hereDoc =
                 &parser->tokenizer.hereDocs[parser->hereDocOffset];
@@ -510,9 +529,12 @@ static BACKTRACKING enum ParserResult parseIoRedirect(struct Parser* parser,
             }
             hereDoc = &parser->tokenizer.hereDocs[parser->hereDocOffset];
         }
-        result->filename = hereDoc->content;
+        result->filename = strdup(hereDoc->content);
         parser->hereDocOffset++;
+    } else {
+        result->filename = strdup(word->text);
     }
+    if (!result->filename) err(1, "malloc");
 
     parser->offset++;
     return PARSER_MATCH;
@@ -527,16 +549,19 @@ static enum ParserResult parseForClause(struct Parser* parser,
     if (!token || !isName(token->text, strlen(token->text))) {
         return PARSER_SYNTAX;
     }
-    clause->name = token->text;
+    clause->name = strdup(token->text);
+    if (!clause->name) err(1, "malloc");
     parser->offset++;
     token = getToken(parser);
-    if (!token) return PARSER_SYNTAX;
+    if (!token) goto syntax;
     if (strcmp(token->text, "in") == 0) {
         parser->offset++;
         token = getToken(parser);
-        if (!token) return PARSER_SYNTAX;
+        if (!token) goto syntax;
         while (token->type == TOKEN) {
-            addToArray((void**) &clause->words, &clause->numWords, &token->text,
+            char* word = strdup(token->text);
+            if (!word) err(1, "malloc");
+            addToArray((void**) &clause->words, &clause->numWords, &word,
                     sizeof(char*));
             parser->offset++;
             token = getToken(parser);
@@ -565,8 +590,59 @@ static enum ParserResult parseForClause(struct Parser* parser,
     if (result == PARSER_MATCH) return PARSER_MATCH;
 
 syntax:
+    free(clause->name);
+    for (size_t i = 0; i < clause->numWords; i++) {
+        free(clause->words[i]);
+    }
     free(clause->words);
     return PARSER_SYNTAX;
+}
+
+static enum ParserResult parseFunctionDefinition(struct Parser* parser,
+        struct Function** function) {
+    struct Function* func = malloc(sizeof(struct Function));
+    if (!func) err(1, "malloc");
+    func->refcount = 1;
+
+    struct Token* token = getToken(parser);
+    assert(token);
+    func->name = strdup(token->text);
+    if (!func->name) err(1, "strdup");
+
+    parser->offset += 2;
+    token = getToken(parser);
+    if (!token || strcmp(token->text, ")") != 0) {
+        free(func->name);
+        free(func);
+        return PARSER_SYNTAX;
+    }
+
+    parser->offset++;
+    enum ParserResult result = parseLinebreak(parser);
+    if (result != PARSER_MATCH) {
+        free(func->name);
+        free(func);
+        return result;
+    }
+
+    token = getToken(parser);
+    // Make sure that the function body is a compound command.
+    if (!token || (!isReservedWord(token->text) &&
+            strcmp(token->text, "(") != 0)) {
+        free(func->name);
+        free(func);
+        return PARSER_SYNTAX;
+    }
+
+    result = parseCommand(parser, &func->body);
+    if (result != PARSER_MATCH) {
+        free(func->name);
+        free(func);
+        return result;
+    }
+
+    *function = func;
+    return PARSER_MATCH;
 }
 
 static enum ParserResult parseCaseClause(struct Parser* parser,
@@ -578,23 +654,24 @@ static enum ParserResult parseCaseClause(struct Parser* parser,
     if (!token || token->type != TOKEN) {
         return PARSER_SYNTAX;
     }
-    clause->word = token->text;
+    clause->word = strdup(token->text);
+    if (!clause->word) err(1, "malloc");
     parser->offset++;
 
     enum ParserResult result = parseLinebreak(parser);
-    if (result != PARSER_MATCH) return result;
+    if (result != PARSER_MATCH) goto syntax;
 
     token = getToken(parser);
     if (!token || strcmp(token->text, "in") != 0) {
-        return PARSER_SYNTAX;
+        goto syntax;
     }
     parser->offset++;
 
     result = parseLinebreak(parser);
-    if (result != PARSER_MATCH) return result;
+    if (result != PARSER_MATCH) goto syntax;
 
     token = getToken(parser);
-    if (!token) return PARSER_SYNTAX;
+    if (!token) goto syntax;
 
     while (strcmp(token->text, "esac") != 0) {
         struct CaseItem item;
@@ -612,7 +689,9 @@ static enum ParserResult parseCaseClause(struct Parser* parser,
 
         while (true) {
             if (token->type != TOKEN) goto fail;
-            addToArray((void**) &item.patterns, &item.numPatterns, &token->text,
+            char* pattern = strdup(token->text);
+            if (!pattern) err(1, "malloc");
+            addToArray((void**) &item.patterns, &item.numPatterns, &pattern,
                     sizeof(char*));
             parser->offset++;
             token = getToken(parser);
@@ -682,12 +761,16 @@ fail:
 
 syntax:
     for (size_t i = 0; i < clause->numItems; i++) {
+        for (size_t j = 0; j < clause->items[i].numPatterns; j++) {
+            free(clause->items[i].patterns[j]);
+        }
         free(clause->items[i].patterns);
         if (clause->items[i].hasList) {
             freeList(&clause->items[i].list);
         }
     }
     free(clause->items);
+    free(clause->word);
     return PARSER_SYNTAX;
 }
 
@@ -801,6 +884,14 @@ void freeCompleteCommand(struct CompleteCommand* command) {
     freeList(&command->list);
 }
 
+void freeFunction(struct Function* function) {
+    if (--function->refcount == 0) {
+        free(function->name);
+        freeCommand(&function->body);
+        free(function);
+    }
+}
+
 static void freeList(struct List* list) {
     for (size_t i = 0; i < list->numPipelines; i++) {
         freePipeline(&list->pipelines[i]);
@@ -826,17 +917,25 @@ static void freeCommand(struct Command* command) {
         freeList(&command->compoundList);
         break;
     case COMMAND_FOR:
+        free(command->forClause.name);
+        for (size_t i = 0; i < command->forClause.numWords; i++) {
+            free(command->forClause.words[i]);
+        }
         free(command->forClause.words);
         freeList(&command->forClause.body);
         break;
     case COMMAND_CASE:
         for (size_t i = 0; i < command->caseClause.numItems; i++) {
+            for (size_t j = 0; j < command->caseClause.items[i].numPatterns; j++) {
+                free(command->caseClause.items[i].patterns[j]);
+            }
             free(command->caseClause.items[i].patterns);
             if (command->caseClause.items[i].hasList) {
                 freeList(&command->caseClause.items[i].list);
             }
         }
         free(command->caseClause.items);
+        free(command->caseClause.word);
         break;
     case COMMAND_IF:
         for (size_t i = 0; i < command->ifClause.numConditions; i++) {
@@ -855,12 +954,33 @@ static void freeCommand(struct Command* command) {
         freeList(&command->loop.condition);
         freeList(&command->loop.body);
         break;
+    case COMMAND_FUNCTION_DEFINITION:
+        freeFunction(command->function);
+        break;
+    }
+
+    for (size_t i = 0; i < command->numRedirections; i++) {
+        freeRedirection(&command->redirections[i]);
     }
     free(command->redirections);
 }
 
 static void freeSimpleCommand(struct SimpleCommand* command) {
+    for (size_t i = 0; i < command->numAssignmentWords; i++) {
+        free(command->assignmentWords[i]);
+    }
+    for (size_t i = 0; i < command->numRedirections; i++) {
+        freeRedirection(&command->redirections[i]);
+    }
+    for (size_t i = 0; i < command->numWords; i++) {
+        free(command->words[i]);
+    }
+
     free(command->assignmentWords);
     free(command->redirections);
     free(command->words);
+}
+
+static void freeRedirection(struct Redirection* redirection) {
+    free(redirection->filename);
 }

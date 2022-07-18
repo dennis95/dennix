@@ -39,6 +39,7 @@ static int eval(int argc, char* argv[]);
 static int exec(int argc, char* argv[]);
 static int sh_exit(int argc, char* argv[]);
 static int export(int argc, char* argv[]);
+static int sh_return(int argc, char* argv[]);
 static int set(int argc, char* argv[]);
 static int sh_umask(int argc, char* argv[]);
 static int unset(int argc, char* argv[]);
@@ -52,6 +53,7 @@ const struct builtin builtins[] = {
     { "exec", exec, BUILTIN_SPECIAL },
     { "exit", sh_exit, BUILTIN_SPECIAL },
     { "export", export, BUILTIN_SPECIAL },
+    { "return", sh_return, BUILTIN_SPECIAL },
     { "set", set, BUILTIN_SPECIAL },
     { "umask", sh_umask, 0 },
     { "unset", unset, BUILTIN_SPECIAL },
@@ -322,6 +324,33 @@ static int export(int argc, char* argv[]) {
     return success ? 0 : 1;
 }
 
+static int sh_return(int argc, char* argv[]) {
+    if (argc > 2) {
+        warnx("return: too many arguments");
+        returning = true;
+        returnStatus = 1;
+        return 1;
+    }
+
+    int status = lastStatus;
+
+    if (argc == 2) {
+        char* end;
+        errno = 0;
+        long value = strtol(argv[1], &end, 10);
+        if (errno || value < INT_MIN || value > INT_MAX || *end) {
+            warnx("return: invalid number '%s'", argv[1]);
+            status = 1;
+        } else {
+            status = value;
+        }
+    }
+
+    returning = true;
+    returnStatus = status;
+    return status;
+}
+
 static void printOptionStatus(bool plusOption, const char* optionName,
         bool optionValue) {
     if (plusOption) {
@@ -437,6 +466,9 @@ static int sh_umask(int argc, char* argv[]) {
 }
 
 static int unset(int argc, char* argv[]) {
+    bool function = false;
+    bool variable = false;
+
     int i;
     for (i = 1; i < argc; i++) {
         if (argv[i][0] != '-' || argv[i][1] == '\0') break;
@@ -445,13 +477,19 @@ static int unset(int argc, char* argv[]) {
             break;
         }
         for (size_t j = 1; argv[i][j]; j++) {
-            if (argv[i][j] == 'v') {
-                // ignored
+            if (argv[i][j] == 'f') {
+                function = true;
+            } else if (argv[i][j] == 'v') {
+                variable = true;
             } else {
                 warnx("unset: invalid option '-%c'", argv[i][j]);
                 return 1;
             }
         }
+    }
+
+    if (!function && !variable) {
+        variable = true;
     }
 
     bool success = true;
@@ -461,7 +499,12 @@ static int unset(int argc, char* argv[]) {
             success = false;
             continue;
         }
-        unsetVariable(argv[i]);
+        if (variable) {
+            unsetVariable(argv[i]);
+        }
+        if (function) {
+            unsetFunction(argv[i]);
+        }
     }
     return success ? 0 : 1;
 }

@@ -22,14 +22,21 @@
 
 #include "parser.h"
 
+extern struct Function** functions;
+extern size_t numFunctions;
+
 extern unsigned long loopCounter;
 extern unsigned long numBreaks;
 extern unsigned long numContinues;
+extern bool returning;
+extern int returnStatus;
 
 int execute(struct CompleteCommand* command);
 int executeAndRead(struct CompleteCommand* command, struct StringBuffer* sb);
 noreturn void executeUtility(int argc, char** arguments, char** assignments,
         size_t numAssignments);
 void freeRedirections(void);
+void unsetFunction(const char* name);
+void unsetFunctions(void);
 
 #endif

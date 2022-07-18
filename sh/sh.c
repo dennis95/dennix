@@ -188,6 +188,7 @@ noreturn void executeScript(int argc, char** argv) {
     freeInteractive();
     freeParser(&parser);
     freeRedirections();
+    unsetFunctions();
 
     for (int i = 0; i <= numArguments; i++) {
         free(arguments[i]);

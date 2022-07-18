@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,6 +29,7 @@
 #include <sys/stat.h>
 
 #include "builtins.h"
+#include "execute.h"
 #include "interactive.h"
 #include "sh.h"
 #include "variables.h"
@@ -431,6 +432,15 @@ static size_t getCompletions(const char* text, char*** result,
                 if (!name) {
                     goto fail;
                 }
+                addToArray((void**) &completions, &completionsUsed, &name,
+                        sizeof(char*));
+            }
+        }
+
+        for (size_t i = 0; i < numFunctions; i++) {
+            if (strncmp(prefix, functions[i]->name, prefixLength) == 0) {
+                char* name = strdup(functions[i]->name);
+                if (!name) goto fail;
                 addToArray((void**) &completions, &completionsUsed, &name,
                         sizeof(char*));
             }

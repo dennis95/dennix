@@ -39,7 +39,7 @@ enum {
 struct Redirection {
     int fd;
     int type;
-    const char* filename; // or here-document contents
+    char* filename; // or here-document contents
 };
 
 struct SimpleCommand {
@@ -105,6 +105,7 @@ enum CommandType {
     COMMAND_IF,
     COMMAND_WHILE,
     COMMAND_UNTIL,
+    COMMAND_FUNCTION_DEFINITION,
 };
 
 struct Command {
@@ -116,10 +117,17 @@ struct Command {
         struct CaseClause caseClause;
         struct IfClause ifClause;
         struct Loop loop;
+        struct Function* function;
     };
     // These are only used for compound commands.
     struct Redirection* redirections;
     size_t numRedirections;
+};
+
+struct Function {
+    char* name;
+    size_t refcount;
+    struct Command body;
 };
 
 struct Pipeline {
@@ -155,5 +163,6 @@ enum ParserResult parse(struct Parser* parser,
 enum ParserResult parseCommandSubstitution(struct Parser* parser,
         struct CompleteCommand* command, size_t* inputRemaining);
 void freeCompleteCommand(struct CompleteCommand* command);
+void freeFunction(struct Function* function);
 
 #endif
