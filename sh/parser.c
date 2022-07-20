@@ -552,6 +552,10 @@ static enum ParserResult parseForClause(struct Parser* parser,
     clause->name = strdup(token->text);
     if (!clause->name) err(1, "malloc");
     parser->offset++;
+
+    enum ParserResult result = parseLinebreak(parser);
+    if (result != PARSER_MATCH) goto syntax;
+
     token = getToken(parser);
     if (!token) goto syntax;
     if (strcmp(token->text, "in") == 0) {
@@ -573,14 +577,15 @@ static enum ParserResult parseForClause(struct Parser* parser,
             goto syntax;
         }
     } else {
-        const char* word = "\"$@\"";
+        const char* word = strdup("\"$@\"");
+        if (!word) err(1, "malloc");
         addToArray((void**) &clause->words, &clause->numWords, &word,
                 sizeof(char*));
         if (strcmp(token->text, ";") == 0) {
             parser->offset++;
         }
     }
-    enum ParserResult result = parseLinebreak(parser);
+    result = parseLinebreak(parser);
     if (result != PARSER_MATCH) goto syntax;
 
     token = getToken(parser);
