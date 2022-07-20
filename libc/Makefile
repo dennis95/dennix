@@ -256,6 +256,7 @@ LIBC_OBJ = \
 	stdio/setvbuf \
 	stdio/stderr \
 	stdio/stdin \
+	stdio/stdio_ext \
 	stdio/stdout \
 	stdio/tmpfile \
 	stdio/ungetc_unlocked \

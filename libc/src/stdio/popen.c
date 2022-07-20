@@ -100,6 +100,11 @@ FILE* popen(const char* command, const char* mode) {
     file->fd = fd[parentTarget];
 
     file->flags = FILE_FLAG_BUFFERED;
+    if (mode[0] == 'r') {
+        file->flags |= FILE_FLAG_READABLE;
+    } else {
+        file->flags |= FILE_FLAG_WRITABLE;
+    }
     file->bufferSize = BUFSIZ;
     file->readPosition = UNGET_BYTES;
     file->readEnd = UNGET_BYTES;

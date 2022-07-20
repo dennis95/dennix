@@ -84,6 +84,12 @@ FILE* fmemopen(void* restrict buffer, size_t size, const char* restrict mode) {
 
     file->fd = -1;
     file->flags = FILE_FLAG_USER_BUFFER;
+    if (flags & O_RDONLY) {
+        file->flags |= FILE_FLAG_READABLE;
+    }
+    if (flags & O_WRONLY) {
+        file->flags |= FILE_FLAG_WRITABLE;
+    }
     file->buffer = memfile->ungetcBuffer;
     file->bufferSize = UNGET_BYTES;
     file->readPosition = UNGET_BYTES;

@@ -45,6 +45,8 @@ struct __FILE {
 #define FILE_FLAG_BUFFERED (1 << 2)
 #define FILE_FLAG_LINEBUFFER (1 << 3)
 #define FILE_FLAG_USER_BUFFER (1 << 4)
+#define FILE_FLAG_READABLE (1 << 5)
+#define FILE_FLAG_WRITABLE (1 << 6)
 
 #define UNGET_BYTES 8
 

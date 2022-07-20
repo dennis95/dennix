@@ -14,7 +14,7 @@
  */
 
 /* libc/src/stdio/stderr.c
- * Standard error.
+ * Standard error. (C89)
  */
 
 #include "FILE.h"
@@ -22,7 +22,7 @@
 static unsigned char buffer[UNGET_BYTES];
 static FILE __stderr = {
     .fd = 2,
-    .flags = FILE_FLAG_USER_BUFFER,
+    .flags = FILE_FLAG_USER_BUFFER | FILE_FLAG_WRITABLE,
     .buffer = buffer,
     .bufferSize = sizeof(buffer),
     .readPosition = UNGET_BYTES,

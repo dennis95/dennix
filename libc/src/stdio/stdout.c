@@ -25,7 +25,7 @@
 static unsigned char buffer[BUFSIZ];
 static FILE __stdout = {
     .fd = 1,
-    .flags = FILE_FLAG_BUFFERED | FILE_FLAG_USER_BUFFER,
+    .flags = FILE_FLAG_BUFFERED | FILE_FLAG_USER_BUFFER | FILE_FLAG_WRITABLE,
     .buffer = buffer,
     .bufferSize = sizeof(buffer),
     .readPosition = UNGET_BYTES,

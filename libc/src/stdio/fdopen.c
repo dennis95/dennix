@@ -17,15 +17,18 @@
  * Associates a file with a file descriptor. (POSIX2008, called from C89)
  */
 
+#define fcntl __fcntl
 #define isatty __isatty
 #define pthread_mutex_lock __mutex_lock
 #define pthread_mutex_unlock __mutex_unlock
+#include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "FILE.h"
 
 FILE* __fdopen(int fd, const char* mode) {
-    (void) mode;
+    int flags = __fmodeflags(mode);
+    if (flags == -1) return NULL;
 
     FILE* file = malloc(sizeof(FILE));
     if (!file) return NULL;
@@ -51,6 +54,19 @@ FILE* __fdopen(int fd, const char* mode) {
 
     if (isatty(fd)) {
         file->flags |= FILE_FLAG_LINEBUFFER;
+    }
+    if (flags & O_RDONLY) {
+        file->flags |= FILE_FLAG_READABLE;
+    }
+    if (flags & O_WRONLY) {
+        file->flags |= FILE_FLAG_WRITABLE;
+    }
+
+    if (flags & O_CLOEXEC) {
+        int fdflags = fcntl(fd, F_GETFD);
+        if (!(fdflags & FD_CLOEXEC)) {
+            fcntl(fd, F_SETFD, fdflags | FD_CLOEXEC);
+        }
     }
 
     pthread_mutex_lock(&__fileListMutex);

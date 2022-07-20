@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2022 Dennis Wölfing
+/* Copyright (c) 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,24 +13,36 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/stdio/stdin.c
- * Standard input. (C89)
+/* libc/include/stdio_ext.h
+ * Access to FILE internals. Use of these functions is discouraged.
  */
 
-#include "FILE.h"
+#ifndef _STDIO_EXT_H
+#define _STDIO_EXT_H
 
-static unsigned char buffer[BUFSIZ];
-static FILE __stdin = {
-    .fd = 0,
-    .flags = FILE_FLAG_BUFFERED | FILE_FLAG_USER_BUFFER | FILE_FLAG_READABLE,
-    .buffer = buffer,
-    .bufferSize = sizeof(buffer),
-    .readPosition = UNGET_BYTES,
-    .readEnd = UNGET_BYTES,
-    .mutex = _MUTEX_INIT(_MUTEX_RECURSIVE),
-    .read = __file_read,
-    .write = __file_write,
-    .seek = __file_seek,
-};
+#include <stdio.h>
 
-FILE* stdin = &__stdin;
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define FSETLOCKING_INTERNAL 0
+#define FSETLOCKING_BYCALLER 1
+#define FSETLOCKING_QUERY 2
+
+size_t __fbufsize(FILE*);
+int __flbf(FILE*);
+void _flushlbf(void);
+size_t __fpending(FILE*);
+void __fpurge(FILE*);
+int __freadable(FILE*);
+int __freading(FILE*);
+int __fsetlocking(FILE*, int);
+int __fwritable(FILE*);
+int __fwriting(FILE*);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
