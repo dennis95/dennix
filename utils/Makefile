@@ -36,6 +36,7 @@ BIN_PROGRAMS = \
 	dirname \
 	echo \
 	editor \
+	expr \
 	false \
 	head \
 	ln \
