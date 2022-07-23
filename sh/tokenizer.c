@@ -131,7 +131,7 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer) {
         }
 
         if (!escaped && tokenizer->tokenStatus != TOKEN_SINGLE_QUOTED &&
-                c == '\\') {
+                c == '\\' && tokenizer->wordStatus != WORDSTATUS_OPERATOR) {
             tokenizer->backslash = true;
             goto appendAndNext;
         }
