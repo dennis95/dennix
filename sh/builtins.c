@@ -35,6 +35,7 @@ static int sh_break(int argc, char* argv[]);
 static int cd(int argc, char* argv[]);
 static int colon(int argc, char* argv[]);
 static int sh_continue(int argc, char* argv[]);
+static int dot(int argc, char* argv[]);
 static int eval(int argc, char* argv[]);
 static int exec(int argc, char* argv[]);
 static int sh_exit(int argc, char* argv[]);
@@ -49,6 +50,7 @@ const struct builtin builtins[] = {
     { "break", sh_break, BUILTIN_SPECIAL },
     { "cd", cd, 0 },
     { "continue", sh_continue, BUILTIN_SPECIAL },
+    { ".", dot, BUILTIN_SPECIAL },
     { "eval", eval, BUILTIN_SPECIAL },
     { "exec", exec, BUILTIN_SPECIAL },
     { "exit", sh_exit, BUILTIN_SPECIAL },
@@ -202,6 +204,102 @@ static int sh_continue(int argc, char* argv[]) {
         numContinues = loopCounter;
     }
     return 0;
+}
+
+struct DotContext {
+    FILE* file;
+    char* buffer;
+    size_t bufferSize;
+};
+
+static void readCommandFromFile(const char** str, bool newCommand,
+        void* context) {
+    (void) newCommand;
+    struct DotContext* ctx = context;
+    FILE* file = ctx->file;
+
+    ssize_t length = getline(&ctx->buffer, &ctx->bufferSize, file);
+
+    if (length < 0 && !feof(file)) err(1, "getline");
+    if (length > 0 && ctx->buffer[length - 1] != '\n') {
+        // Make sure that the input ends with a newline.
+        if (ctx->bufferSize < (size_t) length + 2) {
+            ctx->buffer = realloc(ctx->buffer, length + 2);
+            if (!ctx->buffer) err(1, "realloc");
+        }
+
+        ctx->buffer[length] = '\n';
+        ctx->buffer[length + 1] = '\0';
+    }
+
+    *str = ctx->buffer;
+    if (length < 0) *str = "";
+}
+
+static int dot(int argc, char* argv[]) {
+    int i;
+    for (i = 1; i < argc; i++) {
+        if (argv[i][0] != '-' || argv[i][1] == '\0') break;
+        if (argv[i][1] == '-' && argv[i][2] == '\0') {
+            i++;
+            break;
+        }
+        warnx(".: invalid option '-%c'", argv[i][1]);
+        return 1;
+    }
+
+    if (i >= argc) {
+        warnx(".: missing file operand");
+        return 1;
+    }
+    if (i + 1 < argc) {
+        warnx(".: too many arguments");
+        return 1;
+    }
+
+    char* pathname = argv[i];
+    if (!strchr(pathname, '/')) {
+        pathname = getExecutablePath(pathname, false);
+        if (!pathname) {
+            errno = ENOENT;
+            warn(".: '%s'", argv[i]);
+            return 1;
+        }
+    }
+
+    FILE* file = fopen(pathname, "r");
+    if (!file) {
+        warn(".: '%s'", pathname);
+        if (pathname != argv[i]) {
+            free(pathname);
+        }
+        return 1;
+    }
+    if (pathname != argv[i]) {
+        free(pathname);
+    }
+
+    struct DotContext context;
+    context.file = file;
+    context.buffer = NULL;
+    context.bufferSize = 0;
+
+    struct Parser parser;
+    initParser(&parser, readCommandFromFile, &context);
+    struct CompleteCommand command;
+    enum ParserResult parserResult = parse(&parser, &command, true);
+    freeParser(&parser);
+    free(context.buffer);
+    fclose(file);
+
+    int status = 1;
+    if (parserResult == PARSER_MATCH) {
+        status = execute(&command);
+        freeCompleteCommand(&command);
+    } else if (parserResult == PARSER_NO_CMD) {
+        status = 0;
+    }
+    return status;
 }
 
 static void readCommandFromString(const char** str, bool newCommand,

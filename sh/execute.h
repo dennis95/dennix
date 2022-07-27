@@ -36,6 +36,7 @@ int executeAndRead(struct CompleteCommand* command, struct StringBuffer* sb);
 noreturn void executeUtility(int argc, char** arguments, char** assignments,
         size_t numAssignments);
 void freeRedirections(void);
+char* getExecutablePath(const char* command, bool checkExecutable);
 void unsetFunction(const char* name);
 void unsetFunctions(void);
 

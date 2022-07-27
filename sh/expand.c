@@ -219,26 +219,26 @@ static bool doCommandSubstitution(const char** word,
         bool doubleQuoted, bool oldStyle) {
     struct Parser parser;
     struct CompleteCommand command;
-    char* commandString = NULL;
     enum ParserResult result;
 
     if (oldStyle) {
-        commandString = readOldCommandSubst(word);
+        char* commandString = readOldCommandSubst(word);
         if (!commandString) return false;
         const char* ctx = commandString;
         initParser(&parser, readCommandFromString, &ctx);
         result = parse(&parser, &command, true);
+        freeParser(&parser);
+        free(commandString);
     } else {
         const char* ctx = *word;
         initParser(&parser, readCommandFromString, &ctx);
         size_t inputRemaining = 0;
         result = parseCommandSubstitution(&parser, &command, &inputRemaining);
+        freeParser(&parser);
         *word += strlen(*word) - inputRemaining;
     }
 
     if (result != PARSER_MATCH && result != PARSER_NO_CMD) {
-        free(commandString);
-        freeParser(&parser);
         return false;
     }
 
@@ -261,9 +261,6 @@ static bool doCommandSubstitution(const char** word,
     info.splitAtEnd = false;
     addToArray((void**) &context->substitutions, &context->numSubstitutions,
             &info, sizeof(info));
-
-    freeParser(&parser);
-    free(commandString);
 
     return true;
 }

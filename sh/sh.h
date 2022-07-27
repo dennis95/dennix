@@ -47,6 +47,7 @@ struct ShellOptions {
     bool stdInput;
 };
 
+extern struct CompleteCommand* currentCommand;
 extern bool endOfFileReached;
 extern bool inputIsTerminal;
 extern int lastStatus;

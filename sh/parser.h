@@ -138,6 +138,7 @@ struct Pipeline {
 
 struct CompleteCommand {
     struct List list;
+    struct CompleteCommand* prevCommand;
 };
 
 struct Parser {

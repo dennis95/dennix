@@ -40,6 +40,7 @@
 #  define DENNIX_VERSION ""
 #endif
 
+struct CompleteCommand* currentCommand;
 bool endOfFileReached;
 bool inputIsTerminal;
 int lastStatus;
@@ -47,12 +48,10 @@ struct ShellOptions shellOptions;
 
 static char* buffer;
 static size_t bufferSize;
-static struct CompleteCommand command;
 static char hostname[HOST_NAME_MAX + 1];
 static FILE* inputFile;
 static bool interactiveInput;
 static jmp_buf jumpBuffer;
-static struct Parser parser;
 static const char* username;
 
 static void help(const char* argv0);
@@ -165,8 +164,11 @@ int main(int argc, char* argv[]) {
             exit(lastStatus);
         }
 
+        struct Parser parser;
         initParser(&parser, readCommand, NULL);
+        struct CompleteCommand command;
         enum ParserResult parserResult = parse(&parser, &command, false);
+        freeParser(&parser);
 
         if (parserResult == PARSER_MATCH) {
             fflush(inputFile);
@@ -176,17 +178,14 @@ int main(int argc, char* argv[]) {
         } else if (parserResult == PARSER_SYNTAX) {
             lastStatus = 1;
         }
-
-        freeParser(&parser);
     }
 }
 
 noreturn void executeScript(int argc, char** argv) {
     // Reset all global state and jump back at the beginning of the shell to
     // execute the script.
-    freeCompleteCommand(&command);
+    freeCompleteCommand(currentCommand);
     freeInteractive();
-    freeParser(&parser);
     freeRedirections();
     unsetFunctions();
 

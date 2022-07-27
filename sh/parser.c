@@ -120,6 +120,7 @@ static bool isName(const char* s, size_t length) {
 
 enum ParserResult parse(struct Parser* parser,
         struct CompleteCommand* command, bool readWholeScript) {
+    command->prevCommand = NULL;
     splitTokens(&parser->tokenizer);
     struct Token* token = getToken(parser);
     if (readWholeScript) {
@@ -153,6 +154,9 @@ enum ParserResult parse(struct Parser* parser,
 
 enum ParserResult parseCommandSubstitution(struct Parser* parser,
         struct CompleteCommand* command, size_t* inputRemaining) {
+    if (command) {
+        command->prevCommand = NULL;
+    }
     splitTokens(&parser->tokenizer);
 
     enum ParserResult result = parseLinebreak(parser);
@@ -166,6 +170,7 @@ enum ParserResult parseCommandSubstitution(struct Parser* parser,
     }
 
     struct CompleteCommand dummy;
+    dummy.prevCommand = NULL;
     struct CompleteCommand* parsedCommand = command ? command : &dummy;
     result = parseList(parser, &parsedCommand->list, true, true);
     if (result == PARSER_MATCH) {
@@ -887,6 +892,9 @@ static void syntaxError(struct Token* token) {
 
 void freeCompleteCommand(struct CompleteCommand* command) {
     freeList(&command->list);
+    if (command->prevCommand) {
+        freeCompleteCommand(command->prevCommand);
+    }
 }
 
 void freeFunction(struct Function* function) {

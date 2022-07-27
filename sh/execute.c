@@ -70,7 +70,6 @@ static int executeList(struct List* list);
 static int executePipeline(struct Pipeline* pipeline);
 static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         bool subshell);
-static const char* getExecutablePath(const char* command);
 static bool performRedirection(struct Redirection* redirection, bool noSave);
 static bool performRedirections(struct Redirection* redirections,
         size_t numRedirections, bool noSave);
@@ -79,8 +78,15 @@ static void resetSignals(void);
 static int waitForCommand(pid_t pid);
 
 int execute(struct CompleteCommand* command) {
+    command->prevCommand = currentCommand;
+    currentCommand = command;
     int result = executeList(&command->list);
-    returning = false;
+    currentCommand = command->prevCommand;
+    command->prevCommand = NULL;
+    if (returning) {
+        returning = false;
+        return returnStatus;
+    }
     return result;
 }
 
@@ -671,7 +677,7 @@ noreturn void executeUtility(int argc, char** arguments, char** assignments,
     if (!command) _Exit(0);
 
     if (!strchr(command, '/')) {
-        command = getExecutablePath(command);
+        command = getExecutablePath(command, true);
     }
 
     if (command) {
@@ -690,7 +696,7 @@ noreturn void executeUtility(int argc, char** arguments, char** assignments,
     }
 }
 
-static const char* getExecutablePath(const char* command) {
+char* getExecutablePath(const char* command, bool checkExecutable) {
     size_t commandLength = strlen(command);
     const char* path = getVariable("PATH");
     if (!path) return NULL;
@@ -714,7 +720,7 @@ static const char* getExecutablePath(const char* command) {
         memcpy(buffer + prefixLength, command, commandLength);
         buffer[commandLength + prefixLength] = '\0';
 
-        if (access(buffer, X_OK) == 0) {
+        if (access(buffer, checkExecutable ? X_OK : F_OK) == 0) {
             return buffer;
         }
 
