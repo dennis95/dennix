@@ -42,6 +42,7 @@ static int sh_exit(int argc, char* argv[]);
 static int export(int argc, char* argv[]);
 static int sh_return(int argc, char* argv[]);
 static int set(int argc, char* argv[]);
+static int shift(int argc, char* argv[]);
 static int sh_umask(int argc, char* argv[]);
 static int unset(int argc, char* argv[]);
 
@@ -57,6 +58,7 @@ const struct builtin builtins[] = {
     { "export", export, BUILTIN_SPECIAL },
     { "return", sh_return, BUILTIN_SPECIAL },
     { "set", set, BUILTIN_SPECIAL },
+    { "shift", shift, BUILTIN_SPECIAL },
     { "umask", sh_umask, 0 },
     { "unset", unset, BUILTIN_SPECIAL },
     { NULL, NULL, 0 }
@@ -540,6 +542,43 @@ static int set(int argc, char* argv[]) {
         arguments = newArguments;
         numArguments = numArgs;
     }
+
+    return 0;
+}
+
+static int shift(int argc, char* argv[]) {
+    if (argc > 2) {
+        warnx("shift: too many arguments");
+        return 1;
+    }
+
+    long n = 1;
+    if (argc == 2) {
+        char* end;
+        errno = 0;
+        n = strtol(argv[1], &end, 10);
+        if (errno || n < 0 || *end) {
+            warnx("shift: invalid number '%s'", argv[1]);
+            return 1;
+        }
+    }
+
+    if (n == 0) return 0;
+
+    int newNumArguments = numArguments < n ? 0 : numArguments - n;
+    char** newArguments = malloc((newNumArguments + 1) * sizeof(char*));
+    if (!newArguments) err(1, "malloc");
+    newArguments[0] = arguments[0];
+    for (int i = 1; i <= newNumArguments; i++) {
+        newArguments[i] = arguments[i + n];
+    }
+
+    for (int i = 1; i <= n && i <= numArguments; i++) {
+        free(arguments[i]);
+    }
+    free(arguments);
+    arguments = newArguments;
+    numArguments = newNumArguments;
 
     return 0;
 }
