@@ -695,24 +695,31 @@ static const char* getExecutablePath(const char* command) {
     const char* path = getVariable("PATH");
     if (!path) return NULL;
 
-    while (*path) {
+    while (true) {
         size_t length = strcspn(path, ":");
-        char* buffer = malloc(commandLength + length + 2);
+        size_t prefixLength = length + 1 + (length == 0);
+        char* buffer = malloc(commandLength + prefixLength + 1);
         if (!buffer) {
             warn("malloc");
             _Exit(126);
         }
 
-        memcpy(buffer, path, length);
-        buffer[length] = '/';
-        memcpy(buffer + length + 1, command, commandLength);
-        buffer[commandLength + length + 1] = '\0';
+        if (length == 0) {
+            buffer[0] = '.';
+            buffer[1] = '/';
+        } else {
+            memcpy(buffer, path, length);
+            buffer[length] = '/';
+        }
+        memcpy(buffer + prefixLength, command, commandLength);
+        buffer[commandLength + prefixLength] = '\0';
 
         if (access(buffer, X_OK) == 0) {
             return buffer;
         }
 
         free(buffer);
+        if (!path[length]) break;
         path += length + 1;
     }
 
