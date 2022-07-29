@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,6 +17,7 @@
  * Peripheral Component Interconnect.
  */
 
+#include <dennix/kernel/ahci.h>
 #include <dennix/kernel/ata.h>
 #include <dennix/kernel/bga.h>
 #include <dennix/kernel/log.h>
@@ -151,6 +152,10 @@ static void checkFunction(uint8_t bus, uint8_t device, uint8_t function,
 
     if (classCode == 0x01 && subclass == 0x01) {
         AtaController::initialize(bus, device, function);
+    }
+
+    if (classCode == 0x01 && subclass == 0x06) {
+        Ahci::initialize(bus, device, function);
     }
 
     // Scan PCI bridges for more devices.
