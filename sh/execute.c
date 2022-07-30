@@ -265,7 +265,7 @@ static int executeCommand(struct Command* command, bool subshell) {
             struct Redirection redirection = command->redirections[i];
             if (redirection.type != REDIR_HERE_DOC_QUOTED) {
                 int flags = redirection.type == REDIR_HERE_DOC ?
-                        EXPAND_REMOVE_BACKSLASH_ONLY : 0;
+                        EXPAND_NO_QUOTES : 0;
                 redirection.filename = expandWord2(redirection.filename, flags);
                 if (!redirection.filename) {
                     for (; i > 0; i--) {
@@ -534,7 +534,7 @@ static int executeSimpleCommand(struct SimpleCommand* simpleCommand,
         redirections[i] = simpleCommand->redirections[i];
         if (redirections[i].type != REDIR_HERE_DOC_QUOTED) {
             int flags = redirections[i].type == REDIR_HERE_DOC ?
-                    EXPAND_REMOVE_BACKSLASH_ONLY : 0;
+                    EXPAND_NO_QUOTES : 0;
             redirections[i].filename = expandWord2(redirections[i].filename,
                     flags);
             if (!redirections[i].filename) goto cleanup;

@@ -105,7 +105,7 @@ ssize_t expand(const char* word, int flags, char*** result) {
         for (ssize_t i = 0; i < numFields; i++) {
             fields[i] = removeQuotes(fields[i], i, context.substitutions,
                     context.numSubstitutions,
-                    flags & EXPAND_REMOVE_BACKSLASH_ONLY);
+                    flags & EXPAND_NO_QUOTES);
         }
     }
 
@@ -439,6 +439,7 @@ static char* doSubstitutions(const char* word, struct ExpandContext* context) {
     struct StringBuffer sb;
     initStringBuffer(&sb);
 
+    bool noQuotes = context->flags & EXPAND_NO_QUOTES;
     bool escaped = false;
     bool singleQuote = false;
     bool doubleQuote = false;
@@ -448,9 +449,9 @@ static char* doSubstitutions(const char* word, struct ExpandContext* context) {
 
         if (!singleQuote && c == '\\') {
             escaped = !escaped;
-        } else if (!escaped && !doubleQuote && c == '\'') {
+        } else if (!escaped && !noQuotes && !doubleQuote && c == '\'') {
             singleQuote = !singleQuote;
-        } else if (!escaped && !singleQuote && c == '"') {
+        } else if (!escaped && !noQuotes && !singleQuote && c == '"') {
             doubleQuote = !doubleQuote;
         } else if (!escaped && !singleQuote && c == '$') {
             ssize_t length = doDollarSubstitutions(word, doubleQuote, &sb,
