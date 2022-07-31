@@ -435,6 +435,7 @@ LIBC_OBJ = \
 	unistd/sleep \
 	unistd/symlink \
 	unistd/symlinkat \
+	unistd/sysconf \
 	unistd/tcgetpgrp \
 	unistd/tcsetpgrp \
 	unistd/ttyname \
