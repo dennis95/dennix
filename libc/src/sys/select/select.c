@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
+/* Copyright (c) 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,24 +13,21 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/sys/time.h
- * XSI time functions.
+/* libc/src/sys/select/select.c
+ * I/O multiplexing. (POSIX2008)
  */
 
-#ifndef _SYS_TIME_H
-#define _SYS_TIME_H
-
+#include <stddef.h>
 #include <sys/select.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+int select(int nfds, fd_set* restrict readfds, fd_set* restrict writefds,
+        fd_set* restrict errorfds, struct timeval* restrict timeout) {
+    struct timespec ts;
+    if (timeout) {
+        ts.tv_sec = timeout->tv_sec;
+        ts.tv_nsec = timeout->tv_usec * 1000;
+    }
 
-int gettimeofday(struct timeval* __restrict, void* __restrict);
-int utimes(const char*, const struct timeval[2]);
-
-#ifdef __cplusplus
+    return pselect(nfds, readfds, writefds, errorfds, timeout ? &ts : NULL,
+            NULL);
 }
-#endif
-
-#endif

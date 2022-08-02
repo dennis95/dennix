@@ -302,6 +302,8 @@ LIBC_OBJ = \
 	sys/resource/getrlimit \
 	sys/resource/getrusage \
 	sys/resource/getrusagens \
+	sys/select/pselect \
+	sys/select/select \
 	sys/socket/accept \
 	sys/socket/accept4 \
 	sys/socket/bind \
