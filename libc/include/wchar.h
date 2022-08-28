@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -54,19 +54,25 @@ typedef struct {
     wchar_t _wc;
 } mbstate_t;
 
+wint_t btowc(int);
+wint_t fputwc(wchar_t, FILE*);
+size_t mbrlen(const char* __restrict, size_t, mbstate_t* __restrict);
 size_t mbrtowc(wchar_t* __restrict, const char* __restrict, size_t,
         mbstate_t* __restrict);
 int mbsinit(const mbstate_t*);
 size_t mbsrtowcs(wchar_t* __restrict, const char** __restrict, size_t,
         mbstate_t* __restrict);
+wint_t putwc(wchar_t, FILE*);
 size_t wcrtomb(char* __restrict, wchar_t, mbstate_t* __restrict);
 wchar_t* wcscat(wchar_t* __restrict, const wchar_t* __restrict);
 wchar_t* wcschr(const wchar_t*, wchar_t);
 int wcscmp(const wchar_t*, const wchar_t*);
+int wcscoll(const wchar_t*, const wchar_t*);
 wchar_t* wcscpy(wchar_t* __restrict, const wchar_t* __restrict);
 size_t wcslen(const wchar_t*);
 size_t wcsrtombs(char* __restrict, const wchar_t** __restrict, size_t,
         mbstate_t* __restrict);
+int wctob(wint_t);
 wchar_t* wmemchr(const wchar_t*, wchar_t, size_t);
 wchar_t* wmemcpy(wchar_t* __restrict, const wchar_t* __restrict, size_t);
 

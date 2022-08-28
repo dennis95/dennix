@@ -122,6 +122,8 @@ COMMON_OBJ = \
 	time/gmtime \
 	time/gmtime_r \
 	time/timegm \
+	wchar/btowc \
+	wchar/mbrlen \
 	wchar/mbrtowc \
 	wchar/mbsinit \
 	wchar/mbsrtowcs \
@@ -132,6 +134,7 @@ COMMON_OBJ = \
 	wchar/wcscpy \
 	wchar/wcslen \
 	wchar/wcsrtombs \
+	wchar/wctob \
 	wchar/wcwidth \
 	wchar/wmemchr \
 	wchar/wmemcpy
@@ -446,6 +449,9 @@ LIBC_OBJ = \
 	unistd/usleep \
 	unistd/write \
 	utime/utime \
+	wchar/fputwc \
+	wchar/putwc \
+	wchar/wcscoll \
 	wctype/iswctype \
 	wctype/towctrans \
 	wctype/wctype
