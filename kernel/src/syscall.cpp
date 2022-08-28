@@ -101,6 +101,7 @@ static const void* syscallList[NUM_SYSCALLS] = {
     /*[SYSCALL_FSSYNC] =*/ (void*) Syscall::fssync,
     /*[SYSCALL_FCHOWN] =*/ (void*) Syscall::fchown,
     /*[SYSCALL_SETSID] =*/ (void*) Syscall::setsid,
+    /*[SYSCALL_GETPPID] =*/ (void*) Syscall::getppid,
 };
 
 static Reference<FileDescription> getRootFd(int fd, const char* path) {
@@ -385,6 +386,10 @@ int Syscall::getentropy(void* buffer, size_t size) {
 
 pid_t Syscall::getpid() {
     return Process::current()->pid;
+}
+
+pid_t Syscall::getppid() {
+    return Process::current()->getParentPid();
 }
 
 pid_t Syscall::getpgid(pid_t pid) {

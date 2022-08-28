@@ -603,6 +603,10 @@ Reference<FileDescription> Process::getFd(int fd) {
     return fdTable[fd].descr;
 }
 
+pid_t Process::getParentPid() {
+    return parent->pid;
+}
+
 Process* Process::getGroup(pid_t pgid) {
     AutoLock lock(&processesMutex);
     if (pgid >= processes.allocatedSize || !processes[pgid].processGroup) {

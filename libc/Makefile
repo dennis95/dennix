@@ -412,12 +412,14 @@ LIBC_OBJ = \
 	unistd/fsync \
 	unistd/ftruncate \
 	unistd/getcwd \
+	unistd/getegid \
 	unistd/getentropy \
 	unistd/geteuid \
 	unistd/getgid \
 	unistd/gethostname \
 	unistd/getlogin \
 	unistd/getpid \
+	unistd/getppid \
 	unistd/getpgid \
 	unistd/getpgrp \
 	unistd/getuid \

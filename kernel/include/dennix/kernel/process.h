@@ -51,6 +51,7 @@ public:
             char* const envp[]);
     int fcntl(int fd, int cmd, int param);
     Reference<FileDescription> getFd(int fd);
+    pid_t getParentPid();
     bool isParentOf(Process* process);
     Thread* newThread(int flags, regfork_t* registers, bool start = true);
     void raiseSignal(siginfo_t siginfo);

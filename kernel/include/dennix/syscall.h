@@ -83,7 +83,8 @@
 #define SYSCALL_FSSYNC 60
 #define SYSCALL_FCHOWN 61
 #define SYSCALL_SETSID 62
+#define SYSCALL_GETPPID 63
 
-#define NUM_SYSCALLS 63
+#define NUM_SYSCALLS 64
 
 #endif

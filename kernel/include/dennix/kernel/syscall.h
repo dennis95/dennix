@@ -69,6 +69,7 @@ int futimens(int fd, const struct timespec ts[2]);
 ssize_t getdents(int fd, void* buffer, size_t size, int flags);
 int getentropy(void* buffer, size_t size);
 pid_t getpid();
+pid_t getppid();
 pid_t getpgid(pid_t pid);
 int getrusagens(int who, struct rusagens* usage);
 int isatty(int fd);
