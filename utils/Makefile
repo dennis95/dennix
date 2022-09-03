@@ -47,6 +47,7 @@ BIN_PROGRAMS = \
 	printf \
 	pwd \
 	rm \
+	rmdir \
 	seq \
 	sleep \
 	snake \
