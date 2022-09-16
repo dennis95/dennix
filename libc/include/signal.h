@@ -65,6 +65,10 @@ int sigwaitinfo(const sigset_t* __restrict, siginfo_t* __restrict);
 
 #if __USE_DENNIX
 #  define NSIG _NSIG
+#  define SIG2STR_MAX 8
+
+int sig2str(int, char*);
+int str2sig(const char* __restrict, int* __restrict);
 #endif
 
 #ifdef __cplusplus

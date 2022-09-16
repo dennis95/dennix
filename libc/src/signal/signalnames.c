@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020, 2021, 2022 Dennis Wölfing
+/* Copyright (c) 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,20 +13,41 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/limits.h
- * Implementation limits.
+/* libc/src/signal/signalnames.c
+ * Signal names.
  */
 
-#ifndef _DENNIX_LIMITS_H
-#define _DENNIX_LIMITS_H
+#include <signal.h>
 
-#define FILESIZEBITS 64
-#define _GETENTROPY_MAX 256
-#define PAGESIZE 0x1000
-#define PAGE_SIZE PAGESIZE
-#define PIPE_BUF 4096
-#define RTSIG_MAX 8
-#define SYMLOOP_MAX 20
-#define TTY_NAME_MAX 20
+#define SIG(name) [SIG ## name] = #name
+const char* const __signalnames[NSIG] = {
+    [0] = "",
+    SIG(HUP),
+    SIG(INT),
+    SIG(QUIT),
+    SIG(ABRT),
+    SIG(KILL),
+    SIG(ALRM),
+    SIG(TERM),
 
-#endif
+    SIG(BUS),
+    SIG(CHLD),
+    SIG(CONT),
+    SIG(FPE),
+    SIG(ILL),
+    SIG(PIPE),
+    SIG(SEGV),
+    SIG(STOP),
+    SIG(SYS),
+    SIG(TRAP),
+    SIG(TSTP),
+    SIG(TTIN),
+    SIG(TTOU),
+    SIG(URG),
+    SIG(USR1),
+    SIG(USR2),
+    SIG(WINCH),
+
+    SIG(RTMIN),
+    SIG(RTMAX),
+};

@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020, 2021, 2022 Dennis Wölfing
+/* Copyright (c) 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,20 +13,26 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* kernel/include/dennix/limits.h
- * Implementation limits.
+/* libc/src/signal/sig2str.c
+ * Translate a signal number to a signal name.
  */
 
-#ifndef _DENNIX_LIMITS_H
-#define _DENNIX_LIMITS_H
+#include <signal.h>
+#include <stdio.h>
+#include <string.h>
 
-#define FILESIZEBITS 64
-#define _GETENTROPY_MAX 256
-#define PAGESIZE 0x1000
-#define PAGE_SIZE PAGESIZE
-#define PIPE_BUF 4096
-#define RTSIG_MAX 8
-#define SYMLOOP_MAX 20
-#define TTY_NAME_MAX 20
+extern const char* const __signalnames[NSIG];
 
-#endif
+int sig2str(int signum, char* str) {
+    if (signum > SIGRTMIN && signum <= (SIGRTMIN + SIGRTMAX) / 2) {
+        snprintf(str, SIG2STR_MAX, "RTMIN+%d", signum - SIGRTMIN);
+        return 0;
+    } else if (signum > (SIGRTMIN + SIGRTMAX) / 2 && signum < SIGRTMAX) {
+        snprintf(str, SIG2STR_MAX, "RTMAX-%d", SIGRTMAX - signum);
+        return 0;
+    } else if (signum >= 0 && signum < NSIG) {
+        strcpy(str, __signalnames[signum]);
+        return 0;
+    }
+    return -1;
+}

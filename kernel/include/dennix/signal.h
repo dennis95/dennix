@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2020 Dennis Wölfing
+/* Copyright (c) 2017, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -48,7 +48,10 @@
 #define SIGUSR2 23
 #define SIGWINCH 24
 
-#define _NSIG 25
+#define SIGRTMIN 25
+#define SIGRTMAX 32
+
+#define _NSIG 33
 
 #define SIG_DFL ((void (*)(int)) 0)
 #define SIG_IGN ((void (*)(int)) 1)

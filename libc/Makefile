@@ -187,12 +187,15 @@ LIBC_OBJ = \
 	signal/kill \
 	signal/pthread_sigmask \
 	signal/raise \
+	signal/sig2str \
 	signal/sigaction \
 	signal/signal \
+	signal/signalnames \
 	signal/sigprocmask \
 	signal/sigtimedwait \
 	signal/sigwait \
 	signal/sigwaitinfo \
+	signal/str2sig \
 	stdio/__file_read \
 	stdio/__file_seek \
 	stdio/__file_write \

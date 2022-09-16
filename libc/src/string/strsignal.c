@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2020 Dennis Wölfing
+/* Copyright (c) 2017, 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -46,6 +46,16 @@ char* strsignal(int signum) {
     case SIGUSR1: return "User defined signal 1";
     case SIGUSR2: return "User defined signal 2";
     case SIGWINCH: return "Terminal window size changed";
+
+    case SIGRTMIN: return "Realtime signal 0";
+    case SIGRTMIN + 1: return "Realtime signal 1";
+    case SIGRTMIN + 2: return "Realtime signal 2";
+    case SIGRTMIN + 3: return "Realtime signal 3";
+    case SIGRTMAX - 3: return "Realtime signal 4";
+    case SIGRTMAX - 2: return "Realtime signal 5";
+    case SIGRTMAX - 1: return "Realtime signal 6";
+    case SIGRTMAX: return "Realtime signal 7";
+
     default: return "Unknown signal";
     }
 }
