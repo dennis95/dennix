@@ -200,7 +200,12 @@ InterruptContext* Thread::handleSignal(InterruptContext* context) {
 void Process::raiseSignal(siginfo_t siginfo) {
     // TODO: We should select a thread where the signal is unblocked.
     AutoLock lock(&threadsMutex);
-    threads[threads.next(-1)]->raiseSignal(siginfo);
+    pid_t firstThreadTid = threads.next(-1);
+    if (firstThreadTid == -1) {
+        // The process is already terminating, ignore the signal.
+        return;
+    }
+    threads[firstThreadTid]->raiseSignal(siginfo);
 }
 
 void Process::raiseSignalForGroup(siginfo_t siginfo) {
