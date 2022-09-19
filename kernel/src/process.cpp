@@ -75,7 +75,6 @@ Process::Process() {
     memset(sigactions, '\0', sizeof(sigactions));
 
     alarmTime.tv_nsec = -1;
-    parent = nullptr;
     sigreturn = 0;
     terminated = false;
     terminationJob.func = terminateProcess;
@@ -93,6 +92,9 @@ Process::Process() {
     groupMutex = KTHREAD_MUTEX_INITIALIZER;
     prevInGroup = nullptr;
     nextInGroup = nullptr;
+
+    parentMutex = KTHREAD_MUTEX_INITIALIZER;
+    parent = nullptr;
 }
 
 Process::~Process() {
@@ -604,6 +606,7 @@ Reference<FileDescription> Process::getFd(int fd) {
 }
 
 pid_t Process::getParentPid() {
+    AutoLock lock(&parentMutex);
     return parent->pid;
 }
 
@@ -617,6 +620,7 @@ Process* Process::getGroup(pid_t pgid) {
 }
 
 bool Process::isParentOf(Process* process) {
+    AutoLock lock(&parentMutex);
     return this == process->parent;
 }
 
@@ -857,7 +861,9 @@ void Process::terminate() {
         Process* child = firstChild;
         while (true) {
             // Reassign the now orphaned processes to the init process.
+            kthread_mutex_lock(&child->parentMutex);
             child->parent = initProcess;
+            kthread_mutex_unlock(&child->parentMutex);
             if (!child->nextChild) {
                 child->nextChild = initProcess->firstChild;
                 if (initProcess->firstChild) {
@@ -873,6 +879,7 @@ void Process::terminate() {
 
     // Send SIGCHLD to the parent.
     if (likely(terminationStatus.si_signo == SIGCHLD)) {
+        AutoLock lock(&parentMutex);
         parent->raiseSignal(terminationStatus);
     }
 

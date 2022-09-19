@@ -90,7 +90,6 @@ public:
 private:
     struct timespec alarmTime;
     DynamicArray<FdTableEntry, int> fdTable;
-    Process* parent;
     vaddr_t sigreturn;
     bool terminated;
     WorkerJob terminationJob;
@@ -107,6 +106,9 @@ private:
     kthread_mutex_t groupMutex;
     Process* prevInGroup;
     Process* nextInGroup;
+
+    kthread_mutex_t parentMutex;
+    Process* parent;
 public:
     static bool addProcess(Process* process);
     static Process* current() { return Thread::current()->process; }
