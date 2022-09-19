@@ -39,6 +39,7 @@ BIN_PROGRAMS = \
 	expr \
 	false \
 	head \
+	kill \
 	ln \
 	ls \
 	meminfo \
