@@ -492,7 +492,13 @@ int Process::execute(Reference<Vnode>& vnode, char* const argv[],
     }
     delete oldAddressSpace;
 
-    memset(sigactions, '\0', sizeof(sigactions));
+    for (int i = 0; i < NSIG; i++) {
+        sigactions[i].sa_mask = 0;
+        sigactions[i].sa_flags = 0;
+        if (sigactions[i].sa_handler != SIG_IGN) {
+            sigactions[i].sa_handler = SIG_DFL;
+        }
+    }
 
     if (threads.next(-1) == -1) {
         Thread* thread = new Thread(this);
@@ -712,6 +718,11 @@ Process* Process::regfork(int flags, regfork_t* registers) {
     process->pgid = pgid;
     process->sid = sid;
     kthread_mutex_unlock(&jobControlMutex);
+
+    kthread_mutex_lock(&signalMutex);
+    memcpy(process->sigactions, sigactions, sizeof(sigactions));
+    kthread_mutex_unlock(&signalMutex);
+
     process->sigreturn = sigreturn;
     kthread_mutex_lock(&fileMaskMutex);
     process->fileMask = fileMask;
