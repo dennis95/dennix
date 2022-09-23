@@ -53,13 +53,7 @@ struct SavedFd {
     struct SavedFd* prev;
 };
 
-static volatile sig_atomic_t pipelineReady;
 static struct SavedFd* savedFds;
-
-static void sigusr1Handler(int signum) {
-    (void) signum;
-    pipelineReady = 1;
-}
 
 static int executeCommand(struct Command* command, bool subshell);
 static int executeCompoundCommand(struct Command* command, bool subshell);
@@ -141,6 +135,11 @@ static int executePipeline(struct Pipeline* pipeline) {
     int inputFd = -1;
     pid_t pgid = -1;
 
+    int pgidPipe[2];
+    if (shellOptions.monitor) {
+        if (pipe(pgidPipe) < 0) err(1, "pipe");
+    }
+
     for (size_t i = 0; i < pipeline->numCommands; i++) {
         bool firstInPipeline = i == 0;
         bool lastInPipeline = i == pipeline->numCommands - 1;
@@ -155,6 +154,10 @@ static int executePipeline(struct Pipeline* pipeline) {
         if (pid < 0) {
             err(1, "fork");
         } else if (pid == 0) {
+            if (shellOptions.monitor) {
+                close(pgidPipe[1]);
+            }
+
             if (!lastInPipeline) {
                 close(pipeFds[0]);
             }
@@ -174,9 +177,6 @@ static int executePipeline(struct Pipeline* pipeline) {
             }
 
             if (shellOptions.monitor) {
-                if (firstInPipeline) {
-                    signal(SIGUSR1, sigusr1Handler);
-                }
                 setpgid(0, pgid == -1 ? 0 : pgid);
 
                 if (firstInPipeline) {
@@ -184,16 +184,20 @@ static int executePipeline(struct Pipeline* pipeline) {
                         tcsetpgrp(0, getpgid(0));
                     }
 
-                    while (!pipelineReady) {
-                        // Wait for all processes in the pipeline to start.
-                        sched_yield();
-                    }
+                    // Wait until all processes in the pipeline have started.
+                    char c;
+                    read(pgidPipe[0], &c, 1);
+                    close(pgidPipe[0]);
                 }
             }
 
             resetSignals();
             exit(executeCommand(&pipeline->commands[i], true));
         } else {
+            if (shellOptions.monitor && firstInPipeline) {
+                close(pgidPipe[0]);
+            }
+
             if (!lastInPipeline) {
                 close(pipeFds[1]);
                 if (!firstInPipeline) {
@@ -215,9 +219,9 @@ static int executePipeline(struct Pipeline* pipeline) {
 
                 if (shellOptions.monitor) {
                     setpgid(pid, pgid);
-                    // Inform the first process in the pipeline that all
-                    // processes have started.
-                    kill(pgid, SIGUSR1);
+                    // Close the pipe to inform the first process in the
+                    // pipeline that all processes have started.
+                    close(pgidPipe[1]);
                 }
 
                 int exitStatus = waitForCommand(pid);
