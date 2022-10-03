@@ -35,7 +35,7 @@ static bool readHereDocument(struct Tokenizer* tokenizer);
 static void unnest(struct Tokenizer* tokenizer);
 
 void initTokenizer(struct Tokenizer* tokenizer,
-        void (*readCommand)(const char** str, bool newCommand, void* context),
+        bool (*readInput)(const char** str, bool newCommand, void* context),
         void* context) {
     tokenizer->backslash = false;
     tokenizer->numTokens = 0;
@@ -46,28 +46,33 @@ void initTokenizer(struct Tokenizer* tokenizer,
     tokenizer->tokenStatus = TOKEN_TOPLEVEL;
     tokenizer->wordStatus = WORDSTATUS_NONE;
     tokenizer->input = NULL;
-    tokenizer->readCommand = readCommand;
+    tokenizer->readInput = readInput;
     tokenizer->context = context;
 
     initStringBuffer(&tokenizer->buffer);
 }
 
-static void readCommand(const char** str, bool newCommand, void* context) {
+static bool readInput(const char** str, bool newCommand, void* context) {
     (void) newCommand;
     struct Tokenizer* tokenizer = context;
 
     if (!*tokenizer->input) {
-        tokenizer->readCommand(&tokenizer->input, false, tokenizer->context);
+        if (!tokenizer->readInput(&tokenizer->input, false,
+                tokenizer->context)) {
+            return false;
+        }
     }
     *str = tokenizer->input;
     appendStringToStringBuffer(&tokenizer->buffer, tokenizer->input);
     tokenizer->input += strlen(tokenizer->input);
+    return true;
 }
 
 enum TokenizerResult splitTokens(struct Tokenizer* tokenizer) {
     if (!tokenizer->input) {
-        tokenizer->readCommand(&tokenizer->input, true, tokenizer->context);
-        if (!*tokenizer->input) {
+        if (!tokenizer->readInput(&tokenizer->input, true,
+                tokenizer->context)) {
+            tokenizer->input = "";
             return TOKENIZER_DONE;
         }
     }
@@ -89,13 +94,26 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer) {
                 return TOKENIZER_DONE;
             }
 
-            tokenizer->readCommand(&tokenizer->input, false,
-                    tokenizer->context);
-            if (!*tokenizer->input) {
-                if (tokenizer->tokenStatus != TOKEN_TOPLEVEL ||
-                        tokenizer->wordStatus != WORDSTATUS_NONE) {
+            if (!tokenizer->readInput(&tokenizer->input, false,
+                    tokenizer->context)) {
+                tokenizer->input = "";
+                if (tokenizer->tokenStatus == TOKEN_COMMENT) {
+                    unnest(tokenizer);
+                } else if (tokenizer->tokenStatus == TOKEN_EOF) {
+                    return TOKENIZER_DONE;
+                } else if (tokenizer->tokenStatus != TOKEN_TOPLEVEL ||
+                        tokenizer->wordStatus == WORDSTATUS_HERE_DOC) {
                     return TOKENIZER_PREMATURE_EOF;
                 }
+
+                delimit(tokenizer, TOKEN);
+
+                appendToStringBuffer(&tokenizer->buffer, '\n');
+                delimit(tokenizer, OPERATOR);
+
+                tokenizer->tokenStatus = TOKEN_EOF;
+                tokenizer->wordStatus = WORDSTATUS_NONE;
+
                 return TOKENIZER_DONE;
             }
             continue;
@@ -210,7 +228,7 @@ enum TokenizerResult splitTokens(struct Tokenizer* tokenizer) {
                     appendToStringBuffer(&tokenizer->buffer, c);
                     tokenizer->input++;
                     struct Parser parser;
-                    initParser(&parser, readCommand, tokenizer);
+                    initParser(&parser, readInput, tokenizer);
                     size_t inputRemaining;
                     enum ParserResult result = parseCommandSubstitution(&parser,
                             NULL, &inputRemaining);

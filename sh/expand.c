@@ -183,7 +183,6 @@ static char* readOldCommandSubst(const char** word) {
                 appendToStringBuffer(&sb, '`');
                 escaped = false;
             } else {
-                appendToStringBuffer(&sb, '\n');
                 (*word)++;
                 return finishStringBuffer(&sb);
             }
@@ -205,13 +204,15 @@ static char* readOldCommandSubst(const char** word) {
     return NULL;
 }
 
-static void readCommandFromString(const char** str, bool newCommand,
+static bool readInputFromString(const char** str, bool newCommand,
         void* context) {
     (void) newCommand;
 
     const char** word = context;
+    if (!*word) return false;
     *str = *word;
-    *word = "";
+    *word = NULL;
+    return true;
 }
 
 static bool doCommandSubstitution(const char** word,
@@ -225,13 +226,13 @@ static bool doCommandSubstitution(const char** word,
         char* commandString = readOldCommandSubst(word);
         if (!commandString) return false;
         const char* ctx = commandString;
-        initParser(&parser, readCommandFromString, &ctx);
+        initParser(&parser, readInputFromString, &ctx);
         result = parse(&parser, &command, true);
         freeParser(&parser);
         free(commandString);
     } else {
         const char* ctx = *word;
-        initParser(&parser, readCommandFromString, &ctx);
+        initParser(&parser, readInputFromString, &ctx);
         size_t inputRemaining = 0;
         result = parseCommandSubstitution(&parser, &command, &inputRemaining);
         freeParser(&parser);

@@ -214,7 +214,7 @@ struct DotContext {
     size_t bufferSize;
 };
 
-static void readCommandFromFile(const char** str, bool newCommand,
+static bool readInputFromFile(const char** str, bool newCommand,
         void* context) {
     (void) newCommand;
     struct DotContext* ctx = context;
@@ -223,19 +223,10 @@ static void readCommandFromFile(const char** str, bool newCommand,
     ssize_t length = getline(&ctx->buffer, &ctx->bufferSize, file);
 
     if (length < 0 && !feof(file)) err(1, "getline");
-    if (length > 0 && ctx->buffer[length - 1] != '\n') {
-        // Make sure that the input ends with a newline.
-        if (ctx->bufferSize < (size_t) length + 2) {
-            ctx->buffer = realloc(ctx->buffer, length + 2);
-            if (!ctx->buffer) err(1, "realloc");
-        }
-
-        ctx->buffer[length] = '\n';
-        ctx->buffer[length + 1] = '\0';
-    }
+    if (length < 0) return false;
 
     *str = ctx->buffer;
-    if (length < 0) *str = "";
+    return true;
 }
 
 static int dot(int argc, char* argv[]) {
@@ -287,7 +278,7 @@ static int dot(int argc, char* argv[]) {
     context.bufferSize = 0;
 
     struct Parser parser;
-    initParser(&parser, readCommandFromFile, &context);
+    initParser(&parser, readInputFromFile, &context);
     struct CompleteCommand command;
     enum ParserResult parserResult = parse(&parser, &command, true);
     freeParser(&parser);
@@ -304,13 +295,15 @@ static int dot(int argc, char* argv[]) {
     return status;
 }
 
-static void readCommandFromString(const char** str, bool newCommand,
+static bool readInputFromString(const char** str, bool newCommand,
         void* context) {
     (void) newCommand;
 
     const char** word = context;
+    if (!*word) return false;
     *str = *word;
-    *word = "";
+    *word = NULL;
+    return true;
 }
 
 static int eval(int argc, char* argv[]) {
@@ -328,7 +321,7 @@ static int eval(int argc, char* argv[]) {
     char* string = finishStringBuffer(&buffer);
     struct Parser parser;
     const char* context = string;
-    initParser(&parser, readCommandFromString, &context);
+    initParser(&parser, readInputFromString, &context);
 
     struct CompleteCommand command;
     enum ParserResult parserResult = parse(&parser, &command, true);

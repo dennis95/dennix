@@ -86,7 +86,9 @@ void initializeInteractive(void) {
     historySize = 0;
 }
 
-void readCommandInteractive(const char** str, bool newCommand) {
+bool readCommandInteractive(const char** str, bool newCommand, void* context) {
+    (void) context;
+
     struct HistoryEntry newEntry;
     newEntry.buffer = malloc(80);
     if (!newEntry.buffer) err(1, "malloc");
@@ -242,7 +244,11 @@ void readCommandInteractive(const char** str, bool newCommand) {
     }
 
     if (entry->bufferUsed == 0) {
-        *str = entry->buffer[0] == '\n' ? "\n" : "";
+        if (entry->buffer[0] == '\0') {
+            free(newEntry.buffer);
+            return false;
+        }
+        *str = "\n";
         free(newEntry.buffer);
     } else {
         *str = entry->buffer;
@@ -266,6 +272,7 @@ void readCommandInteractive(const char** str, bool newCommand) {
     }
 
     tcsetattr(0, TCSANOW, &currentTermios);
+    return true;
 }
 
 static void addHistoryEntry(struct HistoryEntry entry) {

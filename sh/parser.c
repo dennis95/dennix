@@ -80,11 +80,11 @@ void freeParser(struct Parser* parser) {
 }
 
 void initParser(struct Parser* parser,
-        void (*readCommand)(const char** str, bool newCommand, void* context),
+        bool (*readInput)(const char** str, bool newCommand, void* context),
         void* context) {
     parser->offset = 0;
     parser->hereDocOffset = 0;
-    initTokenizer(&parser->tokenizer, readCommand, context);
+    initTokenizer(&parser->tokenizer, readInput, context);
 }
 
 static bool isReservedWord(const char* word) {

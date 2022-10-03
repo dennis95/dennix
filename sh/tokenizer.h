@@ -41,6 +41,7 @@ enum TokenStatus {
     TOKEN_COMMENT,
     TOKEN_SINGLE_QUOTED,
     TOKEN_BACKTICK,
+    TOKEN_EOF,
 };
 
 enum WordStatus {
@@ -80,12 +81,12 @@ struct Tokenizer {
     enum TokenStatus tokenStatus;
     enum WordStatus wordStatus;
     const char* input;
-    void (*readCommand)(const char** str, bool newCommand, void* context);
+    bool (*readInput)(const char** str, bool newCommand, void* context);
     void* context;
 };
 
 void initTokenizer(struct Tokenizer* tokenizer,
-        void (*readCommand)(const char** str, bool newCommand, void* context),
+        bool (*readInput)(const char** str, bool newCommand, void* context),
         void* context);
 enum TokenizerResult splitTokens(struct Tokenizer* tokenizer);
 void freeTokenizer(struct Tokenizer* tokenizer);

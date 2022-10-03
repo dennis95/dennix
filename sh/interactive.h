@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,6 +25,6 @@
 
 void freeInteractive(void);
 void initializeInteractive(void);
-void readCommandInteractive(const char** str, bool newCommand);
+bool readCommandInteractive(const char** str, bool newCommand, void* context);
 
 #endif

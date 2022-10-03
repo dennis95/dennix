@@ -157,7 +157,7 @@ enum ParserResult {
 
 void freeParser(struct Parser* parser);
 void initParser(struct Parser* parser,
-        void (*readCommand)(const char** str, bool newCommand, void* context),
+        bool (*readInput)(const char** str, bool newCommand, void* context),
         void* context);
 enum ParserResult parse(struct Parser* parser,
         struct CompleteCommand* command, bool readWholeScript);

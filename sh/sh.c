@@ -50,14 +50,16 @@ pid_t shellPid;
 static char* buffer;
 static size_t bufferSize;
 static char hostname[HOST_NAME_MAX + 1];
-static FILE* inputFile;
+static int inputFd;
 static bool interactiveInput;
 static jmp_buf jumpBuffer;
 static const char* username;
 
 static void help(const char* argv0);
 static int parseOptions(int argc, char* argv[]);
-static void readCommand(const char** str, bool newCommand, void* context);
+static bool readInputFromFile(const char** str, bool newCommand, void* context);
+static bool readInputFromString(const char** str, bool newCommand,
+        void* context);
 
 int main(int argc, char* argv[]) {
     int optionIndex = parseOptions(argc, argv);
@@ -105,16 +107,19 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    inputFile = stdin;
+    bool (*readInput)(const char** str, bool newCommand, void* context) =
+            readInputFromFile;
+    void* context = NULL;
 
     if (shellOptions.command) {
-        char* command = argv[optionIndex - 1];
-        inputFile = fmemopen(command, strlen(command), "r");
-        if (!inputFile) err(1, "fmemopen");
+        readInput = readInputFromString;
+        context = &argv[optionIndex - 1];
     }
 
     if (setjmp(jumpBuffer)) {
         shellOptions = (struct ShellOptions) {false};
+        readInput = readInputFromFile;
+        context = NULL;
         assert(arguments[0]);
     }
 
@@ -126,16 +131,15 @@ int main(int argc, char* argv[]) {
         setVariable("PPID", buffer, false);
     }
 
+    inputFd = 0;
     if (!shellOptions.command && !shellOptions.stdInput && arguments[0]) {
         int fd = open(arguments[0], O_RDONLY);
         if (fd < 0) err(1, "open: '%s'", arguments[0]);
-        // Make sure to use a file descriptor > 10 because the first 10 file
+        // Make sure to use a file descriptor >= 10 because the first 10 file
         // descriptors are controlled by the script.
-        int fd2 = fcntl(fd, F_DUPFD_CLOEXEC, 10);
-        if (fd2 < 0) err(1, "fcntl");
+        inputFd = fcntl(fd, F_DUPFD_CLOEXEC, 10);
+        if (inputFd < 0) err(1, "fcntl");
         close(fd);
-        inputFile = fdopen(fd2, "r");
-        if (!inputFile) err(1, "fdopen: '%s'", arguments[0]);
     }
 
     // Ignore signals that should not terminate the (interactive) shell.
@@ -150,10 +154,11 @@ int main(int argc, char* argv[]) {
 
     inputIsTerminal = isatty(0);
     interactiveInput = false;
-    if (shellOptions.interactive && inputIsTerminal) {
-        if (inputFile == stdin) {
+    if (!shellOptions.command && shellOptions.interactive && inputIsTerminal) {
+        if (inputFd == 0) {
             interactiveInput = true;
             initializeInteractive();
+            readInput = readCommandInteractive;
         }
     }
 
@@ -166,7 +171,7 @@ int main(int argc, char* argv[]) {
     }
 
     while (true) {
-        if (endOfFileReached || feof(inputFile)) {
+        if (endOfFileReached) {
             if (shellOptions.interactive) {
                 fputc('\n', stderr);
             }
@@ -174,14 +179,12 @@ int main(int argc, char* argv[]) {
         }
 
         struct Parser parser;
-        initParser(&parser, readCommand, NULL);
+        initParser(&parser, readInput, context);
         struct CompleteCommand command;
         enum ParserResult parserResult = parse(&parser, &command, false);
         freeParser(&parser);
 
         if (parserResult == PARSER_MATCH) {
-            fflush(inputFile);
-
             execute(&command);
             freeCompleteCommand(&command);
         } else if (parserResult == PARSER_SYNTAX) {
@@ -204,12 +207,13 @@ noreturn void executeScript(int argc, char** argv) {
     free(arguments);
     numArguments = argc - 1;
     arguments = argv;
+    endOfFileReached = false;
 
     // Unset all nonexported variables.
     initializeVariables();
 
-    if (inputFile != stdin) {
-        fclose(inputFile);
+    if (inputFd != 0) {
+        close(inputFd);
     }
     longjmp(jumpBuffer, 1);
 }
@@ -365,32 +369,56 @@ int printPrompt(bool newCommand) {
     }
 }
 
-static void readCommand(const char** str, bool newCommand, void* context) {
+static bool readInputFromFile(const char** str, bool newCommand,
+        void* context) {
     (void) context;
 
-    if (interactiveInput) {
-        return readCommandInteractive(str, newCommand);
-    }
-    if (shellOptions.interactive && !feof(inputFile)) {
+    if (shellOptions.interactive && !endOfFileReached) {
         printPrompt(newCommand);
     }
 
-    ssize_t length = getline(&buffer, &bufferSize, inputFile);
+    size_t offset = 0;
 
-    if (length < 0 && !feof(inputFile)) err(1, "getline");
-    if (length > 0 && buffer[length - 1] != '\n') {
-        // Make sure that the input ends with a newline.
-        if (bufferSize < (size_t) length + 2) {
-            buffer = realloc(buffer, length + 2);
-            if (!buffer) err(1, "realloc");
+    do {
+        if (bufferSize <= offset + 2) {
+            if (bufferSize == 0) bufferSize = 40;
+
+            buffer = reallocarray(buffer, 2, bufferSize);
+            if (!buffer) err(1, "malloc");
+
+            bufferSize *= 2;
         }
 
-        buffer[length] = '\n';
-        buffer[length + 1] = '\0';
-    }
+        ssize_t bytesRead = read(inputFd, buffer + offset, 1);
+        if (bytesRead < 0) err(1, "read");
 
+        if (bytesRead == 0) {
+            endOfFileReached = true;
+            break;
+        }
+
+        offset++;
+    } while (buffer[offset - 1] != '\n');
+
+    if (offset == 0) return false;
+
+    buffer[offset] = '\0';
     *str = buffer;
-    if (length < 0) *str = "";
+    return true;
+}
+
+static bool readInputFromString(const char** str, bool newCommand,
+        void* context) {
+    (void) newCommand;
+
+    const char** word = context;
+    if (!*word) {
+        endOfFileReached = true;
+        return false;
+    }
+    *str = *word;
+    *word = NULL;
+    return true;
 }
 
 // Utility functions:
