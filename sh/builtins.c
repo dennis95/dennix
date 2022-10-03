@@ -29,6 +29,7 @@
 #include "builtins.h"
 #include "execute.h"
 #include "stringbuffer.h"
+#include "trap.h"
 #include "variables.h"
 
 static int sh_break(int argc, char* argv[]);
@@ -59,6 +60,7 @@ const struct builtin builtins[] = {
     { "return", sh_return, BUILTIN_SPECIAL },
     { "set", set, BUILTIN_SPECIAL },
     { "shift", shift, BUILTIN_SPECIAL },
+    { "trap", trap, BUILTIN_SPECIAL },
     { "umask", sh_umask, 0 },
     { "unset", unset, BUILTIN_SPECIAL },
     { NULL, NULL, 0 }
@@ -370,7 +372,7 @@ static int sh_exit(int argc, char* argv[]) {
         }
     }
 
-    exit(lastStatus);
+    exitShell(lastStatus);
 }
 
 static int export(int argc, char* argv[]) {

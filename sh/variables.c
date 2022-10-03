@@ -141,19 +141,6 @@ void popVariables(void) {
     variablesPushed = 0;
 }
 
-static void printQuoted(const char* string) {
-    fputc('\'', stdout);
-    while (*string) {
-        if (*string == '\'') {
-            fputs("'\\''", stdout);
-        } else {
-            fputc(*string, stdout);
-        }
-        string++;
-    }
-    fputc('\'', stdout);
-}
-
 void printVariables(bool exported) {
     for (size_t i = 0; i < variablesAllocated; i++) {
         struct ShellVar* var = &variables[i];

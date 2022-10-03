@@ -36,6 +36,7 @@
 #include "expand.h"
 #include "match.h"
 #include "sh.h"
+#include "trap.h"
 #include "variables.h"
 
 struct Function** functions;
@@ -68,7 +69,6 @@ static bool performRedirection(struct Redirection* redirection, bool noSave);
 static bool performRedirections(struct Redirection* redirections,
         size_t numRedirections, bool noSave);
 static void popRedirection(void);
-static void resetSignals(void);
 static int waitForCommand(pid_t pid);
 
 int execute(struct CompleteCommand* command) {
@@ -95,7 +95,8 @@ int executeAndRead(struct CompleteCommand* command, struct StringBuffer* sb) {
         close(pipeFds[0]);
         if (!moveFd(pipeFds[1], 1)) err(1, "cannot move file descriptor");
 
-        exit(execute(command));
+        resetTraps();
+        exitShell(execute(command));
     } else {
         close(pipeFds[1]);
 
@@ -154,6 +155,8 @@ static int executePipeline(struct Pipeline* pipeline) {
         if (pid < 0) {
             err(1, "fork");
         } else if (pid == 0) {
+            resetTraps();
+
             if (shellOptions.monitor) {
                 close(pgidPipe[1]);
             }
@@ -255,6 +258,10 @@ static void addFunction(struct Function* function) {
 }
 
 static int executeCommand(struct Command* command, bool subshell) {
+    if (!executingTrap) {
+        executeTraps();
+    }
+
     if (subshell) {
         shellOptions.monitor = false;
     }
@@ -310,6 +317,7 @@ static int executeCompoundCommand(struct Command* command, bool subshell) {
             if (pid < 0) {
                 err(1, "fork");
             } else if (pid == 0) {
+                resetTraps();
                 exit(executeList(&command->compoundList));
             } else {
                 return waitForCommand(pid);
@@ -933,15 +941,6 @@ void freeRedirections(void) {
         savedFds = sfd->prev;
         free(sfd);
     }
-}
-
-static void resetSignals(void) {
-    signal(SIGINT, SIG_DFL);
-    signal(SIGQUIT, SIG_DFL);
-    signal(SIGTERM, SIG_DFL);
-    signal(SIGTSTP, SIG_DFL);
-    signal(SIGTTIN, SIG_DFL);
-    signal(SIGTTOU, SIG_DFL);
 }
 
 void unsetFunction(const char* name) {

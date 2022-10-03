@@ -32,6 +32,7 @@
 #include "execute.h"
 #include "interactive.h"
 #include "sh.h"
+#include "trap.h"
 #include "variables.h"
 
 #undef CTRL
@@ -118,9 +119,14 @@ bool readCommandInteractive(const char** str, bool newCommand, void* context) {
     position = 0;
 
     while (true) {
+        sigset_t mask;
+        unblockTraps(&mask);
         char c;
         ssize_t bytesRead = read(0, &c, 1);
-        if (bytesRead <= 0) break;
+        if (bytesRead <= 0 && errno != EINTR) break;
+        blockTraps(&mask);
+
+        if (bytesRead <= 0) continue;
         if (state == NORMAL) {
             if (c == '\e') {
                 state = ESCAPED;

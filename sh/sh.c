@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <setjmp.h>
@@ -34,6 +35,7 @@
 #include "expand.h"
 #include "interactive.h"
 #include "parser.h"
+#include "trap.h"
 #include "variables.h"
 
 #ifndef DENNIX_VERSION
@@ -142,15 +144,7 @@ int main(int argc, char* argv[]) {
         close(fd);
     }
 
-    // Ignore signals that should not terminate the (interactive) shell.
-    if (shellOptions.interactive) {
-        signal(SIGINT, SIG_IGN);
-        signal(SIGQUIT, SIG_IGN);
-        signal(SIGTERM, SIG_IGN);
-        signal(SIGTSTP, SIG_IGN);
-        signal(SIGTTIN, SIG_IGN);
-        signal(SIGTTOU, SIG_IGN);
-    }
+    initializeTraps();
 
     inputIsTerminal = isatty(0);
     interactiveInput = false;
@@ -175,7 +169,7 @@ int main(int argc, char* argv[]) {
             if (shellOptions.interactive) {
                 fputc('\n', stderr);
             }
-            exit(lastStatus);
+            exitShell(lastStatus);
         }
 
         struct Parser parser;
@@ -369,6 +363,19 @@ int printPrompt(bool newCommand) {
     }
 }
 
+void printQuoted(const char* string) {
+    fputc('\'', stdout);
+    while (*string) {
+        if (*string == '\'') {
+            fputs("'\\''", stdout);
+        } else {
+            fputc(*string, stdout);
+        }
+        string++;
+    }
+    fputc('\'', stdout);
+}
+
 static bool readInputFromFile(const char** str, bool newCommand,
         void* context) {
     (void) context;
@@ -378,6 +385,8 @@ static bool readInputFromFile(const char** str, bool newCommand,
     }
 
     size_t offset = 0;
+    sigset_t mask;
+    unblockTraps(&mask);
 
     do {
         if (bufferSize <= offset + 2) {
@@ -387,6 +396,11 @@ static bool readInputFromFile(const char** str, bool newCommand,
             if (!buffer) err(1, "malloc");
 
             bufferSize *= 2;
+        }
+
+        if (trapsPending) {
+            blockTraps(&mask);
+            unblockTraps(&mask);
         }
 
         ssize_t bytesRead = read(inputFd, buffer + offset, 1);
@@ -400,6 +414,7 @@ static bool readInputFromFile(const char** str, bool newCommand,
         offset++;
     } while (buffer[offset - 1] != '\n');
 
+    blockTraps(&mask);
     if (offset == 0) return false;
 
     buffer[offset] = '\0';

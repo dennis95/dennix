@@ -35,6 +35,7 @@ OBJ = \
 	sh.o \
 	stringbuffer.o \
 	tokenizer.o \
+	trap.o \
 	variables.o
 
 all: $(BUILD)/sh
