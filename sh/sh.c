@@ -45,6 +45,7 @@ bool endOfFileReached;
 bool inputIsTerminal;
 int lastStatus;
 struct ShellOptions shellOptions;
+pid_t shellPid;
 
 static char* buffer;
 static size_t bufferSize;
@@ -115,6 +116,14 @@ int main(int argc, char* argv[]) {
     if (setjmp(jumpBuffer)) {
         shellOptions = (struct ShellOptions) {false};
         assert(arguments[0]);
+    }
+
+    shellPid = getpid();
+    {
+        char buffer[sizeof(pid_t) * 3];
+        pid_t ppid = getppid();
+        snprintf(buffer, sizeof(buffer), "%jd", (intmax_t) ppid);
+        setVariable("PPID", buffer, false);
     }
 
     if (!shellOptions.command && !shellOptions.stdInput && arguments[0]) {

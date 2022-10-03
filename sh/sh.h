@@ -52,6 +52,7 @@ extern bool endOfFileReached;
 extern bool inputIsTerminal;
 extern int lastStatus;
 extern struct ShellOptions shellOptions;
+extern pid_t shellPid;
 
 noreturn void executeScript(int argc, char** argv);
 bool handleShortOption(bool plusOption, char option);

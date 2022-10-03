@@ -72,6 +72,9 @@ const char* getVariable(const char* name) {
         if (shellOptions.xtrace) *flags++ = 'x';
         *flags = '\0';
         return buffer;
+    } else if (strcmp(name, "$") == 0) {
+        snprintf(buffer, sizeof(buffer), "%jd", (intmax_t) shellPid);
+        return buffer;
     }
 
     for (size_t i = 0; i < variablesPushed; i++) {
