@@ -25,6 +25,7 @@
 #include <dennix/fcntl.h>
 #include <dennix/uthread.h>
 #include <dennix/wait.h>
+#include <dennix/kernel/console.h>
 #include <dennix/kernel/elf.h>
 #include <dennix/kernel/file.h>
 #include <dennix/kernel/process.h>
@@ -73,6 +74,8 @@ Process::Process() {
 
     signalMutex = KTHREAD_MUTEX_INITIALIZER;
     memset(sigactions, '\0', sizeof(sigactions));
+
+    ownsDisplay = false;
 
     alarmTime.tv_nsec = -1;
     sigreturn = 0;
@@ -851,6 +854,10 @@ pid_t Process::setsid() {
 
 void Process::terminate() {
     assert(threads.next(-1) == -1);
+
+    if (ownsDisplay) {
+        console->display->releaseDisplay();
+    }
 
     kthread_mutex_lock(&processesMutex);
     removeFromGroup();

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,6 +26,7 @@
 #include <dennix/kernel/display.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/portio.h>
+#include <dennix/kernel/process.h>
 #include "../../libdxui/src/cp437.h"
 
 // Classical VGA font but with the Unicode replacement character at 0xFF.
@@ -60,6 +61,7 @@ Display::Display(video_mode mode, char* buffer, size_t pitch)
     invalidated = false;
     renderingText = true;
     haveOldBuffer = true;
+    displayOwner = nullptr;
 }
 
 ALWAYS_INLINE char* Display::charAddress(CharPos position) {
@@ -165,6 +167,15 @@ void Display::redraw(CharPos position, CharBufferEntry* entry) {
         }
         addr += pitch;
     }
+}
+
+void Display::releaseDisplay() {
+    AutoLock lock(&mutex);
+    assert(displayOwner);
+    displayOwner->ownsDisplay = false;
+    displayOwner = nullptr;
+    renderingText = true;
+    invalidated = true;
 }
 
 void Display::scroll(unsigned int lines, Color color, bool up /*= true*/) {
@@ -284,6 +295,13 @@ int Display::setVideoMode(video_mode* videoMode) {
     columns = newColumns;
     console->updateDisplaySize();
 
+    if (displayOwner) {
+        siginfo_t siginfo = {};
+        siginfo.si_signo = SIGWINCH;
+        siginfo.si_code = SI_KERNEL;
+        displayOwner->raiseSignal(siginfo);
+    }
+
     if (newColumns <= oldColumns) {
         for (size_t i = 0; i < newRows; i++) {
             if (i < oldRows) {
@@ -343,6 +361,8 @@ void Display::update() {
 
 int Display::devctl(int command, void* restrict data, size_t size,
         int* restrict info) {
+    AutoLock lock(&mutex);
+
     switch (command) {
     case DISPLAY_SET_MODE: {
         if (size != 0 && size != sizeof(int)) {
@@ -442,6 +462,48 @@ int Display::devctl(int command, void* restrict data, size_t size,
         *info = errnum ? -1 : 0;
         return errnum;
     }
+    case DISPLAY_ACQUIRE: {
+        if (data || size) {
+            *info = -1;
+            return EINVAL;
+        }
+
+        if (displayOwner) {
+            *info = -1;
+            return EBUSY;
+        }
+
+        if (mode.video_bpp == 0) {
+            *info = -1;
+            return ENOTSUP;
+        }
+
+        displayOwner = Process::current();
+        displayOwner->ownsDisplay = true;
+        renderingText = false;
+
+        *info = 0;
+        return 0;
+    } break;
+    case DISPLAY_RELEASE: {
+        if (data || size) {
+            *info = -1;
+            return EINVAL;
+        }
+
+        if (displayOwner != Process::current()) {
+            *info = -1;
+            return EINVAL;
+        }
+
+        displayOwner->ownsDisplay = false;
+        displayOwner = nullptr;
+        renderingText = true;
+        invalidated = true;
+
+        *info = 0;
+        return 0;
+    } break;
     default:
         *info = -1;
         return EINVAL;

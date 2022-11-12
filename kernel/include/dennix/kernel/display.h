@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -51,6 +51,8 @@ struct CharBufferEntry {
     }
 };
 
+class Process;
+
 class Display : public Vnode {
 public:
     Display(video_mode mode, char* buffer, size_t pitch);
@@ -60,6 +62,7 @@ public:
     void initialize();
     void onPanic();
     void putCharacter(CharPos position, wchar_t c, Color color);
+    void releaseDisplay();
     void scroll(unsigned int lines, Color color, bool up = true);
     void setCursorPos(CharPos position);
     void setCursorVisibility(bool visible);
@@ -86,6 +89,7 @@ private:
     bool invalidated;
     bool renderingText;
     bool haveOldBuffer;
+    Process* displayOwner;
 };
 
 class GraphicsDriver {

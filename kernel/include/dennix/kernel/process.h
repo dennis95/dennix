@@ -87,6 +87,8 @@ public:
 
     kthread_mutex_t signalMutex;
     struct sigaction sigactions[NSIG];
+
+    bool ownsDisplay;
 private:
     struct timespec alarmTime;
     DynamicArray<FdTableEntry, int> fdTable;

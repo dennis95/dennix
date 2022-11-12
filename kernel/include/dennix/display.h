@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -33,6 +33,10 @@
 #define DISPLAY_GET_VIDEO_MODE _DEVCTL(_IOCTL_PTR, 5)
 /* Set the video mode. */
 #define DISPLAY_SET_VIDEO_MODE _DEVCTL(_IOCTL_PTR, 6)
+/* Make the current process the display owner. */
+#define DISPLAY_ACQUIRE _DEVCTL(_IOCTL_VOID, 1)
+/* Stop owning the display. */
+#define DISPLAY_RELEASE _DEVCTL(_IOCTL_VOID, 2)
 
 #define DISPLAY_MODE_QUERY 0
 #define DISPLAY_MODE_TEXT 1
