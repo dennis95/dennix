@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,6 @@
 #include <dxui.h>
 #include <math.h>
 #include <sched.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -129,11 +128,6 @@ static void shutdown(void) {
     dxui_shutdown(context);
 }
 
-static void onSignal(int signo) {
-    signal(signo, SIG_DFL);
-    shutdown();
-    raise(signo);
-}
 
 int main(void) {
     setup();
@@ -369,14 +363,6 @@ static void redrawBricks(dxui_rect rect) {
 
 static void setup(void) {
     atexit(shutdown);
-    signal(SIGABRT, onSignal);
-    signal(SIGBUS, onSignal);
-    signal(SIGFPE, onSignal);
-    signal(SIGILL, onSignal);
-    signal(SIGINT, onSignal);
-    signal(SIGQUIT, onSignal);
-    signal(SIGSEGV, onSignal);
-    signal(SIGTERM, onSignal);
 
     context = dxui_initialize(0);
     if (!context) dxui_panic(NULL, "Cannot initialize dxui");

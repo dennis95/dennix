@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,15 +27,15 @@ dxui_context* context;
 dxui_window* compositorWindow;
 dxui_color* lfb;
 dxui_dim guiDim;
+static volatile sig_atomic_t winchReceived;
 
 static void shutdown(void) {
     dxui_shutdown(context);
 }
 
-static void onSignal(int signo) {
-    signal(signo, SIG_DFL);
-    shutdown();
-    raise(signo);
+static void onSigwinch(int signo) {
+    (void) signo;
+    winchReceived = 1;
 }
 
 static void handleClose(dxui_window* window) {
@@ -49,25 +49,24 @@ static void handleClose(dxui_window* window) {
 
 static void initialize(void) {
     atexit(shutdown);
-    signal(SIGABRT, onSignal);
-    signal(SIGBUS, onSignal);
-    signal(SIGFPE, onSignal);
-    signal(SIGILL, onSignal);
     signal(SIGINT, SIG_IGN);
     signal(SIGPIPE, SIG_IGN);
     signal(SIGQUIT, SIG_IGN);
-    signal(SIGSEGV, onSignal);
-    signal(SIGTERM, onSignal);
 
     context = dxui_initialize(DXUI_INIT_CURSOR);
     if (!context) dxui_panic(NULL, "Failed to initialize dxui");
+
+    bool standalone = dxui_is_standalone(context);
+    if (standalone) {
+        signal(SIGWINCH, onSigwinch);
+    }
 
     dxui_rect rect;
     rect.x = -1;
     rect.y = -1;
     dxui_dim displayDim = dxui_get_display_dim(context);
 
-    if (dxui_is_standalone(context)) {
+    if (standalone) {
         rect.dim = displayDim;
     } else {
         rect.width = 4 * displayDim.width / 5;
@@ -104,6 +103,10 @@ int main(void) {
 
     while (true) {
         pollEvents();
+        if (winchReceived) {
+            winchReceived = 0;
+            dxui_resize_window(compositorWindow, dxui_get_display_dim(context));
+        }
         composit();
     }
 }

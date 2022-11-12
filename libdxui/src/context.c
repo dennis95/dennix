@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -58,6 +58,24 @@ static bool readAll(const char* filename, void* buffer, size_t size) {
 }
 
 dxui_dim dxui_get_display_dim(dxui_context* context) {
+    if (dxui_is_standalone(context)) {
+        struct video_mode mode;
+        if (posix_devctl(context->displayFd, DISPLAY_GET_VIDEO_MODE, &mode,
+                sizeof(mode), NULL) == 0) {
+            dxui_color* newFramebuffer = reallocarray(context->framebuffer,
+                    mode.video_width, mode.video_height * sizeof(dxui_color));
+            if (!newFramebuffer) {
+                return context->displayDim;
+            }
+
+            context->displayDim.height = mode.video_height;
+            context->displayDim.width = mode.video_width;
+            context->framebuffer = newFramebuffer;
+            if (context->activeWindow) {
+                dxui_update(context->activeWindow);
+            }
+        }
+    }
     return context->displayDim;
 }
 
@@ -132,33 +150,24 @@ static dxui_context* initializeStandalone(int flags) {
         return NULL;
     }
 
-    int mode = DISPLAY_MODE_QUERY;
-    int oldMode;
-    if (posix_devctl(context->displayFd, DISPLAY_SET_MODE, &mode, sizeof(mode),
-            &oldMode) != 0 || oldMode != DISPLAY_MODE_TEXT) {
+    if (posix_devctl(context->displayFd, DISPLAY_ACQUIRE, NULL, 0, NULL) != 0) {
         close(context->displayFd);
         free(context);
         return NULL;
     }
 
-    mode = DISPLAY_MODE_LFB;
-    if (posix_devctl(context->displayFd, DISPLAY_SET_MODE, &mode, sizeof(mode),
-            NULL) != 0) {
+    struct video_mode mode;
+    if (posix_devctl(context->displayFd, DISPLAY_GET_VIDEO_MODE, &mode,
+            sizeof(mode), NULL) != 0) {
         dxui_shutdown(context);
         return NULL;
     }
 
-    struct display_resolution res;
-    if (posix_devctl(context->displayFd, DISPLAY_GET_RESOLUTION, &res,
-            sizeof(res), NULL) != 0) {
-        dxui_shutdown(context);
-        return NULL;
-    }
+    context->displayDim.width = mode.video_width;
+    context->displayDim.height = mode.video_height;
 
-    context->displayDim.width = res.width;
-    context->displayDim.height = res.height;
-
-    context->framebuffer = malloc(res.width * res.height * sizeof(dxui_color));
+    context->framebuffer = malloc(mode.video_width * mode.video_height *
+            sizeof(dxui_color));
     if (!context->framebuffer) {
         dxui_shutdown(context);
         return NULL;
@@ -227,8 +236,8 @@ static dxui_context* initializeStandalone(int flags) {
         }
     }
 
-    context->mousePos.x = res.width / 2;
-    context->mousePos.y = res.height / 2;
+    context->mousePos.x = mode.video_width / 2;
+    context->mousePos.y = mode.video_height / 2;
 
     return context;
 }
@@ -246,9 +255,7 @@ void dxui_shutdown(dxui_context* context) {
         free(context->cursors);
         free(context->framebuffer);
 
-        int mode = DISPLAY_MODE_TEXT;
-        posix_devctl(context->displayFd, DISPLAY_SET_MODE, &mode, sizeof(mode),
-                NULL);
+        posix_devctl(context->displayFd, DISPLAY_RELEASE, NULL, 0, NULL);
         close(context->displayFd);
         close(context->mouseFd);
 
