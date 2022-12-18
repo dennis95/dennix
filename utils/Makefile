@@ -52,6 +52,7 @@ BIN_PROGRAMS = \
 	seq \
 	sleep \
 	snake \
+	sort \
 	sync \
 	test \
 	tail \
