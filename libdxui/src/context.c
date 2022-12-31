@@ -179,6 +179,11 @@ static dxui_context* initializeStandalone(int flags) {
         return NULL;
     }
 
+    // Turn on absolute mouse input.
+    int absoluteMouse = 1;
+    posix_devctl(context->mouseFd, MOUSE_SET_ABSOLUTE, &absoluteMouse,
+            sizeof(absoluteMouse), NULL);
+
     // Discard any buffered mouse movements.
     struct pollfd pfd[1];
     pfd[0].fd = context->mouseFd;
@@ -257,6 +262,10 @@ void dxui_shutdown(dxui_context* context) {
 
         posix_devctl(context->displayFd, DISPLAY_RELEASE, NULL, 0, NULL);
         close(context->displayFd);
+
+        int absoluteMouse = 0;
+        posix_devctl(context->mouseFd, MOUSE_SET_ABSOLUTE, &absoluteMouse,
+                sizeof(absoluteMouse), NULL);
         close(context->mouseFd);
 
         if (context->consoleFd != -1) {

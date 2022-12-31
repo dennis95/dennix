@@ -20,6 +20,7 @@
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/console.h>
 #include <dennix/kernel/interrupts.h>
+#include <dennix/kernel/mouse.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/pci.h>
 #include <dennix/kernel/physicalmemory.h>
@@ -30,6 +31,8 @@
 #define VBOX_VMMDEV_VERSION 0x10003
 #define VBOX_REQUEST_HEADER_VERSION 0x10001
 
+#define VBOX_REQUEST_GET_MOUSE 1
+#define VBOX_REQUEST_SET_MOUSE 2
 #define VBOX_REQUEST_ACK_EVENTS 41
 #define VBOX_REQUEST_GUEST_INFO 50
 #define VBOX_REQUEST_GET_DISPLAY_CHANGE 51
@@ -37,7 +40,11 @@
 
 #define VBOX_CAP_GRAPHICS (1 << 2)
 
+#define VBOX_MOUSE_ABSOLUTE (1 << 0)
+#define VBOX_MOUSE_NEW_PROTOCOL (1 << 4)
+
 #define VBOX_EVENT_DISPLAY_CHANGE (1 << 2)
+#define VBOX_EVENT_MOUSE_POS (1 << 9)
 
 struct VboxHeader {
     uint32_t size;
@@ -72,10 +79,18 @@ struct VboxDisplayChange {
     uint32_t eventack;
 };
 
-class VirtualBoxDevice {
+struct VboxMouse {
+    VboxHeader header;
+    uint32_t mouseFeatures;
+    int32_t x;
+    int32_t y;
+};
+
+class VirtualBoxDevice : public AbsoluteMouseDriver {
 public:
     VirtualBoxDevice(uint16_t port, volatile uint32_t* vmmdev, int irq);
     void onIrq(const InterruptContext* /*context*/);
+    void setAbsoluteMouse(bool enabled) override;
     void work();
 private:
     uint16_t port;
@@ -163,8 +178,10 @@ VirtualBoxDevice::VirtualBoxDevice(uint16_t port, volatile uint32_t* vmmdev,
     caps->caps = VBOX_CAP_GRAPHICS;
     outl(port, requestPhysical);
 
+    absoluteMouseDriver = this;
+
     // Enable interrupts.
-    vmmdev[3] = VBOX_EVENT_DISPLAY_CHANGE;
+    vmmdev[3] = VBOX_EVENT_DISPLAY_CHANGE | VBOX_EVENT_MOUSE_POS;
 }
 
 void VirtualBoxDevice::onIrq(const InterruptContext* /*context*/) {
@@ -176,6 +193,23 @@ void VirtualBoxDevice::onIrq(const InterruptContext* /*context*/) {
     }
 
     pendingEvents |= events;
+}
+
+void VirtualBoxDevice::setAbsoluteMouse(bool enabled) {
+    Interrupts::disable();
+    volatile VboxMouse* mouse = (volatile VboxMouse*) requestVirtual;
+    mouse->header.size = sizeof(VboxMouse);
+    mouse->header.version = VBOX_REQUEST_HEADER_VERSION;
+    mouse->header.requestType = VBOX_REQUEST_SET_MOUSE;
+    mouse->header.rc = 0;
+    mouse->header.reserved1 = 0;
+    mouse->header.reserved2 = 0;
+    mouse->mouseFeatures = enabled ?
+            VBOX_MOUSE_ABSOLUTE | VBOX_MOUSE_NEW_PROTOCOL : 0;
+    mouse->x = 0;
+    mouse->y = 0;
+    outl(port, requestPhysical);
+    Interrupts::enable();
 }
 
 void VirtualBoxDevice::work() {
@@ -214,5 +248,28 @@ void VirtualBoxDevice::work() {
         mode.video_height = display->yres;
         mode.video_bpp = display->bpp;
         console->display->setVideoMode(&mode);
+    }
+
+    if (events & VBOX_EVENT_MOUSE_POS) {
+        volatile VboxMouse* mouse = (volatile VboxMouse*) requestVirtual;
+        mouse->header.size = sizeof(VboxMouse);
+        mouse->header.version = VBOX_REQUEST_HEADER_VERSION;
+        mouse->header.requestType = VBOX_REQUEST_GET_MOUSE;
+        mouse->header.rc = 0;
+        mouse->header.reserved1 = 0;
+        mouse->header.reserved2 = 0;
+        mouse->mouseFeatures = 0;
+        mouse->x = 0;
+        mouse->y = 0;
+        outl(port, requestPhysical);
+
+        video_mode mode = console->display->getVideoMode();
+
+        mouse_data data;
+        data.mouse_x = (mouse->x * mode.video_width) / 0xFFFF;
+        data.mouse_y = (mouse->y * mode.video_height) / 0xFFFF;
+        data.mouse_flags = MOUSE_ABSOLUTE | MOUSE_NO_BUTTON_INFO;
+
+        mouseDevice->addPacket(data);
     }
 }

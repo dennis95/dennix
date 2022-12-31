@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,12 +24,14 @@
 #include <dennix/winsize.h>
 
 /* Devctl numbers that are defined by default in <devctl.h> and <sys/ioctl.h>
-   are defined here. More devctl numbers are defined in <dennix/display.h>. */
+   are defined here. More devctl numbers are defined in headers listed below. */
 
 #define TIOCSCTTY _DEVCTL(_IOCTL_VOID, 0)
+/* _IOCTL_VOID 1 and 2 are used in <dennix/display.h>. */
 
 /* _IOCTL_INT 0 is used in <dennix/display.h>. */
 #define TCFLSH _DEVCTL(_IOCTL_INT, 1)
+/* _IOCTL_INT 2 is used in <dennix/mouse.h>. */
 
 #define TIOCGWINSZ _DEVCTL(_IOCTL_PTR, 0) /* (struct winsize*) */
 #define TIOCGPGRP _DEVCTL(_IOCTL_PTR, 1) /* (pid_t*) */

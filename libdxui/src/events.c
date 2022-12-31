@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -417,11 +417,17 @@ static bool handleKeyboard(dxui_context* context) {
 static void handleMousePacket(dxui_context* context,
         const struct mouse_data* data) {
     bool relativeMouse = context->activeWindow &&
-            context->activeWindow->relativeMouse;
+            context->activeWindow->relativeMouse &&
+            !(data->mouse_flags & MOUSE_ABSOLUTE);
 
     if (!relativeMouse) {
-        context->mousePos.x += data->mouse_x;
-        context->mousePos.y += data->mouse_y;
+        if (data->mouse_flags & MOUSE_ABSOLUTE) {
+            context->mousePos.x = data->mouse_x;
+            context->mousePos.y = data->mouse_y;
+        } else {
+            context->mousePos.x += data->mouse_x;
+            context->mousePos.y += data->mouse_y;
+        }
         if (context->mousePos.x < 0) {
             context->mousePos.x = 0;
         } else if (context->mousePos.x >= context->displayDim.width) {
@@ -448,14 +454,28 @@ static void handleMousePacket(dxui_context* context,
         event.flags = 0;
     }
 
-    if (data->mouse_flags & MOUSE_LEFT) {
-        event.flags |= DXUI_MOUSE_LEFT;
-    }
-    if (data->mouse_flags & MOUSE_RIGHT) {
-        event.flags |= DXUI_MOUSE_RIGHT;
-    }
-    if (data->mouse_flags & MOUSE_MIDDLE) {
-        event.flags |= DXUI_MOUSE_MIDDLE;
+    if (data->mouse_flags & MOUSE_NO_BUTTON_INFO) {
+        if (context->mouseDown) {
+            event.flags |= DXUI_MOUSE_LEFT;
+        }
+        if (context->mouseRightDown) {
+            event.flags |= DXUI_MOUSE_RIGHT;
+        }
+        if (context->mouseMiddleDown) {
+            event.flags |= DXUI_MOUSE_MIDDLE;
+        }
+    } else {
+        if (data->mouse_flags & MOUSE_LEFT) {
+            event.flags |= DXUI_MOUSE_LEFT;
+        }
+        if (data->mouse_flags & MOUSE_RIGHT) {
+            event.flags |= DXUI_MOUSE_RIGHT;
+        }
+        if (data->mouse_flags & MOUSE_MIDDLE) {
+            event.flags |= DXUI_MOUSE_MIDDLE;
+        }
+        context->mouseRightDown = data->mouse_flags & MOUSE_RIGHT;
+        context->mouseMiddleDown = data->mouse_flags & MOUSE_MIDDLE;
     }
     if (data->mouse_flags & MOUSE_SCROLL_UP) {
         event.flags |= DXUI_MOUSE_SCROLL_UP;

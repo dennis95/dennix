@@ -59,6 +59,7 @@ public:
     void clear(CharPos from, CharPos to, Color color);
     int devctl(int command, void* restrict data, size_t size,
             int* restrict info) override;
+    video_mode getVideoMode();
     void initialize();
     void onPanic();
     void putCharacter(CharPos position, wchar_t c, Color color);

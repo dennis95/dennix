@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -69,6 +69,8 @@ struct dxui_context {
     dxui_pos mousePos;
     dxui_pos viewport;
     int idCounter;
+    bool mouseRightDown;
+    bool mouseMiddleDown;
 };
 
 #endif

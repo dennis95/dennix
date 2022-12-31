@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,6 +20,7 @@
 #include <devctl.h>
 #include <stdlib.h>
 #include <dennix/display.h>
+#include <dennix/mouse.h>
 #include "context.h"
 
 static void closeWindow(dxui_context* context, unsigned int id);
@@ -81,6 +82,11 @@ static void readjustViewport(dxui_context* context) {
 static void setActiveWindow(dxui_context* context, Window* window) {
     context->activeWindow = window;
     if (!window) return;
+
+    int absoluteMouse = !window->relativeMouse;
+    posix_devctl(context->mouseFd, MOUSE_SET_ABSOLUTE, &absoluteMouse,
+            sizeof(absoluteMouse), NULL);
+
     readjustViewport(context);
     dxui_update(window);
 }
@@ -135,7 +141,12 @@ static void resizeWindow(dxui_context* context, unsigned int id, dxui_dim dim) {
 
 static void setRelativeMouse(dxui_context* context, unsigned int id,
         bool relative) {
-    (void) context; (void) id; (void) relative;
+    Window* window = getWindow(context, id);
+    if (window != context->activeWindow) return;
+
+    int absoluteMouse = !relative;
+    posix_devctl(context->mouseFd, MOUSE_SET_ABSOLUTE, &absoluteMouse,
+            sizeof(absoluteMouse), NULL);
 }
 
 static void setWindowCursor(dxui_context* context, unsigned int id,

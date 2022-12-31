@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -23,10 +23,19 @@
 #include <dennix/mouse.h>
 #include <dennix/kernel/vnode.h>
 
+class AbsoluteMouseDriver {
+public:
+    virtual void setAbsoluteMouse(bool enabled) = 0;
+    virtual ~AbsoluteMouseDriver() {}
+};
+extern AbsoluteMouseDriver* absoluteMouseDriver;
+
 class MouseDevice : public Vnode {
 public:
     MouseDevice();
     void addPacket(mouse_data data);
+    int devctl(int command, void* restrict data, size_t size,
+            int* restrict info) override;
     short poll() override;
     ssize_t read(void* buffer, size_t size, int flags) override;
 private:

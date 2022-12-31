@@ -95,6 +95,11 @@ void Display::clear(CharPos from, CharPos to, Color color) {
     }
 }
 
+video_mode Display::getVideoMode() {
+    AutoLock lock(&mutex);
+    return mode;
+}
+
 void Display::initialize() {
     primaryBuffer = (CharBufferEntry*) malloc(rows * columns *
             sizeof(CharBufferEntry));

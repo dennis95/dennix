@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,6 +28,7 @@
 #define BUFFER_ITEMS (sizeof(mouseBuffer) / sizeof(mouse_data))
 
 Reference<MouseDevice> mouseDevice;
+AbsoluteMouseDriver* absoluteMouseDriver = nullptr;
 
 MouseDevice::MouseDevice() : Vnode(S_IFCHR | 0666, DevFS::dev) {
     readIndex = 0;
@@ -49,6 +50,34 @@ void MouseDevice::addPacket(mouse_data data) {
     mouseBuffer[writeIndex] = data;
     available++;
     kthread_cond_broadcast(&readCond);
+}
+
+int MouseDevice::devctl(int command, void* restrict data, size_t size,
+            int* restrict info) {
+    AutoLock lock(&mutex);
+
+    switch (command) {
+    case MOUSE_SET_ABSOLUTE: {
+        if (size != 0 && size != sizeof(int)) {
+            *info = -1;
+            return EINVAL;
+        }
+
+        int* enabled = (int*) data;
+        if (absoluteMouseDriver) {
+            absoluteMouseDriver->setAbsoluteMouse(*enabled);
+        } else if (*enabled) {
+            *info = -1;
+            return ENOTSUP;
+        }
+
+        *info = 0;
+        return 0;
+    } break;
+    default:
+        *info = -1;
+        return EINVAL;
+    }
 }
 
 short MouseDevice::poll() {
