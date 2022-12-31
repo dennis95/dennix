@@ -244,6 +244,16 @@ void Display::setCursorVisibility(bool visible) {
 }
 
 int Display::setVideoMode(video_mode* videoMode) {
+    AutoLock lock(&mutex);
+    return setVideoModeUnlocked(videoMode);
+}
+
+int Display::setVideoModeUnlocked(video_mode* videoMode) {
+    if (videoMode->video_width == mode.video_width &&
+            videoMode->video_height == mode.video_height &&
+            videoMode->video_bpp == mode.video_bpp) {
+        return 0;
+    }
     if (!graphicsDriver->isSupportedMode(*videoMode)) return ENOTSUP;
 
     console->lock();
@@ -476,7 +486,7 @@ int Display::devctl(int command, void* restrict data, size_t size,
 
         video_mode* videoMode = (video_mode*) data;
 
-        int errnum = setVideoMode(videoMode);
+        int errnum = setVideoModeUnlocked(videoMode);
         *info = errnum ? -1 : 0;
         return errnum;
     }

@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2020, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -87,7 +87,7 @@ bool BgaDevice::isSupportedMode(video_mode mode) {
                 version == 0xB0C4 ? 8 * 1024 * 1024 :
                 4 * 1024 * 1024;
     if (neededSize > fbSize) return false;
-    if (mode.video_width < 640 || mode.video_height < 480) return false;
+    if (mode.video_width < 320 || mode.video_height < 240) return false;
 
     return true;
 }

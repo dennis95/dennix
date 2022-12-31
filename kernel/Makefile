@@ -79,6 +79,7 @@ OBJ = \
 	syscall.o \
 	terminal.o \
 	thread.o \
+	virtualbox.o \
 	vnode.o \
 	worker.o
 

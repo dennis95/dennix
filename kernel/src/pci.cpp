@@ -23,6 +23,7 @@
 #include <dennix/kernel/log.h>
 #include <dennix/kernel/pci.h>
 #include <dennix/kernel/portio.h>
+#include <dennix/kernel/virtualbox.h>
 
 #define CONFIG_ADDRESS 0xCF8
 #define CONFIG_DATA 0xCFC
@@ -148,6 +149,10 @@ static void checkFunction(uint8_t bus, uint8_t device, uint8_t function,
     if ((vendor == 0x1234 && deviceId == 0x1111) ||
             (vendor == 0x80EE && deviceId == 0xBEEF)) {
         BgaDevice::initialize(bus, device, function);
+    }
+
+    if (vendor == 0x80EE && deviceId == 0xCAFE) {
+        VirtualBox::initialize(bus, device, function);
     }
 
     if (classCode == 0x01 && subclass == 0x01) {

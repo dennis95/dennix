@@ -66,6 +66,7 @@ public:
     void scroll(unsigned int lines, Color color, bool up = true);
     void setCursorPos(CharPos position);
     void setCursorVisibility(bool visible);
+    int setVideoMode(video_mode* videoMode);
     void switchBuffer(Color color);
     void update();
 private:
@@ -73,7 +74,7 @@ private:
     void redraw(CharPos position);
     void redraw(CharPos position, CharBufferEntry* entry);
     void setPixelColor(char* addr, uint32_t rgbColor);
-    int setVideoMode(video_mode* videoMode);
+    int setVideoModeUnlocked(video_mode* videoMode);
 public:
     unsigned int columns;
     unsigned int rows;
