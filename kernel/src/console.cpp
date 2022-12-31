@@ -92,6 +92,10 @@ void Console::handleSequence(const char* sequence) {
     }
 }
 
+void Console::lock() {
+    kthread_mutex_lock(&mutex);
+}
+
 void Console::onKeyboardEvent(int key) {
     AutoLock lock(&mutex);
 
@@ -533,6 +537,10 @@ void Console::printCharacterRaw(char c) {
     } else {
         cursorPos.x++;
     }
+}
+
+void Console::unlock() {
+    kthread_mutex_unlock(&mutex);
 }
 
 void Console::updateDisplaySize() {

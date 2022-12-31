@@ -61,6 +61,7 @@ Display::Display(video_mode mode, char* buffer, size_t pitch)
     invalidated = false;
     renderingText = true;
     haveOldBuffer = true;
+    changingResolution = false;
     displayOwner = nullptr;
 }
 
@@ -245,6 +246,9 @@ void Display::setCursorVisibility(bool visible) {
 int Display::setVideoMode(video_mode* videoMode) {
     if (!graphicsDriver->isSupportedMode(*videoMode)) return ENOTSUP;
 
+    console->lock();
+    changingResolution = true;
+
     size_t newRows = videoMode->video_height / charHeight;
     size_t newColumns = (videoMode->video_width + 1) / charWidth;
     size_t newSize = newRows * newColumns;
@@ -254,18 +258,30 @@ int Display::setVideoMode(video_mode* videoMode) {
         bool primary = doubleBuffer == primaryBuffer;
         CharBufferEntry* newPrimaryBuffer = (CharBufferEntry*)
                 reallocarray(primaryBuffer, newSize, sizeof(CharBufferEntry));
-        if (!newPrimaryBuffer) return ENOMEM;
+        if (!newPrimaryBuffer) {
+            changingResolution = false;
+            console->unlock();
+            return ENOMEM;
+        }
         primaryBuffer = newPrimaryBuffer;
         CharBufferEntry* newAlternateBuffer = (CharBufferEntry*)
                 reallocarray(alternateBuffer, newSize, sizeof(CharBufferEntry));
-        if (!newAlternateBuffer) return ENOMEM;
+        if (!newAlternateBuffer) {
+            changingResolution = false;
+            console->unlock();
+            return ENOMEM;
+        }
         alternateBuffer = newAlternateBuffer;
         doubleBuffer = primary ? primaryBuffer : alternateBuffer;
     }
 
     vaddr_t framebuffer = graphicsDriver->setVideoMode(videoMode);
+    if (!framebuffer) {
+        changingResolution = false;
+        console->unlock();
+        return EIO;
+    }
 
-    if (!framebuffer) return EIO;
     if (haveOldBuffer) {
         size_t oldBufferSize = ALIGNUP(mode.video_height * pitch, PAGESIZE);
         kernelSpace->unmapPhysical((vaddr_t) buffer, oldBufferSize);
@@ -332,6 +348,8 @@ int Display::setVideoMode(video_mode* videoMode) {
     }
 
     invalidated = true;
+    changingResolution = false;
+    console->unlock();
     return 0;
 }
 
@@ -346,7 +364,7 @@ void Display::switchBuffer(Color color) {
 }
 
 void Display::update() {
-    if (!renderingText || !doubleBuffer) return;
+    if (!renderingText || !doubleBuffer || changingResolution) return;
     bool redrawAll = invalidated;
     invalidated = false;
 

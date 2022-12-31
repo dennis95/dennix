@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2021 Dennis Wölfing
+/* Copyright (c) 2019, 2021, 2022 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,6 +25,7 @@
 static void panic(const char* file, unsigned int line, const char* func,
         const char* format, va_list ap) {
     Interrupts::disable();
+    console->unlock();
     Log::printf("\n\e[1;37;41mKERNEL PANIC\n");
     Log::vprintf(format, ap);
     Log::printf("\nat %s (%s:%u)\n", func, file, line);

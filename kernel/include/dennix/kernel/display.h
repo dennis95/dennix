@@ -89,6 +89,7 @@ private:
     bool invalidated;
     bool renderingText;
     bool haveOldBuffer;
+    bool changingResolution;
     Process* displayOwner;
 };
 
