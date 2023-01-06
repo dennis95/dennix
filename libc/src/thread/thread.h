@@ -37,9 +37,9 @@ struct __threadStruct {
     struct uthread uthread;
     __thread_t prev;
     __thread_t next;
-    __mutex_t joinMutex;
     union ThreadResult result;
     size_t mappingSize;
+    char state;
     void* keyValues[PTHREAD_KEYS_MAX];
 };
 
@@ -51,9 +51,17 @@ _Static_assert(sizeof(struct __threadStruct) <= UTHREAD_SIZE,
 _Static_assert(alignof(struct __threadStruct) == alignof(struct uthread),
         "struct __threadStruct has wrong alignment requirement");
 
+// Mutex states
 #define UNLOCKED 0
 #define LOCKED 1
 #define BUSY 2
+
+// Thread states
+#define PREPARING 0
+#define JOINABLE 1
+#define EXITED 2
+#define DETACHED 3
+#define JOINED 4
 
 static inline int threadWrapper(int error) {
     switch (error) {
@@ -84,6 +92,7 @@ int __thread_create(__thread_t* restrict thread,
         const __thread_attr_t* restrict attr, void* restrict wrapper,
         void* restrict func, void* restrict arg);
 __noreturn void __thread_exit(union ThreadResult result);
+int __thread_detach(__thread_t thread);
 int __thread_join(__thread_t thread, union ThreadResult* result);
 __thread_t __thread_self(void);
 

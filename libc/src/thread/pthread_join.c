@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 Dennis Wölfing
+/* Copyright (c) 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,11 +18,25 @@
  */
 
 #define munmap __munmap
+#define sched_yield __sched_yield
 #include "thread.h"
+#include <stdbool.h>
+#include <stdlib.h>
 #include <sys/mman.h>
 
 int __thread_join(__thread_t thread, union ThreadResult* result) {
-    __mutex_lock(&thread->joinMutex);
+    char expected = EXITED;
+    while (!__atomic_compare_exchange_n(&thread->state, &expected, JOINED,
+            false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)) {
+        if (expected == DETACHED) {
+            return EINVAL;
+        } else if (expected != JOINABLE) {
+            abort();
+        }
+        sched_yield();
+        expected = EXITED;
+    }
+
     *result = thread->result;
     munmap(thread->uthread.tlsCopy, thread->mappingSize);
     return 0;

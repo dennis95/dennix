@@ -17,8 +17,12 @@
  * Exit the current thread. (POSIX2008, called from C11)
  */
 
+#define munmap __munmap
 #include "thread.h"
+#include <stdbool.h>
+#include <stdlib.h>
 #include <dennix/exit.h>
+#include <sys/mman.h>
 #include <sys/syscall.h>
 
 DEFINE_SYSCALL(SYSCALL_EXIT_THREAD, __noreturn void, exit_thread,
@@ -44,13 +48,25 @@ __noreturn void __thread_exit(union ThreadResult result) {
     __mutex_unlock(&__threadListMutex);
 
     self->result = result;
-    __mutex_unlock(&self->joinMutex);
 
     struct exit_thread data = {0};
     data.flags = 0;
     data.status = 0;
     data.unmapAddress = self->uthread.stack;
     data.unmapSize = self->uthread.stackSize;
+
+    char state = JOINABLE;
+    if (__atomic_compare_exchange_n(&self->state, &state, EXITED,
+            false, __ATOMIC_RELEASE, __ATOMIC_RELAXED)) {
+        // We can be joined by another thread. That thread will cleanup our TLS
+        // copy.
+    } else if (state == DETACHED) {
+        munmap(self->uthread.tlsCopy, self->mappingSize);
+    } else {
+        // The thread state is inconsistent. It is not safe to continue.
+        abort();
+    }
+
     exit_thread(&data);
 }
 

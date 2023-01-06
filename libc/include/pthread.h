@@ -54,6 +54,7 @@ int pthread_condattr_init(pthread_condattr_t*);
 int pthread_condattr_setclock(pthread_condattr_t*, clockid_t);
 int pthread_create(pthread_t* __restrict, const pthread_attr_t* __restrict,
         void* (*)(void*), void* __restrict);
+int pthread_detach(pthread_t);
 __noreturn void pthread_exit(void*);
 void* pthread_getspecific(pthread_key_t key);
 int pthread_join(pthread_t, void**);

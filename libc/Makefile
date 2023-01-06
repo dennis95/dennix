@@ -362,6 +362,7 @@ LIBC_OBJ = \
 	thread/pthread_cond_wait \
 	thread/pthread_condattr \
 	thread/pthread_create \
+	thread/pthread_detach \
 	thread/pthread_exit \
 	thread/pthread_join \
 	thread/pthread_key \
@@ -376,6 +377,7 @@ LIBC_OBJ = \
 	thread/pthread_once \
 	thread/pthread_self \
 	thread/thrd_create \
+	thread/thrd_detach \
 	thread/thrd_exit \
 	thread/thrd_join \
 	thread/tss \

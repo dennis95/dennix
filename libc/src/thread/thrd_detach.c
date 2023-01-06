@@ -1,4 +1,4 @@
-/* Copyright (c) 2022, 2023 Dennis Wölfing
+/* Copyright (c) 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,22 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/thread/thrd_create.c
- * Create a thread. (C11)
+/* libc/src/thread/thrd_detach.c
+ * Detach a thread. (C11)
  */
 
-#define sched_yield __sched_yield
 #include "thread.h"
-#include <stdnoreturn.h>
 
-static noreturn void wrapperFunc(thrd_start_t func, void* arg) {
-    __thread_t self = __thread_self();
-    while (__atomic_load_n(&self->state, __ATOMIC_ACQUIRE) == PREPARING) {
-        sched_yield();
-    }
-    thrd_exit(func(arg));
-}
-
-int thrd_create(thrd_t* thread, thrd_start_t func, void* arg) {
-    return threadWrapper(__thread_create(thread, NULL, wrapperFunc, func, arg));
+int thrd_detach(thrd_t thread) {
+    return threadWrapper(__thread_detach(thread));
 }

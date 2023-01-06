@@ -113,10 +113,9 @@ int __thread_create(__thread_t* restrict thread,
     thr->uthread.stackSize = STACK_SIZE;
     thr->uthread.tid = -1;
     thr->prev = NULL;
-    thr->joinMutex = (__mutex_t) _MUTEX_INIT(_MUTEX_NORMAL);
     thr->mappingSize = mappingSize;
+    thr->state = PREPARING;
     memset(thr->keyValues, 0, sizeof(thr->keyValues));
-    __mutex_lock(&thr->joinMutex);
 
     regfork_t registers;
     prepareRegisters(&registers, wrapper, func, arg, stack, STACK_SIZE, thr);
@@ -135,12 +134,14 @@ int __thread_create(__thread_t* restrict thread,
     __mutex_unlock(&__threadListMutex);
 
     thr->uthread.tid = tid;
+    __atomic_store_n(&thr->state, JOINABLE, __ATOMIC_RELEASE);
     *thread = thr;
     return 0;
 }
 
 static noreturn void wrapperFunc(void* (*func)(void*), void* arg) {
-    while (__thread_self()->uthread.tid == -1) {
+    __thread_t self = __thread_self();
+    while (__atomic_load_n(&self->state, __ATOMIC_ACQUIRE) == PREPARING) {
         sched_yield();
     }
     pthread_exit(func(arg));

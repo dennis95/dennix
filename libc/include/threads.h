@@ -69,6 +69,7 @@ int mtx_trylock(mtx_t*);
 int mtx_unlock(mtx_t*);
 int thrd_create(thrd_t*, thrd_start_t, void*);
 thrd_t thrd_current(void);
+int thrd_detach(thrd_t);
 __noreturn void thrd_exit(int);
 int thrd_join(thrd_t, int*);
 int tss_create(tss_t*, tss_dtor_t);

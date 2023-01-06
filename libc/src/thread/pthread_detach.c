@@ -1,4 +1,4 @@
-/* Copyright (c) 2022, 2023 Dennis Wölfing
+/* Copyright (c) 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,22 +13,29 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/thread/thrd_create.c
- * Create a thread. (C11)
+/* libc/src/thread/pthread_detach.c
+ * Detach a thread. (POSIX2008, called from C11)
  */
 
-#define sched_yield __sched_yield
+#define munmap __munmap
 #include "thread.h"
-#include <stdnoreturn.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <sys/mman.h>
 
-static noreturn void wrapperFunc(thrd_start_t func, void* arg) {
-    __thread_t self = __thread_self();
-    while (__atomic_load_n(&self->state, __ATOMIC_ACQUIRE) == PREPARING) {
-        sched_yield();
+int __thread_detach(__thread_t thread) {
+    char expected = JOINABLE;
+    if (__atomic_compare_exchange_n(&thread->state, &expected, DETACHED,
+            false, __ATOMIC_RELAXED, __ATOMIC_RELAXED)) {
+        return 0;
+    } else if (expected == EXITED) {
+        // The thread has already exited. Join it.
+        munmap(thread->uthread.tlsCopy, thread->mappingSize);
+        return 0;
+    } else if (expected == DETACHED) {
+        return EINVAL;
+    } else {
+        abort();
     }
-    thrd_exit(func(arg));
 }
-
-int thrd_create(thrd_t* thread, thrd_start_t func, void* arg) {
-    return threadWrapper(__thread_create(thread, NULL, wrapperFunc, func, arg));
-}
+__weak_alias(__thread_detach, pthread_detach);

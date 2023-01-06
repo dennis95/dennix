@@ -30,8 +30,7 @@ void __initializeThreads(void) {
     size_t uthreadOffset = ALIGNUP(self->uthread.tlsSize,
             alignof(struct __threadStruct));
     self->mappingSize = ALIGNUP(uthreadOffset + UTHREAD_SIZE, PAGESIZE);
-    self->joinMutex = (__mutex_t) _MUTEX_INIT(_MUTEX_NORMAL);
-    self->joinMutex.__state = LOCKED;
+    self->state = JOINABLE;
     __threadList = self;
 }
 
