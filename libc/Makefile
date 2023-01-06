@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -364,6 +364,7 @@ LIBC_OBJ = \
 	thread/pthread_create \
 	thread/pthread_exit \
 	thread/pthread_join \
+	thread/pthread_key \
 	thread/pthread_mutex_clocklock \
 	thread/pthread_mutex_destroy \
 	thread/pthread_mutex_init \
@@ -377,6 +378,7 @@ LIBC_OBJ = \
 	thread/thrd_create \
 	thread/thrd_exit \
 	thread/thrd_join \
+	thread/tss \
 	time/asctime \
 	time/clock_gettime \
 	time/clock_nanosleep \

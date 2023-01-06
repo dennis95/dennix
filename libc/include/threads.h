@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 Dennis Wölfing
+/* Copyright (c) 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,12 +29,15 @@ extern "C" {
 
 #define thread_local _Thread_local
 #define ONCE_FLAG_INIT _ONCE_INIT
+#define TSS_DTOR_ITERATIONS 4
 
 typedef __cond_t cnd_t;
 typedef __mutex_t mtx_t;
 typedef __once_t once_flag;
 typedef __thread_t thrd_t;
+typedef __key_t tss_t;
 typedef int (*thrd_start_t)(void *);
+typedef void (*tss_dtor_t)(void*);
 
 enum {
     mtx_plain = _MUTEX_NORMAL,
@@ -68,6 +71,10 @@ int thrd_create(thrd_t*, thrd_start_t, void*);
 thrd_t thrd_current(void);
 __noreturn void thrd_exit(int);
 int thrd_join(thrd_t, int*);
+int tss_create(tss_t*, tss_dtor_t);
+void tss_delete(tss_t);
+void* tss_get(tss_t);
+int tss_set(tss_t, void*);
 
 #ifdef __cplusplus
 }

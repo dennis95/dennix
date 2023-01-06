@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 Dennis Wölfing
+/* Copyright (c) 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,8 +24,25 @@
 DEFINE_SYSCALL(SYSCALL_EXIT_THREAD, __noreturn void, exit_thread,
         (const struct exit_thread*));
 
+__attribute__((weak))
+void __key_run_destructors(void) {}
+
 __noreturn void __thread_exit(union ThreadResult result) {
     __thread_t self = __thread_self();
+
+    __key_run_destructors();
+
+    __mutex_lock(&__threadListMutex);
+    if (self->next) {
+        self->next->prev = self->prev;
+    }
+    if (self->prev) {
+        self->prev->next = self->next;
+    } else {
+        __threadList = self->next;
+    }
+    __mutex_unlock(&__threadListMutex);
+
     self->result = result;
     __mutex_unlock(&self->joinMutex);
 

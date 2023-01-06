@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 Dennis Wölfing
+/* Copyright (c) 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -112,8 +112,10 @@ int __thread_create(__thread_t* restrict thread,
     thr->uthread.stack = stack;
     thr->uthread.stackSize = STACK_SIZE;
     thr->uthread.tid = -1;
+    thr->prev = NULL;
     thr->joinMutex = (__mutex_t) _MUTEX_INIT(_MUTEX_NORMAL);
     thr->mappingSize = mappingSize;
+    memset(thr->keyValues, 0, sizeof(thr->keyValues));
     __mutex_lock(&thr->joinMutex);
 
     regfork_t registers;
@@ -125,6 +127,12 @@ int __thread_create(__thread_t* restrict thread,
         munmap(stack, STACK_SIZE);
         return errno;
     }
+
+    __mutex_lock(&__threadListMutex);
+    thr->next = __threadList;
+    __threadList->prev = thr;
+    __threadList = thr;
+    __mutex_unlock(&__threadListMutex);
 
     thr->uthread.tid = tid;
     *thread = thr;

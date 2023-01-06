@@ -1,4 +1,4 @@
-/* Copyright (c) 2022, 2023 Dennis Wölfing
+/* Copyright (c) 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,22 +13,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/include/bits/pthread.h
- * Pthread types.
+/* libc/src/thread/tss.c
+ * Thread-specific data. (C11)
  */
 
-#ifndef _BITS_PTHREAD_H
-#define _BITS_PTHREAD_H
+#include "thread.h"
 
-#include <bits/thread.h>
+int tss_create(tss_t* key, tss_dtor_t destructor) {
+    return threadWrapper(__key_create(key, destructor));
+}
 
-typedef __thread_t pthread_t;
-typedef __thread_attr_t pthread_attr_t;
-typedef __cond_t pthread_cond_t;
-typedef __clockid_t pthread_condattr_t;
-typedef __key_t pthread_key_t;
-typedef __mutex_t pthread_mutex_t;
-typedef int pthread_mutexattr_t;
-typedef __once_t pthread_once_t;
+void tss_delete(tss_t key) {
+    __key_delete(key);
+}
 
-#endif
+int tss_set(tss_t key, void* value) {
+    return threadWrapper(__key_setspecific(key, value));
+}

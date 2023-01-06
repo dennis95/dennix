@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 Dennis Wölfing
+/* Copyright (c) 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,6 +22,9 @@
 
 #define ALIGNUP(val, align) ((((val) - 1) & ~((align) - 1)) + (align))
 
+__thread_t __threadList;
+__mutex_t __threadListMutex = _MUTEX_INIT(_MUTEX_NORMAL);
+
 void __initializeThreads(void) {
     __thread_t self = __thread_self();
     size_t uthreadOffset = ALIGNUP(self->uthread.tlsSize,
@@ -29,6 +32,7 @@ void __initializeThreads(void) {
     self->mappingSize = ALIGNUP(uthreadOffset + UTHREAD_SIZE, PAGESIZE);
     self->joinMutex = (__mutex_t) _MUTEX_INIT(_MUTEX_NORMAL);
     self->joinMutex.__state = LOCKED;
+    __threadList = self;
 }
 
 __thread_t __thread_self(void) {

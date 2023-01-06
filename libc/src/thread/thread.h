@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 Dennis Wölfing
+/* Copyright (c) 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,6 +21,7 @@
 #define THREAD_H
 
 #include <errno.h>
+#include <limits.h>
 #include <stdalign.h>
 #include <threads.h>
 #include <pthread.h>
@@ -34,10 +35,16 @@ union ThreadResult {
 
 struct __threadStruct {
     struct uthread uthread;
+    __thread_t prev;
+    __thread_t next;
     __mutex_t joinMutex;
     union ThreadResult result;
     size_t mappingSize;
+    void* keyValues[PTHREAD_KEYS_MAX];
 };
+
+extern __thread_t __threadList;
+extern __mutex_t __threadListMutex;
 
 _Static_assert(sizeof(struct __threadStruct) <= UTHREAD_SIZE,
         "struct __threadStruct is too large");
@@ -63,6 +70,11 @@ int __cond_broadcast(__cond_t* cond);
 int __cond_clockwait(__cond_t* restrict cond, __mutex_t* restrict mutex,
         clockid_t clock, const struct timespec* restrict abstime);
 int __cond_signal(__cond_t* cond);
+int __key_create(__key_t* key, void (*destructor)(void*));
+int __key_delete(__key_t key);
+void* __key_getspecific(__key_t key);
+void __key_run_destructors(void);
+int __key_setspecific(__key_t key, const void* value);
 int __mutex_clocklock(__mutex_t* restrict mutex, clockid_t clock,
         const struct timespec* restrict abstime);
 int __mutex_lock(__mutex_t* mutex);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 Dennis Wölfing
+/* Copyright (c) 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -38,6 +38,8 @@ typedef struct {
     __clockid_t __clock;
     char __state;
 } __cond_t;
+
+typedef int __key_t;
 
 typedef struct {
     char __type;

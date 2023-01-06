@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 Dennis Wölfing
+/* Copyright (c) 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,7 +22,7 @@
 
 #include <dennix/types.h>
 
-#define UTHREAD_SIZE 128
+#define UTHREAD_SIZE 1152
 
 struct uthread {
     struct uthread* self;

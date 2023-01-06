@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020, 2022 Dennis Wölfing
+/* Copyright (c) 2019, 2020, 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -40,6 +40,8 @@
 
 #  define ATEXIT_MAX 32
 #  define HOST_NAME_MAX 255
+#  define PTHREAD_DESTRUCTOR_ITERATIONS 4
+#  define PTHREAD_KEYS_MAX 128
 
 #  define LONG_BIT (__SIZEOF_LONG__ * CHAR_BIT)
 #  define SSIZE_MAX LONG_MAX

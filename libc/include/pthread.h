@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 Dennis Wölfing
+/* Copyright (c) 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -55,7 +55,10 @@ int pthread_condattr_setclock(pthread_condattr_t*, clockid_t);
 int pthread_create(pthread_t* __restrict, const pthread_attr_t* __restrict,
         void* (*)(void*), void* __restrict);
 __noreturn void pthread_exit(void*);
+void* pthread_getspecific(pthread_key_t key);
 int pthread_join(pthread_t, void**);
+int pthread_key_create(pthread_key_t*, void (*)(void*));
+int pthread_key_delete(pthread_key_t);
 int pthread_mutex_clocklock(pthread_mutex_t* __restrict, clockid_t,
         const struct timespec* __restrict);
 int pthread_mutex_destroy(pthread_mutex_t*);
@@ -73,6 +76,7 @@ int pthread_mutexattr_init(pthread_mutexattr_t*);
 int pthread_mutexattr_settype(pthread_mutexattr_t*, int);
 int pthread_once(pthread_once_t*, void (*)(void));
 pthread_t pthread_self(void);
+int pthread_setspecific(pthread_key_t key, const void* value);
 
 #ifdef __cplusplus
 }
