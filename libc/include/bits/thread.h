@@ -53,7 +53,8 @@ typedef unsigned char __once_t;
 #define _MUTEX_NORMAL 0
 #define _MUTEX_RECURSIVE 1
 
-#define _COND_INIT { (void*) 0, (void*) 0, CLOCK_REALTIME, 0 }
+#define _COND_INIT { (struct __cond_waiter*) 0, (struct __cond_waiter*) 0, \
+        CLOCK_REALTIME, 0 }
 #define _MUTEX_INIT(type) { (type), 0, -1, 0 }
 #define _ONCE_INIT 0
 
