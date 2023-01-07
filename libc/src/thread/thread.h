@@ -91,6 +91,7 @@ int __mutex_unlock(__mutex_t* mutex);
 int __thread_create(__thread_t* restrict thread,
         const __thread_attr_t* restrict attr, void* restrict wrapper,
         void* restrict func, void* restrict arg);
+int __thread_equal(__thread_t t1, __thread_t t2);
 __noreturn void __thread_exit(union ThreadResult result);
 int __thread_detach(__thread_t thread);
 int __thread_join(__thread_t thread, union ThreadResult* result);
