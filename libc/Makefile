@@ -381,6 +381,7 @@ LIBC_OBJ = \
 	thread/thrd_detach \
 	thread/thrd_exit \
 	thread/thrd_join \
+	thread/thrd_yield \
 	thread/tss \
 	time/asctime \
 	time/clock_gettime \

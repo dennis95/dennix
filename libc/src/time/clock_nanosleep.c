@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,11 +14,12 @@
  */
 
 /* libc/src/time/clock_nanosleep.c
- * Sleeps for a given time.
+ * Sleep for a given time. (POSIX2008, called from C11)
  */
 
 #include <time.h>
 #include <sys/syscall.h>
 
-DEFINE_SYSCALL_GLOBAL(SYSCALL_CLOCK_NANOSLEEP, int, clock_nanosleep,
+DEFINE_SYSCALL_GLOBAL(SYSCALL_CLOCK_NANOSLEEP, int, __clock_nanosleep,
         (clockid_t, int, const struct timespec*, struct timespec*));
+DEFINE_SYSCALL_WEAK_ALIAS(__clock_nanosleep, clock_nanosleep);

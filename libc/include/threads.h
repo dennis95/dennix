@@ -73,6 +73,8 @@ int thrd_detach(thrd_t);
 int thrd_equal(thrd_t, thrd_t);
 __noreturn void thrd_exit(int);
 int thrd_join(thrd_t, int*);
+int thrd_sleep(const struct timespec*, struct timespec*);
+void thrd_yield(void);
 int tss_create(tss_t*, tss_dtor_t);
 void tss_delete(tss_t);
 void* tss_get(tss_t);

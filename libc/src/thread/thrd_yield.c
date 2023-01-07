@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018, 2023 Dennis Wölfing
+/* Copyright (c) 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,18 +13,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* libc/src/time/nanosleep.c
- * Sleep for a given time. (C11, POSIX2008)
+/* libc/src/thread/thrd_yield.c
+ * Yield the processor. (C11)
  */
 
-#define clock_nanosleep __clock_nanosleep
-#include <errno.h>
+#define sched_yield __sched_yield
+#include <sched.h>
 #include <threads.h>
-#include <time.h>
 
-int __nanosleep(const struct timespec* requested, struct timespec* remaining) {
-    errno = clock_nanosleep(CLOCK_REALTIME, 0, requested, remaining);
-    return errno ? -1 : 0;
+void thrd_yield(void) {
+    sched_yield();
 }
-__weak_alias(__nanosleep, nanosleep);
-__weak_alias(__nanosleep, thrd_sleep);
