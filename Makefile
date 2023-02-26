@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2023 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -17,6 +17,9 @@ REPO_ROOT = .
 include $(REPO_ROOT)/build-aux/arch.mk
 include $(REPO_ROOT)/build-aux/paths.mk
 include $(REPO_ROOT)/build-aux/toolchain.mk
+
+JOBS = $(lastword $(filter -j%,$(MAKEFLAGS)))
+COMPRESS = xz $(subst -j,-T,$(JOBS))
 
 KERNEL = $(BUILD_DIR)/kernel/kernel
 INITRD = $(BUILD_DIR)/initrd.tar.xz
@@ -68,7 +71,7 @@ $(LIB_DIR):
 
 install-ports $(DXPORT_DIR): $(INCLUDE_DIR) $(LIB_DIR)
 ifneq ($(wildcard ./ports/dxport),)
-	-$(DXPORT) install -k all
+	-$(DXPORT) install -k $(JOBS) all
 endif
 
 install-sh: $(INCLUDE_DIR) $(LIB_DIR)
@@ -91,7 +94,7 @@ $(ISO): $(KERNEL) $(INITRD)
 	$(MKRESCUE) -o $@ $(BUILD_DIR)/isosrc
 
 $(INITRD): $(SYSROOT)
-	cd $(SYSROOT) && tar cJf ../$(INITRD) --format=ustar *
+	cd $(SYSROOT) && tar -cf - --format=ustar * | $(COMPRESS) > ../$(INITRD)
 
 qemu: $(ISO)
 	qemu-system-$(BASE_ARCH) -cdrom $^ -m 512M -cpu host -enable-kvm
@@ -133,6 +136,7 @@ distclean:
 	rm -rf build sysroot
 	rm -f *.iso
 
+.NOTPARALLEL:
 .PHONY: all apps gui kernel libc libdxui install-all install-apps install-gui
 .PHONY: install-headers install-libc install-libdxui install-ports install-sh
 .PHONY: install-toolchain install-utils iso qemu sh utils clean distclean
