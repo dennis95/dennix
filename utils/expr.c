@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 Dennis Wölfing
+/* Copyright (c) 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -256,7 +256,15 @@ static bool acceptMatch(const char* op) {
 }
 
 static char* evalMatch(char* left, const char* op, char* right) {
-    (void) left; (void) op; (void) right;
+    (void) op;
+
+    if (strcmp(right, ".*\\.\\(.*\\)") == 0) {
+        // This is a hack to make autoconf-generated configure scripts work.
+        const char* dot = strrchr(left, '.');
+        return xstrdup(dot ? dot + 1 : "");
+    }
+
+    // TODO: Implement regular expression matching.
     errx(3, "regular expressions are not yet implemented");
 }
 
