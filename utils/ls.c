@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -47,7 +47,14 @@ struct DirListing {
     size_t allocated;
 };
 
-static void addEntry(struct DirListing* listing, int dirFd, const char* name);
+enum SymlinkFollow {
+    PHYSICAL,
+    LOGICAL,
+    HALF_LOGICAL
+};
+
+static void addEntry(struct DirListing* listing, int dirFd, const char* name,
+        bool followSymlink);
 static void freeEntries(struct DirListing* listing);
 static void getColor(mode_t mode, const char** pre, const char** post);
 static bool getDirectoryEntries(struct DirListing* listing, const char* path);
@@ -81,6 +88,8 @@ static bool numericUidGid = false;
 static bool printInode = false;
 static const time_t sixMonths = 182 * 24 * 60 * 60;
 static bool success = true;
+static enum SymlinkFollow symlinkFollow = PHYSICAL;
+static bool typeSuffix = false;
 static bool unsorted = false;
 
 int main(int argc, char* argv[]) {
@@ -92,15 +101,20 @@ int main(int argc, char* argv[]) {
     struct option longopts[] = {
         { "almost-all", no_argument, 0, 'A' },
         { "all", no_argument, 0, 'a' },
+        { "dereference", no_argument, 0, 'L' },
+        { "dereference-command-line", no_argument, 0, 'H' },
+        { "directory", no_argument, 0, 'd' },
         { "inode", no_argument, 0, 'i' },
         { "numeric-uid-gid", no_argument, 0, 'n' },
         { "help", no_argument, 0, 0 },
         { "version", no_argument, 0, 1 },
         { 0, 0, 0, 0 }
     };
-    // TODO: Implement more options.
-    const char* shortopts = "ACSacfgilnotu1";
+    // TODO: Implement -Rkmpqrsx options.
+    const char* shortopts = "ACFHLSacdfgilnotu1";
 
+    bool followDirSymlinks = true;
+    bool listDirs = true;
     int c;
     while ((c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
         switch (c) {
@@ -108,9 +122,13 @@ int main(int argc, char* argv[]) {
             return help(argv[0], "[OPTIONS] [FILE...]\n"
                     "  -A, --almost-all         list hidden files\n"
                     "  -C                       column output\n"
+                    "  -F                       add suffix for file types\n"
+                    "  -H                       follow symlinks in operands\n"
+                    "  -L                       follow symlinks\n"
                     "  -S                       sort by size\n"
                     "  -a, --all                list all files\n"
                     "  -c                       use status change time\n"
+                    "  -d, --directory          do not list dir entries\n"
                     "  -f                       unsorted output\n"
                     "  -g                       long output without owner\n"
                     "  -i, --inode              write inode number\n"
@@ -132,6 +150,16 @@ int main(int argc, char* argv[]) {
         case 'C':
             output = outputColumns;
             break;
+        case 'F':
+            typeSuffix = true;
+            followDirSymlinks = false;
+            break;
+        case 'H':
+            symlinkFollow = HALF_LOGICAL;
+            break;
+        case 'L':
+            symlinkFollow = LOGICAL;
+            break;
         case 'S':
             sort = sortBySize;
             break;
@@ -140,6 +168,10 @@ int main(int argc, char* argv[]) {
             break;
         case 'c':
             getTime = getCTime;
+            break;
+        case 'd':
+            listDirs = false;
+            followDirSymlinks = false;
             break;
         case 'f':
             unsorted = true;
@@ -154,6 +186,7 @@ int main(int argc, char* argv[]) {
             break;
         case 'l':
             output = outputLong;
+            followDirSymlinks = false;
             break;
         case 'n':
             output = outputLong;
@@ -193,8 +226,12 @@ int main(int argc, char* argv[]) {
 
     for (int i = optind; i < argc; i++) {
         struct stat st;
-        if (stat(argv[i], &st) < 0 || !S_ISDIR(st.st_mode)) {
-            addEntry(&listing, AT_FDCWD, argv[i]);
+        if (!listDirs || stat(argv[i], &st) < 0 || !S_ISDIR(st.st_mode)) {
+            addEntry(&listing, AT_FDCWD, argv[i], symlinkFollow != PHYSICAL);
+            argv[i] = NULL;
+        } else if (symlinkFollow == PHYSICAL && !followDirSymlinks &&
+                (lstat(argv[i], &st) < 0 || S_ISLNK(st.st_mode))) {
+            addEntry(&listing, AT_FDCWD, argv[i], false);
             argv[i] = NULL;
         }
     }
@@ -220,7 +257,8 @@ int main(int argc, char* argv[]) {
     return success ? 0 : 1;
 }
 
-static void addEntry(struct DirListing* listing, int dirFd, const char* name) {
+static void addEntry(struct DirListing* listing, int dirFd, const char* name,
+        bool followSymlink) {
     struct DirEntry* entry = malloc(sizeof(struct DirEntry));
     if (!entry) err(1, "malloc");
 
@@ -228,7 +266,8 @@ static void addEntry(struct DirListing* listing, int dirFd, const char* name) {
     if (!entry->name) err(1, "strdup");
     entry->linkTarget = NULL;
 
-    if (fstatat(dirFd, entry->name, &entry->stat, AT_SYMLINK_NOFOLLOW) < 0) {
+    if (fstatat(dirFd, entry->name, &entry->stat,
+            followSymlink ? 0 : AT_SYMLINK_NOFOLLOW) < 0) {
         success = false;
         warn("stat: '%s'", name);
         free(entry->name);
@@ -329,7 +368,7 @@ static bool getDirectoryEntries(struct DirListing* listing, const char* path) {
             continue;
         }
 
-        addEntry(listing, fd, dirent->d_name);
+        addEntry(listing, fd, dirent->d_name, symlinkFollow == LOGICAL);
         errno = 0;
         dirent = readdir(dir);
     }
@@ -351,6 +390,24 @@ static const char* getGroupName(gid_t gid) {
         struct group* group = getgrgid(gid);
         cachedName = group ? group->gr_name : NULL;
         return cachedName;
+    }
+}
+
+static const char* getTypeSuffix(struct DirEntry* entry) {
+    if (!typeSuffix) return "";
+
+    if (S_ISDIR(entry->stat.st_mode)) {
+        return "/";
+    } else if (S_ISFIFO(entry->stat.st_mode)) {
+        return "|";
+    } else if (S_ISSOCK(entry->stat.st_mode)) {
+        return "=";
+    } else if (S_ISLNK(entry->stat.st_mode)) {
+        return "@";
+    } else if (entry->stat.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
+        return "*";
+    } else {
+        return " ";
     }
 }
 
@@ -444,6 +501,9 @@ static void outputColumns(struct DirEntry** entries, size_t numEntries) {
     if (printInode) {
         maxLength += 1 + inodeFieldLength;
     }
+    if (typeSuffix) {
+        maxLength++;
+    }
 
     size_t columns = (lineWidth + 1) / (maxLength + 1);
     if (columns == 0) {
@@ -470,7 +530,10 @@ static void outputColumns(struct DirEntry** entries, size_t numEntries) {
             const char* post;
             getColor(entry->stat.st_mode, &pre, &post);
 
-            printf("%s%-*s%s%c", pre, (int) nameFieldLength, entry->name, post,
+            size_t paddingLength = nameFieldLength - strlen(entry->name);
+
+            printf("%s%s%s%s%*s%c", pre, entry->name,
+                    post, getTypeSuffix(entry), (int) paddingLength, "",
                     column == columns - 1 ? '\n' : ' ');
         }
     }
@@ -580,7 +643,7 @@ static void outputLong(struct DirEntry** entries, size_t numEntries) {
         const char* pre;
         const char* post;
         getColor(entry->stat.st_mode, &pre, &post);
-        printf("%s%s%s", pre, entry->name, post);
+        printf("%s%s%s%s", pre, entry->name, post, getTypeSuffix(entry));
 
         if (S_ISLNK(entry->stat.st_mode)) {
             printf(" -> %s", entry->linkTarget);
@@ -598,7 +661,8 @@ static void outputOneline(struct DirEntry** entries, size_t numEntries) {
         const char* pre;
         const char* post;
         getColor(entries[i]->stat.st_mode, &pre, &post);
-        printf("%s%s%s\n", pre, entries[i]->name, post);
+        printf("%s%s%s%s\n", pre, entries[i]->name, post,
+                getTypeSuffix(entries[i]));
     }
 }
 
