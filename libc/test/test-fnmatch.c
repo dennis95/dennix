@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,6 +22,7 @@ struct test {
     int flags;
     int result;
 } tests[] = {
+    { "", "x", 0, FNM_NOMATCH },
     { "a*c" , "abc", 0, 0 },
     { "*x*y*z", "abcxydez", 0, 0 },
     { "*x*y*z", "abcxydezf", 0, FNM_NOMATCH },
@@ -42,6 +43,7 @@ struct test {
     { "[!]]", "]", 0, FNM_NOMATCH },
     { "[/\\]", "/", 0, 0 },
     { "[/\\]", "\\", 0, 0 },
+    { "[[x]", "[", 0, 0 },
     { "[[:upper:]][[:punct:]]", "A.", 0, 0 },
     { "[[:upper:]][[:punct:]]", "a.", 0, FNM_NOMATCH },
     { "[![:upper:]]", "b", 0, 0 },
@@ -61,9 +63,17 @@ struct test {
     { "a[b/c]d", "a/d", FNM_PATHNAME, FNM_NOMATCH },
     { "a[b/c]d", "a[b/c]d", FNM_PATHNAME, 0 },
     { "a/*b", "a/.b", 0, 0 },
+    { "*/", "a/b/", 0, 0 },
+    { "*/", "a/b/", FNM_PATHNAME, FNM_NOMATCH },
     { "a/*b", "a/.b", FNM_PERIOD, 0 },
     { "a/*b", "a/.b", FNM_PATHNAME, 0 },
     { "a/*b", "a/.b", FNM_PATHNAME | FNM_PERIOD, FNM_NOMATCH },
+    { "a/", "a", FNM_PATHNAME, FNM_NOMATCH },
+    { "a", "a/", FNM_PATHNAME, FNM_NOMATCH },
+    { "a\\/b", "a/b", 0, 0 },
+    { "a\\/b", "a/b", FNM_PATHNAME, 0 },
+    { "a\\/b", "a/b", FNM_NOESCAPE, FNM_NOMATCH },
+    { "a\\/b", "a/b", FNM_PATHNAME | FNM_NOESCAPE, FNM_NOMATCH },
     { "a\\*c", "abc", 0, FNM_NOMATCH },
     { "a\\*c", "a*c", 0, 0 },
     { "a\\*c", "a*c", FNM_NOESCAPE, FNM_NOMATCH },
@@ -90,6 +100,7 @@ struct test {
     { "[[.xyz.]]", "x", 0, FNM_NOMATCH },
     { "[[...]]", ".", 0, 0 },
     { "[[.\\.]]", "\\", 0, 0 },
+    { "[a-[.bc.]]", "b", 0, FNM_NOMATCH },
     { "[[:]", "[:", 0, 0 },
     { "[[:]", ":", 0, FNM_NOMATCH },
     { "[[:]", "[[:]", 0, FNM_NOMATCH },

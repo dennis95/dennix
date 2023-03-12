@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,6 +22,15 @@
 #include <string.h>
 #include <wchar.h>
 #include <wctype.h>
+
+/*
+Pattern matching is implemented by seperating the pattern into multiple
+subpatterns that match strings of constant length, and are separated by
+wildcards matching arbitrary strings. To determine whether a pattern matches a
+string we only have to determine matching offsets for all subpatterns. The
+algorithms works by finding the first match for each subpattern that occurs
+after the match of the previous subpattern.
+*/
 
 static size_t getBracketExpressionLength(const char* pattern, size_t length) {
     size_t i = 0;
@@ -183,12 +192,85 @@ static bool matchBracketExpression(const char* bracketExpression,
     return nonmatching;
 }
 
+static bool matchSubpatternAt(const char* subpattern, size_t patternLength,
+        const char* string, size_t stringLength, int flags,
+        size_t* subpatternLength, size_t* matchLength) {
+    bool escaped = false;
+    size_t patternOffset = 0;
+    size_t stringOffset = 0;
+
+    while (patternOffset < patternLength) {
+        if (subpattern[patternOffset] == '\\' && !(flags & FNM_NOESCAPE)
+                && !escaped) {
+            escaped = true;
+            patternOffset++;
+        } else if (subpattern[patternOffset] == '?' && !escaped) {
+            if (stringOffset >= stringLength) return false;
+            size_t charLength;
+            wchar_t wc = getWideChar(string + stringOffset,
+                    stringLength - stringOffset, &charLength);
+            if (wc == WEOF) {
+                return false;
+            }
+            stringOffset += charLength;
+            patternOffset++;
+        } else if (subpattern[patternOffset] == '[' && !escaped) {
+            if (stringOffset >= stringLength) return false;
+            const char* bracketExpression = subpattern + patternOffset + 1;
+            size_t length = getBracketExpressionLength(bracketExpression,
+                    patternLength - patternOffset - 1);
+            if (length == 0) {
+                // Not a valid bracket expression.
+                if (string[stringOffset] != '[') {
+                    return false;
+                }
+                stringOffset++;
+                patternOffset++;
+            } else {
+                size_t charLength;
+                if (matchBracketExpression(bracketExpression, length,
+                        string + stringOffset, stringLength - stringOffset,
+                        &charLength, flags & FNM_CASEFOLD)) {
+                    stringOffset += charLength;
+                    patternOffset += length + 2;
+                } else {
+                    return false;
+                }
+            }
+        } else if (subpattern[patternOffset] == '*' && !escaped) {
+            break;
+        } else {
+            // Match a literal character.
+            if (stringOffset >= stringLength) return false;
+            size_t patternCharLength;
+            wint_t patternChar = getWideChar(subpattern + patternOffset,
+                    patternLength - patternOffset, &patternCharLength);
+            if (patternChar == WEOF) return false;
+            size_t charLength;
+            wint_t wc = getWideChar(string + stringOffset,
+                    stringLength - stringOffset, &charLength);
+            wint_t folded = (flags & FNM_CASEFOLD) ? casefold(wc) : wc;
+
+            if (wc != patternChar && folded != patternChar) {
+                return false;
+            }
+            stringOffset += charLength;
+            escaped = false;
+            patternOffset += patternCharLength;
+        }
+    }
+
+    if (patternOffset == patternLength && stringOffset < stringLength) {
+        return false;
+    }
+
+    *subpatternLength = patternOffset;
+    *matchLength = stringOffset;
+    return true;
+}
+
 static int match(const char* pattern, size_t patternLength,
         const char* string, size_t stringLength, int flags) {
-    size_t subpatternStart = 0;
-    size_t substringStart = 0;
-
-    bool escaped = false;
     size_t patternOffset = 0;
     size_t stringOffset = 0;
 
@@ -204,99 +286,29 @@ static int match(const char* pattern, size_t patternLength,
     }
 
     while (patternOffset < patternLength) {
-        if (pattern[patternOffset] == '\\' && !(flags & FNM_NOESCAPE)
-                && !escaped) {
-            escaped = true;
-            patternOffset++;
-        } else if (pattern[patternOffset] == '?' && !escaped) {
-            if (stringOffset >= stringLength) return FNM_NOMATCH;
-            size_t charLength;
-            wchar_t wc = getWideChar(string + stringOffset,
-                    stringLength - stringOffset, &charLength);
-            if (wc == WEOF) {
-                if (subpatternStart == 0) return FNM_NOMATCH;
-                patternOffset = subpatternStart;
-                substringStart++;
-                stringOffset = substringStart;
-                continue;
-            }
-            stringOffset += charLength;
-            patternOffset++;
-        } else if (pattern[patternOffset] == '[' && !escaped) {
-            if (stringOffset >= stringLength) return FNM_NOMATCH;
-            const char* bracketExpression = pattern + patternOffset + 1;
-            size_t length = getBracketExpressionLength(bracketExpression,
-                    patternLength - patternOffset - 1);
-            if (length == 0) {
-                // Not a valid bracket expression.
-                if (stringOffset >= stringLength) return FNM_NOMATCH;
-                if (string[stringOffset] != '[') {
-                    if (subpatternStart == 0) return FNM_NOMATCH;
-                    patternOffset = subpatternStart;
-                    substringStart++;
-                    stringOffset = substringStart;
-                    continue;
-                }
-                stringOffset++;
-                patternOffset++;
-            } else {
-                size_t charLength;
-                if (matchBracketExpression(bracketExpression, length,
-                        string + stringOffset, stringLength - stringOffset,
-                        &charLength, flags & FNM_CASEFOLD)) {
-                    stringOffset += charLength;
-                    patternOffset += length + 2;
-                } else {
-                    if (subpatternStart == 0) return FNM_NOMATCH;
-                    patternOffset = subpatternStart;
-                    substringStart++;
-                    stringOffset = substringStart;
-                    continue;
-                }
-            }
-        } else if (pattern[patternOffset] == '*' && !escaped) {
-            patternOffset++;
-            subpatternStart = patternOffset;
-            substringStart = stringOffset;
-        } else {
-            // Match a literal character.
-            if (stringOffset >= stringLength) return FNM_NOMATCH;
-            size_t patternCharLength;
-            wint_t patternChar = getWideChar(pattern + patternOffset,
-                    patternLength - patternOffset, &patternCharLength);
-            if (patternChar == WEOF) return FNM_NOMATCH;
-            size_t charLength;
-            wint_t wc = getWideChar(string + stringOffset,
-                    stringLength - stringOffset, &charLength);
-            wint_t folded = (flags & FNM_CASEFOLD) ? casefold(wc) : wc;
+        size_t subpatternLength;
+        size_t matchLength;
+        bool matched = matchSubpatternAt(pattern + patternOffset,
+                patternLength - patternOffset,
+                string + stringOffset, stringLength - stringOffset, flags,
+                &subpatternLength, &matchLength);
 
-            if (wc != patternChar && folded != patternChar) {
-                if (subpatternStart == 0) return FNM_NOMATCH;
-                patternOffset = subpatternStart;
-                substringStart++;
-                stringOffset = substringStart;
-                continue;
-            }
-            stringOffset += charLength;
-            escaped = false;
-            patternOffset += patternCharLength;
+        if (matched) {
+            patternOffset += subpatternLength;
+            stringOffset += matchLength;
+        } else {
+            if (patternOffset == 0) return FNM_NOMATCH;
+            stringOffset++;
+            if (stringOffset > stringLength) return FNM_NOMATCH;
+        }
+
+
+        while (patternOffset < patternLength && pattern[patternOffset] == '*') {
+            patternOffset++;
         }
     }
 
-    if (patternOffset == subpatternStart) {
-        return 0;
-    }
-
-    if (escaped && !(flags & FNM_PATHNAME)) {
-        if (stringOffset != stringLength - 1) return FNM_NOMATCH;
-        if (string[stringOffset] != '\\') return FNM_NOMATCH;
-        return 0;
-    }
-
-    if (stringOffset == stringLength) {
-        return 0;
-    }
-    return FNM_NOMATCH;
+    return 0;
 }
 
 int fnmatch(const char* pattern, const char* string, int flags) {
