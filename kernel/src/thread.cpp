@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021, 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -52,7 +52,9 @@ Thread::Thread(Process* process) {
 }
 
 Thread::~Thread() {
-    kernelSpace->unmapMemory(kernelStack, PAGESIZE);
+    if (kernelStack != 0) {
+        kernelSpace->unmapMemory(kernelStack, PAGESIZE);
+    }
 }
 
 void Thread::initializeIdleThread() {
@@ -79,7 +81,7 @@ void Thread::addThread(Thread* thread) {
 void Thread::removeThread(Thread* thread) {
     if (thread->prev) {
         thread->prev->next = thread->next;
-    } else {
+    } else if (firstThread == thread) {
         firstThread = thread->next;
     }
 

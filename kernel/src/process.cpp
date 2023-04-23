@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -763,6 +763,8 @@ Process* Process::regfork(int flags, regfork_t* registers) {
 
 void Process::removeFromGroup() {
     // processesMutex must be held when calling this function.
+
+    if (pgid == -1) return;
 
     Process* groupLeader = processes[pgid].processGroup;
     kthread_mutex_lock(&groupLeader->groupMutex);
