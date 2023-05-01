@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2022 Dennis Wölfing
+/* Copyright (c) 2018, 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,11 +42,6 @@ static size_t callback(void* arg, const char* s, size_t length) {
 
 int __vsnprintf(char* restrict s, size_t n, const char* restrict format,
         va_list ap) {
-    if (n > INT_MAX) {
-        errno = EOVERFLOW;
-        return -1;
-    }
-
     struct context context;
     context.buffer = s;
     context.index = 0;
