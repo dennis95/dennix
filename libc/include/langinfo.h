@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -37,7 +37,7 @@ typedef int nl_item;
 #define D_T_FMT 100
 #define D_FMT 101
 #define T_FMT 102
-#define T_FMT_AM_PM 103
+#define T_FMT_AMPM 103
 #define AM_STR 104
 #define PM_STR 105
 #define DAY_1 106

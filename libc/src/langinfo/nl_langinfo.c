@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +14,7 @@
  */
 
 /* libc/src/langinfo/nl_langinfo.c
- * Language and locale information.
+ * Language and locale information. (POSIX2008)
  */
 
 #include <langinfo.h>
@@ -25,7 +25,7 @@ char* nl_langinfo(nl_item item) {
     case D_T_FMT: return "%a %b %e %H:%M:%S %Y";
     case D_FMT: return "%m/%d/%y";
     case T_FMT: return "%H:%M:%S";
-    case T_FMT_AM_PM: return "%I:%M:%S %p";
+    case T_FMT_AMPM: return "%I:%M:%S %p";
     case AM_STR: return "AM";
     case PM_STR: return "PM";
     case DAY_1: return "Sunday";
