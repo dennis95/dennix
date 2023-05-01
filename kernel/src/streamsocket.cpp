@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2020, 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -135,7 +135,7 @@ Reference<Vnode> StreamSocket::accept(struct sockaddr* address,
         size_t copySize = (size_t) *length < addressSize ? *length :
                 addressSize;
         memcpy(address, &peerAddr, copySize);
-        *length = copySize;
+        *length = addressSize;
     }
 
     return newSocket;
