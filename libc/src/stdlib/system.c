@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2022 Dennis Wölfing
+/* Copyright (c) 2019, 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -61,7 +61,7 @@ int system(const char* command) {
         sigaction(SIGQUIT, &sigquit, NULL);
         sigprocmask(SIG_SETMASK, &oldMask, NULL);
 
-        execl("/bin/sh", "sh", "-c", command, NULL);
+        execl("/bin/sh", "sh", "-c", "--", command, NULL);
         _Exit(127);
     } else {
         while (waitpid(pid, &status, 0) < 0) {
