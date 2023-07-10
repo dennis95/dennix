@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021, 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,6 +17,7 @@
  * Shell builtins.
  */
 
+#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
@@ -41,6 +42,7 @@ static int eval(int argc, char* argv[]);
 static int exec(int argc, char* argv[]);
 static int sh_exit(int argc, char* argv[]);
 static int export(int argc, char* argv[]);
+static int sh_read(int argc, char* argv[]);
 static int sh_return(int argc, char* argv[]);
 static int set(int argc, char* argv[]);
 static int shift(int argc, char* argv[]);
@@ -57,6 +59,7 @@ const struct builtin builtins[] = {
     { "exec", exec, BUILTIN_SPECIAL },
     { "exit", sh_exit, BUILTIN_SPECIAL },
     { "export", export, BUILTIN_SPECIAL },
+    { "read", sh_read, 0 },
     { "return", sh_return, BUILTIN_SPECIAL },
     { "set", set, BUILTIN_SPECIAL },
     { "shift", shift, BUILTIN_SPECIAL },
@@ -417,6 +420,133 @@ static int export(int argc, char* argv[]) {
         setVariable(argv[i], equals ? equals + 1 : NULL, true);
     }
     return success ? 0 : 1;
+}
+
+static bool isIfsWhiteSpace(char c, const char* ifs) {
+    return (c == ' ' || c == '\t' || c == '\n') && strchr(ifs, c);
+}
+
+static int sh_read(int argc, char* argv[]) {
+    char delimiter = '\n';
+    bool interpretBackslash = true;
+
+    int i;
+    for (i = 1; i < argc; i++) {
+        if (argv[i][0] != '-' || argv[i][1] == '\0') break;
+        if (argv[i][1] == '-' && argv[i][2] == '\0') {
+            i++;
+            break;
+        }
+        for (size_t j = 1; argv[i][j]; j++) {
+            if (argv[i][j] == 'd') {
+                const char* arg;
+                if (argv[i][j + 1]) {
+                    arg = &argv[i][j + 1];
+                } else {
+                    i++;
+                    arg = argv[i];
+                }
+
+                if (!arg) {
+                    warnx("read: option '-d' requires an argument");
+                    return 2;
+                } else if (strlen(arg) > 1) {
+                    warnx("read: invalid delimiter '%s'", arg);
+                    return 2;
+                }
+
+                delimiter = *arg;
+                break;
+            } else if (argv[i][j] == 'r') {
+                interpretBackslash = false;
+            } else {
+                warnx("read: invalid option '-%c'", argv[i][j]);
+                return 2;
+            }
+        }
+    }
+
+    if (i >= argc) {
+        warnx("read: missing operand");
+        return 2;
+    }
+
+    const char* ifs = getVariable("IFS");
+    if (!ifs) {
+        ifs = " \t\n";
+    }
+
+    bool delimiterFound = false;
+    bool ignoreIfsAtBegin = false;
+    bool eofReached = false;
+
+    for (; i < argc; i++) {
+        bool lastVar = i == argc - 1;
+        struct StringBuffer buffer;
+        initStringBuffer(&buffer);
+
+        bool backslash = false;
+        bool ignoreIfsWhitespaceAtBegin = true;
+
+        while (!delimiterFound && !eofReached) {
+            char c;
+            ssize_t bytesRead = read(0, &c, 1);
+
+            if (bytesRead < 0) {
+                warn("read: read error");
+                free(finishStringBuffer(&buffer));
+                return 2;
+            } else if (bytesRead == 0) {
+                eofReached = true;
+            } else /*if (bytesRead == 1)*/ {
+                if (ignoreIfsWhitespaceAtBegin) {
+                    if (c != delimiter && strchr(ifs, c)) {
+                        if (c == ' ' || c == '\t' || c == '\n') {
+                            continue;
+                        } else if (ignoreIfsAtBegin) {
+                            ignoreIfsAtBegin = false;
+                            continue;
+                        }
+
+                    }
+
+                    ignoreIfsAtBegin = false;
+                    ignoreIfsWhitespaceAtBegin = false;
+                }
+
+                if (backslash) {
+                    if (c != '\n') {
+                        appendToStringBuffer(&buffer, c);
+                    }
+                    backslash = false;
+                } else if (interpretBackslash && c == '\\') {
+                    backslash = true;
+                } else if (c == delimiter) {
+                    delimiterFound = true;
+                    break;
+                } else if (!lastVar && strchr(ifs, c)) {
+                    ignoreIfsAtBegin = c == ' ' || c == '\t' || c == '\n';
+                    break;
+                } else {
+                    appendToStringBuffer(&buffer, c);
+                }
+            }
+        }
+
+        if (lastVar) {
+            // Remove trailing IFS whitespace.
+            while (buffer.used > 0 &&
+                    isIfsWhiteSpace(buffer.buffer[buffer.used - 1], ifs)) {
+                buffer.used--;
+            }
+        }
+
+        char* value = finishStringBuffer(&buffer);
+        setVariable(argv[i], value, false);
+        free(value);
+    }
+
+    return eofReached ? 1 : 0;
 }
 
 static int sh_return(int argc, char* argv[]) {
