@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -39,17 +39,23 @@ protected:
 class PipeVnode::ReadEnd : public Endpoint {
 public:
     ReadEnd(const Reference<PipeVnode>& pipe) : Endpoint(pipe) {}
+    ~ReadEnd();
+    NOT_COPYABLE(ReadEnd);
+    NOT_MOVABLE(ReadEnd);
+
     short poll() override;
     ssize_t read(void* buffer, size_t size, int flags) override;
-    virtual ~ReadEnd();
 };
 
 class PipeVnode::WriteEnd : public Endpoint {
 public:
     WriteEnd(const Reference<PipeVnode>& pipe) : Endpoint(pipe) {}
+    ~WriteEnd();
+    NOT_COPYABLE(WriteEnd);
+    NOT_MOVABLE(WriteEnd);
+
     short poll() override;
     ssize_t write(const void* buffer, size_t size, int flags) override;
-    virtual ~WriteEnd();
 };
 
 PipeVnode::PipeVnode(Reference<Vnode>& readPipe, Reference<Vnode>& writePipe)

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -58,6 +58,10 @@
 class IoApic {
 public:
     IoApic(paddr_t baseAddress, int interruptBase);
+    ~IoApic() = default;
+    NOT_COPYABLE(IoApic);
+    NOT_MOVABLE(IoApic);
+
     void unmask(int irq);
 private:
     volatile uint32_t* indexRegister;

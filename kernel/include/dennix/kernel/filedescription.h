@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2020, 2022 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2020, 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,6 +26,9 @@ class FileDescription : public ReferenceCounted {
 public:
     FileDescription(const Reference<Vnode>& vnode, int flags);
     ~FileDescription();
+    NOT_COPYABLE(FileDescription);
+    NOT_MOVABLE(FileDescription);
+
     Reference<FileDescription> accept4(struct sockaddr* address,
             socklen_t* length, int flags);
     int bind(const struct sockaddr* address, socklen_t length);

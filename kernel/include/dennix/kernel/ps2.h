@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2020, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -33,7 +33,7 @@ uint8_t sendDeviceCommand(bool secondPort, uint8_t command, uint8_t data,
 class PS2Device {
 public:
     virtual void irqHandler() = 0;
-    virtual ~PS2Device() {}
+    virtual ~PS2Device() = default;
 };
 
 #endif

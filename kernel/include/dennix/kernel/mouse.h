@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021, 2022 Dennis Wölfing
+/* Copyright (c) 2020, 2021, 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,13 +26,17 @@
 class AbsoluteMouseDriver {
 public:
     virtual void setAbsoluteMouse(bool enabled) = 0;
-    virtual ~AbsoluteMouseDriver() {}
+    virtual ~AbsoluteMouseDriver() = default;
 };
 extern AbsoluteMouseDriver* absoluteMouseDriver;
 
 class MouseDevice : public Vnode {
 public:
     MouseDevice();
+    ~MouseDevice() = default;
+    NOT_COPYABLE(MouseDevice);
+    NOT_MOVABLE(MouseDevice);
+
     void addPacket(mouse_data data);
     int devctl(int command, void* restrict data, size_t size,
             int* restrict info) override;

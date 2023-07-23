@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -38,6 +38,9 @@ public:
         }
         free(buffer);
     }
+
+    NOT_COPYABLE(DynamicArray);
+    NOT_MOVABLE(DynamicArray);
 
     TSize add(const T& obj) {
         return addAt(0, obj);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -30,6 +30,10 @@
 class Terminal : public Vnode {
 public:
     Terminal(dev_t dev);
+    virtual ~Terminal() = default;
+    NOT_MOVABLE(Terminal);
+    NOT_COPYABLE(Terminal);
+
     int devctl(int command, void* restrict data, size_t size,
             int* restrict info) override;
     void exitSession();

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,6 +26,9 @@ class FileVnode : public Vnode, public ConstructorMayFail {
 public:
     FileVnode(const void* data, size_t size, mode_t mode, dev_t dev);
     ~FileVnode();
+    NOT_COPYABLE(FileVnode);
+    NOT_MOVABLE(FileVnode);
+
     int ftruncate(off_t length) override;
     bool isSeekable() override;
     off_t lseek(off_t offset, int whence) override;

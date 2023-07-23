@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2020, 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,6 +27,9 @@ public:
     DirectoryVnode(const Reference<DirectoryVnode>& parent, mode_t mode,
             dev_t dev);
     ~DirectoryVnode();
+    NOT_COPYABLE(DirectoryVnode);
+    NOT_MOVABLE(DirectoryVnode);
+
     Reference<Vnode> getChildNode(const char* name) override;
     Reference<Vnode> getChildNode(const char* path, size_t length) override;
     size_t getDirectoryEntries(void** buffer, int flags) override;

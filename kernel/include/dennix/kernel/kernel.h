@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -39,6 +39,13 @@
 #define PAGE_MISALIGN (PAGESIZE - 1)
 #define PAGE_ALIGNED(value) !((value) & PAGE_MISALIGN)
 
+#define NOT_COPYABLE(T) \
+    T(const T&) = delete; \
+    T& operator=(const T&) = delete
+#define NOT_MOVABLE(T) \
+    T(T&&) = delete; \
+    T& operator=(T&&) = delete
+
 // Define an incomplete type for symbols so we can only take their addresses
 typedef struct _incomplete_type symbol_t;
 
@@ -52,8 +59,8 @@ inline void* operator new(size_t /*size*/, void* addr) {
 inline void* operator new[](size_t /*size*/, void* addr) {
     return addr;
 }
-inline void operator delete(void*, void*) {};
-inline void operator delete[](void*, void*) {};
+inline void operator delete(void*, void*) {}
+inline void operator delete[](void*, void*) {}
 
 class ConstructorMayFail {
 public:

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2017, 2019, 2020, 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,6 +21,7 @@
 #define KERNEL_KTHREAD_H
 
 #include <dennix/kernel/clock.h>
+#include <dennix/kernel/kernel.h>
 
 typedef bool kthread_mutex_t;
 #define KTHREAD_MUTEX_INITIALIZER false
@@ -62,6 +63,9 @@ public:
             kthread_mutex_unlock(mutex);
         }
     }
+
+    NOT_COPYABLE(AutoLock);
+    NOT_MOVABLE(AutoLock);
 private:
     kthread_mutex_t* mutex;
 };

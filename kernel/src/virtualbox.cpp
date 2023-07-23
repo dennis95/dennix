@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 Dennis Wölfing
+/* Copyright (c) 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -89,6 +89,10 @@ struct VboxMouse {
 class VirtualBoxDevice : public AbsoluteMouseDriver {
 public:
     VirtualBoxDevice(uint16_t port, volatile uint32_t* vmmdev, int irq);
+    ~VirtualBoxDevice() = default;
+    NOT_COPYABLE(VirtualBoxDevice);
+    NOT_MOVABLE(VirtualBoxDevice);
+
     void onIrq(const InterruptContext* /*context*/);
     void setAbsoluteMouse(bool enabled) override;
     void work();

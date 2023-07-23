@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,6 +42,9 @@ class Process {
 public:
     Process();
     ~Process();
+    NOT_COPYABLE(Process);
+    NOT_MOVABLE(Process);
+
     int addFileDescriptor(const Reference<FileDescription>& descr, int flags);
     unsigned int alarm(unsigned int seconds);
     int close(int fd);

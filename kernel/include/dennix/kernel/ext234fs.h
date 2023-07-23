@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -220,6 +220,10 @@ class Ext234Fs : public FileSystem {
 public:
     Ext234Fs(const Reference<Vnode>& device, const SuperBlock* superBlock,
             const Reference<Vnode>& mountPoint, bool readonly);
+    ~Ext234Fs() = default;
+    NOT_COPYABLE(Ext234Fs);
+    NOT_MOVABLE(Ext234Fs);
+
     ino_t createInode(uint64_t blockGroup, mode_t mode);
     bool deallocateInode(ino_t ino, bool dir);
     void dropVnodeReference(ino_t ino);
@@ -288,6 +292,9 @@ public:
     Ext234Vnode(Ext234Fs* fs, ino_t ino, const Inode* inode,
             uint64_t inodeAddress);
     ~Ext234Vnode();
+    NOT_COPYABLE(Ext234Vnode);
+    NOT_MOVABLE(Ext234Vnode);
+
     int chmod(mode_t mode) override;
     int chown(uid_t uid, gid_t gid) override;
     int ftruncate(off_t length) override;

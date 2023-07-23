@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2020, 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,6 +27,10 @@
 class PS2Mouse : public PS2Device {
 public:
     PS2Mouse(bool secondPort);
+    ~PS2Mouse() = default;
+    NOT_COPYABLE(PS2Mouse);
+    NOT_MOVABLE(PS2Mouse);
+
     void irqHandler() override;
 private:
     void work();

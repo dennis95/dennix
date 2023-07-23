@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,6 +25,7 @@
 class CacheController {
 public:
     CacheController();
+    virtual ~CacheController() = default;
     virtual paddr_t reclaimCache() = 0;
 protected:
     paddr_t allocateCache();

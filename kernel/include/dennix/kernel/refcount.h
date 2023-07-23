@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, 2021 Dennis Wölfing
+/* Copyright (c) 2017, 2019, 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,12 +29,18 @@ public:
     void addReference() const;
     virtual void removeReference() const;
     size_t getRefCount() const { return refcount; }
+protected:
+    ReferenceCounted(const ReferenceCounted& other);
+    ReferenceCounted& operator=(const ReferenceCounted& other);
+    ReferenceCounted(ReferenceCounted&& other);
+    ReferenceCounted& operator=(ReferenceCounted&& other);
 private:
-    mutable size_t refcount;
+    mutable size_t refcount = 0;
 };
 
 template <typename T>
 class Reference {
+template <typename> friend class Reference;
 public:
     Reference() : object(nullptr) {}
 
@@ -102,6 +108,20 @@ public:
             object->addReference();
         }
 
+        return *this;
+    }
+
+    Reference& operator=(Reference&& ref) {
+        return operator=<T>(ref);
+    }
+
+    template <typename T2>
+    Reference& operator=(Reference<T2>&& ref) {
+        if (object) {
+            object->removeReference();
+        }
+        object = ref.object;
+        ref.object = nullptr;
         return *this;
     }
 

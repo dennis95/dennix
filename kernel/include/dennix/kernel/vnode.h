@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -79,6 +79,11 @@ public:
     virtual ~Vnode();
 protected:
     Vnode(mode_t mode, dev_t dev);
+    Vnode(const Vnode&) = default;
+    Vnode& operator=(const Vnode&) = default;
+    Vnode(Vnode&&) = default;
+    Vnode& operator=(Vnode&&) = default;
+
     virtual void updateTimestamps(bool access, bool status, bool modification);
 public:
     kthread_mutex_t mutex;

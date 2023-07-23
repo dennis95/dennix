@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Dennis Wölfing
+/* Copyright (c) 2017, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,11 +21,28 @@
 #include <dennix/kernel/refcount.h>
 
 ReferenceCounted::ReferenceCounted() {
-    refcount = 0;
+
 }
 
 ReferenceCounted::~ReferenceCounted() {
     assert(refcount == 0);
+}
+
+ReferenceCounted::ReferenceCounted(const ReferenceCounted& /*other*/) {
+
+}
+
+ReferenceCounted& ReferenceCounted::operator=(const ReferenceCounted&
+        /*other*/) {
+    return *this;
+}
+
+ReferenceCounted::ReferenceCounted(ReferenceCounted&& /*other*/) {
+
+}
+
+ReferenceCounted& ReferenceCounted::operator=(ReferenceCounted&& /*other*/) {
+    return *this;
 }
 
 void ReferenceCounted::addReference() const {

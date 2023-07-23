@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2021 Dennis Wölfing
+/* Copyright (c) 2019, 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,6 +25,11 @@
 
 class DevFS : public FileSystem {
 public:
+    DevFS() = default;
+    ~DevFS() = default;
+    NOT_COPYABLE(DevFS);
+    NOT_MOVABLE(DevFS);
+
     void addDevice(const char* name, const Reference<Vnode>& vnode);
     Reference<Vnode> getRootDir() override;
     void initialize(const Reference<DirectoryVnode>& rootDir);

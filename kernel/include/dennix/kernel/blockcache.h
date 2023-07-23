@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,7 +28,10 @@
 class BlockCacheDevice : public Vnode, public CacheController {
 protected:
     BlockCacheDevice(mode_t mode, dev_t dev);
+    NOT_COPYABLE(BlockCacheDevice);
+    NOT_MOVABLE(BlockCacheDevice);
 public:
+    virtual ~BlockCacheDevice() = default;
     void freeUnusedBlocks();
     bool isSeekable() override;
     ssize_t pread(void* buffer, size_t size, off_t offset, int flags) override;
@@ -43,6 +46,9 @@ protected:
 private:
     struct Block {
         Block(vaddr_t address, uint64_t blockNumber);
+        ~Block() = default;
+        NOT_COPYABLE(Block);
+        NOT_MOVABLE(Block);
 
         vaddr_t address;
         uint64_t blockNumber;

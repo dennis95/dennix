@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,6 +29,10 @@
 class MemoryStack {
 public:
     MemoryStack(void* firstStackPage);
+    ~MemoryStack() = default;
+    NOT_COPYABLE(MemoryStack);
+    NOT_MOVABLE(MemoryStack);
+
     void pushPageFrame(paddr_t physicalAddress, bool cache = false);
     paddr_t popPageFrame(bool cache = false);
 public:

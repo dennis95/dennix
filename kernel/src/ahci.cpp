@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 Dennis Wölfing
+/* Copyright (c) 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -93,6 +93,10 @@ static void onAhciIrq(void* user, const InterruptContext* context);
 class AhciController {
 public:
     AhciController(vaddr_t hbaMapped, unsigned int irq);
+    ~AhciController() = default;
+    NOT_COPYABLE(AhciController);
+    NOT_MOVABLE(AhciController);
+
     void onIrq(const InterruptContext* context);
 private:
     uint32_t readRegister(size_t offset);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 Dennis Wölfing
+/* Copyright (c) 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -30,6 +30,10 @@ void initialize(uint8_t bus, uint8_t device, uint8_t function);
 class AhciDevice : public BlockCacheDevice {
 public:
     AhciDevice(vaddr_t portRegisters, paddr_t portMemPhys, vaddr_t portMemVirt);
+    ~AhciDevice() = default;
+    NOT_COPYABLE(AhciDevice);
+    NOT_MOVABLE(AhciDevice);
+
     bool identify();
     off_t lseek(off_t offset, int whence) override;
     void onIrq(const InterruptContext* context, uint32_t interruptStatus);

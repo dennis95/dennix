@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,6 +25,10 @@
 class BgaDevice : public GraphicsDriver {
 public:
     BgaDevice(uint16_t version, uint8_t bus, uint8_t device, uint8_t function);
+    ~BgaDevice() = default;
+    NOT_COPYABLE(BgaDevice);
+    NOT_MOVABLE(BgaDevice);
+
     bool isSupportedMode(video_mode mode) override;
     vaddr_t setVideoMode(video_mode* mode) override;
 public:

@@ -1,4 +1,4 @@
-/* Copyright (c) 2021, 2022 Dennis Wölfing
+/* Copyright (c) 2021, 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,6 +29,10 @@
 class Console : public Terminal, public KeyboardListener {
 public:
     Console();
+    ~Console() = default;
+    NOT_COPYABLE(Console);
+    NOT_MOVABLE(Console);
+
     void lock();
     void unlock();
     void updateDisplaySize();

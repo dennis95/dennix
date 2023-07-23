@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -32,6 +32,9 @@ class PseudoTerminal : public Terminal {
 public:
     PseudoTerminal();
     ~PseudoTerminal();
+    NOT_COPYABLE(PseudoTerminal);
+    NOT_MOVABLE(PseudoTerminal);
+
     short poll() override;
     short pollController();
     ssize_t readController(void* buffer, size_t size, int flags);
@@ -53,6 +56,9 @@ class PtController : public Vnode {
 public:
     PtController(const Reference<PseudoTerminal>& pts);
     ~PtController();
+    NOT_COPYABLE(PtController);
+    NOT_MOVABLE(PtController);
+
     int devctl(int command, void* restrict data, size_t size,
             int* restrict info) override;
     int isatty() override;

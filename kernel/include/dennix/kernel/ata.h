@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,6 +28,10 @@ class AtaChannel {
 public:
     AtaChannel(uint16_t iobase, uint16_t ctrlbase, uint16_t busmasterBase,
             unsigned int irq, paddr_t prdPhys, vaddr_t prdVirt);
+    ~AtaChannel() = default;
+    NOT_COPYABLE(AtaChannel);
+    NOT_MOVABLE(AtaChannel);
+
     bool flushCache(bool secondary);
     void identifyDevice(bool secondary);
     void onIrq(const InterruptContext* context);
@@ -57,6 +61,10 @@ class AtaDevice : public BlockCacheDevice {
 public:
     AtaDevice(AtaChannel* channel, bool secondary, uint64_t sectors,
             uint64_t sectorSize, bool lba48Supported);
+    ~AtaDevice() = default;
+    NOT_COPYABLE(AtaDevice);
+    NOT_MOVABLE(AtaDevice);
+
     off_t lseek(off_t offset, int whence) override;
     short poll() override;
     int sync(int flags) override;

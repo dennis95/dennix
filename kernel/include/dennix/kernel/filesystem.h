@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,7 +24,7 @@
 
 class FileSystem {
 public:
-    virtual ~FileSystem() {}
+    virtual ~FileSystem() = default;
     virtual Reference<Vnode> getRootDir() = 0;
     virtual bool onUnmount() = 0;
 };

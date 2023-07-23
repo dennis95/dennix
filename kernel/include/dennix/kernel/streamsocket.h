@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2020, 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -34,6 +34,9 @@ public:
     StreamSocket(mode_t mode, const Reference<StreamSocket>& peer,
             const Reference<ConnectionMutex>& connection);
     ~StreamSocket();
+    NOT_COPYABLE(StreamSocket);
+    NOT_MOVABLE(StreamSocket);
+
     Reference<Vnode> accept(struct sockaddr* address, socklen_t* length,
             int fileFlags) override;
     int bind(const struct sockaddr* address, socklen_t length, int flags)
