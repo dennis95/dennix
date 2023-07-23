@@ -31,6 +31,7 @@
 #include <dennix/kernel/process.h>
 #include <dennix/kernel/registers.h>
 #include <dennix/kernel/signal.h>
+#include <dennix/kernel/util.h>
 #include <dennix/kernel/worker.h>
 
 #define USER_STACK_SIZE (128 * 1024) // 128 KiB
@@ -466,15 +467,14 @@ int Process::execute(Reference<Vnode>& vnode, char* const argv[],
         return -1;
     }
 
-    for (pid_t tid = threads.next(-1); tid >= 0; tid = threads.next(tid)) {
-        if (tid != Thread::current()->tid) {
-            threads[tid]->forceKill = true;
+    for (auto thread : threads) {
+        if (thread != Thread::current()) {
+            thread->forceKill = true;
         }
     }
 
-    while (threads.next(-1) != -1 &&
-            (threads.next(-1) != Thread::current()->tid ||
-            threads.next(Thread::current()->tid) != -1)) {
+    while (!threads.empty() &&
+            !Util::containsOnly(threads, Thread::current())) {
         kthread_mutex_unlock(&threadsMutex);
         sched_yield();
         kthread_mutex_lock(&threadsMutex);
@@ -482,9 +482,9 @@ int Process::execute(Reference<Vnode>& vnode, char* const argv[],
     kthread_mutex_unlock(&threadsMutex);
 
     // Close all file descriptors marked with FD_CLOEXEC.
-    for (int i = fdTable.next(-1); i >= 0; i = fdTable.next(i)) {
-        if (fdTable[i].flags & FD_CLOEXEC) {
-            fdTable[i] = { nullptr, 0 };
+    for (auto& fdEntry : fdTable) {
+        if (fdEntry.flags & FD_CLOEXEC) {
+            fdEntry = { nullptr, 0 };
         }
     }
 
@@ -503,7 +503,7 @@ int Process::execute(Reference<Vnode>& vnode, char* const argv[],
         }
     }
 
-    if (threads.next(-1) == -1) {
+    if (threads.empty()) {
         Thread* thread = new Thread(this);
         if (!thread) {
             kernelSpace->unmapMemory(newKernelStack, PAGESIZE);
@@ -520,7 +520,7 @@ int Process::execute(Reference<Vnode>& vnode, char* const argv[],
         thread->tlsBase = tlsbase;
         thread->updateContext(newKernelStack, newInterruptContext, &initFpu);
     } else {
-        Thread* thread = threads[threads.next(-1)];
+        Thread* thread = threads.front();
         if (thread->tid != 0) {
             threads[thread->tid] = nullptr;
             threads[0] = thread;
@@ -541,14 +541,13 @@ void Process::exitThread(const struct exit_thread* data) {
     }
 
     if (data->flags & EXIT_PROCESS) {
-        for (pid_t tid = threads.next(-1); tid >= 0; tid = threads.next(tid)) {
-            if (tid != Thread::current()->tid) {
-                threads[tid]->forceKill = true;
+        for (auto thread : threads) {
+            if (thread != Thread::current()) {
+                thread->forceKill = true;
             }
         }
 
-        while (threads.next(-1) != Thread::current()->tid ||
-                    threads.next(Thread::current()->tid) != -1) {
+        while (!Util::containsOnly(threads, Thread::current())) {
             kthread_mutex_unlock(&threadsMutex);
             sched_yield();
             kthread_mutex_lock(&threadsMutex);
@@ -556,8 +555,7 @@ void Process::exitThread(const struct exit_thread* data) {
     }
 
     bool terminating = false;
-    if (threads.next(-1) == Thread::current()->tid &&
-            threads.next(Thread::current()->tid) == -1) {
+    if (Util::containsOnly(threads, Thread::current())) {
         terminating = true;
         terminationStatus.si_signo = SIGCHLD;
         terminationStatus.si_code = CLD_EXITED;
@@ -702,9 +700,9 @@ Process* Process::regfork(int flags, regfork_t* registers) {
 
     // Copy the file descriptor table except for fds with FD_CLOFORK set.
     kthread_mutex_lock(&fdMutex);
-    for (int i = fdTable.next(-1); i >= 0; i = fdTable.next(i)) {
-        if (fdTable[i].flags & FD_CLOFORK) continue;
-        if (process->fdTable.insert(i, fdTable[i]) < 0) {
+    for (auto fdEntry = fdTable.cbegin(); fdEntry != fdTable.cend(); ++fdEntry) {
+        if (fdEntry->flags & FD_CLOFORK) continue;
+        if (process->fdTable.insert(fdEntry.index, *fdEntry) < 0) {
             kthread_mutex_unlock(&fdMutex);
             process->terminate();
             delete thread;
@@ -855,7 +853,7 @@ pid_t Process::setsid() {
 }
 
 void Process::terminate() {
-    assert(threads.next(-1) == -1);
+    assert(threads.empty());
 
     if (ownsDisplay) {
         console->display->releaseDisplay();
@@ -911,14 +909,13 @@ void Process::terminateBySignal(siginfo_t siginfo) {
     assert(this == Process::current());
     kthread_mutex_lock(&threadsMutex);
 
-    for (pid_t tid = threads.next(-1); tid >= 0; tid = threads.next(tid)) {
-        if (tid != Thread::current()->tid) {
-            threads[tid]->forceKill = true;
+    for (auto thread : threads) {
+        if (thread != Thread::current()) {
+            thread->forceKill = true;
         }
     }
 
-    while (threads.next(-1) != Thread::current()->tid ||
-                threads.next(Thread::current()->tid) != -1) {
+    while (!Util::containsOnly(threads, Thread::current())) {
         kthread_mutex_unlock(&threadsMutex);
         sched_yield();
         kthread_mutex_lock(&threadsMutex);

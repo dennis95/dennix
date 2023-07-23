@@ -27,6 +27,80 @@
 template <typename T, typename TSize = size_t>
 class DynamicArray {
 public:
+    using value_type = T;
+    using reference = T&;
+    using const_reference = const T&;
+    using pointer = T*;
+    using const_pointer = const T*;
+    using size_type = TSize;
+
+    class iterator {
+    public:
+        iterator(DynamicArray& dynarray, size_type index) : dynarray{dynarray},
+                index{index} {}
+
+        iterator& operator++() {
+            index = dynarray.next(index);
+            return *this;
+        }
+
+        reference operator*() const {
+            return dynarray[index];
+        }
+
+        pointer operator->() const {
+            return &dynarray[index];
+        }
+
+        bool operator==(const iterator& other) const {
+            return index == other.index;
+        }
+
+        bool operator!=(const iterator& other) const{
+            return index != other.index;
+        }
+
+    private:
+        DynamicArray& dynarray;
+    public:
+        size_type index;
+    };
+
+    class const_iterator {
+    public:
+        const_iterator(const DynamicArray& dynarray, size_type index) :
+                dynarray{dynarray}, index{index} {}
+
+        const_iterator(const iterator& other) : dynarray{other.dynarray},
+                index{other.index} {}
+
+        const_iterator& operator++() {
+            index = dynarray.next(index);
+            return *this;
+        }
+
+        const_reference operator*() const {
+            return dynarray[index];
+        }
+
+        const_pointer operator->() const {
+            return &dynarray[index];
+        }
+
+        bool operator==(const const_iterator& other) const {
+            return index == other.index;
+        }
+
+        bool operator!=(const const_iterator& other) const{
+            return index != other.index;
+        }
+
+    private:
+        const DynamicArray& dynarray;
+    public:
+        size_type index;
+    };
+
     DynamicArray() {
         allocatedSize = 0;
         buffer = nullptr;
@@ -87,7 +161,7 @@ public:
         return index;
     }
 
-    TSize next(TSize index) {
+    TSize next(TSize index) const {
         for (TSize i = index + 1; i < allocatedSize; i++) {
             if (buffer[i]) return i;
         }
@@ -110,9 +184,50 @@ public:
         return true;
     }
 
-    T& operator[](TSize index) {
+    reference operator[](TSize index) {
         assert(index >= 0 && index < allocatedSize);
         return buffer[index];
+    }
+
+    const_reference operator[](TSize index) const {
+        assert(index >= 0 && index < allocatedSize);
+        return buffer[index];
+    }
+
+    bool empty() const {
+        return next(-1) == -1;
+    }
+
+    reference front() {
+        return (*this)[next(-1)];
+    }
+
+    const_reference front() const {
+        return (*this)[next(-1)];
+    }
+
+    iterator begin() {
+        return iterator(*this, next(-1));
+    }
+
+    const_iterator begin() const {
+        return const_iterator(*this, next(-1));
+    }
+
+    const_iterator cbegin() const {
+        return const_iterator(*this, next(-1));
+    }
+
+    iterator end() {
+        return iterator(*this, -1);
+    }
+
+    const_iterator end() const {
+        return const_iterator(*this, -1);
+    }
+
+    const_iterator cend() const {
+        return const_iterator(*this, -1);
     }
 
 public:

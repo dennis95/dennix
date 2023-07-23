@@ -151,10 +151,7 @@ size_t DevPts::getDirectoryEntries(void** buffer, int /*flags*/) {
     sizeUsed += dent->d_reclen;
 
     dent = (posix_dent*) ((char*) dent + dent->d_reclen);
-    for (unsigned int i = 0; i < pseudoTerminals.allocatedSize; i++) {
-        Reference<PseudoTerminal> pts = pseudoTerminals[i];
-        if (!pts) continue;
-
+    for (Reference<PseudoTerminal> pts : pseudoTerminals) {
         dent->d_ino = pts->stat().st_ino;
         int length = sprintf(dent->d_name, "%u", pts->number);
         dent->d_reclen = ALIGNUP(sizeof(posix_dent) + length + 1,
