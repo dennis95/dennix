@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -304,9 +304,9 @@ void Terminal::raiseSignal(int signal) {
     siginfo.si_code = SI_KERNEL;
 
     if (foregroundGroup > 0) {
-        Process* group = Process::getGroup(foregroundGroup);
+        ProcessGroup* group = Process::getGroup(foregroundGroup);
         if (group) {
-            group->raiseSignalForGroup(siginfo);
+            Process::raiseSignalForGroup(*group, siginfo);
         }
     }
 }

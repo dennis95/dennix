@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2019, 2020, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,35 +20,36 @@
 #ifndef KERNEL_MEMORYSEGMENT_H
 #define KERNEL_MEMORYSEGMENT_H
 
-#include <dennix/kernel/kernel.h>
+#include <dennix/kernel/list.h>
 
 #define SEG_NOUNMAP (1 << 16)
 
 class MemorySegment {
 public:
-    MemorySegment(vaddr_t address, size_t size, int flags, MemorySegment* prev,
-            MemorySegment* next);
+    MemorySegment(vaddr_t address, size_t size, int flags) : address{address},
+            size{size}, flags{flags} {}
 public:
     vaddr_t address;
     size_t size;
     int flags;
-    MemorySegment* prev;
-    MemorySegment* next;
+private:
+    MemorySegment* prev = nullptr;
+    MemorySegment* next = nullptr;
 public:
-    static bool addSegment(MemorySegment* firstSegment, vaddr_t address,
+    using List = LinkedList<MemorySegment, &MemorySegment::prev,
+            &MemorySegment::next>;
+
+    static bool addSegment(List& segments, vaddr_t address,
             size_t size, int protection);
     static void deallocateSegment(MemorySegment* segment);
-    static void removeSegment(MemorySegment* firstSegment, vaddr_t address,
-            size_t size);
-    static vaddr_t findAndAddNewSegment(MemorySegment* firstSegment,
+    static void removeSegment(List& segments, vaddr_t address, size_t size);
+    static vaddr_t findAndAddNewSegment(List& segments,
             size_t size, int protection);
 private:
-    static void addSegment(MemorySegment* firstSegment,
-            MemorySegment* newSegment);
+    static void addSegment(List& segments, MemorySegment* newSegment);
     static MemorySegment* allocateSegment(vaddr_t address, size_t size,
             int flags);
-    static MemorySegment* findFreeSegment(MemorySegment* firstSegment,
-            size_t size);
+    static List::iterator findFreeSegment(List& segments, size_t size);
     static bool verifySegmentList();
 };
 

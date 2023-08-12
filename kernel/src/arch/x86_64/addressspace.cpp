@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2019, 2020, 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -53,18 +53,15 @@ static char _kernelMappingArea[PAGESIZE] ALIGNED(PAGESIZE);
 
 // We need to create the initial kernel segments at compile time because
 // they are needed before memory allocations are possible.
-static MemorySegment segments[] = {
-    MemorySegment(0, 0xFFFF800000000000, PROT_NONE, nullptr, &segments[1]),
-    MemorySegment(RECURSIVE_MAPPING, -RECURSIVE_MAPPING, PROT_READ | PROT_WRITE,
-            &segments[0], &segments[2]),
+static MemorySegment kernelSegments[] = {
+    MemorySegment(0, 0xFFFF800000000000, PROT_NONE),
+    MemorySegment(RECURSIVE_MAPPING, 0x8000000000, PROT_READ | PROT_WRITE),
     MemorySegment((vaddr_t) &kernelVirtualBegin, (vaddr_t) &kernelExecEnd -
-            (vaddr_t) &kernelVirtualBegin, PROT_EXEC, &segments[1],
-            &segments[3]),
+            (vaddr_t) &kernelVirtualBegin, PROT_EXEC),
     MemorySegment((vaddr_t) &kernelExecEnd, (vaddr_t) &kernelReadOnlyEnd -
-            (vaddr_t) &kernelExecEnd, PROT_READ, &segments[2], &segments[4]),
+            (vaddr_t) &kernelExecEnd, PROT_READ),
     MemorySegment((vaddr_t) &kernelReadOnlyEnd, (vaddr_t) &kernelVirtualEnd -
-            (vaddr_t) &kernelReadOnlyEnd, PROT_READ | PROT_WRITE, &segments[3],
-            nullptr),
+            (vaddr_t) &kernelReadOnlyEnd, PROT_READ | PROT_WRITE),
 };
 
 struct PageIndex {
@@ -101,23 +98,20 @@ AddressSpace::AddressSpace() {
     if (this == kernelSpace) {
         pml4 = (paddr_t) &kernelPml4;
         mappingArea = (vaddr_t) _kernelMappingArea;
-        firstSegment = segments;
         prev = nullptr;
         next = nullptr;
     } else {
         pml4 = PhysicalMemory::popPageFrame();
         if (!pml4) FAIL_CONSTRUCTOR;
 
-        firstSegment = new MemorySegment(0, PAGESIZE, PROT_NONE | SEG_NOUNMAP,
-                nullptr, nullptr);
-        if (!firstSegment) FAIL_CONSTRUCTOR;
-        if (!MemorySegment::addSegment(firstSegment, 0x800000000000,
-                -0x800000000000, PROT_NONE | SEG_NOUNMAP)) {
+        if (!MemorySegment::addSegment(segments, 0, PAGESIZE,
+                PROT_NONE | SEG_NOUNMAP) || !MemorySegment::addSegment(segments,
+                0x800000000000, -0x800000000000, PROT_NONE | SEG_NOUNMAP)) {
             FAIL_CONSTRUCTOR;
         }
 
         mappingArea = MemorySegment::findAndAddNewSegment(
-                kernelSpace->firstSegment, PAGESIZE, PROT_NONE);
+                kernelSpace->segments, PAGESIZE, PROT_NONE);
         if (!mappingArea) FAIL_CONSTRUCTOR;
 
         AutoLock lock(&listMutex);
@@ -152,11 +146,9 @@ AddressSpace::~AddressSpace() {
         kthread_mutex_unlock(&listMutex);
     }
 
-    MemorySegment* currentSegment = firstSegment;
-
-    while (currentSegment) {
-        MemorySegment* next = currentSegment->next;
-
+    auto currentSegment = segments.begin();
+    while (currentSegment != segments.end()) {
+        auto next = Util::next(currentSegment);
         if (!(currentSegment->flags & SEG_NOUNMAP)) {
             unmapMemory(currentSegment->address, currentSegment->size);
         }
@@ -190,19 +182,24 @@ AddressSpace::~AddressSpace() {
             }
         }
         kernelSpace->unmap(mappingArea);
-        MemorySegment::removeSegment(kernelSpace->firstSegment, mappingArea,
+        MemorySegment::removeSegment(kernelSpace->segments, mappingArea,
                 PAGESIZE);
     }
-    if (firstSegment) {
-        if (firstSegment->next) {
-            MemorySegment::deallocateSegment(firstSegment->next);
-        }
-        delete firstSegment;
+    while (!segments.empty()) {
+        MemorySegment& segment = segments.front();
+        segments.remove(segment);
+        MemorySegment::deallocateSegment(&segment);
     }
     PhysicalMemory::pushPageFrame(pml4);
 }
 
 void AddressSpace::initialize() {
+    kernelSpace->segments.addFront(kernelSegments[4]);
+    kernelSpace->segments.addFront(kernelSegments[3]);
+    kernelSpace->segments.addFront(kernelSegments[2]);
+    kernelSpace->segments.addFront(kernelSegments[1]);
+    kernelSpace->segments.addFront(kernelSegments[0]);
+
     // Unmap the bootstrap sections
     vaddr_t p = (vaddr_t) &bootstrapBegin;
 

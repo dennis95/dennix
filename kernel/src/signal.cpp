@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
+/* Copyright (c) 2017, 2018, 2019, 2020, 2021, 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -208,14 +208,12 @@ void Process::raiseSignal(siginfo_t siginfo) {
     threads[firstThreadTid]->raiseSignal(siginfo);
 }
 
-void Process::raiseSignalForGroup(siginfo_t siginfo) {
-    AutoLock lock(&groupMutex);
-    assert(!prevInGroup);
+void Process::raiseSignalForGroup(ProcessGroup& group, siginfo_t siginfo) {
+    Process& groupLeader = group.front();
+    AutoLock lock(&groupLeader.groupMutex);
 
-    Process* process = this;
-    while (process) {
-        process->raiseSignal(siginfo);
-        process = process->nextInGroup;
+    for (auto& process : group) {
+        process.raiseSignal(siginfo);
     }
 }
 
@@ -332,10 +330,10 @@ int Syscall::kill(pid_t pid, int signal) {
             pgid = Process::current()->pgid;
         }
 
-        Process* processGroup = Process::getGroup(pgid);
+        ProcessGroup* processGroup = Process::getGroup(pgid);
         if (!processGroup) return -1;
         if (signal == 0) return 0;
-        processGroup->raiseSignalForGroup(siginfo);
+        Process::raiseSignalForGroup(*processGroup, siginfo);
     }
 
     return 0;

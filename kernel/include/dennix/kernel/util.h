@@ -24,12 +24,49 @@
 
 namespace Util {
 
+template <typename T>
+struct remove_reference {
+    typedef T type;
+};
+
+template <typename T>
+struct remove_reference<T&> {
+    typedef T type;
+};
+
+template <typename T>
+struct remove_reference<T&&> {
+    typedef T type;
+};
+
 template <typename Container>
 bool containsOnly(const Container& container,
         typename Container::const_reference element) {
     auto iter = container.begin();
     return iter != container.end() && *iter == element &&
             ++iter == container.end();
+}
+
+template <typename Iterator, typename Predicate>
+Iterator findIf(Iterator begin, Iterator end, Predicate pred) {
+    while (begin != end) {
+        if (pred(*begin)) {
+            return begin;
+        }
+        ++begin;
+    }
+
+    return end;
+}
+
+template <typename T>
+typename remove_reference<T>::type&& move(T&& obj) {
+    return static_cast<typename remove_reference<T>::type&&>(obj);
+}
+
+template <typename Iterator>
+Iterator next(Iterator iter) {
+    return ++iter;
 }
 
 }

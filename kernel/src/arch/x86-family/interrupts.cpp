@@ -21,6 +21,7 @@
 #include <signal.h>
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/console.h>
+#include <dennix/kernel/list.h>
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/portio.h>
 #include <dennix/kernel/registers.h>
@@ -75,7 +76,7 @@ public:
 static vaddr_t apicMapped;
 static int freeIrq = 16;
 static IoApic* firstIoApic;
-static IrqHandler* irqHandlers[220] = {0};
+static SinglyLinkedList<IrqHandler, &IrqHandler::next> irqHandlers[220];
 uint8_t Interrupts::apicId;
 bool Interrupts::hasApic;
 int Interrupts::isaIrq[16] =
@@ -130,8 +131,7 @@ void Interrupts::addIrqHandler(int irq, IrqHandler* handler) {
         }
     }
 
-    handler->next = irqHandlers[irq];
-    irqHandlers[irq] = handler;
+    irqHandlers[irq].addFront(*handler);
 }
 
 int Interrupts::allocateIrq() {
@@ -277,10 +277,8 @@ handleKernelException:
     } else if (context->interrupt <= 47 || context->interrupt >= 51) {
         int irq = context->interrupt <= 47 ? context->interrupt - 32 :
                 context->interrupt - 51 + 16;
-        IrqHandler* handler = irqHandlers[irq];
-        while (handler) {
-            handler->func(handler->user, context);
-            handler = handler->next;
+        for (const auto& handler : irqHandlers[irq]) {
+            handler.func(handler.user, context);
         }
 
         if (irq == Interrupts::timerIrq) {

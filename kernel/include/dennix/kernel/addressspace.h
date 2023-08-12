@@ -53,7 +53,7 @@ private:
             int protection);
     void unmap(vaddr_t virtualAddress);
 public:
-    MemorySegment* firstSegment;
+    MemorySegment::List segments;
 private:
     AddressSpace* prev;
     AddressSpace* next;

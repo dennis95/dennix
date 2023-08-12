@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,51 +27,35 @@
 static char segmentsPage[PAGESIZE] ALIGNED(PAGESIZE) = {0};
 static kthread_mutex_t mutex = KTHREAD_MUTEX_INITIALIZER;
 
-static inline size_t getFreeSpaceAfter(MemorySegment* segment) {
-    vaddr_t nextAddress = segment->next ? segment->next->address : 0;
+static inline size_t getFreeSpaceAfter(MemorySegment::List::iterator segment) {
+    auto next = Util::next(segment);
+    vaddr_t nextAddress = next != MemorySegment::List::iterator{} ?
+            next->address : 0;
     return nextAddress - (segment->address + segment->size);
 }
 
-MemorySegment::MemorySegment(vaddr_t address, size_t size, int flags,
-        MemorySegment* prev, MemorySegment* next) {
-    this->address = address;
-    this->size = size;
-    this->flags = flags;
-    this->prev = prev;
-    this->next = next;
-}
-
-void MemorySegment::addSegment(MemorySegment* firstSegment,
-        MemorySegment* newSegment) {
+void MemorySegment::addSegment(List& segments, MemorySegment* newSegment) {
     vaddr_t endAddress = newSegment->address + newSegment->size;
 
-    MemorySegment* currentSegment = firstSegment;
-
-    while (currentSegment->next &&
-            currentSegment->next->address < endAddress) {
-        currentSegment = currentSegment->next;
+    for (auto iter = segments.begin(); iter != segments.end(); ++iter) {
+        List::iterator next = Util::next(iter);
+        if (next == segments.end() || next->address >= endAddress) {
+            assert(iter->address + iter->size <= newSegment->address);
+            segments.addAfter(iter, *newSegment);
+            return;
+        }
     }
 
-    assert(currentSegment->address + currentSegment->size <=
-            newSegment->address);
-    assert(!currentSegment->next ||
-            currentSegment->next->address >= endAddress);
-
-    newSegment->prev = currentSegment;
-    newSegment->next = currentSegment->next;
-
-    currentSegment->next = newSegment;
-    if (newSegment->next) {
-        newSegment->next->prev = newSegment;
-    }
+    assert(newSegment->address == 0);
+    segments.addFront(*newSegment);
 }
 
-bool MemorySegment::addSegment(MemorySegment* firstSegment, vaddr_t address,
+bool MemorySegment::addSegment(List& segments, vaddr_t address,
         size_t size, int protection) {
     AutoLock lock(&mutex);
     if (!verifySegmentList()) return false;
     MemorySegment* newSegment = allocateSegment(address, size, protection);
-    addSegment(firstSegment, newSegment);
+    addSegment(segments, newSegment);
     return true;
 }
 
@@ -81,7 +65,7 @@ MemorySegment* MemorySegment::allocateSegment(vaddr_t address, size_t size,
     assert(PAGE_ALIGNED(size));
     MemorySegment* current = (MemorySegment*) segmentsPage;
 
-    while (current->address != 0 && current->size != 0) {
+    while (current->address != 0 || current->size != 0) {
         current++;
         if (((uintptr_t) current & PAGE_MISALIGN) ==
                 (PAGESIZE - PAGESIZE % sizeof(MemorySegment))) {
@@ -102,19 +86,18 @@ void MemorySegment::deallocateSegment(MemorySegment* segment) {
     memset(segment, 0, sizeof(MemorySegment));
 }
 
-void MemorySegment::removeSegment(MemorySegment* firstSegment, vaddr_t address,
+void MemorySegment::removeSegment(List& segments, vaddr_t address,
         size_t size) {
     AutoLock lock(&mutex);
-    MemorySegment* currentSegment = firstSegment;
     vaddr_t endAddress = address + size;
 
-    while (currentSegment &&
-            currentSegment->address + currentSegment->size <= address &&
-            currentSegment->address + currentSegment->size != 0) {
-        currentSegment = currentSegment->next;
-    }
+    auto currentSegment = Util::findIf(segments.begin(), segments.end(),
+            [address](const auto& seg) {
+                return seg.address + seg.size > address ||
+                        seg.address + seg.size == 0;
+            });
 
-    while (size && currentSegment) {
+    while (size && currentSegment != segments.end()) {
         if (currentSegment->address > address) {
             if (currentSegment->address > endAddress && endAddress != 0) {
                 return;
@@ -129,16 +112,10 @@ void MemorySegment::removeSegment(MemorySegment* firstSegment, vaddr_t address,
             address += currentSegment->size;
             size -= currentSegment->size;
 
-            MemorySegment* next = currentSegment->next;
-            if (next) {
-                next->prev = currentSegment->prev;
-            }
-            if (currentSegment->prev) {
-                currentSegment->prev->next = next;
-            }
-
-            deallocateSegment(currentSegment);
-            currentSegment = next;
+            List::iterator oldSegment = currentSegment;
+            ++currentSegment;
+            segments.remove(*oldSegment);
+            deallocateSegment(&*oldSegment);
             continue;
         } else if (currentSegment->address == address &&
                 currentSegment->size > size) {
@@ -166,38 +143,32 @@ void MemorySegment::removeSegment(MemorySegment* firstSegment, vaddr_t address,
             MemorySegment* newSegment = allocateSegment(endAddress, secondSize,
                     currentSegment->flags);
 
-            newSegment->prev = currentSegment;
-            newSegment->next = currentSegment->next;
-            if (newSegment->next) {
-                newSegment->next->prev = newSegment;
-            }
-
-            currentSegment->next = newSegment;
+            segments.addAfter(currentSegment, *newSegment);
             currentSegment->size = firstSize;
+            return;
         }
 
-        currentSegment = currentSegment->next;
+        ++currentSegment;
     }
 }
 
-MemorySegment* MemorySegment::findFreeSegment(MemorySegment* firstSegment,
+MemorySegment::List::iterator MemorySegment::findFreeSegment(List& segments,
         size_t size) {
-    MemorySegment* currentSegment = firstSegment;
-
-    while (currentSegment && getFreeSpaceAfter(currentSegment) < size) {
-        currentSegment = currentSegment->next;
+    for (auto iter = segments.begin(); iter != segments.end(); ++iter) {
+        if (getFreeSpaceAfter(iter) >= size) {
+            return iter;
+        }
     }
-
-    return currentSegment;
+    return segments.end();
 }
 
-vaddr_t MemorySegment::findAndAddNewSegment(MemorySegment* firstSegment,
+vaddr_t MemorySegment::findAndAddNewSegment(List& segments,
         size_t size, int protection) {
     AutoLock lock(&mutex);
 
     if (!verifySegmentList()) return 0;
-    MemorySegment* segment = findFreeSegment(firstSegment, size);
-    if (!segment) return 0;
+    auto segment = findFreeSegment(segments, size);
+    if (segment == segments.end()) return 0;
 
     vaddr_t address = segment->address + segment->size;
     if (segment->flags == protection) {
@@ -206,7 +177,7 @@ vaddr_t MemorySegment::findAndAddNewSegment(MemorySegment* firstSegment,
     }
 
     MemorySegment* newSegment = allocateSegment(address, size, protection);
-    addSegment(firstSegment, newSegment);
+    addSegment(segments, newSegment);
     return address;
 }
 
@@ -235,9 +206,9 @@ bool MemorySegment::verifySegmentList() {
     assert(freeSegmentSpaceFound > 0);
 
     if (freeSegmentSpaceFound == 1) {
-        current = findFreeSegment(kernelSpace->firstSegment, PAGESIZE);
-        if (!current) return false;
-        vaddr_t address = current->address + current->size;
+        auto segment = findFreeSegment(kernelSpace->segments, PAGESIZE);
+        if (segment == kernelSpace->segments.end()) return false;
+        vaddr_t address = segment->address + segment->size;
         paddr_t physical = PhysicalMemory::popPageFrame();
         if (!physical) return false;
         if (!kernelSpace->mapAt(address, physical, PROT_READ | PROT_WRITE)) {
@@ -248,13 +219,13 @@ bool MemorySegment::verifySegmentList() {
 
         memset(*nextPage, 0, PAGESIZE);
 
-        if (current->flags == (PROT_READ | PROT_WRITE)) {
-            current->size += PAGESIZE;
+        if (segment->flags == (PROT_READ | PROT_WRITE)) {
+            segment->size += PAGESIZE;
         } else {
             freeSegment->address = address;
             freeSegment->size = PAGESIZE;
             freeSegment->flags = PROT_READ | PROT_WRITE;
-            addSegment(kernelSpace->firstSegment, freeSegment);
+            addSegment(kernelSpace->segments, freeSegment);
         }
     }
 

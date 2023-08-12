@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, 2020, 2022 Dennis Wölfing
+/* Copyright (c) 2017, 2019, 2020, 2022, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,13 +24,11 @@
 
 int kthread_cond_broadcast(kthread_cond_t* cond) {
     kthread_mutex_lock(&cond->mutex);
-    while (cond->first) {
-        kthread_cond_waiter* waiter = cond->first;
-        cond->first = waiter->next;
-        __atomic_store_n(&waiter->blocked, false, __ATOMIC_RELEASE);
+    while (!cond->waiters.empty()) {
+        kthread_cond_waiter& waiter = cond->waiters.front();
+        cond->waiters.remove(waiter);
+        __atomic_store_n(&waiter.blocked, false, __ATOMIC_RELEASE);
     }
-    cond->last = nullptr;
-
     kthread_mutex_unlock(&cond->mutex);
     return 0;
 }
@@ -41,15 +39,8 @@ int kthread_cond_sigclockwait(kthread_cond_t* cond, kthread_mutex_t* mutex,
     kthread_mutex_unlock(mutex);
 
     kthread_cond_waiter waiter;
-    waiter.prev = cond->last;
-    waiter.next = nullptr;
     waiter.blocked = true;
-    if (cond->last) {
-        cond->last->next = &waiter;
-    } else {
-        cond->first = &waiter;
-    }
-    cond->last = &waiter;
+    cond->waiters.addBack(waiter);
     kthread_mutex_unlock(&cond->mutex);
 
     int result = 0;
@@ -77,16 +68,7 @@ int kthread_cond_sigclockwait(kthread_cond_t* cond, kthread_mutex_t* mutex,
         // Only remove the waiter from the list if we were not unblocked
         // concurrently. In that case the waiter was already removed.
         if (__atomic_load_n(&waiter.blocked, __ATOMIC_RELAXED)) {
-            if (waiter.prev) {
-                waiter.prev->next = waiter.next;
-            } else {
-                cond->first = waiter.next;
-            }
-            if (waiter.next) {
-                waiter.next->prev = waiter.prev;
-            } else {
-                cond->last = waiter.prev;
-            }
+            cond->waiters.remove(waiter);
         }
         kthread_mutex_unlock(&cond->mutex);
     }
@@ -97,15 +79,10 @@ int kthread_cond_sigclockwait(kthread_cond_t* cond, kthread_mutex_t* mutex,
 
 int kthread_cond_signal(kthread_cond_t* cond) {
     kthread_mutex_lock(&cond->mutex);
-    if (cond->first) {
-        kthread_cond_waiter* waiter = cond->first;
-        cond->first = waiter->next;
-        __atomic_store_n(&waiter->blocked, false, __ATOMIC_RELEASE);
-    }
-    if (cond->first) {
-        cond->first->prev = nullptr;
-    } else {
-        cond->last = nullptr;
+    if (!cond->waiters.empty()) {
+        kthread_cond_waiter& waiter = cond->waiters.front();
+        cond->waiters.remove(waiter);
+        __atomic_store_n(&waiter.blocked, false, __ATOMIC_RELEASE);
     }
     kthread_mutex_unlock(&cond->mutex);
     return 0;

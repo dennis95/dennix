@@ -25,6 +25,7 @@
 #include <dennix/kernel/interrupts.h>
 #include <dennix/kernel/kernel.h>
 #include <dennix/kernel/kthread.h>
+#include <dennix/kernel/list.h>
 
 class Process;
 
@@ -71,6 +72,8 @@ private:
     kthread_mutex_t signalMutex;
     kthread_cond_t signalCond;
 public:
+    using ThreadList = LinkedList<Thread, &Thread::prev, &Thread::next>;
+
     static void addThread(Thread* thread);
     static Thread* current() { return _current; }
     static Thread* idleThread;
@@ -80,6 +83,8 @@ public:
 private:
     static Thread* _current;
 };
+
+using ThreadList = Thread::ThreadList;
 
 void setKernelStack(uintptr_t stack);
 extern "C" {

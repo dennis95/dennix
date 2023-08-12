@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Dennis Wölfing
+/* Copyright (c) 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -31,9 +31,6 @@ BlockCacheDevice::BlockCacheDevice(mode_t mode, dev_t dev)
         : Vnode(mode | S_IFBLK, dev),
         blocks(sizeof(blockBuffer) / sizeof(blockBuffer[0]), blockBuffer) {
     cacheMutex = KTHREAD_MUTEX_INITIALIZER;
-    freeList = nullptr;
-    leastRecentlyUsed = nullptr;
-    mostRecentlyUsed = nullptr;
     workerJob.func = worker;
     workerJob.context = this;
 }
@@ -43,27 +40,8 @@ bool BlockCacheDevice::isSeekable() {
 }
 
 void BlockCacheDevice::useBlock(Block* block) {
-    // Remove the block from its current location.
-    if (block->prevAccessed) {
-        block->prevAccessed->nextAccessed = block->nextAccessed;
-    } else if (block == leastRecentlyUsed) {
-        leastRecentlyUsed = block->nextAccessed;
-    }
-    if (block->nextAccessed) {
-        block->nextAccessed->prevAccessed = block->prevAccessed;
-    } else if (block == mostRecentlyUsed) {
-        mostRecentlyUsed = block->prevAccessed;
-    }
-
-    // Add the block as the most recently used.
-    block->prevAccessed = mostRecentlyUsed;
-    if (mostRecentlyUsed) {
-        mostRecentlyUsed->nextAccessed = block;
-    } else {
-        leastRecentlyUsed = block;
-    }
-    mostRecentlyUsed = block;
-    block->nextAccessed = nullptr;
+    accessedBlocks.remove(*block);
+    accessedBlocks.addBack(*block);
 }
 
 ssize_t BlockCacheDevice::pread(void* buffer, size_t size, off_t offset,
@@ -138,6 +116,7 @@ ssize_t BlockCacheDevice::pread(void* buffer, size_t size, off_t offset,
                 block = allocatedBlock;
                 allocatedBlock = nullptr;
                 blocks.add(block);
+                accessedBlocks.addBack(*block);
             }
         }
 
@@ -285,36 +264,30 @@ ssize_t BlockCacheDevice::pwrite(const void* buffer, size_t size, off_t offset,
 
 void BlockCacheDevice::freeUnusedBlocks() {
     kthread_mutex_lock(&cacheMutex);
-    Block* block = freeList;
-    freeList = nullptr;
+    FreeList list;
+    list.swap(freeList);
     kthread_mutex_unlock(&cacheMutex);
 
-    while (block) {
+    while (!list.empty()) {
+        Block* block = &list.front();
         kernelSpace->unmapPhysical(block->address, PAGESIZE);
-        Block* nextBlock = block->nextFree;
+        list.removeFront();
         delete block;
-        block = nextBlock;
     }
 }
 
 paddr_t BlockCacheDevice::reclaimCache() {
     AutoLock lock(&cacheMutex);
 
-    Block* block = leastRecentlyUsed;
-    if (!block) return 0;
-
-    leastRecentlyUsed = block->nextAccessed;
-    if (leastRecentlyUsed) {
-        leastRecentlyUsed->prevAccessed = nullptr;
-    } else {
-        mostRecentlyUsed = nullptr;
-    }
+    if (accessedBlocks.empty()) return 0;
+    Block* block = &accessedBlocks.front();
+    accessedBlocks.remove(*block);
 
     blocks.remove(block->blockNumber);
 
-    block->nextFree = freeList;
-    freeList = block;
-    if (!block->nextFree) {
+    bool freeListWasEmpty = freeList.empty();
+    freeList.addFront(*block);
+    if (freeListWasEmpty) {
         Interrupts::disable();
         WorkerThread::addJob(&workerJob);
         Interrupts::enable();

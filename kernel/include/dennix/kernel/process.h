@@ -26,6 +26,7 @@
 #include <dennix/kernel/addressspace.h>
 #include <dennix/kernel/dynarray.h>
 #include <dennix/kernel/filedescription.h>
+#include <dennix/kernel/list.h>
 #include <dennix/kernel/terminal.h>
 #include <dennix/kernel/thread.h>
 #include <dennix/kernel/worker.h>
@@ -58,7 +59,6 @@ public:
     bool isParentOf(Process* process);
     Thread* newThread(int flags, regfork_t* registers, bool start = true);
     void raiseSignal(siginfo_t siginfo);
-    void raiseSignalForGroup(siginfo_t siginfo);
     Process* regfork(int flags, regfork_t* registers);
     int setpgid(pid_t pgid);
     pid_t setsid();
@@ -101,9 +101,11 @@ private:
     kthread_mutex_t threadsMutex;
 
     kthread_mutex_t childrenMutex;
-    Process* firstChild;
     Process* prevChild;
     Process* nextChild;
+    using ChildrenList = LinkedList<Process, &Process::prevChild,
+            &Process::nextChild>;
+    ChildrenList children;
 
     kthread_mutex_t fileMaskMutex;
     mode_t fileMask;
@@ -115,10 +117,14 @@ private:
     kthread_mutex_t parentMutex;
     Process* parent;
 public:
+    using ProcessGroup = LinkedList<Process, &Process::prevInGroup,
+            &Process::nextInGroup>;
+
     static bool addProcess(Process* process);
     static Process* current() { return Thread::current()->process; }
     static Process* get(pid_t pid);
-    static Process* getGroup(pid_t pgid);
+    static ProcessGroup* getGroup(pid_t pgid);
+    static void raiseSignalForGroup(ProcessGroup& group, siginfo_t siginfo);
     static Process* initProcess;
 private:
     static int copyArguments(char* const argv[], char* const envp[],
@@ -127,5 +133,7 @@ private:
             AddressSpace* newAddressSpace, vaddr_t& tlsbase,
             vaddr_t& userStack);
 };
+
+using ProcessGroup = Process::ProcessGroup;
 
 #endif

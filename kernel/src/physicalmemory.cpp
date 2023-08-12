@@ -25,6 +25,7 @@
 #include <dennix/kernel/panic.h>
 #include <dennix/kernel/physicalmemory.h>
 #include <dennix/kernel/syscall.h>
+#include <dennix/kernel/list.h>
 
 class MemoryStack {
 public:
@@ -42,7 +43,7 @@ private:
     vaddr_t lastStackPage;
 };
 
-static CacheController* firstCache;
+static SinglyLinkedList<CacheController, &CacheController::nextCache> caches;
 static char firstStackPage[PAGESIZE] ALIGNED(PAGESIZE);
 static size_t framesAvailable;
 static size_t framesReserved;
@@ -238,8 +239,8 @@ paddr_t PhysicalMemory::popPageFrame() {
     #endif
     }
 
-    for (CacheController* cache = firstCache; cache; cache = cache->nextCache) {
-        paddr_t result = cache->reclaimCache();
+    for (auto& cache : caches) {
+        paddr_t result = cache.reclaimCache();
         if (result) return result;
     }
 
@@ -282,9 +283,8 @@ bool PhysicalMemory::reserveFrames(size_t frames) {
     // caching can be unreclaimable for a short time frame.
     while (totalFramesOnStack < framesReserved + frames) {
         paddr_t address = 0;
-        for (CacheController* cache = firstCache; cache;
-                cache = cache->nextCache) {
-            address = cache->reclaimCache();
+        for (auto& cache : caches) {
+            address = cache.reclaimCache();
             if (address) break;
         }
 
@@ -312,8 +312,7 @@ void PhysicalMemory::unreserveFrames(size_t frames) {
 }
 
 CacheController::CacheController() {
-    nextCache = firstCache;
-    firstCache = this;
+    caches.addFront(*this);
 }
 
 paddr_t CacheController::allocateCache() {
@@ -331,9 +330,9 @@ paddr_t CacheController::allocateCache() {
 #endif
     }
 
-    for (CacheController* cache = firstCache; cache; cache = cache->nextCache) {
-        if (cache == this) continue;
-        paddr_t result = cache->reclaimCache();
+    for (auto& cache : caches) {
+        if (&cache == this) continue;
+        paddr_t result = cache.reclaimCache();
         if (result) return result;
     }
 

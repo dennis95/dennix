@@ -27,7 +27,7 @@
 
 Thread* Thread::_current;
 Thread* Thread::idleThread;
-static Thread* firstThread;
+static ThreadList threadList;
 
 __fpu_t initFpu;
 
@@ -70,24 +70,12 @@ void Thread::initializeIdleThread() {
 
 void Thread::addThread(Thread* thread) {
     Interrupts::disable();
-    thread->next = firstThread;
-    if (firstThread) {
-        firstThread->prev = thread;
-    }
-    firstThread = thread;
+    threadList.addFront(*thread);
     Interrupts::enable();
 }
 
 void Thread::removeThread(Thread* thread) {
-    if (thread->prev) {
-        thread->prev->next = thread->next;
-    } else if (firstThread == thread) {
-        firstThread = thread->next;
-    }
-
-    if (thread->next) {
-        thread->next->prev = thread->prev;
-    }
+    threadList.remove(*thread);
 }
 
 InterruptContext* Thread::schedule(InterruptContext* context) {
@@ -102,8 +90,8 @@ InterruptContext* Thread::schedule(InterruptContext* context) {
     if (_current->next) {
         _current = _current->next;
     } else {
-        if (firstThread) {
-            _current = firstThread;
+        if (!threadList.empty()) {
+            _current = &threadList.front();
         } else {
             _current = idleThread;
         }

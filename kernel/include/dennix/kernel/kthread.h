@@ -22,6 +22,7 @@
 
 #include <dennix/kernel/clock.h>
 #include <dennix/kernel/kernel.h>
+#include <dennix/kernel/list.h>
 
 typedef bool kthread_mutex_t;
 #define KTHREAD_MUTEX_INITIALIZER false
@@ -34,10 +35,10 @@ struct kthread_cond_waiter {
 
 typedef struct {
     kthread_mutex_t mutex;
-    kthread_cond_waiter* first;
-    kthread_cond_waiter* last;
+    LinkedListWithEnd<kthread_cond_waiter, &kthread_cond_waiter::prev,
+            &kthread_cond_waiter::next> waiters;
 } kthread_cond_t;
-#define KTHREAD_COND_INITIALIZER { KTHREAD_MUTEX_INITIALIZER, nullptr, nullptr }
+#define KTHREAD_COND_INITIALIZER { KTHREAD_MUTEX_INITIALIZER }
 
 int kthread_cond_broadcast(kthread_cond_t* cond);
 int kthread_cond_sigclockwait(kthread_cond_t* cond, kthread_mutex_t* mutex,

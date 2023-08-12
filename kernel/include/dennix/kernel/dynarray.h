@@ -22,7 +22,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <dennix/kernel/kernel.h>
+#include <dennix/kernel/util.h>
 
 template <typename T, typename TSize = size_t>
 class DynamicArray {
@@ -116,15 +116,15 @@ public:
     NOT_COPYABLE(DynamicArray);
     NOT_MOVABLE(DynamicArray);
 
-    TSize add(const T& obj) {
-        return addAt(0, obj);
+    TSize add(T obj) {
+        return addAt(0, Util::move(obj));
     }
 
-    TSize addAt(TSize index, const T& obj) {
+    TSize addAt(TSize index, T obj) {
         TSize i;
         for (i = index; i < allocatedSize; i++) {
             if (!buffer[i]) {
-                buffer[i] = obj;
+                buffer[i] = Util::move(obj);
                 return i;
             }
         }
@@ -134,7 +134,7 @@ public:
             return (TSize) -1;
         }
         if (!resize(newSize)) return (TSize) -1;
-        buffer[i] = obj;
+        buffer[i] = Util::move(obj);
         return i;
     }
 

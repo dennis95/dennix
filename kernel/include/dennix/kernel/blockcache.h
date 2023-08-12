@@ -22,6 +22,7 @@
 
 #include <dennix/kernel/cache.h>
 #include <dennix/kernel/hashtable.h>
+#include <dennix/kernel/list.h>
 #include <dennix/kernel/vnode.h>
 #include <dennix/kernel/worker.h>
 
@@ -62,9 +63,11 @@ private:
     HashTable<Block, uint64_t> blocks;
     Block* blockBuffer[10000];
     kthread_mutex_t cacheMutex;
-    Block* freeList;
-    Block* leastRecentlyUsed;
-    Block* mostRecentlyUsed;
+    using FreeList = SinglyLinkedList<Block, &Block::nextFree>;
+    FreeList freeList;
+    // Blocks ordered from least recently to most recently used.
+    LinkedListWithEnd<Block, &Block::prevAccessed, &Block::nextAccessed>
+            accessedBlocks;
     WorkerJob workerJob;
 private:
     void useBlock(Block* block);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2023 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -41,25 +41,24 @@ AddressSpace* AddressSpace::fork() {
 
     AddressSpace* result = new AddressSpace();
     if (!result) return nullptr;
-    MemorySegment* segment = firstSegment->next;
-    while (segment) {
-        if (!(segment->flags & SEG_NOUNMAP)) {
+    for (const auto& segment : segments) {
+        if (!(segment.flags & SEG_NOUNMAP)) {
             // Copy the segment
-            size_t size = segment->size;
-            if (!result->mapMemory(segment->address, size, segment->flags)) {
+            size_t size = segment.size;
+            if (!result->mapMemory(segment.address, size, segment.flags)) {
                 delete result;
                 return nullptr;
             }
 
             vaddr_t source = kernelSpace->mapFromOtherAddressSpace(this,
-                    segment->address, size, PROT_READ);
+                    segment.address, size, PROT_READ);
             if (!source) {
                 delete result;
                 return nullptr;
             }
 
             vaddr_t dest = kernelSpace->mapFromOtherAddressSpace(result,
-                    segment->address, size, PROT_WRITE);
+                    segment.address, size, PROT_WRITE);
             if (!dest) {
                 kernelSpace->unmapPhysical(source, size);
                 delete result;
@@ -70,7 +69,6 @@ AddressSpace* AddressSpace::fork() {
             kernelSpace->unmapPhysical(source, size);
             kernelSpace->unmapPhysical(dest, size);
         }
-        segment = segment->next;
     }
 
     return result;
@@ -79,7 +77,7 @@ AddressSpace* AddressSpace::fork() {
 vaddr_t AddressSpace::mapFromOtherAddressSpace(AddressSpace* sourceSpace,
         vaddr_t sourceVirtualAddress, size_t size, int protection) {
     kthread_mutex_lock(&mutex);
-    vaddr_t destination = MemorySegment::findAndAddNewSegment(firstSegment,
+    vaddr_t destination = MemorySegment::findAndAddNewSegment(segments,
             size, protection);
     kthread_mutex_unlock(&mutex);
     if (!destination) return 0;
@@ -94,7 +92,7 @@ vaddr_t AddressSpace::mapFromOtherAddressSpace(AddressSpace* sourceSpace,
             for (size_t j = 0; j < i; j += PAGESIZE) {
                 unmap(destination + j);
             }
-            MemorySegment::removeSegment(firstSegment, destination, size);
+            MemorySegment::removeSegment(segments, destination, size);
             return 0;
         }
         kthread_mutex_unlock(&mutex);
@@ -109,7 +107,7 @@ vaddr_t AddressSpace::mapMemoryInternal(vaddr_t virtualAddress, size_t size,
     size_t pages = size / PAGESIZE;
 
     if (!PhysicalMemory::reserveFrames(pages)) {
-        MemorySegment::removeSegment(firstSegment, virtualAddress, size);
+        MemorySegment::removeSegment(segments, virtualAddress, size);
         return 0;
     }
 
@@ -131,7 +129,7 @@ vaddr_t AddressSpace::mapMemoryInternal(vaddr_t virtualAddress, size_t size,
                 PhysicalMemory::pushPageFrame(physicalAddress);
                 kthread_mutex_lock(&mutex);
             }
-            MemorySegment::removeSegment(firstSegment, virtualAddress, size);
+            MemorySegment::removeSegment(segments, virtualAddress, size);
             return 0;
         }
     }
@@ -141,7 +139,7 @@ vaddr_t AddressSpace::mapMemoryInternal(vaddr_t virtualAddress, size_t size,
 
 vaddr_t AddressSpace::mapMemory(size_t size, int protection) {
     AutoLock lock(&mutex);
-    vaddr_t virtualAddress = MemorySegment::findAndAddNewSegment(firstSegment,
+    vaddr_t virtualAddress = MemorySegment::findAndAddNewSegment(segments,
             size, protection);
     if (!virtualAddress) return 0;
     return mapMemoryInternal(virtualAddress, size, protection);
@@ -151,7 +149,7 @@ vaddr_t AddressSpace::mapMemory(vaddr_t virtualAddress, size_t size,
         int protection) {
     AutoLock lock(&mutex);
 
-    if (!MemorySegment::addSegment(firstSegment, virtualAddress, size,
+    if (!MemorySegment::addSegment(segments, virtualAddress, size,
             protection)) {
         return 0;
     }
@@ -162,7 +160,7 @@ vaddr_t AddressSpace::mapPhysical(paddr_t physicalAddress, size_t size,
         int protection) {
     AutoLock lock(&mutex);
 
-    vaddr_t virtualAddress = MemorySegment::findAndAddNewSegment(firstSegment,
+    vaddr_t virtualAddress = MemorySegment::findAndAddNewSegment(segments,
             size, protection);
     if (!virtualAddress) return 0;
     for (size_t i = 0; i < size; i += PAGESIZE) {
@@ -170,7 +168,7 @@ vaddr_t AddressSpace::mapPhysical(paddr_t physicalAddress, size_t size,
             for (size_t j = 0; j < i; j += PAGESIZE) {
                 unmap(virtualAddress + j);
             }
-            MemorySegment::removeSegment(firstSegment, virtualAddress, size);
+            MemorySegment::removeSegment(segments, virtualAddress, size);
             return 0;
         }
     }
@@ -207,7 +205,7 @@ void AddressSpace::unmapMemory(vaddr_t virtualAddress, size_t size) {
         kthread_mutex_lock(&mutex);
     }
 
-    MemorySegment::removeSegment(firstSegment, virtualAddress, size);
+    MemorySegment::removeSegment(segments, virtualAddress, size);
 }
 
 void AddressSpace::unmapPhysical(vaddr_t virtualAddress, size_t size) {
@@ -217,5 +215,5 @@ void AddressSpace::unmapPhysical(vaddr_t virtualAddress, size_t size) {
         unmap(virtualAddress + i);
     }
 
-    MemorySegment::removeSegment(firstSegment, virtualAddress, size);
+    MemorySegment::removeSegment(segments, virtualAddress, size);
 }
