@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, 2020, 2022 Dennis Wölfing
+/* Copyright (c) 2017, 2019, 2020, 2022, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -63,12 +63,15 @@ int sigwait(const sigset_t* __restrict, int* __restrict);
 int sigwaitinfo(const sigset_t* __restrict, siginfo_t* __restrict);
 #endif
 
-#if __USE_DENNIX
-#  define NSIG _NSIG
+#if __USE_DENNIX || __USE_POSIX >= 202405L
 #  define SIG2STR_MAX 8
 
 int sig2str(int, char*);
 int str2sig(const char* __restrict, int* __restrict);
+#endif
+
+#if __USE_DENNIX
+#  define NSIG _NSIG
 #endif
 
 #ifdef __cplusplus

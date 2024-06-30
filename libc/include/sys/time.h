@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
+/* Copyright (c) 2018, 2019, 2020, 2021, 2022, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,8 +26,11 @@
 extern "C" {
 #endif
 
-int gettimeofday(struct timeval* __restrict, void* __restrict);
 int utimes(const char*, const struct timeval[2]);
+
+#if __USE_DENNIX || __USE_POSIX <= 200809L
+int gettimeofday(struct timeval* __restrict, void* __restrict);
+#endif
 
 #ifdef __cplusplus
 }

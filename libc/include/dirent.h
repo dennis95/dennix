@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2020, 2021, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,7 +26,7 @@
 #define __need_size_t
 #define __need_ssize_t
 #include <bits/types.h>
-#if __USE_DENNIX
+#if __USE_DENNIX || __USE_POSIX >= 202405L
 #  include <dennix/dent.h>
 #endif
 
@@ -66,11 +66,13 @@ void rewinddir(DIR*);
 int scandir(const char*, struct dirent***, int (*)(const struct dirent*),
         int (*)(const struct dirent**, const struct dirent**));
 
+#if __USE_DENNIX || __USE_POSIX >= 202405L
+ssize_t posix_getdents(int, void*, size_t, int);
+#endif
+
 #if __USE_DENNIX
 #  define IFTODT(mode) _IFTODT(mode)
 #  define DTTOIF(type) _DTTOIF(type)
-
-ssize_t posix_getdents(int, void*, size_t, int);
 #endif
 
 #ifdef __cplusplus

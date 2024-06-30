@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -38,7 +38,7 @@ int connect(int, const struct sockaddr*, socklen_t);
 int listen(int, int);
 int socket(int, int, int);
 
-#if __USE_DENNIX
+#if __USE_DENNIX || __USE_POSIX >= 202405L
 int accept4(int, struct sockaddr* __restrict, socklen_t* __restrict, int);
 #endif
 

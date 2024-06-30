@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -31,10 +31,12 @@
 #include <bits/types.h>
 #include <dennix/conf.h>
 #include <dennix/seek.h>
+#if __USE_DENNIX || __USE_POSIX >= 202405L
+#  include <dennix/oflags.h>
+#endif
 #if __USE_DENNIX
 #  include <dennix/fork.h>
 #  include <dennix/meminfo.h>
-#  include <dennix/oflags.h>
 #endif
 
 #ifdef __cplusplus
@@ -45,8 +47,13 @@ extern "C" {
    everything required by the options we define. However when an option is
    defined we intend to eventually provide all the missing functionality. */
 
-#define _POSIX_VERSION 200809L
-#define _POSIX2_VERSION 200809L
+#if __USE_POSIX != 200809L
+#  define _POSIX_VERSION 202405L
+#  define _POSIX2_VERSION 202405L
+#else
+#  define _POSIX_VERSION 200809L
+#  define _POSIX2_VERSION 200809L
+#endif
 
 /* #define _POSIX_ADVISORY_INFO */
 /* TODO: #define _POSIX_ASYNCHRONOUS_IO */
@@ -54,6 +61,7 @@ extern "C" {
 /* TODO: #define _POSIX_CHOWN_RESTRICTED */
 #define _POSIX_CLOCK_SELECTION _POSIX_VERSION
 #define _POSIX_CPUTIME _POSIX_VERSION
+#define _POSIX_DEVICE_CONTROL 202405L
 #define _POSIX_FSYNC _POSIX_VERSION
 /* #define _POSIX_IPV6 */
 #define _POSIX_JOB_CONTROL _POSIX_VERSION
@@ -96,13 +104,12 @@ extern "C" {
 #define _POSIX2_C_BIND _POSIX2_VERSION
 /* #define _POSIX2_C_DEV */
 /* #define _POSIX2_CHAR_TERM */
-/* #define _POSIX2_FORT_DEV */
 /* #define _POSIX2_FORT_RUN */
 /* #define _POSIX2_LOCALEDEF */
 /* #define _POSIX2_SW_DEV */
 /* #define _POSIX2_UPE */
 /* #define _XOPEN_CRYPT */
-/* TODO: #define _XOPEN_ENH_I18N */
+/* #define _XOPEN_ENH_I18N */
 /* #define _XOPEN_REALTIME */
 /* #define _XOPEN_REALTIME_THREADS */
 /* #define _XOPEN_SHM */
@@ -280,13 +287,16 @@ int unlink(const char*);
 int unlinkat(int, const char*, int);
 ssize_t write(int, const void*, size_t);
 
+#if __USE_DENNIX || __USE_POSIX >= 202405L
+int dup3(int, int, int);
+int getentropy(void*, size_t);
+int pipe2(int[2], int);
+#endif
+
 #if __USE_DENNIX
 typedef unsigned long useconds_t;
-int dup3(int, int, int);
 int fchdirat(int, const char*);
-int getentropy(void*, size_t);
 void meminfo(struct meminfo*);
-int pipe2(int[2], int);
 pid_t rfork(int);
 pid_t regfork(int, regfork_t*);
 int usleep(useconds_t);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2022 Dennis Wölfing
+/* Copyright (c) 2018, 2022, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +14,7 @@
  */
 
 /* libc/src/unistd/pipe2.c
- * Create a pipe. (called from POSIX2008)
+ * Create a pipe. (POSIX2024, called from POSIX2008)
  */
 
 #include <unistd.h>

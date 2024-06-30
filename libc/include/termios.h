@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2018, 2019, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2018, 2019, 2021, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,7 +24,7 @@
 #define __need_pid_t
 #include <bits/types.h>
 #include <dennix/termios.h>
-#if __USE_DENNIX
+#if __USE_DENNIX || __USE_POSIX >= 202405L
 #  include <dennix/winsize.h>
 #endif
 
@@ -40,10 +40,13 @@ int tcflush(int, int);
 int tcgetattr(int, struct termios*);
 int tcsetattr(int, int, const struct termios*);
 
-#if __USE_DENNIX
+#if __USE_DENNIX || _USE_POSIX >= 202405L
 int tcgetwinsize(int, struct winsize*);
-int tcsetsid(int, pid_t);
 int tcsetwinsize(int, const struct winsize*);
+#endif
+
+#if __USE_DENNIX
+int tcsetsid(int, pid_t);
 #endif
 
 #ifdef __cplusplus

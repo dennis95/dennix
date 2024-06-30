@@ -1,4 +1,4 @@
-/* Copyright (c) 2019, 2020, 2022, 2023 Dennis Wölfing
+/* Copyright (c) 2019, 2020, 2022, 2023, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -93,7 +93,7 @@
 #  define _POSIX2_RE_DUP_MAX 255
 #endif
 
-#if __USE_DENNIX
+#if __USE_DENNIX || __USE_POSIX >= 202405L
 #  define GETENTROPY_MAX _GETENTROPY_MAX
 #  define NSIG_MAX _NSIG_MAX
 #endif

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2022 Dennis Wölfing
+/* Copyright (c) 2018, 2022, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +14,7 @@
  */
 
 /* libc/src/stdlib/qsort_r.c
- * Sorting. (called from C89)
+ * Sorting. (POSIX2024, called from C89)
  */
 
 #include <limits.h>

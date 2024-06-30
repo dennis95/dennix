@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,8 +25,10 @@
 #define __need_size_t
 #define __need_wchar_t
 #include <bits/types.h>
-#if __USE_DENNIX
+#if __USE_DENNIX || __USE_POSIX >= 202405L
 #  include <dennix/oflags.h>
+#endif
+#if __USE_DENNIX
 #  include <stdint.h>
 #endif
 
@@ -108,17 +110,20 @@ int unlockpt(int);
 int unsetenv(const char*);
 #endif
 
+#if __USE_DENNIX || __USE_POSIX >= 202405L
+int mkostemp(char*, int);
+void qsort_r(void*, size_t, size_t, int (*)(const void*, const void*, void*),
+        void*);
+void* reallocarray(void*, size_t, size_t);
+#endif
+
 #if __USE_DENNIX
 uint32_t arc4random(void);
 void arc4random_buf(void*, size_t);
 uint32_t arc4random_uniform(uint32_t);
 char* canonicalize_file_name(const char*);
-int mkostemp(char*, int);
 int mkostemps(char*, int, int);
 int mkstemps(char*, int);
-void qsort_r(void*, size_t, size_t, int (*)(const void*, const void*, void*),
-        void*);
-void* reallocarray(void*, size_t, size_t);
 #endif
 
 #ifdef __cplusplus

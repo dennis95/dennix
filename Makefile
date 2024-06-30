@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2023 Dennis Wölfing
+# Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2023, 2024 Dennis Wölfing
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -97,7 +97,7 @@ $(INITRD): $(SYSROOT)
 	cd $(SYSROOT) && tar -cf - --format=ustar * | $(COMPRESS) > ../$(INITRD)
 
 qemu: $(ISO)
-	qemu-system-$(BASE_ARCH) -cdrom $^ -m 512M -cpu host -enable-kvm
+	qemu-system-$(BASE_ARCH) -cdrom $^ -m 1G -cpu host -enable-kvm
 
 sh: $(INCLUDE_DIR) $(LIB_DIR)
 	$(MAKE) -C sh

@@ -1,4 +1,4 @@
-/* Copyright (c) 2020 Dennis Wölfing
+/* Copyright (c) 2020, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,7 +22,7 @@
 
 #include <sys/cdefs.h>
 #include <dennix/poll.h>
-#if __USE_DENNIX
+#if __USE_DENNIX || __USE_POSIX >= 202405L
 #  include <dennix/sigset.h>
 #  include <dennix/timespec.h>
 #endif
@@ -33,7 +33,7 @@ extern "C" {
 
 int poll(struct pollfd[], nfds_t, int);
 
-#if __USE_DENNIX
+#if __USE_DENNIX || __USE_POSIX >= 202405L
 int ppoll(struct pollfd[], nfds_t, const struct timespec* __restrict,
         const sigset_t* __restrict);
 #endif

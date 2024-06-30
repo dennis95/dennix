@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Dennis Wölfing
+/* Copyright (c) 2018, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,10 @@
  */
 
 /* libc/src/stdio/vasprintf.c
- * Print formatted output.
+ * Print formatted output. (POSIX2024)
  */
 
+#define vcbprintf __vcbprintf
 #include <stdio.h>
 #include <stdlib.h>
 

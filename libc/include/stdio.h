@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022 Dennis Wölfing
+/* Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -137,9 +137,14 @@ int renameat(int, const char*, int, const char*);
 int vdprintf(int, const char* __restrict, __gnuc_va_list) __printf_like(2, 0);
 #endif
 
-#if __USE_DENNIX
+#if __USE_DENNIX || __USE_POSIX >= 202405L
 int asprintf(char** __restrict, const char* __restrict, ...)
         __printf_like(2, 3);
+int vasprintf(char** __restrict, const char* __restrict, __gnuc_va_list)
+        __printf_like(2, 0);
+#endif
+
+#if __USE_DENNIX
 void clearerr_unlocked(FILE*);
 int feof_unlocked(FILE*);
 int ferror_unlocked(FILE*);
@@ -154,8 +159,6 @@ off_t ftello_unlocked(FILE*);
 size_t fwrite_unlocked(const void* __restrict, size_t, size_t,
         FILE* __restrict);
 int ungetc_unlocked(int, FILE*);
-int vasprintf(char** __restrict, const char* __restrict, __gnuc_va_list)
-        __printf_like(2, 0);
 int vcbprintf(void*, size_t (*)(void*, const char*, size_t), const char*,
         __gnuc_va_list) __printf_like(3, 0);
 int vcbscanf(void*, int (*)(void*), int (*)(int, void*), const char* __restrict,

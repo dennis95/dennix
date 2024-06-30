@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2022 Dennis Wölfing
+/* Copyright (c) 2020, 2022, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +14,7 @@
  */
 
 /* libc/src/unistd/getentropy.c
- * Get entropy. (called from C89)
+ * Get entropy. (POSIX2024, called from C89)
  */
 
 #include <unistd.h>

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, 2020 Dennis Wölfing
+/* Copyright (c) 2016, 2020, 2024 Dennis Wölfing
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -39,7 +39,7 @@
 #    define _ISOC11_SOURCE 1
 #  endif
 #  if !defined(_POSIX_C_SOURCE)
-#    define _POSIX_C_SOURCE 200809L
+#    define _POSIX_C_SOURCE 202405L
 #  endif
 #  if !defined(_DENNIX_SOURCE)
 #    define _DENNIX_SOURCE 1
@@ -69,7 +69,9 @@
 #endif
 
 #if defined(_POSIX_C_SOURCE)
-#  if _POSIX_C_SOURCE >= 200809L
+#  if _POSIX_C_SOURCE >= 202405L
+#    define __USE_POSIX 202405L
+#  elif _POSIX_C_SOURCE >= 200809L
 #    define __USE_POSIX 200809L
 #  elif _POSIX_C_SOURCE >= 200112L
 #    define __USE_POSIX 200112L
@@ -88,7 +90,10 @@
 #  define __USE_POSIX 0
 #endif
 
-#if __USE_POSIX >= 200112L && __USE_C < 1999
+#if __USE_POSIX >= 202405L && __USE_C < 2011
+#  undef __USE_C
+#  define __USE_C 2011
+#elif __USE_POSIX >= 200112L && __USE_C < 1999
 #  undef __USE_C
 #  define __USE_C 1999
 #endif
